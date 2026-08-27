@@ -28,14 +28,15 @@ export function AppShell({children,userName}:{children:React.ReactNode;userName:
   return <div className="shell">
     <aside className="sidebar">
       <div className="brand-lockup">
-        <img src="/brand/carez-wordmark.png" alt="Carez Concrete" className="brand-wordmark"/>
+        <img src="/brand/carez-wordmark.png" alt="Carez" className="brand-wordmark"/>
+        <span className="brand-concrete">CONCRETE</span>
         <span className="brand-os">Operating System</span>
       </div>
       <nav className="nav">{desktopItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div>
     </aside>
     <main className="main">
-      <div className="topbar"><img src="/brand/carez-wordmark.png" alt="Carez Concrete" className="mobile-brand-wordmark"/><div className="user-chip">{userName}</div></div>
+      <div className="topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span className="mobile-brand-concrete">CONCRETE</span></div><div className="user-chip">{userName}</div></div>
       {children}
     </main>
     <nav className="mobile-nav">{mobileItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
