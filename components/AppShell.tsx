@@ -2,8 +2,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const desktopItems=[['/','Home'],['/leads','Leads'],['/projects','Projects'],['/field','Field'],['/costs','Job Costs'],['/crew','Crew'],['/overhead','Overhead'],['/settings','Settings']];
-const mobileItems=[['/','Home'],['/projects','Projects'],['/field','Field'],['/costs','Costs'],['/crew','Crew']];
+const desktopItems=[['/','Home'],['/leads','Leads'],['/estimates','Estimates'],['/projects','Projects'],['/field','Field'],['/costs','Job Costs'],['/crew','Crew'],['/overhead','Overhead'],['/settings','Settings']];
+const mobileItems=[['/','Home'],['/estimates','Estimates'],['/projects','Projects'],['/field','Field'],['/costs','Costs']];
 
 export function AppShell({children,userName}:{children:React.ReactNode;userName:string}){
   const pathname=usePathname();
