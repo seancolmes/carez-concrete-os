@@ -26,13 +26,15 @@ export async function createTimecard(formData:FormData){
 
   const {supabase,companyId}=await context();
   const year=Number(work_date.slice(0,4));
-  const [{data:crew},{data:tax},{data:taxStatus},{data:risk}]=await Promise.all([
+  const [{data:crew},{data:tax},{data:taxStatus},{data:risk},{data:overheadSnapshot,error:overheadError}]=await Promise.all([
     supabase.from('crew_members').select('id,name,hourly_rate,internal_field_rate,is_owner').eq('id',crew_member_id).eq('company_id',companyId).single(),
     supabase.from('labor_tax_settings').select('*').eq('company_id',companyId).eq('tax_year',year).maybeSingle(),
     supabase.from('employee_tax_status').select('*').eq('company_id',companyId).eq('crew_member_id',crew_member_id).eq('tax_year',year).maybeSingle(),
-    riskClassCode?supabase.from('li_risk_classes').select('*').eq('company_id',companyId).eq('tax_year',year).eq('code',riskClassCode).maybeSingle():Promise.resolve({data:null})
+    riskClassCode?supabase.from('li_risk_classes').select('*').eq('company_id',companyId).eq('tax_year',year).eq('code',riskClassCode).maybeSingle():Promise.resolve({data:null}),
+    supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:work_date})
   ]);
   if(!crew)throw new Error('Worker not found');
+  if(overheadError)throw new Error(`Overhead snapshot failed: ${overheadError.message}`);
 
   const isOwner=Boolean(crew.is_owner);
   const baseRate=Number(isOwner?(crew.internal_field_rate??crew.hourly_rate??0):(crew.hourly_rate??0));
@@ -57,6 +59,8 @@ export async function createTimecard(formData:FormData){
   const li=round(totalHours*liRate);
   const sickReserve=round(totalHours*baseRate*sickRate);
   const directCost=round(gross+ss+medicare+futa+sui+li+sickReserve);
+  const ohRate=Number(overheadSnapshot?.overhead_rate_per_productive_hour||0);
+  const overheadRecovery=round(totalHours*ohRate);
 
   await supabase.from('timecards').insert({
     company_id:companyId,project_id,crew_member_id,worker_name:crew.name,
@@ -69,6 +73,8 @@ export async function createTimecard(formData:FormData){
     gross_wage_cost:gross,employer_social_security_cost:ss,employer_medicare_cost:medicare,
     employer_futa_cost:futa,employer_wa_sui_cost:sui,employer_li_cost:li,
     sick_leave_reserve_cost:sickReserve,direct_labor_cost:directCost,
+    overhead_snapshot_id:overheadSnapshot?.id||null,overhead_rate_snapshot:ohRate,
+    overhead_recovery_cost:overheadRecovery,overhead_cost_method:'productive_hour_v1',
     labor_cost_method:isOwner?'owner_internal_v1':'statutory_v1',
     notes:String(formData.get('notes')||'').trim()||null
   });
