@@ -9,11 +9,21 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(url, key, {
     cookies: {
-      getAll() { return request.cookies.getAll(); },
-      setAll(items) {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(
+        items: Array<{
+          name: string;
+          value: string;
+          options?: Parameters<typeof response.cookies.set>[2];
+        }>,
+      ) {
         items.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        items.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        items.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
       },
     },
   });
