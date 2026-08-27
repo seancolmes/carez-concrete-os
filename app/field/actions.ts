@@ -2,99 +2,20 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
-async function context(){
-  const supabase=await createClient();
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user) throw new Error('Not signed in');
-  const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();
-  if(!profile?.company_id) throw new Error('Company profile missing');
-  return {supabase,user,companyId:profile.company_id};
-}
-
-const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
-const round=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
+async function context(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!profile?.company_id)throw new Error('Company profile missing');return {supabase,user,companyId:profile.company_id};}
+const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};const round=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 
 export async function createTimecard(formData:FormData){
-  const project_id=String(formData.get('project_id')||'');
-  const crew_member_id=String(formData.get('crew_member_id')||'');
-  const work_date=String(formData.get('work_date')||'');
-  const regularHours=n(formData.get('regular_hours'));
-  const overtimeHours=n(formData.get('overtime_hours'));
-  const totalHours=regularHours+overtimeHours;
-  const riskClassCode=String(formData.get('risk_class_code')||'');
-  if(!project_id||!crew_member_id||!work_date||totalHours<=0)return;
-
-  const {supabase,companyId}=await context();
-  const year=Number(work_date.slice(0,4));
-  const [{data:crew},{data:tax},{data:taxStatus},{data:risk},{data:overheadSnapshot,error:overheadError}]=await Promise.all([
-    supabase.from('crew_members').select('id,name,hourly_rate,internal_field_rate,is_owner').eq('id',crew_member_id).eq('company_id',companyId).single(),
-    supabase.from('labor_tax_settings').select('*').eq('company_id',companyId).eq('tax_year',year).maybeSingle(),
-    supabase.from('employee_tax_status').select('*').eq('company_id',companyId).eq('crew_member_id',crew_member_id).eq('tax_year',year).maybeSingle(),
-    riskClassCode?supabase.from('li_risk_classes').select('*').eq('company_id',companyId).eq('tax_year',year).eq('code',riskClassCode).maybeSingle():Promise.resolve({data:null}),
-    supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:work_date})
-  ]);
-  if(!crew)throw new Error('Worker not found');
-  if(overheadError)throw new Error(`Overhead snapshot failed: ${overheadError.message}`);
-
-  const isOwner=Boolean(crew.is_owner);
-  const baseRate=Number(isOwner?(crew.internal_field_rate??crew.hourly_rate??0):(crew.hourly_rate??0));
-  const gross=round(regularHours*baseRate+overtimeHours*baseRate*1.5);
-
-  let ssRate=0,medicareRate=0,futaRate=0,suiRate=0,liRate=0,sickRate=0;
-  if(!isOwner){
-    if(!tax)throw new Error(`Labor tax settings are missing for ${year}.`);
-    ssRate=taxStatus?.social_security_cap_reached?0:Number(tax.social_security_rate||0);
-    medicareRate=Number(tax.medicare_rate||0);
-    futaRate=taxStatus?.futa_cap_reached?0:Number(tax.futa_rate||0);
-    suiRate=taxStatus?.wa_sui_cap_reached?0:Number(tax.wa_sui_rate||0);
-    liRate=Number(risk?.employer_rate_per_hour||0);
-    sickRate=Number(tax.sick_leave_accrual_rate||0);
-    if(!risk)throw new Error('Select an L&I risk class for an employee timecard.');
-  }
-
-  const ss=round(gross*ssRate);
-  const medicare=round(gross*medicareRate);
-  const futa=round(gross*futaRate);
-  const sui=round(gross*suiRate);
-  const li=round(totalHours*liRate);
-  const sickReserve=round(totalHours*baseRate*sickRate);
-  const directCost=round(gross+ss+medicare+futa+sui+li+sickReserve);
-  const ohRate=Number(overheadSnapshot?.overhead_rate_per_productive_hour||0);
-  const overheadRecovery=round(totalHours*ohRate);
-
-  await supabase.from('timecards').insert({
-    company_id:companyId,project_id,crew_member_id,worker_name:crew.name,
-    work_date,task:String(formData.get('task')||'General'),hours:totalHours,
-    regular_hours:regularHours,overtime_hours:overtimeHours,
-    hourly_rate:baseRate,base_hourly_rate:baseRate,risk_class_code:isOwner?null:riskClassCode,
-    social_security_rate_snapshot:ssRate,medicare_rate_snapshot:medicareRate,
-    futa_rate_snapshot:futaRate,wa_sui_rate_snapshot:suiRate,
-    li_employer_rate_snapshot:liRate,sick_leave_accrual_rate_snapshot:sickRate,
-    gross_wage_cost:gross,employer_social_security_cost:ss,employer_medicare_cost:medicare,
-    employer_futa_cost:futa,employer_wa_sui_cost:sui,employer_li_cost:li,
-    sick_leave_reserve_cost:sickReserve,direct_labor_cost:directCost,
-    overhead_snapshot_id:overheadSnapshot?.id||null,overhead_rate_snapshot:ohRate,
-    overhead_recovery_cost:overheadRecovery,overhead_cost_method:'productive_hour_v1',
-    labor_cost_method:isOwner?'owner_internal_v1':'statutory_v1',
-    notes:String(formData.get('notes')||'').trim()||null
-  });
-  revalidatePath('/field');revalidatePath('/projects');
+ const project_id=String(formData.get('project_id')||''),crew_member_id=String(formData.get('crew_member_id')||''),work_date=String(formData.get('work_date')||''),budget_section_id=String(formData.get('budget_section_id')||'')||null;
+ const regularHours=n(formData.get('regular_hours')),overtimeHours=n(formData.get('overtime_hours')),totalHours=regularHours+overtimeHours,riskClassCode=String(formData.get('risk_class_code')||'');if(!project_id||!crew_member_id||!work_date||totalHours<=0)return;
+ const {supabase,companyId}=await context();const year=Number(work_date.slice(0,4));
+ const [{data:crew},{data:tax},{data:taxStatus},{data:risk},{data:overheadSnapshot,error:overheadError}]=await Promise.all([supabase.from('crew_members').select('id,name,hourly_rate,internal_field_rate,is_owner').eq('id',crew_member_id).eq('company_id',companyId).single(),supabase.from('labor_tax_settings').select('*').eq('company_id',companyId).eq('tax_year',year).maybeSingle(),supabase.from('employee_tax_status').select('*').eq('company_id',companyId).eq('crew_member_id',crew_member_id).eq('tax_year',year).maybeSingle(),riskClassCode?supabase.from('li_risk_classes').select('*').eq('company_id',companyId).eq('tax_year',year).eq('code',riskClassCode).maybeSingle():Promise.resolve({data:null}),supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:work_date})]);
+ if(!crew)throw new Error('Worker not found');if(overheadError)throw new Error(`Overhead snapshot failed: ${overheadError.message}`);
+ const isOwner=Boolean(crew.is_owner),baseRate=Number(isOwner?(crew.internal_field_rate??crew.hourly_rate??0):(crew.hourly_rate??0)),gross=round(regularHours*baseRate+overtimeHours*baseRate*1.5);
+ let ssRate=0,medicareRate=0,futaRate=0,suiRate=0,liRate=0,sickRate=0;if(!isOwner){if(!tax)throw new Error(`Labor tax settings are missing for ${year}.`);ssRate=taxStatus?.social_security_cap_reached?0:Number(tax.social_security_rate||0);medicareRate=Number(tax.medicare_rate||0);futaRate=taxStatus?.futa_cap_reached?0:Number(tax.futa_rate||0);suiRate=taxStatus?.wa_sui_cap_reached?0:Number(tax.wa_sui_rate||0);liRate=Number(risk?.employer_rate_per_hour||0);sickRate=Number(tax.sick_leave_accrual_rate||0);if(!risk)throw new Error('Select an L&I risk class for an employee timecard.');}
+ const ss=round(gross*ssRate),medicare=round(gross*medicareRate),futa=round(gross*futaRate),sui=round(gross*suiRate),li=round(totalHours*liRate),sickReserve=round(totalHours*baseRate*sickRate),directCost=round(gross+ss+medicare+futa+sui+li+sickReserve),ohRate=Number(overheadSnapshot?.overhead_rate_per_productive_hour||0),overheadRecovery=round(totalHours*ohRate);
+ await supabase.from('timecards').insert({company_id:companyId,project_id,budget_section_id,crew_member_id,worker_name:crew.name,work_date,task:String(formData.get('task')||'General'),hours:totalHours,regular_hours:regularHours,overtime_hours:overtimeHours,hourly_rate:baseRate,base_hourly_rate:baseRate,risk_class_code:isOwner?null:riskClassCode,social_security_rate_snapshot:ssRate,medicare_rate_snapshot:medicareRate,futa_rate_snapshot:futaRate,wa_sui_rate_snapshot:suiRate,li_employer_rate_snapshot:liRate,sick_leave_accrual_rate_snapshot:sickRate,gross_wage_cost:gross,employer_social_security_cost:ss,employer_medicare_cost:medicare,employer_futa_cost:futa,employer_wa_sui_cost:sui,employer_li_cost:li,sick_leave_reserve_cost:sickReserve,direct_labor_cost:directCost,overhead_snapshot_id:overheadSnapshot?.id||null,overhead_rate_snapshot:ohRate,overhead_recovery_cost:overheadRecovery,overhead_cost_method:'productive_hour_v1',labor_cost_method:isOwner?'owner_internal_v1':'statutory_v1',notes:String(formData.get('notes')||'').trim()||null});
+ revalidatePath('/field');revalidatePath('/projects');
 }
 
-export async function createDailyLog(formData:FormData){
-  const project_id=String(formData.get('project_id')||'');
-  const work_completed=String(formData.get('work_completed')||'').trim();
-  if(!project_id||!work_completed)return;
-  const {supabase,user,companyId}=await context();
-  const yards=Number(formData.get('concrete_yards')||0);
-  await supabase.from('daily_logs').insert({
-    company_id:companyId,project_id,
-    log_date:String(formData.get('log_date')||''),
-    weather:String(formData.get('weather')||'').trim()||null,
-    crew_count:Number(formData.get('crew_count')||0),work_completed,
-    concrete_yards:Number.isFinite(yards)?yards:0,
-    delays_issues:String(formData.get('delays_issues')||'').trim()||null,
-    notes:String(formData.get('notes')||'').trim()||null,created_by:user.id
-  });
-  revalidatePath('/field');
-}
+export async function createDailyLog(formData:FormData){const project_id=String(formData.get('project_id')||''),work_completed=String(formData.get('work_completed')||'').trim();if(!project_id||!work_completed)return;const {supabase,user,companyId}=await context();const yards=Number(formData.get('concrete_yards')||0);await supabase.from('daily_logs').insert({company_id:companyId,project_id,log_date:String(formData.get('log_date')||''),weather:String(formData.get('weather')||'').trim()||null,crew_count:Number(formData.get('crew_count')||0),work_completed,concrete_yards:Number.isFinite(yards)?yards:0,delays_issues:String(formData.get('delays_issues')||'').trim()||null,notes:String(formData.get('notes')||'').trim()||null,created_by:user.id});revalidatePath('/field');}
