@@ -42,7 +42,7 @@ export default async function ProjectsPage(){
    const b:any=bMap.get(p.id)||null;
    const adjusted=num(f.adjusted_contract),direct=num(f.total_direct_cost),oh=num(f.overhead_recovery),rev=num(f.revenue_cost_reserve),trueCost=num(f.true_company_cost),profit=num(f.profit_if_complete_now),margin=num(f.margin_if_complete_now),target=num(f.target_margin_percent),room=num(f.cost_room_to_target),isComplete=p.status==='completed';
    const pct=Math.max(0,num(b?.budget_cost_used_percent));
-   const progressState=pct>100?'danger':pct>=85?'warning':'';
+   const progressColor=pct>100?'#b42318':pct>=85?'#c57900':'var(--brand)';
    const statusClass=p.status==='on_hold'?'on-hold':p.status;
    const costRemaining=num(b?.total_cost_remaining);
    const laborHoursRemaining=num(b?.labor_hours_remaining);
@@ -51,7 +51,7 @@ export default async function ProjectsPage(){
 
     {b?<section className="project-section tinted">
      <div className="section-heading"><div className="section-heading-copy"><div className="section-kicker">Frozen Baseline</div><div className="section-title">Budget vs Actual</div><div className="section-heading-meta">{b.label}</div></div><div className="section-stat">{pct.toFixed(1)}% cost used</div></div>
-     <div className="progress-wrap"><div className="progress-track"><div className={`progress-fill ${progressState}`} style={{width:`${Math.min(100,pct)}%`}}/></div><div className="progress-caption"><span>Actual true cost {money(num(b.actual_total_company_cost))}</span><span>Budget {money(num(b.budget_total_company_cost))}</span></div></div>
+     <div className="progress-wrap"><div className="progress-track"><div className="progress-fill" style={{width:`${Math.min(100,pct)}%`,background:progressColor}}/></div><div className="progress-caption"><span>Actual true cost {money(num(b.actual_total_company_cost))}</span><span>Budget {money(num(b.budget_total_company_cost))}</span></div></div>
      <div className="metric-grid section">
       <div className="metric-card"><div className="label">Labor Hours</div><div className="metric-value">{num(b.actual_labor_hours).toFixed(1)} / {num(b.budget_labor_hours).toFixed(1)}</div><div className="metric-detail">{laborHoursRemaining.toFixed(1)} hr remaining</div></div>
       <div className="metric-card"><div className="label">Direct Cost</div><div className="metric-value">{money(num(b.actual_total_direct_cost))}</div><div className="metric-detail">Budget {money(num(b.budget_total_direct_cost))}</div></div>
