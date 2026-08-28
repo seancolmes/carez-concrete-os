@@ -13,8 +13,10 @@ export default async function BillingPage(){
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id').eq('id',user.id).single();
+  if(!profile?.company_id)redirect('/login');
+  const companyId=profile.company_id;
   const [{data:billingProfile},{data:projects},{data:projectBilling},{data:invoices},{data:lines},{data:changeOrders},{data:payments},{data:retainage}]=await Promise.all([
-    supabase.from('company_billing_profiles').select('*').eq('company_id',profile.company_id).maybeSingle(),
+    supabase.from('company_billing_profiles').select('*').eq('company_id',companyId).maybeSingle(),
     supabase.from('projects').select('id,job_number,name,status,customer_id,sales_tax_rate_percent,sales_tax_exempt,sales_tax_jurisdiction,customers(id,name,contact_name,email,phone,billing_terms,billing_address_line1,billing_address_line2,billing_city,billing_state,billing_postal_code)').in('status',['active','on_hold','completed']).order('job_number'),
     supabase.from('project_billing_summary').select('*').order('job_number'),
     supabase.from('invoice_financial_summary').select('*').order('issue_date',{ascending:false}).order('invoice_number',{ascending:false}),
@@ -35,7 +37,7 @@ export default async function BillingPage(){
   const totalRetainage=(projectBilling||[]).reduce((s:number,b:any)=>s+num(b.retainage_held),0);
   const aging=['current','1-30','31-60','61-90','90+'].map(bucket=>({bucket,total:(invoices||[]).filter((i:any)=>i.status==='sent'&&i.aging_bucket===bucket).reduce((s:number,i:any)=>s+Math.max(0,num(i.balance_due)),0)}));
 
-  return <AppShell userName={profile?.full_name||user.email||'Owner'}>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="page-heading"><div><h1 className="page-title">Billing</h1><p className="subtitle">Client invoices, retainage, customer payments and A/R tied to the authorized project contract.</p></div></div>
 
     <div className="grid grid4">
