@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { plaidConfigured,syncPlaidConnection } from '@/lib/plaid';
+import { analyzeBankTransactions } from '@/lib/bank-reconciliation';
 
 export const runtime='nodejs';
 export async function POST(){
@@ -11,6 +12,7 @@ export async function POST(){
     const {data:connections}=await supabase.from('plaid_connections').select('*').eq('company_id',profile.company_id).eq('status','active');
     let changed=0;
     for(const connection of connections||[]){try{const r=await syncPlaidConnection(supabase,profile.company_id,connection);changed+=r.changed;}catch(e:any){await supabase.from('plaid_connections').update({status:'needs_attention',last_error_code:e?.code||null,last_error_message:e?.message||'Plaid sync failed',updated_at:new Date().toISOString()}).eq('id',connection.id);}}
-    return NextResponse.json({configured:true,connections:(connections||[]).length,changed});
+    const reconciliation=await analyzeBankTransactions(supabase,profile.company_id);
+    return NextResponse.json({configured:true,connections:(connections||[]).length,changed,reconciliation});
   }catch(e:any){return NextResponse.json({error:e?.message||'Bank sync failed'},{status:500});}
 }
