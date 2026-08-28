@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, SlidersHorizontal, Banknote, Hammer, Receipt, HardHat, Gauge, Settings, Menu, KeyRound } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, SlidersHorizontal, Banknote, Hammer, Receipt, HardHat, Gauge, Settings, Menu, KeyRound, CalendarDays } from 'lucide-react';
 import { BankSyncPulse } from '@/components/PlaidBankControls';
 import { MobileNavSheet } from '@/components/MobileNavSheet';
 
@@ -11,7 +11,7 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   {label:'Overview',items:[{href:'/',label:'Home',Icon:Home,hint:'What needs your attention today'}]},
   {label:'Sales & Estimating',items:[{href:'/leads',label:'Leads',Icon:Users,hint:'Possible jobs and follow-ups'},{href:'/estimates',label:'Estimates',Icon:Calculator,hint:'Price jobs and build budgets'}]},
   {label:'Jobs & Field',items:[
-    {href:'/projects',label:'Projects',Icon:Briefcase,hint:'Active jobs and job health'},{href:'/change-orders',label:'Change Orders',Icon:ClipboardList,hint:'Extra work and approved changes'},{href:'/forecast',label:'Forecast',Icon:TrendingUp,hint:'Where each job is headed'},{href:'/pour-control',label:'Pour Control',Icon:ShieldCheck,hint:'Can we safely commit to the next pour?'},{href:'/field',label:'Field',Icon:Hammer,hint:'Time review, daily logs and field production'},{href:'/crew',label:'Crew',Icon:HardHat,hint:'Workers, rates and labor setup'},{href:'/crew/access',label:'Employee Access',Icon:KeyRound,hint:'Create employee clock logins'},
+    {href:'/projects',label:'Projects',Icon:Briefcase,hint:'Active jobs and job health'},{href:'/schedule',label:'Schedule',Icon:CalendarDays,hint:'Who is working where and what needs to happen next'},{href:'/change-orders',label:'Change Orders',Icon:ClipboardList,hint:'Extra work and approved changes'},{href:'/forecast',label:'Forecast',Icon:TrendingUp,hint:'Where each job is headed'},{href:'/pour-control',label:'Pour Control',Icon:ShieldCheck,hint:'Can we safely commit to the next pour?'},{href:'/field',label:'Field',Icon:Hammer,hint:'Time review, daily logs and field production'},{href:'/crew',label:'Crew',Icon:HardHat,hint:'Workers, rates and labor setup'},{href:'/crew/access',label:'Employee Access',Icon:KeyRound,hint:'Create employee clock logins'},
   ]},
   {label:'Purchasing',items:[{href:'/procurement',label:'Procurement',Icon:ShoppingCart,hint:'Quotes, orders, deliveries and vendor bills'}]},
   {label:'Money & Accounting',items:[
@@ -19,7 +19,7 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   ]},
   {label:'Company',items:[{href:'/settings',label:'Settings',Icon:Settings,hint:'Company setup and system controls'}]},
 ];
-const mobileItems:NavItem[]=[{href:'/',label:'Home',Icon:Home},{href:'/projects',label:'Projects',Icon:Briefcase},{href:'/field',label:'Field',Icon:Hammer},{href:'/pour-control',label:'Pours',Icon:ShieldCheck},{href:'/procurement',label:'Orders',Icon:ShoppingCart}];
+const mobileItems:NavItem[]=[{href:'/',label:'Home',Icon:Home},{href:'/projects',label:'Projects',Icon:Briefcase},{href:'/field',label:'Field',Icon:Hammer},{href:'/schedule',label:'Schedule',Icon:CalendarDays},{href:'/procurement',label:'Orders',Icon:ShoppingCart}];
 
 export function AppShell({children,userName}:{children:React.ReactNode;userName:string}){
   const pathname=usePathname();
