@@ -2,78 +2,21 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
-async function ctx(){
-  const supabase=await createClient();
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)throw new Error('Not signed in');
-  const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();
-  if(!profile?.company_id)throw new Error('Company profile missing');
-  return {supabase,companyId:profile.company_id};
-}
+async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!profile?.company_id)throw new Error('Company profile missing');return {supabase,companyId:profile.company_id};}
 const num=(v:FormDataEntryValue|null)=>{const n=Number(String(v??'').replace(/[$,% ,]/g,''));return Number.isFinite(n)?n:null;};
 
 export async function createCrewMember(formData:FormData){
-  const name=String(formData.get('name')||'').trim();
-  if(!name)return;
-  const role=String(formData.get('role')||'Concrete Laborer').trim();
-  const workerType=String(formData.get('worker_type')||'employee');
-  const availabilityType=String(formData.get('availability_type')||'regular');
-  const hourly=num(formData.get('hourly_rate'));
-  const ownerRate=num(formData.get('internal_field_rate'));
-  const startDate=String(formData.get('start_date')||'')||null;
-  const phone=String(formData.get('phone')||'').trim()||null;
-  const defaultRisk=String(formData.get('default_risk_class_code')||'')||null;
-  const skills=formData.getAll('skills').map(v=>String(v));
-  const {supabase,companyId}=await ctx();
-
-  const employment_type=workerType==='subcontractor'?'subcontractor':availabilityType==='on_call'?'on_call':'employee';
-  const isOwner=workerType==='owner';
-  const rate=isOwner?(ownerRate??hourly??0):(hourly??0);
-  const {data:member,error}=await supabase.from('crew_members').insert({
-    company_id:companyId,name,role,worker_type:workerType,availability_type:availabilityType,
-    employment_type,is_owner:isOwner,hourly_rate:rate,internal_field_rate:isOwner?rate:null,
-    default_risk_class_code:isOwner?null:defaultRisk,phone,start_date:startDate,skills,available:true,active:true
-  }).select('id').single();
-  if(error)throw new Error(error.message);
-  if(member&&rate!==null){
-    const rateType=isOwner?'owner_internal':workerType==='subcontractor'?'subcontractor_hourly':'hourly_wage';
-    await supabase.from('crew_rate_history').insert({company_id:companyId,crew_member_id:member.id,rate_type:rateType,amount:rate,effective_date:startDate||new Date().toISOString().slice(0,10)});
-  }
-  revalidatePath('/crew');revalidatePath('/field');
+ const name=String(formData.get('name')||'').trim();if(!name)return;const role=String(formData.get('role')||'Concrete Laborer').trim();const workerType=String(formData.get('worker_type')||'employee');const availabilityType=String(formData.get('availability_type')||'regular');const hourly=num(formData.get('hourly_rate'));const ownerRate=num(formData.get('internal_field_rate'));const startDate=String(formData.get('start_date')||'')||null;const phone=String(formData.get('phone')||'').trim()||null;const defaultRisk=String(formData.get('default_risk_class_code')||'')||null;const skills=formData.getAll('skills').map(String);const canReportProduction=formData.get('can_report_production')==='on';const {supabase,companyId}=await ctx();
+ const employment_type=workerType==='subcontractor'?'subcontractor':availabilityType==='on_call'?'on_call':'employee';const isOwner=workerType==='owner';const rate=isOwner?(ownerRate??hourly??0):(hourly??0);
+ const {data:member,error}=await supabase.from('crew_members').insert({company_id:companyId,name,role,worker_type:workerType,availability_type:availabilityType,employment_type,is_owner:isOwner,hourly_rate:rate,internal_field_rate:isOwner?rate:null,default_risk_class_code:isOwner?null:defaultRisk,phone,start_date:startDate,skills,can_report_production:canReportProduction,available:true,active:true}).select('id').single();if(error)throw new Error(error.message);
+ if(member&&rate!==null){const rateType=isOwner?'owner_internal':workerType==='subcontractor'?'subcontractor_hourly':'hourly_wage';await supabase.from('crew_rate_history').insert({company_id:companyId,crew_member_id:member.id,rate_type:rateType,amount:rate,effective_date:startDate||new Date().toISOString().slice(0,10)});}
+ revalidatePath('/crew');revalidatePath('/field');revalidatePath('/employee');
 }
 
 export async function updateCrewMember(formData:FormData){
-  const id=String(formData.get('id')||'');if(!id)return;
-  const {supabase,companyId}=await ctx();
-  const workerType=String(formData.get('worker_type')||'employee');
-  const availabilityType=String(formData.get('availability_type')||'regular');
-  const isOwner=workerType==='owner';
-  const hourly=num(formData.get('hourly_rate'))??0;
-  const ownerRate=num(formData.get('internal_field_rate'))??hourly;
-  const rate=isOwner?ownerRate:hourly;
-  const employment_type=workerType==='subcontractor'?'subcontractor':availabilityType==='on_call'?'on_call':'employee';
-  const active=formData.get('active')==='on';
-  const skills=formData.getAll('skills').map(v=>String(v));
-  await supabase.from('crew_members').update({
-    name:String(formData.get('name')||'').trim(),role:String(formData.get('role')||'').trim(),
-    worker_type:workerType,availability_type:availabilityType,employment_type,is_owner:isOwner,
-    hourly_rate:rate,internal_field_rate:isOwner?rate:null,
-    default_risk_class_code:isOwner?null:(String(formData.get('default_risk_class_code')||'')||null),
-    phone:String(formData.get('phone')||'').trim()||null,start_date:String(formData.get('start_date')||'')||null,
-    skills,active,available:active
-  }).eq('id',id).eq('company_id',companyId);
-  revalidatePath('/crew');revalidatePath('/field');
+ const id=String(formData.get('id')||'');if(!id)return;const {supabase,companyId}=await ctx();const workerType=String(formData.get('worker_type')||'employee');const availabilityType=String(formData.get('availability_type')||'regular');const isOwner=workerType==='owner';const hourly=num(formData.get('hourly_rate'))??0;const ownerRate=num(formData.get('internal_field_rate'))??hourly;const rate=isOwner?ownerRate:hourly;const employment_type=workerType==='subcontractor'?'subcontractor':availabilityType==='on_call'?'on_call':'employee';const active=formData.get('active')==='on';const canReportProduction=formData.get('can_report_production')==='on';const skills=formData.getAll('skills').map(String);
+ const {error}=await supabase.from('crew_members').update({name:String(formData.get('name')||'').trim(),role:String(formData.get('role')||'').trim(),worker_type:workerType,availability_type:availabilityType,employment_type,is_owner:isOwner,hourly_rate:rate,internal_field_rate:isOwner?rate:null,default_risk_class_code:isOwner?null:(String(formData.get('default_risk_class_code')||'')||null),phone:String(formData.get('phone')||'').trim()||null,start_date:String(formData.get('start_date')||'')||null,skills,can_report_production:canReportProduction,active,available:active}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);
+ revalidatePath('/crew');revalidatePath('/field');revalidatePath('/employee');
 }
 
-export async function changeCrewRate(formData:FormData){
-  const id=String(formData.get('id')||'');const amount=num(formData.get('amount'));const effective=String(formData.get('effective_date')||'');
-  if(!id||amount===null||!effective)return;
-  const {supabase,companyId}=await ctx();
-  const {data:member}=await supabase.from('crew_members').select('is_owner,worker_type').eq('id',id).eq('company_id',companyId).single();
-  if(!member)return;
-  const rateType=member.is_owner?'owner_internal':member.worker_type==='subcontractor'?'subcontractor_hourly':'hourly_wage';
-  await supabase.from('crew_rate_history').update({end_date:effective}).eq('crew_member_id',id).eq('rate_type',rateType).is('end_date',null).lt('effective_date',effective);
-  await supabase.from('crew_rate_history').upsert({company_id:companyId,crew_member_id:id,rate_type:rateType,amount,effective_date:effective},{onConflict:'crew_member_id,rate_type,effective_date'});
-  await supabase.from('crew_members').update(member.is_owner?{hourly_rate:amount,internal_field_rate:amount}:{hourly_rate:amount}).eq('id',id).eq('company_id',companyId);
-  revalidatePath('/crew');revalidatePath('/field');
-}
+export async function changeCrewRate(formData:FormData){const id=String(formData.get('id')||'');const amount=num(formData.get('amount'));const effective=String(formData.get('effective_date')||'');if(!id||amount===null||!effective)return;const {supabase,companyId}=await ctx();const {data:member}=await supabase.from('crew_members').select('is_owner,worker_type').eq('id',id).eq('company_id',companyId).single();if(!member)return;const rateType=member.is_owner?'owner_internal':member.worker_type==='subcontractor'?'subcontractor_hourly':'hourly_wage';await supabase.from('crew_rate_history').update({end_date:effective}).eq('crew_member_id',id).eq('rate_type',rateType).is('end_date',null).lt('effective_date',effective);await supabase.from('crew_rate_history').upsert({company_id:companyId,crew_member_id:id,rate_type:rateType,amount,effective_date:effective},{onConflict:'crew_member_id,rate_type,effective_date'});await supabase.from('crew_members').update(member.is_owner?{hourly_rate:amount,internal_field_rate:amount}:{hourly_rate:amount}).eq('id',id).eq('company_id',companyId);revalidatePath('/crew');revalidatePath('/field');}
