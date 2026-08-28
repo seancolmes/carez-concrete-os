@@ -5,7 +5,7 @@ on conflict (id) do nothing;
 
 drop policy if exists "carez document read" on storage.objects;
 create policy "carez document read" on storage.objects for select to authenticated
-using (bucket_id='carez-documents' and split_part(name,'/',1)=public.get_my_company_id()::text);
+using (bucket_id='carez-documents' and split_part(name,'/',1)=public.get_my_company_id()::text and public.get_my_role()<>'employee');
 
 drop policy if exists "carez document insert" on storage.objects;
 create policy "carez document insert" on storage.objects for insert to authenticated
