@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { updateOverheadItem, updateOverheadPlan } from './actions';
@@ -15,9 +16,10 @@ export default async function OverheadPage(){
   const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id').eq('id',user.id).maybeSingle();
   if(!profile?.company_id)redirect('/settings');
-  const [{data:company},{data:items}]=await Promise.all([
+  const [{data:company},{data:items},{data:actual}]=await Promise.all([
     supabase.from('companies').select('target_margin_percent,planned_productive_hours_annual,owner_compensation_target_annual,owner_planned_field_hours_annual,owner_field_rate').eq('id',profile.company_id).single(),
-    supabase.from('overhead_items').select('*').eq('company_id',profile.company_id).order('sort_order')
+    supabase.from('overhead_items').select('*').eq('company_id',profile.company_id).order('sort_order'),
+    supabase.from('company_expense_summary').select('*').eq('company_id',profile.company_id).maybeSingle()
   ]);
   const regularAnnual=(items||[]).reduce((s,i)=>s+annualize(i),0);
   const ownerFieldValue=num(company?.owner_planned_field_hours_annual)*num(company?.owner_field_rate);
@@ -30,15 +32,16 @@ export default async function OverheadPage(){
   const grouped=new Map<string,any[]>();for(const item of items||[]){const arr=grouped.get(item.category)||[];arr.push(item);grouped.set(item.category,arr);}
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <h1 className="page-title">Overhead</h1><p className="subtitle">What Carez must recover before profit. Direct labor and direct job costs are intentionally excluded.</p>
+    <div className="page-heading"><div><h1 className="page-title">Overhead</h1><p className="subtitle">What Carez must recover before profit. Direct labor and direct job costs are intentionally excluded.</p></div><Link className="button secondary" href="/cashflow">Actual Expenses & Cashflow</Link></div>
     <div className="grid grid4">
       <div className="card"><div className="label">Annual Overhead</div><div className="value">{money(totalAnnual)}</div></div>
       <div className="card"><div className="label">Monthly Requirement</div><div className="value">{money(totalMonthly)}</div></div>
+      <div className="card"><div className="label">Actual Operating Expense — Month</div><div className="value">{money(num(actual?.current_month_business_expense))}</div><div className="meta">Excludes owner management allowance; see Cashflow for ledger detail.</div></div>
       <div className="card"><div className="label">Planned Productive Hours</div><div className="value">{productive.toFixed(0)}</div></div>
       <div className="card"><div className="label">OH / Productive Hr</div><div className="value">{money(ohPerHour)}</div></div>
     </div>
 
-    <div className="alert warn section"><strong>Planning model:</strong> owner management overhead is calculated as annual owner compensation target minus planned owner field labor value. Owner field labor remains a direct project cost.</div>
+    <div className="alert warn section"><strong>Planning model:</strong> owner management overhead is calculated as annual owner compensation target minus planned owner field labor value. Owner field labor remains a direct project cost. Actual operating expenses are tracked separately in Cashflow.</div>
 
     <div className="split section">
       <div className="card"><div className="title">Owner & Pricing Plan</div><form action={updateOverheadPlan} className="form" style={{marginTop:12}}>
