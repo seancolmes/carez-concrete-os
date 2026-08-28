@@ -38,7 +38,7 @@ export default async function Dashboard(){
       <div className="card"><div className="label">Unbilled Backlog</div><div className="value">{money(backlog)}</div><div className="meta">Authorized active contract not yet invoiced</div></div>
       <div className={`card ${overdueAR>0?'elevated':''}`}><div className="label">Outstanding A/R</div><div className="value">{money(outstandingAR)}</div><div className="meta">Overdue {money(overdueAR)}</div></div>
       <div className={`card ${overdueAP>0?'elevated':''}`}><div className="label">Open A/P</div><div className="value">{money(openAP)}</div><div className="meta">Due next 7 days {money(dueNext7)} · Overdue {money(overdueAP)}</div></div>
-      <div className={`card ${cashConfigured&&safeCash<0?'elevated':''}`}><div className="label">Safe Operating Cash</div><div className="value">{cashConfigured?money(safeCash):'Not entered'}</div><div className="meta">{cashConfigured?`Bank basis ${cash.balance_as_of} · Known obligations ${money(knownObligations)}`:'Enter current bank balance in Cashflow'}</div></div>
+      <div className={`card ${cashConfigured&&safeCash<0?'elevated':''}`}><div className="label">Safe Operating Cash</div><div className="value">{cashConfigured?money(safeCash):'Not entered'}</div><div className="meta">{cashConfigured?`Bank basis ${cash?.balance_as_of} · Known obligations ${money(knownObligations)}`:'Enter current bank balance in Cashflow'}</div></div>
     </div>
     {open.length===0&&<div className="alert danger"><strong>Sales pipeline is empty.</strong> Add every possible job immediately.</div>}
     {overdueAR>0&&<div className="alert danger"><strong>Collections attention.</strong> {money(overdueAR)} is currently overdue from customers.</div>}
