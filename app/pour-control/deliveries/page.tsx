@@ -1,73 +1,58 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/AppShell';
-import { createClient } from '@/lib/supabase/server';
+import {redirect} from 'next/navigation';
+import {AppShell} from '@/components/AppShell';
+import {createClient} from '@/lib/supabase/server';
+import {createPlacementPackageFromPour,reviewTicketProduction} from './actions';
 
 const num=(v:any)=>Number(v||0);
 const cy=(v:any)=>`${num(v).toFixed(2)} CY`;
+const syncLabel=(s:string)=>s==='unlinked'?'NOT CONNECTED':s==='waiting_delivery'?'WAITING FOR TICKETS':s==='missing_evidence'?'MISSING TICKET EVIDENCE':s==='pour_open'?'TRACKING LIVE':s==='closed_no_delivery'?'CHECK DELIVERY':s==='needs_review'?'REVIEW ACTUAL':s==='excluded'?'EXCLUDED FROM LEARNING':s==='synced'?'PRODUCTION SYNCED':'READY TO SYNC';
 
 export default async function PourDeliveryActualsPage(){
-  const supabase=await createClient();
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)redirect('/login');
+ const supabase=await createClient();
+ const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
+ const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
+ if(!profile?.company_id)redirect('/login');if(profile.role==='employee')redirect('/employee');const companyId=profile.company_id;
+ const [{data:rows,error},{data:cyTasks}]=await Promise.all([
+  supabase.from('pour_work_package_delivery_sync').select('*').eq('company_id',companyId).order('scheduled_date',{ascending:true,nullsFirst:false}).order('job_number'),
+  supabase.from('production_tasks').select('id,name,category,production_unit').eq('company_id',companyId).eq('active',true).eq('production_unit','CY').order('sort_order')
+ ]);
+ const active=(rows||[]).filter((r:any)=>!['completed','cancelled'].includes(r.pour_status));
+ const missingPhotos=active.reduce((s:number,r:any)=>s+num(r.tickets_missing_photo),0);
+ const delivered=active.reduce((s:number,r:any)=>s+num(r.delivered_cy),0);
+ const planned=active.reduce((s:number,r:any)=>s+num(r.planned_cy),0);
+ const linked=(rows||[]).filter((r:any)=>r.operation_id).length;
+ const blocked=(rows||[]).filter((r:any)=>['missing_evidence','closed_no_delivery','needs_review'].includes(r.sync_status)).length;
+ const synced=(rows||[]).filter((r:any)=>r.sync_status==='synced').length;
+ return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page">
+  <div className="command-hero"><div><div className="section-kicker">READY-MIX ACTUALS</div><h1>Concrete Deliveries</h1><p>Every matched concrete ticket updates delivered CY. Linked placement work uses those same tickets as production quantity—no duplicate field entry.</p></div><div className="command-actions"><Link className="button secondary" href="/pour-control">Pour Control</Link><Link className="button secondary" href="/production/work-packages">Work Packages</Link><Link className="button" href="/documents">Review Tickets</Link></div></div>
+  {error&&<div className="alert danger"><strong>Delivery actuals could not be loaded.</strong> {error.message}</div>}
+  <div className="command-grid"><div className="command-card"><div className="command-label">Active Planned</div><div className="command-value">{cy(planned)}</div><div className="command-help">Expected ready-mix across open pours.</div></div><div className="command-card"><div className="command-label">Delivered On Site</div><div className="command-value">{cy(delivered)}</div><div className="command-help">Posted from concrete delivery receipts.</div></div><div className={`command-card ${missingPhotos?'bad':'good'}`}><div className="command-label">Tickets Missing Photo</div><div className="command-value">{missingPhotos}</div><div className="command-help">Production auto-close waits for matched evidence.</div></div><div className={`command-card ${blocked?'bad':'good'}`}><div className="command-label">Automation Exceptions</div><div className="command-value">{blocked}</div><div className="command-help">Only ticket/pour issues needing office attention.</div></div><div className="command-card good"><div className="command-label">Production Links</div><div className="command-value">{linked}</div><div className="command-help">Pours connected to ticket-measured CY work.</div></div><div className="command-card good"><div className="command-label">Auto-Synced</div><div className="command-value">{synced}</div><div className="command-help">Completed placement scopes fed by ticket actuals.</div></div></div>
 
-  const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
-  if(!profile?.company_id)redirect('/login');
-  if(profile.role==='employee')redirect('/employee');
+  <div className="alert info"><strong>Automation rule:</strong> tickets update actual CY immediately. Carez marks ticket-measured placement complete only after the pour is closed and every receipt has matched ticket evidence. A large quantity variance is held out of estimating history until reviewed.</div>
 
-  const [{data:actuals,error},{data:plans}]=await Promise.all([
-    supabase.from('pour_delivery_actual_summary').select('*').order('scheduled_date',{ascending:true,nullsFirst:false}).order('job_number'),
-    supabase.from('pour_plan_financial_summary').select('pour_plan_id,status,system_recommendation').order('scheduled_date',{ascending:true,nullsFirst:false})
-  ]);
+  <section className="section"><div className="section-heading"><div><div className="section-kicker">TICKET → PRODUCTION</div><div className="section-title">Pour Delivery & Earned Production</div><div className="section-heading-meta">Planned CY remains the takeoff baseline. Delivered CY becomes the actual. Employee man-hours stay tied to the physical work package.</div></div></div>
+   <div className="project-list">{(rows||[]).length===0?<div className="empty-state"><div><div className="title">No concrete delivery activity yet</div><div className="meta">Create a pour plan and ready-mix PO. Delivery tickets will appear here and can feed production automatically.</div></div></div>:(rows||[]).map((r:any)=>{
+    const plannedCy=num(r.planned_cy),orderedCy=num(r.ordered_cy),deliveredCy=num(r.delivered_cy),remaining=num(r.remaining_to_plan_cy),variance=num(r.variance_to_plan_cy),missing=num(r.tickets_missing_photo),pct=num(r.percent_of_plan_delivered),over=variance>0.005,planDelivered=plannedCy>0&&remaining<=0.005,linked=Boolean(r.operation_id),sync=String(r.sync_status||'unlinked');
+    return <article className="project-card" key={r.pour_plan_id}>
+     <header className="project-header"><div><div className="project-name">{r.job_number} — {r.pour_name||'Pour'}</div><div className="project-location">{r.scheduled_date?`Scheduled ${r.scheduled_date}`:'Date not set'} · {pct.toFixed(0)}% of plan delivered</div></div><div className="action-row"><span className={`status ${sync==='synced'?'completed':['missing_evidence','closed_no_delivery','needs_review'].includes(sync)?'on-hold':linked?'active':''}`}>{syncLabel(sync)}</span><span className={`status ${r.pour_status==='completed'?'completed':r.pour_status==='authorized'?'active':''}`}>{String(r.pour_status||'planning').replace('_',' ')}</span></div></header>
+     <section className="project-section"><div className="metric-grid"><div className="metric-card"><div className="label">Planned</div><div className="metric-value">{cy(plannedCy)}</div><div className="metric-detail">Estimate / pour plan baseline</div></div><div className="metric-card"><div className="label">Ordered</div><div className="metric-value">{cy(orderedCy)}</div><div className="metric-detail">Issued ready-mix PO quantity</div></div><div className={`metric-card ${planDelivered?'positive':''}`}><div className="label">Ticket Actual</div><div className="metric-value">{cy(deliveredCy)}</div><div className="metric-detail">Matched PO receipts on site</div></div><div className={`metric-card ${over?'danger-metric':''}`}><div className="label">Variance</div><div className="metric-value">{variance>0?'+':''}{cy(variance)}</div><div className="metric-detail">Remaining to plan {cy(remaining)}</div></div></div>
+      <div className="metric-grid section"><div className="metric-card"><div className="label">Delivery Tickets</div><div className="metric-value">{num(r.concrete_ticket_count)}</div><div className="metric-detail">Receipt records posted</div></div><div className="metric-card"><div className="label">Ticket Photos</div><div className="metric-value">{num(r.ticket_photo_count)}</div><div className="metric-detail">Matched evidence</div></div><div className={`metric-card ${missing?'danger-metric':'positive'}`}><div className="label">Missing Evidence</div><div className="metric-value">{missing}</div><div className="metric-detail">Must be zero for auto-close</div></div><div className="metric-card"><div className="label">Delivery Window</div><div className="metric-value" style={{fontSize:'1rem'}}>{r.first_delivery_date||'—'}</div><div className="metric-detail">Latest {r.latest_delivery_date||'—'}</div></div></div>
 
-  const statusByPlan=new Map((plans||[]).map((p:any)=>[p.pour_plan_id,p]));
-  const rows=(actuals||[]).map((r:any)=>({...r,plan_status:statusByPlan.get(r.pour_plan_id)?.status||'planning',system_recommendation:statusByPlan.get(r.pour_plan_id)?.system_recommendation||null}));
-  const active=rows.filter((r:any)=>!['completed','cancelled'].includes(r.plan_status));
-  const missingPhotos=active.reduce((s:number,r:any)=>s+num(r.tickets_missing_photo),0);
-  const delivered=active.reduce((s:number,r:any)=>s+num(r.delivered_cy),0);
-  const planned=active.reduce((s:number,r:any)=>s+num(r.planned_cy),0);
-  const overPlan=active.filter((r:any)=>num(r.variance_to_plan_cy)>0.005).length;
+      {!linked&&r.pour_status!=='cancelled'&&<div className="surface section"><div className="surface-body"><div className="row"><div><div className="title">Connect this pour to production</div><div className="meta">For walls/footings measured in CY, Carez creates the placement work package from this pour. Planned quantity comes across automatically.</div></div><span className="status">One-Time Setup</span></div>{plannedCy>0&&<form action={createPlacementPackageFromPour} className="form section"><input type="hidden" name="pour_plan_id" value={r.pour_plan_id}/><div className="grid grid2"><label className="field"><span>CY Placement Work</span><select name="production_task_id" defaultValue="" required><option value="" disabled>Choose placement work</option>{(cyTasks||[]).map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><div className="field"><span>Production Quantity</span><div className="input-like">{cy(plannedCy)} planned → ticket actual automatically</div></div></div><button className="button">Create Production Link</button></form>}<div className="meta section">Flatwork exception: when production is measured in SF, keep the work package in SF from the takeoff. Tickets still track concrete material CY here, but do not replace the SF production quantity.</div></div></div>}
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="page-heading"><div><h1 className="page-title">Concrete Delivery Actuals</h1><p className="subtitle">Planned, ordered and delivered ready-mix with ticket-photo coverage by pour.</p></div><div className="action-row"><Link className="button secondary" href="/pour-control">Pour Control</Link><Link className="button" href="/documents">Review Tickets</Link></div></div>
+      {linked&&<div className="surface section"><div className="surface-header"><div><div className="surface-title">Production Link · {r.package_name}</div><div className="surface-subtitle">{r.field_label||r.task_name}{r.package_location?` · ${r.package_location}`:''}</div></div><span className={`status ${sync==='synced'?'completed':sync==='needs_review'?'on-hold':'active'}`}>{syncLabel(sync)}</span></div><div className="surface-body"><div className="metric-grid"><div className="metric-card"><div className="label">Takeoff / Plan</div><div className="metric-value">{cy(r.operation_planned_quantity)}</div></div><div className="metric-card brand"><div className="label">Production Actual</div><div className="metric-value">{cy(r.actual_quantity)}</div><div className="metric-detail">Source: delivery tickets</div></div><div className="metric-card"><div className="label">Work Status</div><div className="metric-value" style={{fontSize:'1rem'}}>{String(r.operation_status||'planned').replace('_',' ')}</div></div><div className={`metric-card ${r.quantity_review_status==='needs_review'?'danger-metric':'positive'}`}><div className="label">Learning Quality</div><div className="metric-value" style={{fontSize:'1rem'}}>{String(r.quantity_review_status||'auto').replace('_',' ')}</div></div></div></div></div>}
 
-    {error&&<div className="alert danger"><strong>Delivery actuals could not be loaded.</strong> {error.message}</div>}
-
-    <div className="grid grid4">
-      <div className="card"><div className="label">Active Planned</div><div className="value">{cy(planned)}</div><div className="meta">Expected concrete across open pours.</div></div>
-      <div className="card"><div className="label">Delivered On Site</div><div className="value">{cy(delivered)}</div><div className="meta">Quantity posted from matched concrete delivery tickets.</div></div>
-      <div className={`card ${missingPhotos>0?'elevated':''}`}><div className="label">Tickets Missing Photo</div><div className="value">{missingPhotos}</div><div className="meta">Received delivery records that still need supporting ticket images.</div></div>
-      <div className={`card ${overPlan>0?'elevated':''}`}><div className="label">Pours Over Plan</div><div className="value">{overPlan}</div><div className="meta">Open pours where delivered CY exceeds planned CY.</div></div>
-    </div>
-
-    <div className="alert info"><strong>Field control:</strong> match each concrete ticket photo to its PO delivery record. That updates delivered CY here without creating a duplicate accounting cost.</div>
-
-    <div className="section"><div className="section-heading"><div><div className="section-kicker">Ready-Mix</div><div className="section-title">Pour Delivery Tracking</div><div className="section-heading-meta">Use this during and after a pour to confirm what was planned, ordered, actually delivered and documented.</div></div></div>
-      <div className="project-list">{rows.length===0?<div className="card"><div className="title">No concrete delivery activity yet</div><div className="meta">Create a ready-mix PO tied to a pour plan, then match delivery tickets from Documents.</div></div>:rows.map((r:any)=>{
-        const plannedCy=num(r.planned_cy),orderedCy=num(r.ordered_cy),deliveredCy=num(r.delivered_cy),remaining=num(r.remaining_to_plan_cy),variance=num(r.variance_to_plan_cy),missing=num(r.tickets_missing_photo),pct=num(r.percent_of_plan_delivered);
-        const over=variance>0.005,complete=plannedCy>0&&remaining<=0.005;
-        const statusClass=missing>0||over?'on-hold':complete?'completed':'';
-        const statusText=missing>0?'MISSING TICKET PHOTO':over?'OVER PLAN':complete?'PLAN DELIVERED':String(r.plan_status||'planning').replace('_',' ').toUpperCase();
-        return <article className="project-card" key={r.pour_plan_id}>
-          <header className="project-header"><div><div className="project-name">{r.job_number} — {r.pour_name||r.name||'Pour'}</div><div className="project-location">{r.scheduled_date?`Scheduled ${r.scheduled_date}`:'Date not set'} · {pct.toFixed(0)}% of plan delivered</div></div><span className={`status ${statusClass}`}>{statusText}</span></header>
-          <section className="project-section"><div className="metric-grid">
-            <div className="metric-card"><div className="label">Planned</div><div className="metric-value">{cy(plannedCy)}</div><div className="metric-detail">Pour plan expected CY</div></div>
-            <div className="metric-card"><div className="label">Ordered</div><div className="metric-value">{cy(orderedCy)}</div><div className="metric-detail">Ready-mix PO quantity</div></div>
-            <div className={`metric-card ${complete?'positive':''}`}><div className="label">On Site</div><div className="metric-value">{cy(deliveredCy)}</div><div className="metric-detail">Matched PO receipts</div></div>
-            <div className={`metric-card ${over?'danger-metric':''}`}><div className="label">Variance to Plan</div><div className="metric-value">{variance>0?'+':''}{cy(variance)}</div><div className="metric-detail">Remaining {cy(remaining)}</div></div>
-          </div>
-          <div className="metric-grid section">
-            <div className="metric-card"><div className="label">Delivery Tickets</div><div className="metric-value">{num(r.concrete_ticket_count)}</div><div className="metric-detail">Receipt records posted</div></div>
-            <div className="metric-card"><div className="label">Ticket Photos</div><div className="metric-value">{num(r.ticket_photo_count)}</div><div className="metric-detail">Matched document images</div></div>
-            <div className={`metric-card ${missing>0?'danger-metric':'positive'}`}><div className="label">Tickets Missing</div><div className="metric-value">{missing}</div><div className="metric-detail">Photos still required</div></div>
-            <div className="metric-card"><div className="label">Delivery Window</div><div className="metric-value" style={{fontSize:'1rem'}}>{r.first_delivery_date||'—'}</div><div className="metric-detail">Latest {r.latest_delivery_date||'—'}</div></div>
-          </div>
-          {missing>0&&<div className="alert danger"><strong>Ticket documentation incomplete.</strong> {missing} delivery {missing===1?'ticket is':'tickets are'} missing a matched photo. <Link href="/documents">Review concrete tickets.</Link></div>}
-          {over&&<div className="alert danger"><strong>Delivered concrete is over plan by {cy(Math.abs(variance))}.</strong> Verify added load quantity, waste, field changes and cost exposure before closing the pour.</div>}
-          {!over&&plannedCy>0&&orderedCy>0&&orderedCy<plannedCy&&<div className="alert info"><strong>Ordered quantity is below plan.</strong> Planned {cy(plannedCy)} versus ordered {cy(orderedCy)}.</div>}
-          <div className="action-row section"><Link className="button secondary" href="/documents">Review Tickets</Link><Link className="button secondary" href="/procurement">Open Procurement</Link><Link className="button secondary" href="/pour-control">Back to Pour Control</Link></div>
-        </section></article>;
-      })}</div>
-    </div>
-  </AppShell>;
+      {sync==='pour_open'&&<div className="alert info section"><strong>Ticket actual is syncing live.</strong><div>When the pour is marked completed, Carez closes the placement work automatically if all ticket evidence is matched.</div></div>}
+      {sync==='missing_evidence'&&<div className="alert danger section"><strong>Production automation is waiting on ticket evidence.</strong><div>{missing} receipt {missing===1?'is':'are'} missing a matched photo. Delivered CY remains visible, but Carez will not finalize the production sample yet.</div></div>}
+      {sync==='closed_no_delivery'&&<div className="alert danger section"><strong>The pour is closed with no delivered CY.</strong><div>Check the ready-mix receipt/ticket links before this can become a production sample.</div></div>}
+      {sync==='synced'&&<div className="alert info section"><strong>{cy(r.actual_quantity)} was written to production automatically.</strong><div>No foreman quantity entry was required. Once employee time is approved, this package can teach the Carez production-rate engine.</div></div>}
+      {sync==='needs_review'&&<div className="alert warning section"><strong>Ticket quantity is complete but held out of the learning engine.</strong><div>{r.quantity_review_reason||'Review the planned-versus-delivered quantity before using this production sample.'}</div><div className="action-row section"><form action={reviewTicketProduction}><input type="hidden" name="operation_id" value={r.operation_id}/><input type="hidden" name="decision" value="verify"/><button className="button">Verify Actual</button></form><form action={reviewTicketProduction}><input type="hidden" name="operation_id" value={r.operation_id}/><input type="hidden" name="decision" value="exclude"/><button className="button secondary">Exclude From Learning</button></form></div></div>}
+      {sync==='excluded'&&<div className="alert warning section"><strong>This pour is intentionally excluded from production learning.</strong><div>The ticket actual remains in the audit trail but will not influence future Carez estimating rates.</div><form action={reviewTicketProduction} className="section"><input type="hidden" name="operation_id" value={r.operation_id}/><input type="hidden" name="decision" value="verify"/><button className="button secondary">Include / Verify Sample</button></form></div>}
+      {over&&sync!=='needs_review'&&<div className="alert warning section"><strong>Delivered concrete is over plan by {cy(Math.abs(variance))}.</strong><div>Carez preserves both values: takeoff plan and ticket actual. Large differences are automatically quarantined from learning.</div></div>}
+      <div className="action-row section"><Link className="button secondary" href="/documents">Review Tickets</Link><Link className="button secondary" href="/procurement">Open Procurement</Link><Link className="button secondary" href="/production/work-packages">Production Packages</Link></div>
+     </section></article>;
+   })}</div>
+  </section>
+ </div></AppShell>;
 }
