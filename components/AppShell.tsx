@@ -1,8 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, SlidersHorizontal, Banknote, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, SlidersHorizontal, Banknote, Hammer, Receipt, HardHat, Gauge, Settings, Menu } from 'lucide-react';
 import { BankSyncPulse } from '@/components/PlaidBankControls';
+import { MobileNavSheet } from '@/components/MobileNavSheet';
 
 type NavItem={href:string;label:string;Icon:any;hint?:string};
 const navGroups:{label:string;items:NavItem[]}[]=[
@@ -17,10 +19,11 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   ]},
   {label:'Company',items:[{href:'/settings',label:'Settings',Icon:Settings,hint:'Company setup and system controls'}]},
 ];
-const mobileItems:NavItem[]=[{href:'/',label:'Home',Icon:Home},{href:'/projects',label:'Projects',Icon:Briefcase},{href:'/field',label:'Field',Icon:Hammer},{href:'/pour-control',label:'Pours',Icon:ShieldCheck},{href:'/change-orders',label:'COs',Icon:ClipboardList},{href:'/procurement',label:'Orders',Icon:ShoppingCart}];
+const mobileItems:NavItem[]=[{href:'/',label:'Home',Icon:Home},{href:'/projects',label:'Projects',Icon:Briefcase},{href:'/field',label:'Field',Icon:Hammer},{href:'/pour-control',label:'Pours',Icon:ShieldCheck},{href:'/procurement',label:'Orders',Icon:ShoppingCart}];
 
 export function AppShell({children,userName}:{children:React.ReactNode;userName:string}){
   const pathname=usePathname();
+  const [menuOpen,setMenuOpen]=useState(false);
   const active=(href:string)=>href==='/'?pathname==='/':href==='/banking'?pathname==='/banking':pathname.startsWith(href);
   const currentGroup=navGroups.find(g=>g.items.some(i=>active(i.href)));
   const currentItem=currentGroup?.items.find(i=>active(i.href));
@@ -30,6 +33,7 @@ export function AppShell({children,userName}:{children:React.ReactNode;userName:
       <div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div>
     </aside>
     <main className="main"><div className="topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span>CONCRETE</span></div><div className="topbar-context"><span>{currentGroup?.label||'Carez OS'}</span><strong>{currentItem?.label||'Home'}</strong>{currentItem?.hint&&<small>{currentItem.hint}</small>}</div><div className="user-chip">{userName}</div></div>{children}</main>
-    <nav className="mobile-nav" style={{gridTemplateColumns:'repeat(6,1fr)'}}>{mobileItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
+    <nav className="mobile-nav" style={{gridTemplateColumns:'repeat(6,1fr)'}}>{mobileItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}<button type="button" className={menuOpen?'active':''} onClick={()=>setMenuOpen(true)} aria-label="Open full Carez OS menu"><Menu className="nav-icon" aria-hidden="true"/><span>Menu</span></button></nav>
+    <MobileNavSheet open={menuOpen} onClose={()=>setMenuOpen(false)} groups={navGroups} active={active}/>
   </div>;
 }
