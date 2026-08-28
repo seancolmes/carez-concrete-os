@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './polish.css';
 import './construction-ui.css';
+import './plain-language.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
