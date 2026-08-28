@@ -12,8 +12,10 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();
+  if(!profile?.company_id)notFound();
+  const companyId=profile.company_id;
   const [{data:invoice},{data:summary},{data:lines}]=await Promise.all([
-    supabase.from('invoices').select('*').eq('id',id).eq('company_id',profile.company_id).maybeSingle(),
+    supabase.from('invoices').select('*').eq('id',id).eq('company_id',companyId).maybeSingle(),
     supabase.from('invoice_financial_summary').select('*').eq('invoice_id',id).maybeSingle(),
     supabase.from('invoice_lines').select('*').eq('invoice_id',id).order('sort_order')
   ]);
