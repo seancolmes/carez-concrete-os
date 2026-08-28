@@ -23,12 +23,21 @@ export async function updateOverheadItem(formData:FormData){
 
 export async function updateOverheadPlan(formData:FormData){
   const {supabase,companyId}=await company();
+  const ownerRate=n(formData.get('owner_field_rate'));
   await supabase.from('companies').update({
     target_margin_percent:n(formData.get('target_margin_percent')),
     planned_productive_hours_annual:n(formData.get('planned_productive_hours_annual')),
     owner_compensation_target_annual:n(formData.get('owner_compensation_target_annual')),
     owner_planned_field_hours_annual:n(formData.get('owner_planned_field_hours_annual')),
-    owner_field_rate:n(formData.get('owner_field_rate'))
+    owner_field_rate:ownerRate
   }).eq('id',companyId);
-  revalidatePath('/overhead');revalidatePath('/field');revalidatePath('/projects');
+
+  const {data:owners}=await supabase.from('crew_members').select('id').eq('company_id',companyId).eq('is_owner',true);
+  const effective=new Date().toISOString().slice(0,10);
+  for(const owner of owners||[]){
+    await supabase.from('crew_members').update({hourly_rate:ownerRate,internal_field_rate:ownerRate}).eq('id',owner.id).eq('company_id',companyId);
+    await supabase.from('crew_rate_history').update({end_date:effective}).eq('crew_member_id',owner.id).eq('rate_type','owner_internal').is('end_date',null).lt('effective_date',effective);
+    await supabase.from('crew_rate_history').upsert({company_id:companyId,crew_member_id:owner.id,rate_type:'owner_internal',amount:ownerRate,effective_date:effective,notes:'Updated from Overhead owner field rate.'},{onConflict:'crew_member_id,rate_type,effective_date'});
+  }
+  revalidatePath('/overhead');revalidatePath('/field');revalidatePath('/projects');revalidatePath('/crew');
 }
