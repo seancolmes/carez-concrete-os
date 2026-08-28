@@ -11,17 +11,19 @@ export default async function ProjectsPage(){
  const supabase=await createClient();
  const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
  const {data:profile}=await supabase.from('profiles').select('full_name,company_id').eq('id',user.id).maybeSingle();
- const [{data:projects},{data:financials},{data:budgetActuals},{data:company}]=await Promise.all([
+ const [{data:projects},{data:financials},{data:budgetActuals},{data:billing},{data:company}]=await Promise.all([
   supabase.from('projects').select('*,customers(name)').order('created_at',{ascending:false}),
   supabase.from('project_financial_summary').select('*'),
   supabase.from('project_budget_actual_summary').select('*'),
+  supabase.from('project_billing_summary').select('*'),
   profile?.company_id?supabase.from('companies').select('card_processing_reference_percent').eq('id',profile.company_id).single():Promise.resolve({data:null})
  ]);
  const fMap=new Map((financials||[]).map((f:any)=>[f.project_id,f]));
  const bMap=new Map((budgetActuals||[]).map((b:any)=>[b.project_id,b]));
+ const billingMap=new Map((billing||[]).map((b:any)=>[b.project_id,b]));
 
  return <AppShell userName={profile?.full_name||user.email||'Owner'}>
-  <div className="page-heading"><div><h1 className="page-title">Projects</h1><p className="subtitle">Budget health, current job cost and profitability in one operating view.</p></div></div>
+  <div className="page-heading"><div><h1 className="page-title">Projects</h1><p className="subtitle">Budget health, current job cost, billing and profitability in one operating view.</p></div></div>
 
   <details className="controls-disclosure create-disclosure">
    <summary>Add Project</summary>
@@ -35,17 +37,19 @@ export default async function ProjectsPage(){
    </form></div>
   </details>
 
-  <div className="alert info"><strong>Budget tracking active.</strong> Approved estimates become frozen project budgets. Actual labor and job costs accumulate against that baseline every day.</div>
+  <div className="alert info"><strong>Operating controls active.</strong> Approved estimates create frozen budgets, approved change orders extend the authorized contract, and invoices/payments track billing and collections separately from job cost.</div>
 
   <div className="project-list">{(projects||[]).map((p:any)=>{
    const f:any=fMap.get(p.id)||{};
    const b:any=bMap.get(p.id)||null;
+   const bill:any=billingMap.get(p.id)||{};
    const adjusted=num(f.adjusted_contract),direct=num(f.total_direct_cost),oh=num(f.overhead_recovery),rev=num(f.revenue_cost_reserve),trueCost=num(f.true_company_cost),profit=num(f.profit_if_complete_now),margin=num(f.margin_if_complete_now),target=num(f.target_margin_percent),room=num(f.cost_room_to_target),isComplete=p.status==='completed';
    const pct=Math.max(0,num(b?.budget_cost_used_percent));
    const progressColor=pct>100?'#b42318':pct>=85?'#c57900':'var(--brand)';
    const statusClass=p.status==='on_hold'?'on-hold':p.status;
    const costRemaining=num(b?.total_cost_remaining);
    const laborHoursRemaining=num(b?.labor_hours_remaining);
+   const billed=num(bill.billed_contract),unbilled=num(bill.unbilled_contract),cash=num(bill.cash_collected),ar=num(bill.outstanding_ar),overdue=num(bill.overdue_ar);
    return <article className="project-card" key={p.id}>
     <header className="project-header"><div><div className="project-name">{p.job_number} — {p.name}</div><div className="project-location">{p.customers?.name||'Direct / customer not linked'} · {[p.address,p.city,p.state].filter(Boolean).join(', ')}</div></div><span className={`status ${statusClass}`}>{p.status.replace('_',' ')}</span></header>
 
@@ -74,7 +78,7 @@ export default async function ProjectsPage(){
       <div className="metric-card brand"><div className="label">Adjusted Contract</div><div className="metric-value">{money(adjusted)}</div><div className="metric-detail">Contract + approved changes − backcharges</div></div>
       <div className="metric-card"><div className="label">Direct Cost</div><div className="metric-value">{money(direct)}</div><div className="metric-detail">Labor {money(num(f.direct_labor_cost))} · Other {money(num(f.nonlabor_direct_cost))}</div></div>
       <div className="metric-card"><div className="label">Overhead Recovery</div><div className="metric-value">{money(oh)}</div><div className="metric-detail">{num(f.labor_hours).toFixed(1)} productive hr</div></div>
-      <div className="metric-card"><div className="label">Revenue Costs</div><div className="metric-value">{money(rev)}</div><div className="metric-detail">B&O {money(num(f.bo_cost_reserve))} · Processing {money(num(f.payment_processing_cost_reserve))}</div></div>
+      <div className="metric-card"><div className="label">Revenue Costs</div><div className="metric-value">{money(rev)}</div><div className="metric-detail">B&O {money(num(f.bo_cost_reserve))} · Processing reserve {money(num(f.payment_processing_cost_reserve))}</div></div>
      </div>
     </section>
 
@@ -92,8 +96,19 @@ export default async function ProjectsPage(){
     </section>
 
     <section className="project-section">
+     <div className="section-heading"><div className="section-heading-copy"><div className="section-kicker">Cash</div><div className="section-title">Billing & Collections</div><div className="section-heading-meta">Customer billing is separate from job profitability and sales tax is excluded from contract revenue.</div></div></div>
+     <div className="metric-grid">
+      <div className="metric-card"><div className="label">Billed Contract</div><div className="metric-value">{money(billed)}</div><div className="metric-detail">{num(bill.billing_percent).toFixed(1)}% of authorized contract</div></div>
+      <div className={`metric-card ${unbilled<0?'danger-metric':'brand'}`}><div className="label">Unbilled Contract</div><div className="metric-value">{money(unbilled)}</div><div className="metric-detail">Authorized work not yet invoiced</div></div>
+      <div className="metric-card positive"><div className="label">Cash Collected</div><div className="metric-value">{money(cash)}</div><div className="metric-detail">Processing fees paid {money(num(bill.processing_fees_paid))}</div></div>
+      <div className={`metric-card ${overdue>0?'danger-metric':ar>0?'warning':''}`}><div className="label">Outstanding A/R</div><div className="metric-value">{money(ar)}</div><div className="metric-detail">Overdue {money(overdue)} · Retainage held {money(num(bill.retainage_held))}</div></div>
+     </div>
+     {overdue>0&&<div className="alert danger"><strong>Collections attention.</strong> This project has {money(overdue)} in overdue receivables.</div>}
+    </section>
+
+    <section className="project-section">
      <div className="next-action"><div><div className="next-action-label">Next Action</div><div className="next-action-text">{p.next_action||'No action assigned'}</div></div></div>
-     <div className="action-row"><Link className="button" href="/estimates">Estimates / Budget</Link><Link className="button secondary" href="/field">Enter Labor</Link><Link className="button secondary" href="/costs">Enter Job Cost</Link></div>
+     <div className="action-row"><Link className="button" href="/estimates">Estimates / Budget</Link><Link className="button secondary" href="/billing">Billing</Link><Link className="button secondary" href="/change-orders">Change Orders</Link><Link className="button secondary" href="/forecast">Forecast</Link><Link className="button secondary" href="/field">Enter Labor</Link><Link className="button secondary" href="/costs">Enter Job Cost</Link></div>
      <details className="controls-disclosure section">
       <summary>Project Controls & Settings</summary>
       <div className="controls-body"><div className="control-grid">
