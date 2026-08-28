@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, TrendingUp, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 
 const desktopItems=[
   {href:'/',label:'Home',Icon:Home},
   {href:'/leads',label:'Leads',Icon:Users},
   {href:'/estimates',label:'Estimates',Icon:Calculator},
   {href:'/projects',label:'Projects',Icon:Briefcase},
+  {href:'/forecast',label:'Forecast',Icon:TrendingUp},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Job Costs',Icon:Receipt},
   {href:'/crew',label:'Crew',Icon:HardHat},
