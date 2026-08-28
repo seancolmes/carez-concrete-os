@@ -3,6 +3,7 @@ import './globals.css';
 import './polish.css';
 import './construction-ui.css';
 import './plain-language.css';
+import './employee-clock.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
