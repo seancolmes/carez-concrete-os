@@ -27,7 +27,7 @@ begin
   select * into e from public.estimates where id=p_estimate_id for update;
   if not found then raise exception 'Estimate not found'; end if;
   select * into s from public.estimate_financial_summary where estimate_id=e.id;
-  if s is null then raise exception 'Estimate financial summary is unavailable'; end if;
+  if not found then raise exception 'Estimate financial summary is unavailable'; end if;
 
   if e.lead_id is not null then
     select * into l from public.leads where id=e.lead_id and company_id=e.company_id;
