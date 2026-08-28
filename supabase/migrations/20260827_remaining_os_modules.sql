@@ -18,7 +18,9 @@ create table if not exists public.lead_activities (
 create index if not exists lead_activities_lead_idx on public.lead_activities(lead_id, activity_date desc);
 alter table public.lead_activities enable row level security;
 drop policy if exists "company access lead activities" on public.lead_activities;
-create policy "company access lead activities" on public.lead_activities for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access lead activities" on public.lead_activities for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 -- Project / receipt / company document metadata. Actual bytes live in Supabase Storage.
 create table if not exists public.company_documents (
@@ -43,7 +45,9 @@ create table if not exists public.company_documents (
 create index if not exists company_documents_project_idx on public.company_documents(project_id, created_at desc);
 alter table public.company_documents enable row level security;
 drop policy if exists "company access documents" on public.company_documents;
-create policy "company access documents" on public.company_documents for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access documents" on public.company_documents for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 -- Equipment / owned assets
 create table if not exists public.equipment_assets (
@@ -71,7 +75,9 @@ create table if not exists public.equipment_assets (
 create index if not exists equipment_assets_company_idx on public.equipment_assets(company_id, active, category);
 alter table public.equipment_assets enable row level security;
 drop policy if exists "company access equipment" on public.equipment_assets;
-create policy "company access equipment" on public.equipment_assets for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access equipment" on public.equipment_assets for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 create table if not exists public.equipment_service_logs (
   id uuid primary key default gen_random_uuid(),
@@ -88,7 +94,9 @@ create table if not exists public.equipment_service_logs (
 );
 alter table public.equipment_service_logs enable row level security;
 drop policy if exists "company access equipment service" on public.equipment_service_logs;
-create policy "company access equipment service" on public.equipment_service_logs for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access equipment service" on public.equipment_service_logs for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 -- Consumable / form inventory
 create table if not exists public.inventory_items (
@@ -109,7 +117,9 @@ create table if not exists public.inventory_items (
 );
 alter table public.inventory_items enable row level security;
 drop policy if exists "company access inventory" on public.inventory_items;
-create policy "company access inventory" on public.inventory_items for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access inventory" on public.inventory_items for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 create table if not exists public.inventory_transactions (
   id uuid primary key default gen_random_uuid(),
@@ -126,7 +136,9 @@ create table if not exists public.inventory_transactions (
 );
 alter table public.inventory_transactions enable row level security;
 drop policy if exists "company access inventory transactions" on public.inventory_transactions;
-create policy "company access inventory transactions" on public.inventory_transactions for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access inventory transactions" on public.inventory_transactions for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 -- Project closeout
 create table if not exists public.project_closeouts (
@@ -151,7 +163,9 @@ create table if not exists public.project_closeouts (
 );
 alter table public.project_closeouts enable row level security;
 drop policy if exists "company access closeouts" on public.project_closeouts;
-create policy "company access closeouts" on public.project_closeouts for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access closeouts" on public.project_closeouts for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 -- Public proposal acceptance tokens. Token values are random and treated as secrets.
 create table if not exists public.proposal_access_tokens (
@@ -165,7 +179,9 @@ create table if not exists public.proposal_access_tokens (
 );
 alter table public.proposal_access_tokens enable row level security;
 drop policy if exists "company access proposal tokens" on public.proposal_access_tokens;
-create policy "company access proposal tokens" on public.proposal_access_tokens for all to authenticated using (company_id = public.get_my_company_id()) with check (company_id = public.get_my_company_id());
+create policy "company access proposal tokens" on public.proposal_access_tokens for all to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee')
+with check (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
 
 create table if not exists public.proposal_acceptances (
   id uuid primary key default gen_random_uuid(),
@@ -179,4 +195,5 @@ create table if not exists public.proposal_acceptances (
 );
 alter table public.proposal_acceptances enable row level security;
 drop policy if exists "company access proposal acceptances" on public.proposal_acceptances;
-create policy "company access proposal acceptances" on public.proposal_acceptances for select to authenticated using (company_id = public.get_my_company_id());
+create policy "company access proposal acceptances" on public.proposal_acceptances for select to authenticated
+using (company_id = public.get_my_company_id() and public.get_my_role()<>'employee');
