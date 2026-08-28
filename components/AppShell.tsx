@@ -20,6 +20,7 @@ const mobileItems=[
   {href:'/',label:'Home',Icon:Home},
   {href:'/estimates',label:'Estimates',Icon:Calculator},
   {href:'/projects',label:'Projects',Icon:Briefcase},
+  {href:'/change-orders',label:'COs',Icon:ClipboardList},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Costs',Icon:Receipt},
 ];
@@ -31,16 +32,16 @@ export function AppShell({children,userName}:{children:React.ReactNode;userName:
     <aside className="sidebar">
       <div className="brand-lockup">
         <img src="/brand/carez-wordmark.png" alt="Carez" className="brand-wordmark"/>
-        <span className="brand-concrete">CONCRETE</span>
+        <span style={{display:'block',fontSize:11,fontWeight:900,letterSpacing:'.22em',color:'#b8c4d4',marginTop:2}}>CONCRETE</span>
         <span className="brand-os">Operating System</span>
       </div>
       <nav className="nav">{desktopItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div>
     </aside>
     <main className="main">
-      <div className="topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span className="mobile-brand-concrete">CONCRETE</span></div><div className="user-chip">{userName}</div></div>
+      <div className="topbar"><div style={{display:'grid',justifyItems:'start'}}><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span style={{fontSize:8,fontWeight:900,letterSpacing:'.18em',color:'#b8c4d4'}}>CONCRETE</span></div><div className="user-chip">{userName}</div></div>
       {children}
     </main>
-    <nav className="mobile-nav">{mobileItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
+    <nav className="mobile-nav" style={{gridTemplateColumns:'repeat(6,1fr)'}}>{mobileItems.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</nav>
   </div>;
 }
