@@ -1,4 +1,4 @@
--- Public proposal payload includes the construction proposal number.
+-- Public proposal payload includes the construction proposal number and pre-award lead details.
 create or replace function public.get_public_proposal(p_token uuid)
 returns jsonb
 language plpgsql
@@ -19,6 +19,7 @@ begin
     'summary',to_jsonb(s),
     'company',jsonb_build_object('name',c.name),
     'billing_profile',to_jsonb(bp),
+    'lead',to_jsonb(l),
     'project',to_jsonb(p),
     'sections',coalesce((select jsonb_agg(to_jsonb(es) order by es.sort_order) from public.estimate_sections es where es.estimate_id=e.id),'[]'::jsonb),
     'items',coalesce((select jsonb_agg(to_jsonb(ei) order by ei.sort_order) from public.estimate_items ei where ei.estimate_id=e.id),'[]'::jsonb),
@@ -27,6 +28,7 @@ begin
   from public.estimates e
   join public.companies c on c.id=e.company_id
   left join public.company_billing_profiles bp on bp.company_id=e.company_id
+  left join public.leads l on l.id=e.lead_id
   left join public.projects p on p.id=e.project_id
   left join public.estimate_financial_summary s on s.estimate_id=e.id
   where e.id=t.estimate_id;
