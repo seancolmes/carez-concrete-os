@@ -17,4 +17,18 @@ export function PlaidConnectButton({configured}:{configured:boolean}){
 
 export function RefreshBankButton(){const router=useRouter();const [busy,setBusy]=useState(false);const [error,setError]=useState('');return <div><button className="button secondary" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{const r=await fetch('/api/plaid/refresh-balance',{method:'POST'});const data=await r.json();if(!r.ok)throw new Error(data.error||'Refresh failed');router.refresh();}catch(e:any){setError(e?.message||'Refresh failed');}finally{setBusy(false);}}}>{busy?'Refreshing…':'Refresh Bank Now'}</button>{error&&<div className="meta" style={{color:'#ff978f',marginTop:7}}>{error}</div>}</div>}
 
-export function BankSyncPulse(){const router=useRouter();useEffect(()=>{let cancelled=false;const run=async()=>{const key='carez-plaid-last-sync';const last=Number(sessionStorage.getItem(key)||0);if(Date.now()-last<10*60*1000)return;sessionStorage.setItem(key,String(Date.now()));try{const r=await fetch('/api/plaid/sync',{method:'POST'});const data=await r.json();if(!cancelled&&r.ok&&Number(data.changed||0)>0)router.refresh();}catch{}};void run();return()=>{cancelled=true};},[router]);return null;}
+export function BankSyncPulse(){
+  const router=useRouter();
+  useEffect(()=>{
+    let cancelled=false,running=false;
+    const run=async()=>{
+      if(cancelled||running||document.visibilityState==='hidden')return;
+      const key='carez-plaid-last-sync';const last=Number(sessionStorage.getItem(key)||0);if(Date.now()-last<10*60*1000)return;
+      running=true;sessionStorage.setItem(key,String(Date.now()));
+      try{const r=await fetch('/api/plaid/sync',{method:'POST'});const data=await r.json();const rec=data?.reconciliation||{};const changed=Number(data.changed||0)+Number(rec.autoMatched||0)+Number(rec.autoApplied||0)+Number(rec.candidates||0);if(!cancelled&&r.ok&&changed>0)router.refresh();}catch{}finally{running=false;}
+    };
+    void run();const interval=window.setInterval(()=>void run(),10*60*1000);const onVisible=()=>{if(document.visibilityState==='visible')void run();};document.addEventListener('visibilitychange',onVisible);
+    return()=>{cancelled=true;window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);};
+  },[router]);
+  return null;
+}
