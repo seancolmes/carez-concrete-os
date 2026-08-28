@@ -121,7 +121,7 @@ group by pol.company_id,pol.work_package_operation_id;
 
 create or replace view public.work_package_direct_cost_summary as
 select pc.company_id,pc.work_package_operation_id,
-  round(coalesce(sum(pc.total),0),2) direct_posted_cost
+  round(coalesce(sum(pc.total_cost),0),2) direct_posted_cost
 from public.project_costs pc
 where pc.work_package_operation_id is not null and pc.purchase_order_line_id is null
   and coalesce(pc.source_type,'') not in ('timecard','payroll','employee_time')
