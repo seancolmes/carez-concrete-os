@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, Banknote, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, Banknote, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 import { BankSyncPulse } from '@/components/PlaidBankControls';
 
 type NavItem={href:string;label:string;Icon:any};
@@ -13,7 +13,7 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   ]},
   {label:'Purchasing',items:[{href:'/procurement',label:'Procurement',Icon:ShoppingCart}]},
   {label:'Accounting',items:[
-    {href:'/billing',label:'Billing',Icon:ReceiptText},{href:'/payables',label:'Accounts Payable',Icon:CreditCard},{href:'/cashflow',label:'Cashflow',Icon:Wallet},{href:'/banking',label:'Banking',Icon:Landmark},{href:'/payroll',label:'Payroll',Icon:Banknote},{href:'/costs',label:'Job Costs',Icon:Receipt},{href:'/overhead',label:'Overhead',Icon:Gauge},
+    {href:'/billing',label:'Billing',Icon:ReceiptText},{href:'/payables',label:'Accounts Payable',Icon:CreditCard},{href:'/cashflow',label:'Cashflow',Icon:Wallet},{href:'/banking',label:'Banking',Icon:Landmark},{href:'/banking/reconcile',label:'Reconcile Transactions',Icon:ListChecks},{href:'/payroll',label:'Payroll',Icon:Banknote},{href:'/costs',label:'Job Costs',Icon:Receipt},{href:'/overhead',label:'Overhead',Icon:Gauge},
   ]},
   {label:'Administration',items:[{href:'/settings',label:'Settings',Icon:Settings}]},
 ];
