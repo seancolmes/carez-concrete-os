@@ -30,12 +30,12 @@ export async function syncPlaidConnection(supabase:any,companyId:string,connecti
   const accessToken=decryptAccessToken(connection);
   const accountResponse:any=await plaidPost(realtimeBalance?'/accounts/balance/get':'/accounts/get',{access_token:accessToken});
   const {data:existing}=await supabase.from('plaid_accounts').select('id,plaid_account_id,include_in_cash').eq('company_id',companyId).eq('connection_id',connection.id);
-  const existingMap=new Map((existing||[]).map((x:any)=>[x.plaid_account_id,x]));
+  const existingMap=new Map<string,{id:string;plaid_account_id:string;include_in_cash:boolean}>((existing||[]).map((x:any)=>[String(x.plaid_account_id),x] as [string,{id:string;plaid_account_id:string;include_in_cash:boolean}]));
   const now=new Date().toISOString();
-  const accountRows=(accountResponse.accounts||[]).map((a:any)=>({company_id:companyId,connection_id:connection.id,plaid_account_id:a.account_id,name:a.name||a.official_name||'Bank account',official_name:a.official_name||null,mask:a.mask||null,account_type:a.type||null,account_subtype:a.subtype||null,iso_currency_code:a.balances?.iso_currency_code||null,current_balance:a.balances?.current==null?null:money(a.balances.current),available_balance:a.balances?.available==null?null:money(a.balances.available),include_in_cash:existingMap.has(a.account_id)?Boolean(existingMap.get(a.account_id).include_in_cash):a.type==='depository',active:true,last_balance_at:now,updated_at:now}));
+  const accountRows=(accountResponse.accounts||[]).map((a:any)=>({company_id:companyId,connection_id:connection.id,plaid_account_id:a.account_id,name:a.name||a.official_name||'Bank account',official_name:a.official_name||null,mask:a.mask||null,account_type:a.type||null,account_subtype:a.subtype||null,iso_currency_code:a.balances?.iso_currency_code||null,current_balance:a.balances?.current==null?null:money(a.balances.current),available_balance:a.balances?.available==null?null:money(a.balances.available),include_in_cash:existingMap.has(a.account_id)?Boolean(existingMap.get(a.account_id)?.include_in_cash):a.type==='depository',active:true,last_balance_at:now,updated_at:now}));
   if(accountRows.length){const {error}=await supabase.from('plaid_accounts').upsert(accountRows,{onConflict:'company_id,plaid_account_id'});if(error)throw new Error(error.message);}
   const {data:savedAccounts}=await supabase.from('plaid_accounts').select('id,plaid_account_id').eq('company_id',companyId).eq('connection_id',connection.id);
-  const accountMap=new Map((savedAccounts||[]).map((x:any)=>[x.plaid_account_id,x.id]));
+  const accountMap=new Map<string,string>((savedAccounts||[]).map((x:any)=>[String(x.plaid_account_id),String(x.id)] as [string,string]));
 
   let cursor=connection.transactions_cursor||null,hasMore=true,pages=0,changed=0;
   while(hasMore&&pages<20){
