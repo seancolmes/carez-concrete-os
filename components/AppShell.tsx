@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 
 const desktopItems=[
   {href:'/',label:'Home',Icon:Home},
@@ -13,6 +13,7 @@ const desktopItems=[
   {href:'/forecast',label:'Forecast',Icon:TrendingUp},
   {href:'/pour-control',label:'Pour Control',Icon:ShieldCheck},
   {href:'/procurement',label:'Procurement',Icon:ShoppingCart},
+  {href:'/payables',label:'Accounts Payable',Icon:CreditCard},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Job Costs',Icon:Receipt},
   {href:'/crew',label:'Crew',Icon:HardHat},
