@@ -14,14 +14,16 @@ export default async function ChangeOrdersPage(){
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id').eq('id',user.id).single();
   const [{data:projects},{data:summaries},{data:items},{data:codes},{data:catalog},{data:crew},{data:riskClasses}]=await Promise.all([
-    supabase.from('projects').select('id,job_number,name,status').in('status',['active','on_hold']).order('job_number'),
-    supabase.from('change_order_financial_summary').select('*,projects:project_id(job_number,name)').order('requested_date',{ascending:false}),
+    supabase.from('projects').select('id,job_number,name,status').order('job_number'),
+    supabase.from('change_order_financial_summary').select('*').order('requested_date',{ascending:false}),
     supabase.from('change_order_items').select('*').order('sort_order'),
     supabase.from('cost_codes').select('id,code,name,cost_type').eq('active',true).order('sort_order'),
     supabase.from('cost_catalog_items').select('id,name,cost_code_id,default_unit,default_unit_cost').eq('active',true).order('name'),
     supabase.from('crew_members').select('id,name,is_owner,hourly_rate').eq('active',true).order('name'),
     profile?.company_id?supabase.from('li_risk_classes').select('code,name').eq('company_id',profile.company_id).eq('tax_year',2026).eq('active',true).order('code'):Promise.resolve({data:[]})
   ]);
+  const projectMap=new Map((projects||[]).map((p:any)=>[p.id,p]));
+  const openProjects=(projects||[]).filter((p:any)=>['active','on_hold'].includes(p.status));
   const itemMap=new Map<string,any[]>();for(const i of items||[]){if(!itemMap.has(i.change_order_id))itemMap.set(i.change_order_id,[]);itemMap.get(i.change_order_id)!.push(i);}
   const pendingExposure=(summaries||[]).filter((c:any)=>c.status!=='approved'&&c.status!=='rejected'&&c.status!=='void').reduce((s:number,c:any)=>s+Math.max(0,num(c.actual_company_exposure)),0);
   const approvedValue=(summaries||[]).filter((c:any)=>c.status==='approved').reduce((s:number,c:any)=>s+num(c.selected_sell_price),0);
@@ -41,7 +43,7 @@ export default async function ChangeOrdersPage(){
     <details className="controls-disclosure create-disclosure section">
       <summary>Create Change Order</summary>
       <div className="controls-body"><form action={createChangeOrder} className="form">
-        <div className="grid grid2"><label className="field"><span>Project</span><select name="project_id" required defaultValue=""><option value="" disabled>Select project</option>{(projects||[]).map(p=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></label><label className="field"><span>Change Type</span><select name="change_type" defaultValue="additive"><option value="additive">Additive — increases contract</option><option value="deductive">Deductive — customer credit</option><option value="no_cost">No-cost — Carez absorbs cost</option></select></label></div>
+        <div className="grid grid2"><label className="field"><span>Project</span><select name="project_id" required defaultValue=""><option value="" disabled>Select project</option>{openProjects.map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></label><label className="field"><span>Change Type</span><select name="change_type" defaultValue="additive"><option value="additive">Additive — increases contract</option><option value="deductive">Deductive — customer credit</option><option value="no_cost">No-cost — Carez absorbs cost</option></select></label></div>
         <div className="grid grid2"><label className="field"><span>Title</span><input name="title" required placeholder="Additional patio extension"/></label><label className="field"><span>Requested Date</span><input type="date" name="requested_date" defaultValue={today()} required/></label></div>
         <div className="grid grid2"><label className="field"><span>Requested By</span><input name="requested_by" placeholder="Owner, GC, architect..."/></label><label className="field"><span>Reason</span><input name="reason" placeholder="Owner request, unforeseen condition..."/></label></div>
         <label className="field"><span>Scope Description</span><textarea name="description" rows={3} placeholder="Describe exactly what is being added, removed or changed."/></label>
@@ -50,6 +52,7 @@ export default async function ChangeOrdersPage(){
     </details>
 
     <div className="project-list">{(summaries||[]).length===0?<div className="card"><div className="title">No change orders yet</div><div className="meta">Create one when project scope changes after the original estimate is approved.</div></div>:(summaries||[]).map((co:any)=>{
+      const project:any=projectMap.get(co.project_id)||{};
       const coItems=itemMap.get(co.change_order_id)||[];
       const locked=['approved','rejected','void'].includes(co.status);
       const exposure=num(co.actual_company_exposure);
@@ -59,7 +62,7 @@ export default async function ChangeOrdersPage(){
       const typeLabel=co.change_type==='deductive'?'Deductive':co.change_type==='no_cost'?'No Cost':'Additive';
       const statusClass=co.status==='approved'?'completed':co.status==='submitted'?'active':co.status==='rejected'?'on-hold':'';
       return <article className="project-card" key={co.change_order_id}>
-        <header className="project-header"><div><div className="project-name">{co.co_number} — {co.title}</div><div className="project-location">{co.projects?.job_number} — {co.projects?.name} · {typeLabel} · requested {co.requested_date}{co.requested_by?` by ${co.requested_by}`:''}</div></div><span className={`status ${statusClass}`}>{co.status}</span></header>
+        <header className="project-header"><div><div className="project-name">{co.co_number} — {co.title}</div><div className="project-location">{project.job_number||'Job'} — {project.name||'Project'} · {typeLabel} · requested {co.requested_date}{co.requested_by?` by ${co.requested_by}`:''}</div></div><span className={`status ${statusClass}`}>{co.status}</span></header>
 
         <section className="project-section tinted">
           <div className="section-heading"><div><div className="section-kicker">Commercial Impact</div><div className="section-title">Change Order Economics</div><div className="section-heading-meta">Original project budget remains frozen. Approved COs become separate authorized budgets.</div></div></div>
