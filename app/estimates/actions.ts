@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 async function ctx(){
  const supabase=await createClient();
  const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');
- const {data:p}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!p?.company_id)throw new Error('Company missing');
+ const {data:p}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!p?.company_id||p.role==='employee')throw new Error('Owner access required');
  return {supabase,user,companyId:p.company_id};
 }
 const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
@@ -14,16 +14,17 @@ const r=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 export async function createEstimate(fd:FormData){
  const {supabase,user,companyId}=await ctx();
  const project_id=String(fd.get('project_id')||'')||null;
- const name=String(fd.get('name')||'').trim();if(!name)return;
- const [{data:company},{data:snapshot}]=await Promise.all([
+ const requestedName=String(fd.get('name')||'').trim();
+ const [{data:company},{data:snapshot},{data:project}]=await Promise.all([
   supabase.from('companies').select('target_margin_percent,default_bo_classification,retailing_bo_rate_percent,wholesaling_bo_rate_percent').eq('id',companyId).single(),
-  supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:new Date().toISOString().slice(0,10)})
+  supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:new Date().toISOString().slice(0,10)}),
+  project_id?supabase.from('projects').select('job_number,name').eq('id',project_id).eq('company_id',companyId).maybeSingle():Promise.resolve({data:null})
  ]);
- const {count}=await supabase.from('estimates').select('*',{count:'exact',head:true}).eq('company_id',companyId);
- const estimate_number=`EST-${String((count||0)+1).padStart(4,'0')}`;
+ let opportunity=project?.job_number||null;if(!opportunity){const {data:o,error}=await supabase.rpc('next_opportunity_number');if(error||!o)throw new Error(error?.message||'Could not create opportunity number.');opportunity=o;}
+ const name=requestedName||project?.name||`Concrete Opportunity ${opportunity}`,estimate_number=`E-${opportunity}`;
  const bo=company?.default_bo_classification||'retailing';
  const boRate=bo==='wholesaling'?Number(company?.wholesaling_bo_rate_percent||0.484):Number(company?.retailing_bo_rate_percent||0.471);
- const {data:estimate,error}=await supabase.from('estimates').insert({company_id:companyId,project_id,estimate_number,name,target_margin_percent:Number(company?.target_margin_percent||30),bo_classification:bo,bo_rate_percent:boRate,overhead_snapshot_id:snapshot?.id||null,overhead_rate_snapshot:Number(snapshot?.overhead_rate_per_productive_hour||0),created_by:user.id}).select('id').single();
+ const {data:estimate,error}=await supabase.from('estimates').insert({company_id:companyId,project_id,opportunity_number:opportunity,estimate_number,name,target_margin_percent:Number(company?.target_margin_percent||30),bo_classification:bo,bo_rate_percent:boRate,overhead_snapshot_id:snapshot?.id||null,overhead_rate_snapshot:Number(snapshot?.overhead_rate_per_productive_hour||0),created_by:user.id}).select('id').single();
  if(error)throw new Error(error.message);
  const starter=['Footings','Stem Walls','Slabs / Flatwork'];
  await supabase.from('estimate_sections').insert(starter.map((s,i)=>({company_id:companyId,estimate_id:estimate.id,name:s,scope_type:s==='Footings'?'footing':s==='Stem Walls'?'wall':'flatwork',sort_order:(i+1)*10})));
@@ -67,6 +68,7 @@ export async function addEstimateItem(fd:FormData){
 
 export async function updateEstimatePricing(fd:FormData){
  const id=String(fd.get('estimate_id')||'');if(!id)return;const {supabase,companyId}=await ctx();
+ const {data:e}=await supabase.from('estimates').select('status').eq('id',id).eq('company_id',companyId).maybeSingle();if(!e||['accepted','approved'].includes(e.status))throw new Error('Accepted/approved estimates are locked.');
  const bo=String(fd.get('bo_classification')||'retailing');
  const boRate=bo==='wholesaling'?0.484:0.471;
  await supabase.from('estimates').update({target_margin_percent:n(fd.get('target_margin_percent')),bo_classification:bo,bo_rate_percent:boRate,payment_processing_rate_percent:n(fd.get('payment_processing_rate_percent')),proposed_sell_price:n(fd.get('proposed_sell_price')),status:String(fd.get('status')||'draft')}).eq('id',id).eq('company_id',companyId);
@@ -81,10 +83,11 @@ export async function approveEstimateToBudget(fd:FormData){
   supabase.from('estimate_sections').select('*').eq('estimate_id',estimate_id).order('sort_order'),
   supabase.from('estimate_items').select('*').eq('estimate_id',estimate_id).order('sort_order')
  ]);
+ if(e?.status==='accepted')throw new Error('This estimate was already accepted and frozen automatically.');
  if(!e?.project_id)throw new Error('Link this estimate to a project before approving.');
  await supabase.from('project_budgets').update({status:'superseded'}).eq('project_id',e.project_id).eq('budget_type','original').eq('status','active');
  const sell=Number(summary.selected_sell_price||0),rev=Number(summary.revenue_cost_reserve||0),totalCost=Number(summary.base_company_cost||0)+rev,profit=sell-totalCost,margin=sell>0?100*profit/sell:0;
- const {data:b,error}=await supabase.from('project_budgets').insert({company_id:companyId,project_id:e.project_id,estimate_id,budget_type:'original',version:e.version,status:'active',label:`${e.estimate_number} Original Budget`,sell_price:sell,target_margin_percent:e.target_margin_percent,bo_rate_percent:e.bo_rate_percent,payment_processing_rate_percent:e.payment_processing_rate_percent,labor_hours:Number(summary.labor_hours||0),direct_labor_cost:Number(summary.direct_labor_cost||0),material_cost:Number(summary.material_cost||0),equipment_cost:Number(summary.equipment_cost||0),subcontractor_cost:Number(summary.subcontractor_cost||0),other_direct_cost:Number(summary.other_direct_cost||0),total_direct_cost:Number(summary.total_direct_cost||0),overhead_cost:Number(summary.overhead_cost||0),revenue_cost_reserve:rev,total_company_cost:r(totalCost),budgeted_profit:r(profit),budgeted_margin_percent:r(margin)}).select('id').single();
+ const {data:b,error}=await supabase.from('project_budgets').insert({company_id:companyId,project_id:e.project_id,estimate_id,budget_type:'original',version:e.version,status:'active',label:`${e.estimate_number}-R${e.version} Original Budget`,sell_price:sell,target_margin_percent:e.target_margin_percent,bo_rate_percent:e.bo_rate_percent,payment_processing_rate_percent:e.payment_processing_rate_percent,labor_hours:Number(summary.labor_hours||0),direct_labor_cost:Number(summary.direct_labor_cost||0),material_cost:Number(summary.material_cost||0),equipment_cost:Number(summary.equipment_cost||0),subcontractor_cost:Number(summary.subcontractor_cost||0),other_direct_cost:Number(summary.other_direct_cost||0),total_direct_cost:Number(summary.total_direct_cost||0),overhead_cost:Number(summary.overhead_cost||0),revenue_cost_reserve:rev,total_company_cost:r(totalCost),budgeted_profit:r(profit),budgeted_margin_percent:r(margin)}).select('id').single();
  if(error)throw new Error(error.message);
  const sectionMap=new Map<string,string>();
  for(const s of sections||[]){const {data:bs}=await supabase.from('project_budget_sections').insert({company_id:companyId,budget_id:b.id,source_estimate_section_id:s.id,name:s.name,scope_type:s.scope_type,sort_order:s.sort_order}).select('id').single();if(bs)sectionMap.set(s.id,bs.id);}
