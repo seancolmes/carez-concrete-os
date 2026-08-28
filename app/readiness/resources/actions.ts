@@ -5,7 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:p}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!p?.company_id||p.role==='employee')throw new Error('Owner access required');return{supabase,user,companyId:p.company_id};}
 const val=(fd:FormData,k:string)=>String(fd.get(k)||'').trim();
 const num=(fd:FormData,k:string,d=0)=>{const n=Number(fd.get(k));return Number.isFinite(n)?n:d;};
-const refresh=()=>{for(const p of ['/readiness/resources','/readiness','/look-ahead','/schedule','/production/work-packages','/employee','/'])revalidatePath(p);};
+const refresh=()=>{for(const p of ['/readiness/resources','/readiness','/look-ahead','/schedule','/production/work-packages','/production/work-packages/financials','/equipment','/employee','/'])revalidatePath(p);};
 
 export async function createResourceRequirement(fd:FormData){
  const operationId=val(fd,'work_package_operation_id'),type=val(fd,'resource_type'),label=val(fd,'label');const quantity=num(fd,'required_quantity',1);if(!operationId||!['material','equipment','vendor'].includes(type)||!label||quantity<=0)throw new Error('Choose the work, resource type, name and required quantity.');
@@ -23,7 +23,7 @@ export async function reserveMaterial(fd:FormData){
  await supabase.from('work_package_resource_requirements').update({inventory_item_id:inventoryId,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);const {error}=await supabase.from('inventory_reservations').upsert({company_id:companyId,resource_requirement_id:id,inventory_item_id:inventoryId,quantity,status:'reserved',created_by:user.id,updated_at:new Date().toISOString()},{onConflict:'resource_requirement_id'});if(error)throw new Error(error.message);refresh();
 }
 
-export async function markMaterialConsumed(fd:FormData){const id=val(fd,'requirement_id');if(!id)return;const {supabase,companyId}=await ctx();const {error}=await supabase.from('inventory_reservations').update({status:'consumed',updated_at:new Date().toISOString()}).eq('resource_requirement_id',id).eq('company_id',companyId);if(error)throw new Error(error.message);refresh();}
+export async function markMaterialConsumed(fd:FormData){const id=val(fd,'requirement_id');if(!id)return;const {supabase}=await ctx();const {error}=await supabase.rpc('consume_work_package_inventory',{p_requirement_id:id});if(error)throw new Error(error.message);refresh();}
 
 export async function linkPurchaseOrderLine(fd:FormData){const id=val(fd,'requirement_id'),lineId=val(fd,'purchase_order_line_id');if(!id||!lineId)throw new Error('Choose a purchase order line.');const {supabase,companyId}=await ctx();const {data:req}=await supabase.from('work_package_resource_requirements').select('work_package_operation_id,resource_type').eq('id',id).eq('company_id',companyId).single();if(!req||req.resource_type!=='material')throw new Error('Material requirement not found.');const {error}=await supabase.from('work_package_resource_requirements').update({purchase_order_line_id:lineId,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);const {error:e}=await supabase.from('purchase_order_lines').update({work_package_operation_id:req.work_package_operation_id}).eq('id',lineId).eq('company_id',companyId);if(e)throw new Error(e.message);refresh();}
 
