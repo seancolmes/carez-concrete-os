@@ -3,7 +3,9 @@ name: Carez OS Branch Build
 on:
   push:
     branches:
+      - main
       - carez-os-full-build
+      - 'carez-*'
   workflow_dispatch:
 
 jobs:
