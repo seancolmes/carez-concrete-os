@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 
 const desktopItems=[
   {href:'/',label:'Home',Icon:Home},
@@ -11,6 +11,7 @@ const desktopItems=[
   {href:'/change-orders',label:'Change Orders',Icon:ClipboardList},
   {href:'/billing',label:'Billing',Icon:ReceiptText},
   {href:'/forecast',label:'Forecast',Icon:TrendingUp},
+  {href:'/pour-control',label:'Pour Control',Icon:ShieldCheck},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Job Costs',Icon:Receipt},
   {href:'/crew',label:'Crew',Icon:HardHat},
@@ -21,7 +22,7 @@ const mobileItems=[
   {href:'/',label:'Home',Icon:Home},
   {href:'/projects',label:'Projects',Icon:Briefcase},
   {href:'/field',label:'Field',Icon:Hammer},
-  {href:'/costs',label:'Costs',Icon:Receipt},
+  {href:'/pour-control',label:'Pours',Icon:ShieldCheck},
   {href:'/change-orders',label:'COs',Icon:ClipboardList},
   {href:'/billing',label:'Billing',Icon:ReceiptText},
 ];
