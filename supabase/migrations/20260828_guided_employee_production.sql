@@ -1,17 +1,12 @@
 -- Guided employee production: schedule-driven task clocking, task coverage accountability,
 -- break resume, and crew-lead quantity reporting without exposing accounting codes.
 
-alter table public.crew_members
-  add column if not exists can_report_production boolean not null default false;
-
-alter table public.employee_break_periods
-  add column if not exists resume_production_task_id uuid references public.production_tasks(id) on delete set null;
-
+alter table public.crew_members add column if not exists can_report_production boolean not null default false;
+alter table public.employee_break_periods add column if not exists resume_production_task_id uuid references public.production_tasks(id) on delete set null;
 alter table public.employee_shift_sessions
   add column if not exists task_coverage_percent numeric,
   add column if not exists requires_review boolean not null default false,
   add column if not exists review_reasons text[] not null default '{}'::text[];
-
 alter table public.daily_production_records
   add column if not exists reported_by_crew_member_id uuid references public.crew_members(id) on delete set null,
   add column if not exists reported_by_profile_id uuid references public.profiles(id) on delete set null,
@@ -19,505 +14,60 @@ alter table public.daily_production_records
   add column if not exists review_status text not null default 'verified',
   add column if not exists reported_at timestamptz;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname='daily_production_records_review_status_check'
-      and conrelid='public.daily_production_records'::regclass
-  ) then
-    alter table public.daily_production_records
-      add constraint daily_production_records_review_status_check
-      check (review_status in ('auto','needs_review','verified'));
+do $$ begin
+  if not exists(select 1 from pg_constraint where conname='daily_production_records_review_status_check' and conrelid='public.daily_production_records'::regclass) then
+    alter table public.daily_production_records add constraint daily_production_records_review_status_check check(review_status in ('auto','needs_review','verified'));
   end if;
 end $$;
+create index if not exists employee_shift_review_idx on public.employee_shift_sessions(company_id,status,requires_review,work_date desc);
 
-create index if not exists employee_shift_review_idx
-  on public.employee_shift_sessions(company_id,status,requires_review,work_date desc);
-
-create or replace function public.employee_clock_in(
-  p_project_id uuid,
-  p_lat double precision,
-  p_lng double precision,
-  p_accuracy_m numeric,
-  p_device_label text default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_profile public.profiles%rowtype;
-  v_crew public.crew_members%rowtype;
-  v_project public.projects%rowtype;
-  v_id uuid;
-  v_dist numeric;
-  v_inside boolean;
-  v_work_date date := (now() at time zone 'America/Los_Angeles')::date;
-  v_task_count integer := 0;
-  v_task_id uuid;
+create or replace function public.employee_clock_in(p_project_id uuid,p_lat double precision,p_lng double precision,p_accuracy_m numeric,p_device_label text default null)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare v_profile public.profiles%rowtype;v_crew public.crew_members%rowtype;v_project public.projects%rowtype;v_id uuid;v_dist numeric;v_inside boolean;v_work_date date:=(now() at time zone 'America/Los_Angeles')::date;v_task_count integer:=0;v_task_id uuid;
 begin
-  select * into v_profile from public.profiles where id=auth.uid() and role='employee';
-  if not found then raise exception 'Employee account required'; end if;
-
-  select * into v_crew from public.crew_members
-  where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;
-  if not found then raise exception 'Employee record not linked'; end if;
-
-  if exists(select 1 from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active') then
-    raise exception 'Already clocked in';
-  end if;
-
-  select * into v_project from public.projects
-  where id=p_project_id and company_id=v_profile.company_id and status='active';
-  if not found then raise exception 'Job not available'; end if;
-
-  v_dist:=public.carez_distance_ft(p_lat,p_lng,v_project.site_latitude,v_project.site_longitude);
-  v_inside:=case when v_dist is null then null else v_dist<=v_project.geofence_radius_ft end;
-
-  insert into public.employee_shift_sessions(
-    company_id,crew_member_id,employee_profile_id,project_id,work_date,clock_in_at,
-    clock_in_latitude,clock_in_longitude,clock_in_accuracy_m,clock_in_distance_ft,
-    clock_in_inside_geofence,device_label,status,requires_review,review_reasons
-  ) values(
-    v_profile.company_id,v_crew.id,auth.uid(),v_project.id,v_work_date,now(),
-    p_lat,p_lng,p_accuracy_m,v_dist,v_inside,p_device_label,'active',false,'{}'::text[]
-  ) returning id into v_id;
-
-  select count(*),max(task_id) into v_task_count,v_task_id
-  from (
-    select distinct w.production_task_id as task_id
-    from public.work_schedule_assignments a
-    join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id
-    where a.company_id=v_profile.company_id
-      and a.crew_member_id=v_crew.id
-      and w.project_id=v_project.id
-      and w.schedule_date=v_work_date
-      and w.status<>'cancelled'
-      and w.production_task_id is not null
-  ) q;
-
-  if v_task_count=1 and v_task_id is not null then
-    insert into public.employee_task_segments(
-      company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,
-      start_latitude,start_longitude,start_accuracy_m,notes
-    ) values(
-      v_profile.company_id,v_id,v_crew.id,v_project.id,v_task_id,now(),
-      p_lat,p_lng,p_accuracy_m,'Auto-started from today''s assigned work'
-    );
-  end if;
-
+  select * into v_profile from public.profiles where id=auth.uid() and role='employee';if not found then raise exception 'Employee account required';end if;
+  select * into v_crew from public.crew_members where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;if not found then raise exception 'Employee record not linked';end if;
+  if exists(select 1 from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active') then raise exception 'Already clocked in';end if;
+  select * into v_project from public.projects where id=p_project_id and company_id=v_profile.company_id and status='active';if not found then raise exception 'Job not available';end if;
+  v_dist:=public.carez_distance_ft(p_lat,p_lng,v_project.site_latitude,v_project.site_longitude);v_inside:=case when v_dist is null then null else v_dist<=v_project.geofence_radius_ft end;
+  insert into public.employee_shift_sessions(company_id,crew_member_id,employee_profile_id,project_id,work_date,clock_in_at,clock_in_latitude,clock_in_longitude,clock_in_accuracy_m,clock_in_distance_ft,clock_in_inside_geofence,device_label,status,requires_review,review_reasons)
+  values(v_profile.company_id,v_crew.id,auth.uid(),v_project.id,v_work_date,now(),p_lat,p_lng,p_accuracy_m,v_dist,v_inside,p_device_label,'active',false,'{}'::text[]) returning id into v_id;
+  select count(*),(array_agg(task_id))[1] into v_task_count,v_task_id from(select distinct w.production_task_id task_id from public.work_schedule_assignments a join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id where a.company_id=v_profile.company_id and a.crew_member_id=v_crew.id and w.project_id=v_project.id and w.schedule_date=v_work_date and w.status<>'cancelled' and w.production_task_id is not null)q;
+  if v_task_count=1 and v_task_id is not null then insert into public.employee_task_segments(company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,start_latitude,start_longitude,start_accuracy_m,notes) values(v_profile.company_id,v_id,v_crew.id,v_project.id,v_task_id,now(),p_lat,p_lng,p_accuracy_m,'Auto-started from today''s assigned work');end if;
   return v_id;
-end;
-$$;
+end$$;
 
-create or replace function public.employee_start_task(
-  p_task_id uuid,
-  p_lat double precision default null,
-  p_lng double precision default null,
-  p_accuracy_m numeric default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_shift public.employee_shift_sessions%rowtype;
-  v_task public.production_tasks%rowtype;
-  v_id uuid;
-  v_scheduled boolean;
+create or replace function public.employee_start_task(p_task_id uuid,p_lat double precision default null,p_lng double precision default null,p_accuracy_m numeric default null)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare v_shift public.employee_shift_sessions%rowtype;v_task public.production_tasks%rowtype;v_id uuid;v_scheduled boolean;
 begin
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active'
-  order by clock_in_at desc limit 1;
-  if not found then raise exception 'Clock in first'; end if;
+  select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' order by clock_in_at desc limit 1;if not found then raise exception 'Clock in first';end if;
+  if exists(select 1 from public.employee_break_periods where shift_id=v_shift.id and ended_at is null) then raise exception 'End break before starting a task';end if;
+  update public.employee_task_segments set ended_at=now() where shift_id=v_shift.id and ended_at is null;
+  select * into v_task from public.production_tasks where id=p_task_id and company_id=v_shift.company_id and active=true;if not found then raise exception 'Task not available';end if;
+  select exists(select 1 from public.work_schedule_assignments a join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id where a.company_id=v_shift.company_id and a.crew_member_id=v_shift.crew_member_id and w.project_id=v_shift.project_id and w.schedule_date=v_shift.work_date and w.status<>'cancelled' and w.production_task_id=p_task_id) into v_scheduled;
+  insert into public.employee_task_segments(company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,start_latitude,start_longitude,start_accuracy_m,notes) values(v_shift.company_id,v_shift.id,v_shift.crew_member_id,v_shift.project_id,v_task.id,now(),p_lat,p_lng,p_accuracy_m,case when v_scheduled then null else 'Employee selected work not assigned on today''s schedule' end) returning id into v_id;return v_id;
+end$$;
 
-  if exists(select 1 from public.employee_break_periods where shift_id=v_shift.id and ended_at is null) then
-    raise exception 'End break before starting a task';
-  end if;
+create or replace function public.employee_start_break() returns uuid language plpgsql security definer set search_path=public as $$
+declare v_shift public.employee_shift_sessions%rowtype;v_id uuid;v_resume uuid;
+begin select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' limit 1;if not found then raise exception 'Clock in first';end if;if exists(select 1 from public.employee_break_periods where shift_id=v_shift.id and ended_at is null) then raise exception 'Already on break';end if;select production_task_id into v_resume from public.employee_task_segments where shift_id=v_shift.id and ended_at is null order by started_at desc limit 1;update public.employee_task_segments set ended_at=now() where shift_id=v_shift.id and ended_at is null;insert into public.employee_break_periods(company_id,shift_id,started_at,resume_production_task_id) values(v_shift.company_id,v_shift.id,now(),v_resume) returning id into v_id;return v_id;end$$;
 
-  update public.employee_task_segments set ended_at=now()
-  where shift_id=v_shift.id and ended_at is null;
+create or replace function public.employee_end_break() returns void language plpgsql security definer set search_path=public as $$
+declare v_shift public.employee_shift_sessions%rowtype;v_break public.employee_break_periods%rowtype;v_task public.production_tasks%rowtype;
+begin select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' limit 1;if not found then raise exception 'Clock in first';end if;select * into v_break from public.employee_break_periods where shift_id=v_shift.id and ended_at is null order by started_at desc limit 1;if not found then raise exception 'No active break';end if;update public.employee_break_periods set ended_at=now() where id=v_break.id;if v_break.resume_production_task_id is not null then select * into v_task from public.production_tasks where id=v_break.resume_production_task_id and company_id=v_shift.company_id and active=true;if found then insert into public.employee_task_segments(company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,notes) values(v_shift.company_id,v_shift.id,v_shift.crew_member_id,v_shift.project_id,v_task.id,now(),'Auto-resumed after break');end if;end if;end$$;
 
-  select * into v_task from public.production_tasks
-  where id=p_task_id and company_id=v_shift.company_id and active=true;
-  if not found then raise exception 'Task not available'; end if;
+create or replace function public.employee_clock_out(p_lat double precision,p_lng double precision,p_accuracy_m numeric,p_note text default null)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare v_shift public.employee_shift_sessions%rowtype;v_project public.projects%rowtype;v_dist numeric;v_inside boolean;v_elapsed numeric;v_break numeric;v_task numeric;v_work numeric;v_coverage numeric;v_reasons text[]:='{}'::text[];
+begin select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' order by clock_in_at desc limit 1;if not found then raise exception 'Not clocked in';end if;update public.employee_task_segments set ended_at=now(),end_latitude=p_lat,end_longitude=p_lng,end_accuracy_m=p_accuracy_m where shift_id=v_shift.id and ended_at is null;update public.employee_break_periods set ended_at=now() where shift_id=v_shift.id and ended_at is null;select * into v_project from public.projects where id=v_shift.project_id;v_dist:=public.carez_distance_ft(p_lat,p_lng,v_project.site_latitude,v_project.site_longitude);v_inside:=case when v_dist is null then null else v_dist<=v_project.geofence_radius_ft end;v_elapsed:=greatest(extract(epoch from(now()-v_shift.clock_in_at)),0);select coalesce(sum(extract(epoch from(coalesce(ended_at,now())-started_at))),0) into v_break from public.employee_break_periods where shift_id=v_shift.id;select coalesce(sum(extract(epoch from(coalesce(ended_at,now())-started_at))),0) into v_task from public.employee_task_segments where shift_id=v_shift.id;v_work:=greatest(v_elapsed-v_break,0);v_coverage:=case when v_work>0 then least(100,round(100*v_task/v_work,1)) else 0 end;if v_shift.clock_in_inside_geofence=false then v_reasons:=array_append(v_reasons,'Clock-in outside jobsite');end if;if v_inside=false then v_reasons:=array_append(v_reasons,'Clock-out outside jobsite');end if;if v_coverage<90 then v_reasons:=array_append(v_reasons,'Less than 90% of work time assigned to a task');end if;if exists(select 1 from public.employee_task_segments where shift_id=v_shift.id and notes like 'Employee selected work not assigned%') then v_reasons:=array_append(v_reasons,'Used work not assigned on schedule');end if;update public.employee_shift_sessions set clock_out_at=now(),clock_out_latitude=p_lat,clock_out_longitude=p_lng,clock_out_accuracy_m=p_accuracy_m,clock_out_distance_ft=v_dist,clock_out_inside_geofence=v_inside,employee_note=nullif(trim(p_note),''),task_coverage_percent=v_coverage,requires_review=cardinality(v_reasons)>0,review_reasons=v_reasons,status='submitted',updated_at=now() where id=v_shift.id;return v_shift.id;end$$;
 
-  select exists(
-    select 1
-    from public.work_schedule_assignments a
-    join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id
-    where a.company_id=v_shift.company_id
-      and a.crew_member_id=v_shift.crew_member_id
-      and w.project_id=v_shift.project_id
-      and w.schedule_date=v_shift.work_date
-      and w.status<>'cancelled'
-      and w.production_task_id=p_task_id
-  ) into v_scheduled;
+create or replace function public.employee_report_production(p_task_id uuid,p_quantity numeric,p_note text default null)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare v_profile public.profiles%rowtype;v_crew public.crew_members%rowtype;v_shift public.employee_shift_sessions%rowtype;v_task public.production_tasks%rowtype;v_record uuid;v_related boolean;v_review text:='auto';
+begin if p_quantity is null or p_quantity<0 then raise exception 'Enter a valid quantity';end if;select * into v_profile from public.profiles where id=auth.uid() and role='employee';if not found then raise exception 'Employee account required';end if;select * into v_crew from public.crew_members where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;if not found or not v_crew.can_report_production then raise exception 'Production reporting is not enabled for this employee';end if;select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' order by clock_in_at desc limit 1;if not found then raise exception 'Clock in before reporting crew production';end if;select * into v_task from public.production_tasks where id=p_task_id and company_id=v_shift.company_id and active=true;if not found then raise exception 'Task not available';end if;select(exists(select 1 from public.employee_task_segments s where s.shift_id=v_shift.id and s.production_task_id=p_task_id) or exists(select 1 from public.work_schedule_assignments a join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id where a.company_id=v_shift.company_id and a.crew_member_id=v_shift.crew_member_id and w.project_id=v_shift.project_id and w.schedule_date=v_shift.work_date and w.status<>'cancelled' and w.production_task_id=p_task_id)) into v_related;if not v_related then v_review:='needs_review';end if;insert into public.daily_production_records(company_id,project_id,work_date,production_task_id,quantity_completed,unit,notes,verified_by,reported_by_crew_member_id,reported_by_profile_id,source,review_status,reported_at,updated_at) values(v_shift.company_id,v_shift.project_id,v_shift.work_date,v_task.id,p_quantity,v_task.production_unit,nullif(trim(p_note),''),null,v_crew.id,auth.uid(),'employee_lead',v_review,now(),now()) on conflict(project_id,work_date,production_task_id) do update set quantity_completed=excluded.quantity_completed,unit=excluded.unit,notes=excluded.notes,reported_by_crew_member_id=excluded.reported_by_crew_member_id,reported_by_profile_id=excluded.reported_by_profile_id,source=excluded.source,review_status=excluded.review_status,reported_at=excluded.reported_at,updated_at=now() returning id into v_record;return v_record;end$$;
 
-  insert into public.employee_task_segments(
-    company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,
-    start_latitude,start_longitude,start_accuracy_m,notes
-  ) values(
-    v_shift.company_id,v_shift.id,v_shift.crew_member_id,v_shift.project_id,v_task.id,now(),
-    p_lat,p_lng,p_accuracy_m,
-    case when v_scheduled then null else 'Employee selected work not assigned on today''s schedule' end
-  ) returning id into v_id;
-
-  return v_id;
-end;
-$$;
-
-create or replace function public.employee_start_break()
-returns uuid
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_shift public.employee_shift_sessions%rowtype;
-  v_id uuid;
-  v_resume uuid;
-begin
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active' limit 1;
-  if not found then raise exception 'Clock in first'; end if;
-
-  if exists(select 1 from public.employee_break_periods where shift_id=v_shift.id and ended_at is null) then
-    raise exception 'Already on break';
-  end if;
-
-  select production_task_id into v_resume
-  from public.employee_task_segments
-  where shift_id=v_shift.id and ended_at is null
-  order by started_at desc limit 1;
-
-  update public.employee_task_segments set ended_at=now()
-  where shift_id=v_shift.id and ended_at is null;
-
-  insert into public.employee_break_periods(company_id,shift_id,started_at,resume_production_task_id)
-  values(v_shift.company_id,v_shift.id,now(),v_resume)
-  returning id into v_id;
-
-  return v_id;
-end;
-$$;
-
-create or replace function public.employee_end_break()
-returns void
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_shift public.employee_shift_sessions%rowtype;
-  v_break public.employee_break_periods%rowtype;
-  v_task public.production_tasks%rowtype;
-begin
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active' limit 1;
-  if not found then raise exception 'Clock in first'; end if;
-
-  select * into v_break from public.employee_break_periods
-  where shift_id=v_shift.id and ended_at is null
-  order by started_at desc limit 1;
-  if not found then raise exception 'No active break'; end if;
-
-  update public.employee_break_periods set ended_at=now() where id=v_break.id;
-
-  if v_break.resume_production_task_id is not null then
-    select * into v_task from public.production_tasks
-    where id=v_break.resume_production_task_id and company_id=v_shift.company_id and active=true;
-    if found then
-      insert into public.employee_task_segments(
-        company_id,shift_id,crew_member_id,project_id,production_task_id,started_at,notes
-      ) values(
-        v_shift.company_id,v_shift.id,v_shift.crew_member_id,v_shift.project_id,v_task.id,now(),
-        'Auto-resumed after break'
-      );
-    end if;
-  end if;
-end;
-$$;
-
-create or replace function public.employee_clock_out(
-  p_lat double precision,
-  p_lng double precision,
-  p_accuracy_m numeric,
-  p_note text default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_shift public.employee_shift_sessions%rowtype;
-  v_project public.projects%rowtype;
-  v_dist numeric;
-  v_inside boolean;
-  v_elapsed numeric;
-  v_break numeric;
-  v_task numeric;
-  v_work numeric;
-  v_coverage numeric;
-  v_reasons text[] := '{}'::text[];
-begin
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active'
-  order by clock_in_at desc limit 1;
-  if not found then raise exception 'Not clocked in'; end if;
-
-  update public.employee_task_segments
-  set ended_at=now(),end_latitude=p_lat,end_longitude=p_lng,end_accuracy_m=p_accuracy_m
-  where shift_id=v_shift.id and ended_at is null;
-
-  update public.employee_break_periods set ended_at=now()
-  where shift_id=v_shift.id and ended_at is null;
-
-  select * into v_project from public.projects where id=v_shift.project_id;
-  v_dist:=public.carez_distance_ft(p_lat,p_lng,v_project.site_latitude,v_project.site_longitude);
-  v_inside:=case when v_dist is null then null else v_dist<=v_project.geofence_radius_ft end;
-
-  v_elapsed:=greatest(extract(epoch from (now()-v_shift.clock_in_at)),0);
-  select coalesce(sum(extract(epoch from (coalesce(ended_at,now())-started_at))),0)
-    into v_break from public.employee_break_periods where shift_id=v_shift.id;
-  select coalesce(sum(extract(epoch from (coalesce(ended_at,now())-started_at))),0)
-    into v_task from public.employee_task_segments where shift_id=v_shift.id;
-  v_work:=greatest(v_elapsed-v_break,0);
-  v_coverage:=case when v_work>0 then least(100,round(100*v_task/v_work,1)) else 0 end;
-
-  if v_shift.clock_in_inside_geofence=false then v_reasons:=array_append(v_reasons,'Clock-in outside jobsite'); end if;
-  if v_inside=false then v_reasons:=array_append(v_reasons,'Clock-out outside jobsite'); end if;
-  if v_coverage<90 then v_reasons:=array_append(v_reasons,'Less than 90% of work time assigned to a task'); end if;
-  if exists(select 1 from public.employee_task_segments where shift_id=v_shift.id and notes like 'Employee selected work not assigned%') then
-    v_reasons:=array_append(v_reasons,'Used work not assigned on schedule');
-  end if;
-
-  update public.employee_shift_sessions
-  set clock_out_at=now(),clock_out_latitude=p_lat,clock_out_longitude=p_lng,
-      clock_out_accuracy_m=p_accuracy_m,clock_out_distance_ft=v_dist,
-      clock_out_inside_geofence=v_inside,employee_note=nullif(trim(p_note),''),
-      task_coverage_percent=v_coverage,requires_review=cardinality(v_reasons)>0,
-      review_reasons=v_reasons,status='submitted',updated_at=now()
-  where id=v_shift.id;
-
-  return v_shift.id;
-end;
-$$;
-
-create or replace function public.employee_report_production(
-  p_task_id uuid,
-  p_quantity numeric,
-  p_note text default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_profile public.profiles%rowtype;
-  v_crew public.crew_members%rowtype;
-  v_shift public.employee_shift_sessions%rowtype;
-  v_task public.production_tasks%rowtype;
-  v_record uuid;
-  v_related boolean;
-  v_review text := 'auto';
-begin
-  if p_quantity is null or p_quantity<0 then raise exception 'Enter a valid quantity'; end if;
-
-  select * into v_profile from public.profiles where id=auth.uid() and role='employee';
-  if not found then raise exception 'Employee account required'; end if;
-
-  select * into v_crew from public.crew_members
-  where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;
-  if not found or not v_crew.can_report_production then raise exception 'Production reporting is not enabled for this employee'; end if;
-
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active'
-  order by clock_in_at desc limit 1;
-  if not found then raise exception 'Clock in before reporting crew production'; end if;
-
-  select * into v_task from public.production_tasks
-  where id=p_task_id and company_id=v_shift.company_id and active=true;
-  if not found then raise exception 'Task not available'; end if;
-
-  select (
-    exists(select 1 from public.employee_task_segments s where s.shift_id=v_shift.id and s.production_task_id=p_task_id)
-    or exists(
-      select 1 from public.work_schedule_assignments a
-      join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id
-      where a.company_id=v_shift.company_id and a.crew_member_id=v_shift.crew_member_id
-        and w.project_id=v_shift.project_id and w.schedule_date=v_shift.work_date
-        and w.status<>'cancelled' and w.production_task_id=p_task_id
-    )
-  ) into v_related;
-
-  if not v_related then v_review:='needs_review'; end if;
-
-  insert into public.daily_production_records(
-    company_id,project_id,work_date,production_task_id,quantity_completed,unit,notes,
-    verified_by,reported_by_crew_member_id,reported_by_profile_id,source,review_status,reported_at,updated_at
-  ) values(
-    v_shift.company_id,v_shift.project_id,v_shift.work_date,v_task.id,p_quantity,v_task.production_unit,
-    nullif(trim(p_note),''),null,v_crew.id,auth.uid(),'employee_lead',v_review,now(),now()
-  )
-  on conflict(project_id,work_date,production_task_id) do update set
-    quantity_completed=excluded.quantity_completed,
-    unit=excluded.unit,
-    notes=excluded.notes,
-    reported_by_crew_member_id=excluded.reported_by_crew_member_id,
-    reported_by_profile_id=excluded.reported_by_profile_id,
-    source=excluded.source,
-    review_status=excluded.review_status,
-    reported_at=excluded.reported_at,
-    updated_at=now()
-  returning id into v_record;
-
-  return v_record;
-end;
-$$;
-
-create or replace function public.employee_portal_state()
-returns jsonb
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_profile public.profiles%rowtype;
-  v_crew public.crew_members%rowtype;
-  v_shift public.employee_shift_sessions%rowtype;
-  v_today date := (now() at time zone 'America/Los_Angeles')::date;
-  v_elapsed numeric := 0;
-  v_break numeric := 0;
-  v_task numeric := 0;
-  v_work numeric := 0;
-  v_coverage numeric := 0;
-begin
-  select * into v_profile from public.profiles where id=auth.uid() and role='employee';
-  if not found then raise exception 'Employee account required'; end if;
-
-  select * into v_crew from public.crew_members
-  where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;
-  if not found then raise exception 'Employee record is not linked'; end if;
-
-  select * into v_shift from public.employee_shift_sessions
-  where employee_profile_id=auth.uid() and status='active'
-  order by clock_in_at desc limit 1;
-
-  if v_shift.id is not null then
-    v_elapsed:=greatest(extract(epoch from (now()-v_shift.clock_in_at)),0);
-    select coalesce(sum(extract(epoch from (coalesce(ended_at,now())-started_at))),0)
-      into v_break from public.employee_break_periods where shift_id=v_shift.id;
-    select coalesce(sum(extract(epoch from (coalesce(ended_at,now())-started_at))),0)
-      into v_task from public.employee_task_segments where shift_id=v_shift.id;
-    v_work:=greatest(v_elapsed-v_break,0);
-    v_coverage:=case when v_work>0 then least(100,round(100*v_task/v_work,1)) else 0 end;
-  end if;
-
-  return jsonb_build_object(
-    'employee',jsonb_build_object(
-      'id',v_crew.id,'name',v_crew.name,'role',v_crew.role,
-      'can_report_production',v_crew.can_report_production
-    ),
-    'projects',(
-      select coalesce(jsonb_agg(jsonb_build_object(
-        'id',p.id,'job_number',p.job_number,'name',p.name,'address',p.address,'city',p.city,
-        'site_latitude',p.site_latitude,'site_longitude',p.site_longitude,'geofence_radius_ft',p.geofence_radius_ft
-      ) order by p.job_number),'[]'::jsonb)
-      from public.projects p where p.company_id=v_profile.company_id and p.status='active'
-    ),
-    'tasks',(
-      select coalesce(jsonb_agg(jsonb_build_object(
-        'id',t.id,'name',t.name,'category',t.category,'unit',t.production_unit
-      ) order by t.sort_order,t.name),'[]'::jsonb)
-      from public.production_tasks t where t.company_id=v_profile.company_id and t.active=true
-    ),
-    'assigned_schedule',(
-      select coalesce(jsonb_agg(x order by x->>'schedule_date',x->>'start_time'),'[]'::jsonb)
-      from (
-        select jsonb_build_object(
-          'id',w.id,'schedule_date',w.schedule_date,'start_time',w.start_time,'end_time',w.end_time,
-          'title',w.title,'item_type',w.item_type,'status',w.status,'notes',w.notes,
-          'project_id',w.project_id,'job_number',p.job_number,'project_name',p.name,'address',p.address,'city',p.city,
-          'production_task_id',w.production_task_id,'task_name',pt.name,'production_unit',pt.production_unit
-        ) x
-        from public.work_schedule_assignments a
-        join public.work_schedule_items w on w.id=a.schedule_item_id
-        left join public.projects p on p.id=w.project_id
-        left join public.production_tasks pt on pt.id=w.production_task_id
-        where a.company_id=v_profile.company_id and a.crew_member_id=v_crew.id
-          and w.status<>'cancelled' and w.schedule_date between v_today and v_today+7
-      ) q
-    ),
-    'suggested_tasks',(
-      select coalesce(jsonb_agg(x order by x->>'sort_order',x->>'name'),'[]'::jsonb)
-      from (
-        select distinct jsonb_build_object(
-          'id',t.id,'name',t.name,'category',t.category,'unit',t.production_unit,
-          'sort_order',lpad(t.sort_order::text,6,'0'),'scheduled_title',w.title
-        ) x
-        from public.work_schedule_assignments a
-        join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id
-        join public.production_tasks t on t.id=w.production_task_id and t.company_id=w.company_id
-        where a.company_id=v_profile.company_id and a.crew_member_id=v_crew.id
-          and w.status<>'cancelled' and w.schedule_date=coalesce(v_shift.work_date,v_today)
-          and (v_shift.id is null or w.project_id=v_shift.project_id)
-      ) q
-    ),
-    'active_shift',case when v_shift.id is null then null else jsonb_build_object(
-      'id',v_shift.id,'project_id',v_shift.project_id,'clock_in_at',v_shift.clock_in_at,
-      'clock_in_inside_geofence',v_shift.clock_in_inside_geofence,'clock_in_distance_ft',v_shift.clock_in_distance_ft
-    ) end,
-    'active_task',(
-      select jsonb_build_object(
-        'id',s.id,'production_task_id',s.production_task_id,'started_at',s.started_at,
-        'task_name',t.name,'unit',t.production_unit
-      )
-      from public.employee_task_segments s
-      join public.production_tasks t on t.id=s.production_task_id
-      where s.shift_id=v_shift.id and s.ended_at is null limit 1
-    ),
-    'active_break',(
-      select jsonb_build_object('id',b.id,'started_at',b.started_at,'resume_production_task_id',b.resume_production_task_id)
-      from public.employee_break_periods b where b.shift_id=v_shift.id and b.ended_at is null limit 1
-    ),
-    'work_tracking',jsonb_build_object(
-      'paid_work_minutes',round(v_work/60.0,0),
-      'tracked_task_minutes',round(v_task/60.0,0),
-      'coverage_percent',v_coverage,
-      'needs_attention',v_shift.id is not null and v_work>=1800 and v_coverage<90
-    ),
-    'today_reports',(
-      select coalesce(jsonb_agg(jsonb_build_object(
-        'id',r.id,'production_task_id',r.production_task_id,'task_name',t.name,
-        'quantity',r.quantity_completed,'unit',r.unit,'review_status',r.review_status
-      ) order by t.sort_order),'[]'::jsonb)
-      from public.daily_production_records r
-      join public.production_tasks t on t.id=r.production_task_id
-      where r.company_id=v_profile.company_id
-        and r.project_id=coalesce(v_shift.project_id,r.project_id)
-        and r.work_date=coalesce(v_shift.work_date,v_today)
-    ),
-    'recent',(
-      select coalesce(jsonb_agg(x),'[]'::jsonb) from (
-        select jsonb_build_object(
-          'id',s.id,'work_date',s.work_date,'clock_in_at',s.clock_in_at,'clock_out_at',s.clock_out_at,
-          'status',s.status,'task_coverage_percent',s.task_coverage_percent,'requires_review',s.requires_review,
-          'project',p.job_number||' - '||p.name
-        ) x
-        from public.employee_shift_sessions s
-        join public.projects p on p.id=s.project_id
-        where s.employee_profile_id=auth.uid()
-        order by s.work_date desc,s.clock_in_at desc limit 7
-      ) q
-    )
-  );
-end;
-$$;
-
+create or replace function public.employee_portal_state() returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_profile public.profiles%rowtype;v_crew public.crew_members%rowtype;v_shift public.employee_shift_sessions%rowtype;v_today date:=(now() at time zone 'America/Los_Angeles')::date;v_elapsed numeric:=0;v_break numeric:=0;v_task numeric:=0;v_work numeric:=0;v_coverage numeric:=0;
+begin select * into v_profile from public.profiles where id=auth.uid() and role='employee';if not found then raise exception 'Employee account required';end if;select * into v_crew from public.crew_members where profile_id=auth.uid() and company_id=v_profile.company_id and active=true;if not found then raise exception 'Employee record is not linked';end if;select * into v_shift from public.employee_shift_sessions where employee_profile_id=auth.uid() and status='active' order by clock_in_at desc limit 1;if v_shift.id is not null then v_elapsed:=greatest(extract(epoch from(now()-v_shift.clock_in_at)),0);select coalesce(sum(extract(epoch from(coalesce(ended_at,now())-started_at))),0) into v_break from public.employee_break_periods where shift_id=v_shift.id;select coalesce(sum(extract(epoch from(coalesce(ended_at,now())-started_at))),0) into v_task from public.employee_task_segments where shift_id=v_shift.id;v_work:=greatest(v_elapsed-v_break,0);v_coverage:=case when v_work>0 then least(100,round(100*v_task/v_work,1)) else 0 end;end if;return jsonb_build_object('employee',jsonb_build_object('id',v_crew.id,'name',v_crew.name,'role',v_crew.role,'can_report_production',v_crew.can_report_production),'projects',(select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'job_number',p.job_number,'name',p.name,'address',p.address,'city',p.city,'site_latitude',p.site_latitude,'site_longitude',p.site_longitude,'geofence_radius_ft',p.geofence_radius_ft) order by p.job_number),'[]'::jsonb) from public.projects p where p.company_id=v_profile.company_id and p.status='active'),'tasks',(select coalesce(jsonb_agg(jsonb_build_object('id',t.id,'name',t.name,'category',t.category,'unit',t.production_unit) order by t.sort_order,t.name),'[]'::jsonb) from public.production_tasks t where t.company_id=v_profile.company_id and t.active=true),'assigned_schedule',(select coalesce(jsonb_agg(x order by x->>'schedule_date',x->>'start_time'),'[]'::jsonb) from(select jsonb_build_object('id',w.id,'schedule_date',w.schedule_date,'start_time',w.start_time,'end_time',w.end_time,'title',w.title,'item_type',w.item_type,'status',w.status,'notes',w.notes,'project_id',w.project_id,'job_number',p.job_number,'project_name',p.name,'address',p.address,'city',p.city,'production_task_id',w.production_task_id,'task_name',pt.name,'production_unit',pt.production_unit)x from public.work_schedule_assignments a join public.work_schedule_items w on w.id=a.schedule_item_id left join public.projects p on p.id=w.project_id left join public.production_tasks pt on pt.id=w.production_task_id where a.company_id=v_profile.company_id and a.crew_member_id=v_crew.id and w.status<>'cancelled' and w.schedule_date between v_today and v_today+7)q),'suggested_tasks',(select coalesce(jsonb_agg(x order by x->>'sort_order',x->>'name'),'[]'::jsonb) from(select distinct jsonb_build_object('id',t.id,'name',t.name,'category',t.category,'unit',t.production_unit,'sort_order',lpad(t.sort_order::text,6,'0'),'scheduled_title',w.title)x from public.work_schedule_assignments a join public.work_schedule_items w on w.id=a.schedule_item_id and w.company_id=a.company_id join public.production_tasks t on t.id=w.production_task_id and t.company_id=w.company_id where a.company_id=v_profile.company_id and a.crew_member_id=v_crew.id and w.status<>'cancelled' and w.schedule_date=coalesce(v_shift.work_date,v_today) and(v_shift.id is null or w.project_id=v_shift.project_id))q),'active_shift',case when v_shift.id is null then null else jsonb_build_object('id',v_shift.id,'project_id',v_shift.project_id,'clock_in_at',v_shift.clock_in_at,'clock_in_inside_geofence',v_shift.clock_in_inside_geofence,'clock_in_distance_ft',v_shift.clock_in_distance_ft) end,'active_task',(select jsonb_build_object('id',s.id,'production_task_id',s.production_task_id,'started_at',s.started_at,'task_name',t.name,'unit',t.production_unit) from public.employee_task_segments s join public.production_tasks t on t.id=s.production_task_id where s.shift_id=v_shift.id and s.ended_at is null limit 1),'active_break',(select jsonb_build_object('id',b.id,'started_at',b.started_at,'resume_production_task_id',b.resume_production_task_id) from public.employee_break_periods b where b.shift_id=v_shift.id and b.ended_at is null limit 1),'work_tracking',jsonb_build_object('paid_work_minutes',round(v_work/60.0,0),'tracked_task_minutes',round(v_task/60.0,0),'coverage_percent',v_coverage,'needs_attention',v_shift.id is not null and v_work>=1800 and v_coverage<90),'today_reports',(select coalesce(jsonb_agg(jsonb_build_object('id',r.id,'production_task_id',r.production_task_id,'task_name',t.name,'quantity',r.quantity_completed,'unit',r.unit,'review_status',r.review_status) order by t.sort_order),'[]'::jsonb) from public.daily_production_records r join public.production_tasks t on t.id=r.production_task_id where r.company_id=v_profile.company_id and(v_shift.id is null or r.project_id=v_shift.project_id) and r.work_date=coalesce(v_shift.work_date,v_today)),'recent',(select coalesce(jsonb_agg(x),'[]'::jsonb) from(select jsonb_build_object('id',s.id,'work_date',s.work_date,'clock_in_at',s.clock_in_at,'clock_out_at',s.clock_out_at,'status',s.status,'task_coverage_percent',s.task_coverage_percent,'requires_review',s.requires_review,'project',p.job_number||' - '||p.name)x from public.employee_shift_sessions s join public.projects p on p.id=s.project_id where s.employee_profile_id=auth.uid() order by s.work_date desc,s.clock_in_at desc limit 7)q));end$$;
 grant execute on function public.employee_report_production(uuid,numeric,text) to authenticated;
