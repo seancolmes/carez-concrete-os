@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, TrendingUp, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 
 const desktopItems=[
   {href:'/',label:'Home',Icon:Home},
@@ -9,6 +9,7 @@ const desktopItems=[
   {href:'/estimates',label:'Estimates',Icon:Calculator},
   {href:'/projects',label:'Projects',Icon:Briefcase},
   {href:'/change-orders',label:'Change Orders',Icon:ClipboardList},
+  {href:'/billing',label:'Billing',Icon:ReceiptText},
   {href:'/forecast',label:'Forecast',Icon:TrendingUp},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Job Costs',Icon:Receipt},
@@ -18,11 +19,11 @@ const desktopItems=[
 ];
 const mobileItems=[
   {href:'/',label:'Home',Icon:Home},
-  {href:'/estimates',label:'Estimates',Icon:Calculator},
   {href:'/projects',label:'Projects',Icon:Briefcase},
-  {href:'/change-orders',label:'COs',Icon:ClipboardList},
   {href:'/field',label:'Field',Icon:Hammer},
   {href:'/costs',label:'Costs',Icon:Receipt},
+  {href:'/change-orders',label:'COs',Icon:ClipboardList},
+  {href:'/billing',label:'Billing',Icon:ReceiptText},
 ];
 
 export function AppShell({children,userName}:{children:React.ReactNode;userName:string}){
