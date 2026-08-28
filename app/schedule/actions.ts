@@ -1,61 +1,13 @@
 'use server';
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
-
-async function ownerContext(){
-  const supabase=await createClient();
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)throw new Error('Not signed in');
-  const {data:profile}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();
-  if(!profile?.company_id||profile.role==='employee')throw new Error('Owner access required');
-  return {supabase,user,companyId:profile.company_id};
-}
-
+async function ownerContext(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!profile?.company_id||profile.role==='employee')throw new Error('Owner access required');return{supabase,user,companyId:profile.company_id};}
 export async function createScheduleItem(formData:FormData){
-  const projectId=String(formData.get('project_id')||'');
-  const scheduleDate=String(formData.get('schedule_date')||'');
-  const title=String(formData.get('title')||'').trim();
-  if(!projectId||!scheduleDate||!title)return;
-  const {supabase,user,companyId}=await ownerContext();
-  const {data:readiness}=await supabase.from('project_job_readiness_summary').select('award_setup_applies,job_ready,readiness_reason').eq('project_id',projectId).eq('company_id',companyId).maybeSingle();
-  if(readiness?.award_setup_applies&&!readiness.job_ready)throw new Error(`Job is on setup hold: ${readiness.readiness_reason||'finish Job Setup first'}.`);
-  const {data:item,error}=await supabase.from('work_schedule_items').insert({
-    company_id:companyId,
-    project_id:projectId,
-    schedule_date:scheduleDate,
-    item_type:String(formData.get('item_type')||'work'),
-    title,
-    production_task_id:String(formData.get('production_task_id')||'')||null,
-    pour_plan_id:String(formData.get('pour_plan_id')||'')||null,
-    start_time:String(formData.get('start_time')||'')||null,
-    end_time:String(formData.get('end_time')||'')||null,
-    crew_needed:Number(formData.get('crew_needed')||0),
-    status:String(formData.get('status')||'planned'),
-    notes:String(formData.get('notes')||'').trim()||null,
-    created_by:user.id
-  }).select('id').single();
-  if(error)throw new Error(error.message);
-  const crewIds=formData.getAll('crew_member_ids').map(String).filter(Boolean);
-  if(item&&crewIds.length){
-    const rows=crewIds.map(crew_member_id=>({company_id:companyId,schedule_item_id:item.id,crew_member_id}));
-    const {error:assignmentError}=await supabase.from('work_schedule_assignments').insert(rows);
-    if(assignmentError)throw new Error(assignmentError.message);
-  }
-  revalidatePath('/schedule');revalidatePath('/projects');revalidatePath('/');
+ const projectId=String(formData.get('project_id')||''),scheduleDate=String(formData.get('schedule_date')||''),title=String(formData.get('title')||'').trim(),itemType=String(formData.get('item_type')||'work'),productionTaskId=String(formData.get('production_task_id')||'');if(!projectId||!scheduleDate||!title)return;if(itemType==='work'&&!productionTaskId)throw new Error('Choose what the crew will be doing. This lets employee clocks start the correct work automatically.');
+ const {supabase,user,companyId}=await ownerContext();const {data:readiness}=await supabase.from('project_job_readiness_summary').select('award_setup_applies,job_ready,readiness_reason').eq('project_id',projectId).eq('company_id',companyId).maybeSingle();if(readiness?.award_setup_applies&&!readiness.job_ready)throw new Error(`Job is on setup hold: ${readiness.readiness_reason||'finish Job Setup first'}.`);
+ const {data:item,error}=await supabase.from('work_schedule_items').insert({company_id:companyId,project_id:projectId,schedule_date:scheduleDate,item_type:itemType,title,production_task_id:productionTaskId||null,pour_plan_id:String(formData.get('pour_plan_id')||'')||null,start_time:String(formData.get('start_time')||'')||null,end_time:String(formData.get('end_time')||'')||null,crew_needed:Number(formData.get('crew_needed')||0),status:String(formData.get('status')||'planned'),notes:String(formData.get('notes')||'').trim()||null,created_by:user.id}).select('id').single();if(error)throw new Error(error.message);
+ const crewIds=formData.getAll('crew_member_ids').map(String).filter(Boolean);if(item&&crewIds.length){const {error:assignmentError}=await supabase.from('work_schedule_assignments').insert(crewIds.map(crew_member_id=>({company_id:companyId,schedule_item_id:item.id,crew_member_id})));if(assignmentError)throw new Error(assignmentError.message);}
+ revalidatePath('/schedule');revalidatePath('/projects');revalidatePath('/employee');revalidatePath('/production');revalidatePath('/');
 }
-
-export async function updateScheduleStatus(formData:FormData){
-  const id=String(formData.get('id')||'');
-  const status=String(formData.get('status')||'planned');
-  if(!id)return;
-  const {supabase,companyId}=await ownerContext();
-  await supabase.from('work_schedule_items').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);
-  revalidatePath('/schedule');
-}
-
-export async function deleteScheduleItem(formData:FormData){
-  const id=String(formData.get('id')||'');if(!id)return;
-  const {supabase,companyId}=await ownerContext();
-  await supabase.from('work_schedule_items').delete().eq('id',id).eq('company_id',companyId);
-  revalidatePath('/schedule');
-}
+export async function updateScheduleStatus(formData:FormData){const id=String(formData.get('id')||''),status=String(formData.get('status')||'planned');if(!id)return;const {supabase,companyId}=await ownerContext();await supabase.from('work_schedule_items').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);revalidatePath('/schedule');revalidatePath('/employee');}
+export async function deleteScheduleItem(formData:FormData){const id=String(formData.get('id')||'');if(!id)return;const {supabase,companyId}=await ownerContext();await supabase.from('work_schedule_items').delete().eq('id',id).eq('company_id',companyId);revalidatePath('/schedule');revalidatePath('/employee');}
