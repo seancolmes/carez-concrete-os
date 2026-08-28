@@ -14,7 +14,7 @@ export async function createWorkPackage(fd:FormData){
 
 export async function addWorkPackageOperation(fd:FormData){
  const packageId=String(fd.get('work_package_id')||''),taskId=String(fd.get('production_task_id')||''),qty=Number(fd.get('planned_quantity'));if(!packageId||!taskId||!Number.isFinite(qty)||qty<=0)throw new Error('Choose the work and enter the known takeoff quantity.');
- const {supabase,companyId}=await ctx();const measurement=String(fd.get('measurement_method')||'completion'),pourPlanId=String(fd.get('pour_plan_id')||'')||null;
+ const {supabase,companyId}=await ctx();const measurement=String(fd.get('measurement_method')||'completion'),requestedPourPlanId=String(fd.get('pour_plan_id')||'')||null;const pourPlanId=measurement==='ticket'?requestedPourPlanId:null;
  const [{data:pkg},{data:task}]=await Promise.all([supabase.from('work_packages').select('id,project_id').eq('id',packageId).eq('company_id',companyId).single(),supabase.from('production_tasks').select('id,production_unit').eq('id',taskId).eq('company_id',companyId).single()]);if(!pkg||!task)throw new Error('Work package or production task not found.');
  if(measurement==='ticket'&&!pourPlanId)throw new Error('Choose the concrete pour that supplies the delivery tickets.');
  if(measurement==='ticket'&&String(task.production_unit).toUpperCase()!=='CY')throw new Error('Concrete tickets can only be the production quantity for CY work. Slab and sidewalk production should stay in SF from the takeoff.');
