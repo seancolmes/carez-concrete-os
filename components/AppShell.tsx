@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, Banknote, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
+import { Home, Users, Calculator, Briefcase, ClipboardList, ReceiptText, TrendingUp, ShieldCheck, ShoppingCart, CreditCard, Wallet, Landmark, ListChecks, SlidersHorizontal, Banknote, Hammer, Receipt, HardHat, Gauge, Settings } from 'lucide-react';
 import { BankSyncPulse } from '@/components/PlaidBankControls';
 
 type NavItem={href:string;label:string;Icon:any};
@@ -13,14 +13,15 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   ]},
   {label:'Purchasing',items:[{href:'/procurement',label:'Procurement',Icon:ShoppingCart}]},
   {label:'Accounting',items:[
-    {href:'/billing',label:'Billing',Icon:ReceiptText},{href:'/payables',label:'Accounts Payable',Icon:CreditCard},{href:'/cashflow',label:'Cashflow',Icon:Wallet},{href:'/banking',label:'Banking',Icon:Landmark},{href:'/banking/reconcile',label:'Reconcile Transactions',Icon:ListChecks},{href:'/payroll',label:'Payroll',Icon:Banknote},{href:'/costs',label:'Job Costs',Icon:Receipt},{href:'/overhead',label:'Overhead',Icon:Gauge},
+    {href:'/billing',label:'Billing',Icon:ReceiptText},{href:'/payables',label:'Accounts Payable',Icon:CreditCard},{href:'/cashflow',label:'Cashflow',Icon:Wallet},{href:'/banking',label:'Banking',Icon:Landmark},{href:'/banking/reconcile',label:'Reconcile Transactions',Icon:ListChecks},{href:'/banking/rules',label:'Bank Rules',Icon:SlidersHorizontal},{href:'/payroll',label:'Payroll',Icon:Banknote},{href:'/costs',label:'Job Costs',Icon:Receipt},{href:'/overhead',label:'Overhead',Icon:Gauge},
   ]},
   {label:'Administration',items:[{href:'/settings',label:'Settings',Icon:Settings}]},
 ];
 const mobileItems:NavItem[]=[{href:'/',label:'Home',Icon:Home},{href:'/projects',label:'Projects',Icon:Briefcase},{href:'/field',label:'Field',Icon:Hammer},{href:'/pour-control',label:'Pours',Icon:ShieldCheck},{href:'/change-orders',label:'COs',Icon:ClipboardList},{href:'/procurement',label:'POs',Icon:ShoppingCart}];
 
 export function AppShell({children,userName}:{children:React.ReactNode;userName:string}){
-  const pathname=usePathname();const active=(href:string)=>href==='/'?pathname==='/':pathname.startsWith(href);
+  const pathname=usePathname();
+  const active=(href:string)=>href==='/'?pathname==='/':href==='/banking'?pathname==='/banking':pathname.startsWith(href);
   return <div className="shell"><BankSyncPulse/>
     <aside className="sidebar"><div className="brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="brand-wordmark"/><span className="brand-concrete-label">CONCRETE</span><span className="brand-os">Operating System</span></div>
       <nav className="nav nav-grouped" aria-label="Primary navigation">{navGroups.map(group=><div className="nav-section" key={group.label}><div className="nav-section-label">{group.label}</div><div className="nav-section-items">{group.items.map(({href,label,Icon})=><Link key={href} href={href} className={active(href)?'active':''}><Icon className="nav-icon" aria-hidden="true"/><span>{label}</span></Link>)}</div></div>)}</nav>
