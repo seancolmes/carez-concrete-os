@@ -1,0 +1,84 @@
+type Candidate={company_id:string;bank_transaction_id:string;candidate_type:string;entity_type?:string|null;entity_id?:string|null;rule_id?:string|null;confidence:number;reason:string;proposed_action?:string|null;metadata?:Record<string,any>;status:'active'};
+
+const round=(v:any)=>Math.round(Number(v||0)*100)/100;
+const norm=(v:any)=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const days=(a:string,b:string)=>Math.abs(Math.round((new Date(`${a}T12:00:00Z`).getTime()-new Date(`${b}T12:00:00Z`).getTime())/86400000));
+const sameMoney=(a:any,b:any)=>Math.abs(round(a)-round(b))<=0.01;
+const direction=(cash:any)=>Number(cash)>=0?'inflow':'outflow';
+const generic=new Set(['the','and','inc','llc','co','company','corp','corporation','payment','purchase','debit','card','ach','online','pos','bank']);
+function related(a:any,b:any){
+  const x=norm(a),y=norm(b);if(!x||!y)return false;if(x.includes(y)||y.includes(x))return true;
+  const ax=x.split(' ').filter((t:string)=>t.length>2&&!generic.has(t)),by=y.split(' ').filter((t:string)=>t.length>2&&!generic.has(t));
+  if(!ax.length||!by.length)return false;const overlap=ax.filter((t:string)=>by.includes(t));return overlap.length>=Math.min(2,Math.min(ax.length,by.length));
+}
+function txLabel(t:any){return t.merchant_name||t.name||'Bank transaction';}
+function addCandidate(map:Map<string,Candidate>,c:Candidate){const key=`${c.bank_transaction_id}|${c.candidate_type}|${c.entity_id||''}|${c.rule_id||''}`;const old=map.get(key);if(!old||c.confidence>old.confidence)map.set(key,c);}
+
+export async function analyzeBankTransactions(supabase:any,companyId:string,{limit=750}:{limit?:number}={}){
+  const {data:txs,error:txError}=await supabase.from('plaid_transactions').select('*').eq('company_id',companyId).eq('removed',false).eq('review_status','unreviewed').eq('pending',false).order('transaction_date',{ascending:false}).limit(limit);
+  if(txError)throw new Error(txError.message);if(!(txs||[]).length)return {analyzed:0,candidates:0,autoMatched:0,autoApplied:0};
+  const txIds=(txs||[]).map((t:any)=>t.id);
+  await supabase.from('bank_reconciliation_candidates').update({status:'stale',updated_at:new Date().toISOString()}).eq('company_id',companyId).eq('status','active').in('bank_transaction_id',txIds);
+
+  const [customersR,customerPaymentsR,invoicesR,vendorsR,vendorPaymentsR,billsR,expensesR,payrollR,taxesR,rulesR,overheadR,allTxR]=await Promise.all([
+    supabase.from('customers').select('id,name').eq('company_id',companyId),
+    supabase.from('customer_payments').select('id,customer_id,project_id,received_date,amount,status,bank_transaction_id').eq('company_id',companyId).eq('status','posted'),
+    supabase.from('invoice_financial_summary').select('invoice_id,project_id,customer_id,invoice_number,bill_to_name,status,issue_date,due_date,balance_due').eq('company_id',companyId).eq('status','sent').gt('balance_due',0),
+    supabase.from('vendors').select('id,name').eq('company_id',companyId),
+    supabase.from('vendor_payments').select('id,vendor_id,payment_date,amount,processing_fee,status,bank_transaction_id').eq('company_id',companyId).eq('status','posted'),
+    supabase.from('vendor_bill_ap_summary').select('vendor_bill_id,vendor_id,vendor_name,vendor_bill_number,bill_date,due_date,status,balance_due,project_id,job_number,project_name').eq('company_id',companyId).eq('status','posted').gt('balance_due',0),
+    supabase.from('company_expenses').select('id,expense_date,paid_date,payee,description,total_amount,payment_status,bank_transaction_id').eq('company_id',companyId).eq('payment_status','paid'),
+    supabase.from('payroll_run_financial_summary').select('payroll_run_id,pay_date,status,actual_cash_paid,payroll_funding_requirement,period_start,period_end').eq('company_id',companyId).in('status',['approved','processed']),
+    supabase.from('company_tax_remittances').select('id,tax_type,payment_date,amount,bank_transaction_id').eq('company_id',companyId),
+    supabase.from('bank_reconciliation_rules').select('*').eq('company_id',companyId).eq('active',true),
+    supabase.from('overhead_items').select('id,category,name,business_use_percent').eq('company_id',companyId).eq('active',true),
+    supabase.from('plaid_transactions').select('id,account_id,transaction_date,name,merchant_name,cash_amount,category_primary,pending,removed,review_status,created_at').eq('company_id',companyId).eq('removed',false).eq('review_status','unreviewed').eq('pending',false).order('transaction_date',{ascending:false}).limit(1500)
+  ]);
+  const customerNames=new Map((customersR.data||[]).map((x:any)=>[x.id,x.name]));
+  const vendorNames=new Map((vendorsR.data||[]).map((x:any)=>[x.id,x.name]));
+  const overhead=(overheadR.data||[]);const bankFeeOH=overhead.find((x:any)=>norm(x.name).includes('bank account ach wire fees'));const truckFuelOH=overhead.find((x:any)=>norm(x.name).includes('primary truck fuel'));const qbOH=overhead.find((x:any)=>norm(x.name).includes('quickbooks'));const msOH=overhead.find((x:any)=>norm(x.name).includes('microsoft 365'));
+  const map=new Map<string,Candidate>();
+
+  for(const t of txs||[]){
+    const cash=round(t.cash_amount),amt=Math.abs(cash),label=txLabel(t),labelNorm=norm(label);
+    if(cash>0){
+      for(const p of customerPaymentsR.data||[]){if(p.bank_transaction_id||!sameMoney(amt,p.amount)||days(t.transaction_date,p.received_date)>5)continue;const customer=customerNames.get(p.customer_id)||'';const nameMatch=related(label,customer);addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'existing_customer_payment',entity_type:'customer_payment',entity_id:p.id,confidence:nameMatch?99:94,reason:nameMatch?'Exact deposit, date and customer match.':'Exact deposit amount and nearby payment date.',proposed_action:`Match existing customer payment ${round(p.amount).toFixed(2)}`,metadata:{customer_name:customer,amount:round(p.amount)},status:'active'});}
+      for(const inv of invoicesR.data||[]){const bal=round(inv.balance_due);if(amt>bal+0.01)continue;const exact=sameMoney(amt,bal),nameMatch=related(label,inv.bill_to_name);if(!exact&&!nameMatch)continue;const score=exact&&nameMatch?97:exact?84:89;addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'invoice_payment',entity_type:'invoice',entity_id:inv.invoice_id,confidence:score,reason:exact&&nameMatch?'Deposit matches invoice balance and customer.':exact?'Deposit exactly matches an open invoice balance.':'Deposit payer resembles the invoice customer.',proposed_action:`Apply ${amt.toFixed(2)} to ${inv.invoice_number}`,metadata:{invoice_number:inv.invoice_number,bill_to_name:inv.bill_to_name,balance_due:bal},status:'active'});}
+    }else if(cash<0){
+      for(const p of vendorPaymentsR.data||[]){if(p.bank_transaction_id)continue;const total=round(Number(p.amount||0)+Number(p.processing_fee||0));if(!sameMoney(amt,total)||days(t.transaction_date,p.payment_date)>5)continue;const vendor=vendorNames.get(p.vendor_id)||'';const nameMatch=related(label,vendor);addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'existing_vendor_payment',entity_type:'vendor_payment',entity_id:p.id,confidence:nameMatch?99:94,reason:nameMatch?'Exact withdrawal, date and vendor match.':'Exact withdrawal amount and nearby vendor-payment date.',proposed_action:`Match existing vendor payment ${total.toFixed(2)}`,metadata:{vendor_name:vendor,amount:total},status:'active'});}
+      for(const b of billsR.data||[]){const bal=round(b.balance_due);if(amt>bal+0.01)continue;const exact=sameMoney(amt,bal),nameMatch=related(label,b.vendor_name);if(!exact&&!nameMatch)continue;const score=exact&&nameMatch?97:exact?85:89;addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'vendor_bill_payment',entity_type:'vendor_bill',entity_id:b.vendor_bill_id,confidence:score,reason:exact&&nameMatch?'Withdrawal matches vendor and open bill balance.':exact?'Withdrawal exactly matches an open vendor bill.':'Bank merchant resembles a vendor with an open bill.',proposed_action:`Pay ${b.vendor_name} bill ${b.vendor_bill_number}`,metadata:{vendor_name:b.vendor_name,vendor_bill_number:b.vendor_bill_number,balance_due:bal,job_number:b.job_number},status:'active'});}
+      for(const e of expensesR.data||[]){if(e.bank_transaction_id||!sameMoney(amt,e.total_amount)||days(t.transaction_date,e.paid_date||e.expense_date)>5)continue;const nameMatch=related(label,e.payee||e.description);addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'existing_company_expense',entity_type:'company_expense',entity_id:e.id,confidence:nameMatch?99:93,reason:nameMatch?'Exact amount, date and payee match.':'Exact amount and nearby company-expense date.',proposed_action:`Match existing expense — ${e.payee||e.description}`,metadata:{payee:e.payee,total_amount:round(e.total_amount)},status:'active'});}
+      for(const p of payrollR.data||[]){const expected=p.status==='processed'?p.actual_cash_paid:p.payroll_funding_requirement;if(expected==null||!sameMoney(amt,expected)||!p.pay_date||days(t.transaction_date,p.pay_date)>5)continue;addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:p.status==='processed'?'existing_payroll':'payroll_run',entity_type:'payroll_run',entity_id:p.payroll_run_id,confidence:p.status==='processed'?98:92,reason:p.status==='processed'?'Withdrawal exactly matches processed payroll cash.':'Withdrawal exactly matches an approved payroll funding requirement.',proposed_action:p.status==='processed'?'Match processed payroll':'Mark approved payroll processed',metadata:{pay_date:p.pay_date,amount:round(expected),period_start:p.period_start,period_end:p.period_end},status:'active'});}
+      for(const tr of taxesR.data||[]){if(tr.bank_transaction_id||!sameMoney(amt,tr.amount)||days(t.transaction_date,tr.payment_date)>5)continue;addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'existing_tax_remittance',entity_type:'tax_remittance',entity_id:tr.id,confidence:96,reason:'Exact amount and nearby tax-remittance date.',proposed_action:`Match existing ${tr.tax_type} tax payment`,metadata:{tax_type:tr.tax_type,amount:round(tr.amount)},status:'active'});}
+    }
+
+    for(const rule of rulesR.data||[]){const dir=direction(cash);if(rule.direction!=='any'&&rule.direction!==dir)continue;if(rule.category_primary&&rule.category_primary!==t.category_primary)continue;const pattern=norm(rule.merchant_pattern);if(!pattern||(!labelNorm.includes(pattern)&&!pattern.includes(labelNorm)))continue;const score=labelNorm===pattern?99:97;const ctype=rule.action_type==='company_expense'?'company_expense':rule.action_type==='job_cost'?'job_cost':'ignore';addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:ctype,entity_type:'bank_rule',entity_id:null,rule_id:rule.id,confidence:score,reason:`Learned rule: ${rule.name}`,proposed_action:rule.action_type==='company_expense'?`Record ${rule.expense_category||'company'} expense`:rule.action_type==='job_cost'?'Use remembered job-cost coding':'Ignore by learned rule',metadata:{overhead_item_id:rule.overhead_item_id,expense_category:rule.expense_category,business_use_percent:rule.business_use_percent,cost_code_id:rule.cost_code_id,vendor_id:rule.vendor_id,auto_apply:rule.auto_apply,rule_created_at:rule.created_at},status:'active'});}
+
+    const cat=String(t.category_primary||'').toUpperCase();
+    if(cash<0&&bankFeeOH&&(cat.includes('BANK_FEES')||/\bfee\b/.test(labelNorm))){addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'company_expense',entity_type:'heuristic',confidence:92,reason:'Plaid identifies this as a bank fee.',proposed_action:'Record Banking overhead expense',metadata:{overhead_item_id:bankFeeOH.id,expense_category:bankFeeOH.category,business_use_percent:Number(bankFeeOH.business_use_percent||100)},status:'active'});}
+    if(cash<0&&truckFuelOH&&cat.includes('TRANSPORT')&&/(shell|chevron|arco|exxon|mobil|fuel|76 )/.test(`${labelNorm} `)){addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'company_expense',entity_type:'heuristic',confidence:72,reason:'Fuel merchant detected; verify whether this is fleet overhead or a direct job fuel cost.',proposed_action:'Possible Fleet fuel expense',metadata:{overhead_item_id:truckFuelOH.id,expense_category:truckFuelOH.category,business_use_percent:Number(truckFuelOH.business_use_percent||100)},status:'active'});}
+    if(cash<0&&qbOH&&/(quickbooks|intuit)/.test(labelNorm)){addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'company_expense',entity_type:'heuristic',confidence:91,reason:'Merchant resembles the planned QuickBooks subscription.',proposed_action:'Record QuickBooks overhead expense',metadata:{overhead_item_id:qbOH.id,expense_category:qbOH.category,business_use_percent:Number(qbOH.business_use_percent||100)},status:'active'});}
+    if(cash<0&&msOH&&/microsoft/.test(labelNorm)){addCandidate(map,{company_id:companyId,bank_transaction_id:t.id,candidate_type:'company_expense',entity_type:'heuristic',confidence:90,reason:'Merchant resembles the planned Microsoft 365 subscription.',proposed_action:'Record Microsoft 365 overhead expense',metadata:{overhead_item_id:msOH.id,expense_category:msOH.category,business_use_percent:Number(msOH.business_use_percent||100)},status:'active'});}
+  }
+
+  const allTx=allTxR.data||[];
+  for(let i=0;i<allTx.length;i++)for(let j=i+1;j<allTx.length;j++){
+    const a=allTx[i],b=allTx[j];if(a.account_id===b.account_id||Number(a.cash_amount)*Number(b.cash_amount)>=0||!sameMoney(Math.abs(Number(a.cash_amount)),Math.abs(Number(b.cash_amount)))||days(a.transaction_date,b.transaction_date)>3)continue;
+    const transferHint=String(a.category_primary||'').toUpperCase().includes('TRANSFER')||String(b.category_primary||'').toUpperCase().includes('TRANSFER')||/transfer/.test(norm(`${a.name} ${b.name}`));const score=transferHint?98:86;
+    addCandidate(map,{company_id:companyId,bank_transaction_id:a.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:b.id,confidence:score,reason:transferHint?'Equal-and-opposite transactions between Carez accounts look like an internal transfer.':'Equal-and-opposite transactions between Carez accounts may be an internal transfer.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:b.id,other_name:b.name,amount:Math.abs(Number(a.cash_amount))},status:'active'});
+    addCandidate(map,{company_id:companyId,bank_transaction_id:b.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:a.id,confidence:score,reason:transferHint?'Equal-and-opposite transactions between Carez accounts look like an internal transfer.':'Equal-and-opposite transactions between Carez accounts may be an internal transfer.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:a.id,other_name:a.name,amount:Math.abs(Number(b.cash_amount))},status:'active'});
+  }
+
+  const candidates=[...map.values()];if(candidates.length){const {error}=await supabase.from('bank_reconciliation_candidates').insert(candidates);if(error)throw new Error(error.message);}
+
+  let autoMatched=0,autoApplied=0;
+  const byTx=new Map<string,Candidate[]>();for(const c of candidates){if(!byTx.has(c.bank_transaction_id))byTx.set(c.bank_transaction_id,[]);byTx.get(c.bank_transaction_id)!.push(c);}
+  for(const t of txs||[]){const list=(byTx.get(t.id)||[]).sort((a,b)=>b.confidence-a.confidence);const top=list[0],second=list[1];if(!top)continue;
+    const safeExisting=['existing_customer_payment','existing_vendor_payment','existing_company_expense','existing_payroll'].includes(top.candidate_type);
+    if(safeExisting&&top.confidence>=98&&(!second||second.confidence<95)&&top.entity_id&&top.entity_type){try{const {error}=await supabase.rpc('reconcile_bank_existing',{p_bank_transaction_id:t.id,p_entity_type:top.entity_type,p_entity_id:top.entity_id,p_note:top.reason,p_confidence:top.confidence});if(!error){autoMatched++;continue;}}catch{}}
+    if(top.rule_id&&top.confidence>=97&&top.metadata?.auto_apply&&new Date(t.created_at).getTime()>=new Date(top.metadata?.rule_created_at||0).getTime()){
+      try{const {error}=await supabase.rpc('apply_bank_reconciliation_rule',{p_bank_transaction_id:t.id,p_rule_id:top.rule_id});if(!error)autoApplied++;}catch{}
+    }
+  }
+  return {analyzed:(txs||[]).length,candidates:candidates.length,autoMatched,autoApplied};
+}
