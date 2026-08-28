@@ -17,6 +17,8 @@ export async function createScheduleItem(formData:FormData){
   const title=String(formData.get('title')||'').trim();
   if(!projectId||!scheduleDate||!title)return;
   const {supabase,user,companyId}=await ownerContext();
+  const {data:readiness}=await supabase.from('project_job_readiness_summary').select('award_setup_applies,job_ready,readiness_reason').eq('project_id',projectId).eq('company_id',companyId).maybeSingle();
+  if(readiness?.award_setup_applies&&!readiness.job_ready)throw new Error(`Job is on setup hold: ${readiness.readiness_reason||'finish Job Setup first'}.`);
   const {data:item,error}=await supabase.from('work_schedule_items').insert({
     company_id:companyId,
     project_id:projectId,
