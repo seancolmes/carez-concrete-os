@@ -41,12 +41,25 @@ const textKey = (output: any) => `${output.component_key || ''} ${output.label |
 const outputQuantity = (outputs: any[], match: RegExp) => {
   const relevant = outputs.filter(output => match.test(textKey(output)));
   if (!relevant.length) return '—';
+  const held = relevant.some(output => output.pricing_status === 'missing_input');
+  const calculable = relevant.filter(output => output.pricing_status !== 'missing_input');
   const totals = new Map<string, number>();
-  for (const output of relevant) {
+  for (const output of calculable) {
     const unit = String(output.production_unit || '').toUpperCase() || 'EA';
     totals.set(unit, (totals.get(unit) || 0) + Number(output.production_quantity || 0));
   }
-  return [...totals].map(([unit, value]) => `${quantity(value)} ${unit}`).join(' + ');
+  const measured = [...totals].map(([unit, value]) => `${quantity(value)} ${unit}`).join(' + ');
+  return [measured || null, held ? 'HOLD' : null].filter(Boolean).join(' + ') || '—';
+};
+const outputWarnings = (output: any): string[] => {
+  if (output.pricing_status === 'missing_input') {
+    const missing = Array.isArray(output.formula_trace?.missing_inputs) ? output.formula_trace.missing_inputs : [];
+    const labels = [...new Set(missing.map((input: any) => String(input?.label || '').trim()).filter(Boolean))];
+    return labels.length ? labels.map(label => `Input: ${label}`) : ['Input required'];
+  }
+  if (output.pricing_status === 'missing_labor_rate') return ['Labor rate missing'];
+  if (output.pricing_status === 'missing_price') return ['Price missing'];
+  return [];
 };
 
 export function TakeoffQuantityDock({
@@ -81,9 +94,7 @@ export function TakeoffQuantityDock({
     const section: any = sectionMap.get(measurement.estimate_section_id);
     const sheet: any = sheetMap.get(measurement.sheet_id);
     const rowOutputs = outputsByMeasurement.get(measurement.id) || [];
-    const warnings = [...new Set(rowOutputs
-      .filter(output => ['missing_price', 'missing_labor_rate'].includes(output.pricing_status))
-      .map(output => output.pricing_status === 'missing_labor_rate' ? 'Labor rate missing' : 'Price missing'))];
+    const warnings = [...new Set(rowOutputs.flatMap(outputWarnings))];
     return {
       measurement,
       assembly: assembly?.name || 'Unlinked assembly',
