@@ -20,7 +20,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   const [
     { data: estimate }, { data: presentation }, { data: document }, { data: sheets }, { data: measurements },
-    { data: assemblies }, { data: versions }, { data: variables }, { data: sections }, { data: riskClasses }, { data: summaries },
+    { data: assemblies }, { data: versions }, { data: variables }, { data: sections }, { data: riskClasses },
   ] = await Promise.all([
     supabase.from('estimates').select('id,estimate_number,name,version,status').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
     supabase.from('proposal_presentations').select('id,proposal_number,status').eq('estimate_id', set.estimate_id).eq('company_id', companyId).limit(1).maybeSingle(),
@@ -32,8 +32,17 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,min_value,max_value,required,help_text,sort_order').eq('company_id', companyId).order('sort_order'),
     supabase.from('estimate_sections').select('id,name,scope_type,sort_order').eq('estimate_id', set.estimate_id).eq('company_id', companyId).order('sort_order'),
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
-    supabase.from('takeoff_measurement_outputs').select('measurement_id,estimated_man_hours,direct_cost,pricing_status').eq('company_id', companyId).in('measurement_id', measurements?.map((m:any)=>m.id) || ['00000000-0000-0000-0000-000000000000']),
   ]);
+
+  const measurementIds = (measurements || []).map((m: any) => m.id);
+  let summaries: any[] = [];
+  if (measurementIds.length) {
+    const { data } = await supabase.from('takeoff_measurement_outputs')
+      .select('measurement_id,estimated_man_hours,direct_cost,pricing_status')
+      .eq('company_id', companyId)
+      .in('measurement_id', measurementIds);
+    summaries = data || [];
+  }
 
   let pdfUrl: string | null = null;
   if (document?.storage_path) {
@@ -64,7 +73,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         sourceTitle={document.title}
         initialSheets={sheets || []}
         initialMeasurements={measurements || []}
-        measurementSummaries={summaries || []}
+        measurementSummaries={summaries}
         assemblies={assemblies || []}
         versions={versions || []}
         variables={variables || []}
