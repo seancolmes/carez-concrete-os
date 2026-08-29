@@ -11,6 +11,14 @@ async function ctx(){
 const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
 const r=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 
+async function assertEstimateEditable(supabase:any,companyId:string,estimateId:string){
+ const {data:e}=await supabase.from('estimates').select('id,status').eq('id',estimateId).eq('company_id',companyId).maybeSingle();
+ if(!e)throw new Error('Estimate not found.');
+ if(['accepted','approved','superseded'].includes(e.status))throw new Error('This estimate revision is locked.');
+ const {count}=await supabase.from('proposal_presentations').select('id',{count:'exact',head:true}).eq('company_id',companyId).eq('estimate_id',estimateId);
+ if((count||0)>0)throw new Error('This estimate revision was already issued to a customer. Create the next proposal revision before changing price or scope.');
+}
+
 export async function createEstimate(fd:FormData){
  const {supabase,user,companyId}=await ctx();
  const project_id=String(fd.get('project_id')||'')||null;
@@ -33,14 +41,14 @@ export async function createEstimate(fd:FormData){
 
 export async function addEstimateSection(fd:FormData){
  const estimate_id=String(fd.get('estimate_id')||''),name=String(fd.get('name')||'').trim();if(!estimate_id||!name)return;
- const {supabase,companyId}=await ctx();
- await supabase.from('estimate_sections').insert({company_id:companyId,estimate_id,name,scope_type:String(fd.get('scope_type')||'other'),sort_order:Date.now()%1000000});
+ const {supabase,companyId}=await ctx();await assertEstimateEditable(supabase,companyId,estimate_id);
+ const {error}=await supabase.from('estimate_sections').insert({company_id:companyId,estimate_id,name,scope_type:String(fd.get('scope_type')||'other'),sort_order:Date.now()%1000000});if(error)throw new Error(error.message);
  revalidatePath('/estimates');
 }
 
 export async function addEstimateItem(fd:FormData){
  const estimate_id=String(fd.get('estimate_id')||''),section_id=String(fd.get('section_id')||'')||null,item_type=String(fd.get('item_type')||'material'),description=String(fd.get('description')||'').trim();if(!estimate_id||!description)return;
- const {supabase,companyId}=await ctx();
+ const {supabase,companyId}=await ctx();await assertEstimateEditable(supabase,companyId,estimate_id);
  const quantity=n(fd.get('quantity')),unit=String(fd.get('unit')||'LS'),unitCost=n(fd.get('unit_cost'));
  const crew_member_id=String(fd.get('crew_member_id')||'')||null;
  const regular=n(fd.get('regular_hours')),ot=n(fd.get('overtime_hours'));
@@ -62,28 +70,26 @@ export async function addEstimateItem(fd:FormData){
   }
   directCost=r(gross+gross*(ssRate+medRate+futaRate+suiRate)+(regular+ot)*(liRate||0)+(regular+ot)*baseRate*(sickRate||0));
  }
- await supabase.from('estimate_items').insert({company_id:companyId,estimate_id,section_id,item_type,cost_code_id:String(fd.get('cost_code_id')||'')||null,catalog_item_id:String(fd.get('catalog_item_id')||'')||null,crew_member_id,labor_task:String(fd.get('labor_task')||'')||null,risk_class_code:String(fd.get('risk_class_code')||'')||null,description,quantity:item_type==='labor'?(regular+ot):quantity,unit:item_type==='labor'?'HR':unit,unit_cost:item_type==='labor'?(baseRate||0):unitCost,direct_cost:directCost,regular_hours:regular,overtime_hours:ot,base_hourly_rate_snapshot:baseRate,social_security_rate_snapshot:ssRate,medicare_rate_snapshot:medRate,futa_rate_snapshot:futaRate,wa_sui_rate_snapshot:suiRate,li_employer_rate_snapshot:liRate,sick_leave_accrual_rate_snapshot:sickRate,sort_order:Date.now()%1000000});
+ const {error}=await supabase.from('estimate_items').insert({company_id:companyId,estimate_id,section_id,item_type,cost_code_id:String(fd.get('cost_code_id')||'')||null,catalog_item_id:String(fd.get('catalog_item_id')||'')||null,crew_member_id,labor_task:String(fd.get('labor_task')||'')||null,risk_class_code:String(fd.get('risk_class_code')||'')||null,description,quantity:item_type==='labor'?(regular+ot):quantity,unit:item_type==='labor'?'HR':unit,unit_cost:item_type==='labor'?(baseRate||0):unitCost,direct_cost:directCost,regular_hours:regular,overtime_hours:ot,base_hourly_rate_snapshot:baseRate,social_security_rate_snapshot:ssRate,medicare_rate_snapshot:medRate,futa_rate_snapshot:futaRate,wa_sui_rate_snapshot:suiRate,li_employer_rate_snapshot:liRate,sick_leave_accrual_rate_snapshot:sickRate,sort_order:Date.now()%1000000});if(error)throw new Error(error.message);
  revalidatePath('/estimates');
 }
 
 export async function updateEstimatePricing(fd:FormData){
- const id=String(fd.get('estimate_id')||'');if(!id)return;const {supabase,companyId}=await ctx();
- const {data:e}=await supabase.from('estimates').select('status').eq('id',id).eq('company_id',companyId).maybeSingle();if(!e||['accepted','approved'].includes(e.status))throw new Error('Accepted/approved estimates are locked.');
+ const id=String(fd.get('estimate_id')||'');if(!id)return;const {supabase,companyId}=await ctx();await assertEstimateEditable(supabase,companyId,id);
  const bo=String(fd.get('bo_classification')||'retailing');
  const boRate=bo==='wholesaling'?0.484:0.471;
- await supabase.from('estimates').update({target_margin_percent:n(fd.get('target_margin_percent')),bo_classification:bo,bo_rate_percent:boRate,payment_processing_rate_percent:n(fd.get('payment_processing_rate_percent')),proposed_sell_price:n(fd.get('proposed_sell_price')),status:String(fd.get('status')||'draft')}).eq('id',id).eq('company_id',companyId);
- revalidatePath('/estimates');
+ const {error}=await supabase.from('estimates').update({target_margin_percent:n(fd.get('target_margin_percent')),bo_classification:bo,bo_rate_percent:boRate,payment_processing_rate_percent:n(fd.get('payment_processing_rate_percent')),proposed_sell_price:n(fd.get('proposed_sell_price')),status:String(fd.get('status')||'draft')}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);
+ revalidatePath('/estimates');revalidatePath('/proposals');
 }
 
 export async function approveEstimateToBudget(fd:FormData){
- const estimate_id=String(fd.get('estimate_id')||'');if(!estimate_id)return;const {supabase,companyId}=await ctx();
+ const estimate_id=String(fd.get('estimate_id')||'');if(!estimate_id)return;const {supabase,companyId}=await ctx();await assertEstimateEditable(supabase,companyId,estimate_id);
  const [{data:e},{data:summary},{data:sections},{data:items}]=await Promise.all([
   supabase.from('estimates').select('*').eq('id',estimate_id).eq('company_id',companyId).single(),
   supabase.from('estimate_financial_summary').select('*').eq('estimate_id',estimate_id).single(),
   supabase.from('estimate_sections').select('*').eq('estimate_id',estimate_id).order('sort_order'),
   supabase.from('estimate_items').select('*').eq('estimate_id',estimate_id).order('sort_order')
  ]);
- if(e?.status==='accepted')throw new Error('This estimate was already accepted and frozen automatically.');
  if(!e?.project_id)throw new Error('Link this estimate to a project before approving.');
  await supabase.from('project_budgets').update({status:'superseded'}).eq('project_id',e.project_id).eq('budget_type','original').eq('status','active');
  const sell=Number(summary.selected_sell_price||0),rev=Number(summary.revenue_cost_reserve||0),totalCost=Number(summary.base_company_cost||0)+rev,profit=sell-totalCost,margin=sell>0?100*profit/sell:0;
