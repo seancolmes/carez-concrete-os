@@ -9,7 +9,7 @@ import {
   type DrawingGeometry,
   type TakeoffPath,
 } from '../lib/takeoff/geometry.ts';
-import { evaluateTakeoffFormula } from '../lib/takeoff/formula.ts';
+import { evaluateTakeoffFormula, takeoffFormulaVariables } from '../lib/takeoff/formula.ts';
 
 const calibration = { known_distance_ft: 10, pdf_distance: 100 };
 
@@ -70,7 +70,7 @@ test('arc length and signed slab path rules remain deterministic', () => {
   assert.equal(calculateSlabArea([square], 100, 100, calibration), 100);
 });
 
-test('assembly formulas remain deterministic and reject unsafe division', () => {
+test('assembly formulas remain deterministic, expose dependencies and reject unsafe division', () => {
   const formula = {
     op: 'mul',
     args: [
@@ -79,6 +79,7 @@ test('assembly formulas remain deterministic and reject unsafe division', () => 
       { op: 'div', args: [{ const: 1 }, { const: 27 }] },
     ],
   };
+  assert.deepEqual(new Set(takeoffFormulaVariables(formula)), new Set(['area_sf', 'thickness_in']));
   assert.ok(Math.abs(evaluateTakeoffFormula(formula, { area_sf: 1080, thickness_in: 4 }) - 13.333333333333334) < 1e-10);
   assert.throws(() => evaluateTakeoffFormula({ op: 'div', args: [{ const: 1 }, { const: 0 }] }, {}), /divide by zero/);
 });
@@ -111,6 +112,7 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   const award = readMigration('20260829_award_to_operations_03_award_boundary.sql');
   const foundation = readMigration('20260829_takeoff_assembly_foundation.sql');
   const geometryUpdate = readMigration('20260829_takeoff_pro_geometry_update_hardening.sql');
+  const inputHolds = readMigration('20260829200913_takeoff_missing_input_holds.sql');
 
   assert.match(commit, /source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
   assert.match(award, /i\.source_takeoff_output_id,i\.source_takeoff_measurement_id/);
@@ -118,4 +120,6 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   assert.match(foundation, /source_takeoff_measurement_id uuid references public\.takeoff_measurements\(id\)/);
   assert.match(geometryUpdate, /v_output\.pricing_status='manual_override'/);
   assert.match(geometryUpdate, /source_takeoff_measurement_id=v_measurement\.id/);
+  assert.match(inputHolds, /missing_input/);
+  assert.match(inputHolds, /security_invoker = true/);
 });
