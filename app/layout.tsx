@@ -6,6 +6,7 @@ import './plain-language.css';
 import './employee-clock.css';
 import './schedule.css';
 import './os2-ui.css';
+import './carez-v3.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
