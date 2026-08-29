@@ -1,9 +1,9 @@
 import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowLeft,ArrowRight,Calculator,CheckCircle2,FileText,Ruler,ShieldCheck} from 'lucide-react';
+import {ArrowLeft,ArrowRight,CheckCircle2,FileText,Ruler,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {createClient} from '@/lib/supabase/server';
-import {addEstimateSection,addEstimateItem,updateEstimatePricing,approveEstimateToBudget} from '../actions';
+import {addEstimateSection,addEstimateItem,updateEstimatePricing} from '../actions';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 const num=(n:any)=>Number(n||0);
@@ -71,7 +71,6 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     </section>
 
     <section className="section"><div className="estimate-next-step"><div><div className="section-kicker">NEXT ACTION</div><div className="section-title">{locked?(proposal?'Customer / revision workflow':'Awarded estimate'):holds?'Resolve takeoff pricing holds':e.status==='ready'?'Run the pre-send estimate audit':'Finish pricing and mark Ready'}</div><div className="section-heading-meta">{locked?'This revision is preserved exactly as issued/accepted.':holds?'Return to Takeoff and clear current material or labor pricing before this bid can advance.':e.status==='ready'?'Audit checks takeoff completeness, price integrity and commercial risk before Proposal.':'Once scope, price and margin are right, change Estimate Stage to Ready for Audit / Proposal.'}</div></div><div className="action-row">{!locked&&holds>0&&<Link className="button" href="/takeoff"><Ruler size={15}/> Resolve in Takeoff</Link>}{!locked&&e.status==='ready'&&<Link className="button" href="/estimates/audit"><ShieldCheck size={15}/> Run Estimate Audit</Link>}{!locked&&e.status==='ready'&&<Link className="button secondary" href="/proposals"><FileText size={15}/> Proposal</Link>}{proposal&&<Link className="button" href="/proposals"><FileText size={15}/> Open Proposal</Link>}{['accepted','approved'].includes(e.status)&&e.project_id&&<Link className="button" href={`/projects/${e.project_id}`}><CheckCircle2 size={15}/> Open Job</Link>}</div></div>
-      {!locked&&e.project_id&&<details className="controls-disclosure section"><summary>Internal Freeze Without Customer Acceptance</summary><div className="controls-body"><div className="meta">Exception only. Normal award path is customer proposal acceptance, which freezes the estimate and creates the awarded operating baseline automatically.</div><form action={approveEstimateToBudget} className="section"><input type="hidden" name="estimate_id" value={e.id}/><button className="button secondary">Freeze to Project Budget</button></form></div></details>}
       {budget&&<div className="meta section">Frozen project budget: {budget.label}</div>}
     </section>
   </div></AppShell>;
