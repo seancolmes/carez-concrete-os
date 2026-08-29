@@ -7,6 +7,30 @@ function finite(value: unknown, label: string): number {
   return n;
 }
 
+export function takeoffFormulaVariables(expr: FormulaValue): string[] {
+  const variables = new Set<string>();
+  const visit = (value: any) => {
+    if (typeof value === 'number' || value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      for (const entry of value) visit(entry);
+      return;
+    }
+    if (typeof value !== 'object') return;
+    if ('var' in value) {
+      const key = String(value.var || '').trim();
+      if (key) variables.add(key);
+    }
+    if ('value' in value) visit(value.value);
+    if ('args' in value) visit(value.args);
+    if (Array.isArray(value.cases)) {
+      for (const entry of value.cases) visit(entry?.then);
+    }
+    if ('else' in value) visit(value.else);
+  };
+  visit(expr);
+  return [...variables];
+}
+
 export function evaluateTakeoffFormula(expr: FormulaValue, vars: FormulaVariables): number {
   if (typeof expr === 'number') return finite(expr, 'Formula value');
   if (!expr || typeof expr !== 'object') throw new Error('Invalid takeoff formula.');
