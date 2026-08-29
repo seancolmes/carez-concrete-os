@@ -37,8 +37,6 @@ grant execute on function public.next_invoice_number() to authenticated, service
 grant execute on function public.post_vendor_bill(uuid) to authenticated, service_role;
 grant execute on function public.process_payroll_run(uuid,numeric,text) to authenticated, service_role;
 grant execute on function public.reconcile_bank_as_transfer(uuid,uuid) to authenticated, service_role;
-grant execute on function public.reconcile_bank_existing(uuid,text,uuid,text,uuid,text,integer) from public, anon;
-revoke all on function public.reconcile_bank_existing(uuid,text,uuid,text,integer) from public, anon;
 grant execute on function public.reconcile_bank_existing(uuid,text,uuid,text,integer) to authenticated, service_role;
 grant execute on function public.reconcile_bank_to_company_expense(uuid,uuid,text,numeric,text,boolean,boolean) to authenticated, service_role;
 grant execute on function public.reconcile_bank_to_invoice(uuid,uuid) to authenticated, service_role;
