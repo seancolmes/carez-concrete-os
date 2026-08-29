@@ -20,6 +20,11 @@ type DrawingInput = {
   geometry: DrawingGeometry;
 };
 type GeometryUpdateInput = { measurementId: string; takeoffSetId: string; geometry: DrawingGeometry };
+type AssemblyInputUpdate = {
+  measurementId: string;
+  takeoffSetId: string;
+  variables: Record<string, number | string | null | undefined>;
+};
 
 async function ctx() {
   const supabase = await createClient();
@@ -54,6 +59,17 @@ const cleanDrawingGeometry = (geometry: DrawingGeometry): DrawingGeometry => ({
     : {}),
 });
 
+const drawingGeometryFromStored = (raw: any): DrawingGeometry => {
+  if (!raw || !['polyline', 'polygon', 'count'].includes(raw.type) || !Array.isArray(raw.points) || !raw.points.length) {
+    throw new Error('Drawing geometry is missing.');
+  }
+  const points = raw.points.map((point: any) => ({ x: Number(point.x), y: Number(point.y) }));
+  const holes = raw.type === 'polygon' && Array.isArray(raw.holes)
+    ? raw.holes.map((hole: any[]) => hole.map((point: any) => ({ x: Number(point.x), y: Number(point.y) })))
+    : undefined;
+  return cleanDrawingGeometry({ type: raw.type, points, ...(holes?.length ? { holes } : {}) } as DrawingGeometry);
+};
+
 const storedGeometry = (geometry: DrawingGeometry, pageNumber: number, measured: ReturnType<typeof measureDrawingGeometry>) => ({
   ...cleanDrawingGeometry(geometry),
   source_page: pageNumber,
@@ -71,6 +87,8 @@ const refreshTakeoff = (setId: string) => {
   revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');
 };
+
+const inputHoldCount = (prepared: any[]) => prepared.filter(output => output.pricing_status === 'missing_input').length;
 
 export async function attachPlanToTakeoffSet(fd: FormData) {
   const setId = String(fd.get('takeoff_set_id') || '');
@@ -207,6 +225,7 @@ export async function createDrawingMeasurement(input: DrawingInput) {
     unit: primaryUnit,
     perimeterLf: roundMeasurement(measured.perimeterLf),
     cutoutQuantity: roundMeasurement(measured.cutoutQuantity || 0),
+    inputHolds: inputHoldCount(engine.prepared),
   };
 }
 
@@ -275,6 +294,74 @@ export async function updateDrawingMeasurementGeometry(input: GeometryUpdateInpu
     unit: primaryUnit,
     perimeterLf: roundMeasurement(measured.perimeterLf),
     cutoutQuantity: roundMeasurement(measured.cutoutQuantity || 0),
+    inputHolds: inputHoldCount(engine.prepared),
+  };
+}
+
+export async function updateDrawingMeasurementInputs(input: AssemblyInputUpdate) {
+  if (!input?.measurementId || !input.takeoffSetId || !input.variables) throw new Error('Takeoff measurement inputs are required.');
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, input.takeoffSetId);
+  const { data: measurement } = await supabase.from('takeoff_measurements')
+    .select('id,takeoff_set_id,sheet_id,assembly_version_id,geometry,risk_class_code')
+    .eq('id', input.measurementId)
+    .eq('takeoff_set_id', input.takeoffSetId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (!measurement?.sheet_id || !measurement.geometry) throw new Error('Drawing takeoff measurement not found.');
+
+  const [{ data: sheet }, { data: version }] = await Promise.all([
+    supabase.from('takeoff_sheets')
+      .select('id,page_number,page_width,page_height,scale_status,calibration')
+      .eq('id', measurement.sheet_id)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+    supabase.from('concrete_assembly_versions')
+      .select('id,default_risk_class_code,concrete_assemblies(primary_measurement)')
+      .eq('id', measurement.assembly_version_id)
+      .eq('company_id', companyId)
+      .eq('status', 'published')
+      .maybeSingle(),
+  ]);
+  if (!sheet) throw new Error('Takeoff sheet not found.');
+  if (!version) throw new Error('Published concrete assembly not found.');
+
+  const assembly: any = Array.isArray((version as any).concrete_assemblies)
+    ? (version as any).concrete_assemblies[0]
+    : (version as any).concrete_assemblies;
+  const primaryUnit = String(assembly?.primary_measurement || '');
+  const expectedType = primaryUnit === 'SF' ? 'polygon' : primaryUnit === 'EA' ? 'count' : primaryUnit === 'LF' ? 'polyline' : null;
+  const cleanGeometry = drawingGeometryFromStored(measurement.geometry);
+  if (!expectedType || cleanGeometry.type !== expectedType) throw new Error(`This assembly must remain a ${primaryUnit} takeoff.`);
+  if (cleanGeometry.type !== 'count' && sheet.scale_status !== 'calibrated') throw new Error('Calibrate this sheet before recalculating length or area.');
+
+  const measured = measureDrawingGeometry(cleanGeometry, Number(sheet.page_width || 0), Number(sheet.page_height || 0), sheet.calibration);
+  const values: Record<string, number | string | null | undefined> = { ...input.variables };
+  if (primaryUnit === 'SF' && measured.perimeterLf > 0) values.perimeter_lf = roundMeasurement(measured.perimeterLf, 3);
+  const engine = await prepareAssemblyOutputs({
+    supabase,
+    companyId,
+    assemblyVersionId: measurement.assembly_version_id,
+    rawQuantity: roundMeasurement(measured.quantity, 4),
+    inputs: values,
+    riskClassCode: measurement.risk_class_code || version.default_risk_class_code || null,
+  });
+
+  const { error } = await supabase.rpc('carez_update_drawing_measurement', {
+    p_measurement_id: measurement.id,
+    p_geometry: storedGeometry(cleanGeometry, Number(sheet.page_number), measured),
+    p_raw_quantity: roundMeasurement(measured.quantity, 4),
+    p_raw_unit: primaryUnit,
+    p_variables: engine.values,
+    p_outputs: engine.prepared,
+  });
+  if (error) throw new Error(error.message);
+  refreshTakeoff(input.takeoffSetId);
+  return {
+    id: measurement.id,
+    quantity: roundMeasurement(measured.quantity),
+    unit: primaryUnit,
+    inputHolds: inputHoldCount(engine.prepared),
   };
 }
 
