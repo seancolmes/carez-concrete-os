@@ -54,7 +54,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   const locked = Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
   const estimateLabel = estimate ? `${estimate.estimate_number}-R${estimate.version}` : 'Estimate';
 
-  return <AppShell userName={profile.full_name || user.email || 'Owner'} immersive>
+  return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
       <header className="takeoff-app-header">
         <div className="takeoff-app-left">
