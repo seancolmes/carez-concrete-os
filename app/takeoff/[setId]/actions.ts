@@ -48,30 +48,18 @@ export async function attachPlanToTakeoffSet(fd: FormData) {
   if (!setId || !storagePath || !filename) throw new Error('PDF plan file is required.');
   if (mimeType !== 'application/pdf' && !filename.toLowerCase().endsWith('.pdf')) throw new Error('The drawing workspace currently requires a PDF plan set.');
 
-  const { supabase, user, companyId } = await ctx();
-  const set = await editableSet(supabase, companyId, setId);
-  const { count } = await supabase.from('takeoff_measurements').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('takeoff_set_id', setId).eq('status', 'active');
-  if (set.source_document_id && (count || 0) > 0) throw new Error('This takeoff already contains drawing measurements. Create a new takeoff revision/set before replacing its source plans.');
-
-  const { data: doc, error: docError } = await supabase.from('company_documents').insert({
-    company_id: companyId,
-    document_type: 'plan',
-    title: filename,
-    storage_path: storagePath,
-    mime_type: 'application/pdf',
-    source: 'upload',
-    review_status: 'filed',
-    reviewed_at: new Date().toISOString(),
-    reviewed_by: user.id,
-    notes: `Source plans for takeoff set ${setId}`,
-    created_by: user.id,
-  }).select('id').single();
-  if (docError || !doc) throw new Error(docError?.message || 'Could not file source plans.');
-
-  const { error } = await supabase.from('takeoff_sets').update({ source_document_id: doc.id, source_filename: filename, page_count: null }).eq('id', setId).eq('company_id', companyId);
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, setId);
+  const { error } = await supabase.rpc('carez_attach_takeoff_plan', {
+    p_takeoff_set_id: setId,
+    p_storage_path: storagePath,
+    p_source_filename: filename,
+    p_mime_type: mimeType,
+  });
   if (error) throw new Error(error.message);
   revalidatePath(`/takeoff/${setId}`);
   revalidatePath('/takeoff');
+  revalidatePath('/takeoff/plans');
 }
 
 export async function initializeTakeoffSheets(setId: string, pages: PageMeta[]) {
@@ -190,6 +178,7 @@ export async function createDrawingMeasurement(input: DrawingInput) {
   if (error) throw new Error(error.message);
   revalidatePath(`/takeoff/${input.takeoffSetId}`);
   revalidatePath('/takeoff');
+  revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');
   return { id: data as string, quantity: roundMeasurement(measured.quantity), unit: primaryUnit, perimeterLf: roundMeasurement(measured.perimeterLf) };
 }
@@ -204,5 +193,6 @@ export async function deleteDrawingMeasurement(measurementId: string, setId: str
   if (error) throw new Error(error.message);
   revalidatePath(`/takeoff/${setId}`);
   revalidatePath('/takeoff');
+  revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');
 }
