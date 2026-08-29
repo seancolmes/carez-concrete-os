@@ -46,7 +46,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   let pdfUrl: string | null = null;
   if (document?.storage_path) {
-    const { data } = await supabase.storage.from('carez-documents').createSignedUrl(document.storage_path, 7200);
+    const { data } = await supabase.storage.from('carez-documents').createSignedUrl(document.storage_path, 28800);
     pdfUrl = data?.signedUrl || null;
   }
 
