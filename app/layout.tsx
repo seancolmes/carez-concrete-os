@@ -8,6 +8,7 @@ import './schedule.css';
 import './os2-ui.css';
 import './carez-v3.css';
 import './takeoff-v3.css';
+import './estimating-v3.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
