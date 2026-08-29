@@ -156,7 +156,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     return()=>window.removeEventListener('keydown',onKey);
   },[]);
 
-  return <div className={`shell app-shell-v3 industrial-shell ${immersive?'shell-immersive':''} ${contextOpen?'context-open':''}`}>
+  return <div className={`shell app-shell-v3 industrial-shell ${immersive?'shell-immersive':''}`}>
     <BankSyncPulse/><OutlookSyncPulse/>
 
     {!immersive&&<>
@@ -175,13 +175,15 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
         <div className="app-rail-bottom"><button type="button" onClick={()=>setMenuOpen(true)} title="All Carez tools"><Menu aria-hidden="true"/><span>More</span></button><Link href="/settings" className={currentWorkspace.key==='system'?'active':''} title="Settings" aria-current={currentWorkspace.key==='system'?'page':undefined}><Settings aria-hidden="true"/><span>Setup</span></Link></div>
       </aside>
 
-      <button type="button" className="context-drawer-backdrop" aria-label="Close workspace tools" onClick={()=>setContextOpen(false)}/>
-      <aside id="carez-context-drawer" className="sidebar context-sidebar" aria-label={`${currentWorkspace.label} tools`} aria-hidden={!contextOpen}>
-        <div className="context-brand"><Image src="/brand/carez-wordmark.png" alt="Carez" width={104} height={57} priority sizes="104px"/><span>CONCRETE</span></div>
-        <div className="context-heading"><div className="context-heading-row"><div><div className="context-kicker">WORKSPACE</div><div className="context-title"><currentWorkspace.Icon/>{currentWorkspace.label}</div></div><button type="button" className="context-drawer-close" onClick={()=>setContextOpen(false)} aria-label="Close workspace tools"><X size={15}/></button></div></div>
-        <nav className="context-nav" aria-label={`${currentWorkspace.label} navigation`}>{currentWorkspace.sections.map(section=><section key={section.label} className="context-section"><div className="context-section-label">{section.label}</div>{section.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} title={hint||label} className={active(href)?'active':''} onClick={()=>setContextOpen(false)}><span className="context-link-icon"><Icon/></span><span className="context-link-copy"><strong>{label}</strong>{active(href)&&hint&&<small>{hint}</small>}</span><ChevronRight className="context-chevron"/></Link>)}</section>)}</nav>
-        <div className="context-footer"><button type="button" className="context-all-tools" onClick={()=>{setContextOpen(false);setMenuOpen(true);}}><Search/> Find any Carez tool</button><div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div></div>
-      </aside>
+      {contextOpen&&<div className="context-open">
+        <button type="button" className="context-drawer-backdrop" aria-label="Close workspace tools" onClick={()=>setContextOpen(false)}/>
+        <aside id="carez-context-drawer" className="sidebar context-sidebar" aria-label={`${currentWorkspace.label} tools`}>
+          <div className="context-brand"><Image src="/brand/carez-wordmark.png" alt="Carez" width={104} height={57} priority sizes="104px"/><span>CONCRETE</span></div>
+          <div className="context-heading"><div className="context-heading-row"><div><div className="context-kicker">WORKSPACE</div><div className="context-title"><currentWorkspace.Icon/>{currentWorkspace.label}</div></div><button type="button" className="context-drawer-close" onClick={()=>setContextOpen(false)} aria-label="Close workspace tools"><X size={15}/></button></div></div>
+          <nav className="context-nav" aria-label={`${currentWorkspace.label} navigation`}>{currentWorkspace.sections.map(section=><section key={section.label} className="context-section"><div className="context-section-label">{section.label}</div>{section.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} title={hint||label} className={active(href)?'active':''} onClick={()=>setContextOpen(false)}><span className="context-link-icon"><Icon/></span><span className="context-link-copy"><strong>{label}</strong>{active(href)&&hint&&<small>{hint}</small>}</span><ChevronRight className="context-chevron"/></Link>)}</section>)}</nav>
+          <div className="context-footer"><button type="button" className="context-all-tools" onClick={()=>{setContextOpen(false);setMenuOpen(true);}}><Search/> Find any Carez tool</button><div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div></div>
+        </aside>
+      </div>}
     </>}
 
     <main className={`main ${immersive?'main-immersive':''}`}>
