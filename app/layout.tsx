@@ -17,6 +17,7 @@ import './navigation-v3.css';
 import './owner-home-v3.css';
 import './employee-v3.css';
 import './globals.css';
+import './carez-figma.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
