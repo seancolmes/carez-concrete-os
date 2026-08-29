@@ -15,6 +15,7 @@ import './jobs-v3.css';
 import './navigation-v3.css';
 import './owner-home-v3.css';
 import './employee-v3.css';
+import './industrial-workstation.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
