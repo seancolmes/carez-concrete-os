@@ -13,6 +13,7 @@ import {
 } from '@/app/takeoff/[setId]/actions';
 import {GeometryCommandHistory,type CommandHistorySnapshot,type GeometryCommandKind} from '@/lib/takeoff/commandHistory';
 import {measureDrawingGeometry,roundMeasurement,type DrawingGeometry,type DrawingMeasurement,type NormalizedPoint} from '@/lib/takeoff/geometry';
+import {TakeoffAssemblyInputEditor} from './TakeoffAssemblyInputEditor';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffVertexEditor} from './TakeoffVertexEditor';
 import styles from './TakeoffDrawingWorkspace.module.css';
@@ -122,8 +123,14 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedCutoutCount=selectedGeometry?.holes?.length||0;
 
   const summaryMap=useMemo(()=>{
-    const map=new Map<string,{mh:number;cost:number;missing:number}>();
-    for(const row of measurementSummaries){const prior=map.get(row.measurement_id)||{mh:0,cost:0,missing:0};prior.mh+=Number(row.estimated_man_hours||0);prior.cost+=Number(row.direct_cost||0);if(['missing_price','missing_labor_rate'].includes(row.pricing_status))prior.missing+=1;map.set(row.measurement_id,prior);}
+    const map=new Map<string,{mh:number;cost:number;missing:number;inputHolds:number;priceHolds:number}>();
+    for(const row of measurementSummaries){
+      const prior=map.get(row.measurement_id)||{mh:0,cost:0,missing:0,inputHolds:0,priceHolds:0};
+      prior.mh+=Number(row.estimated_man_hours||0);prior.cost+=Number(row.direct_cost||0);
+      if(row.pricing_status==='missing_input'){prior.missing+=1;prior.inputHolds+=1;}
+      else if(['missing_price','missing_labor_rate'].includes(row.pricing_status)){prior.missing+=1;prior.priceHolds+=1;}
+      map.set(row.measurement_id,prior);
+    }
     return map;
   },[measurementSummaries]);
   const selectedSummary=selectedMeasurement?summaryMap.get(selectedMeasurement.id):null;
@@ -276,7 +283,8 @@ export function TakeoffDrawingWorkspace(props:Props){
     setBusy(true);
     try{
       const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
-      setMessage(`Saved ${finalName} · ${qty(result.quantity)} ${result.unit}${result.perimeterLf?` · ${qty(result.perimeterLf)} LF perimeter`:''}`);
+      const holdText=result.inputHolds?` · ${result.inputHolds} input hold${result.inputHolds===1?'':'s'}`:'';
+      setMessage(`Saved ${finalName} · ${qty(result.quantity)} ${result.unit}${result.perimeterLf?` · ${qty(result.perimeterLf)} LF perimeter`:''}${holdText}`);
       setDraftPoints([]);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not save drawing measurement.');}finally{setBusy(false);}
   },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,currentScale,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router]);
@@ -376,6 +384,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   const qualityLimited=renderQuality<.98;
   const selectedVersionRecord:any=selectedMeasurement?versionMap.get(selectedMeasurement.assembly_version_id):null;
   const selectedAssemblyRecord:any=selectedVersionRecord?assemblyMap.get(selectedVersionRecord.assembly_id):null;
+  const selectedOutputs=selectedMeasurement?measurementSummaries.filter((row:any)=>row.measurement_id===selectedMeasurement.id):[];
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
   return <div className={styles.workstation}>
@@ -487,7 +496,9 @@ export function TakeoffDrawingWorkspace(props:Props){
           <div className={styles.groupTitle}>Selected Takeoff</div><div className={styles.selectedTitle}>{selectedMeasurement.name}</div><div className={styles.selectedQty}>{qty(selectedMeasurement.raw_quantity)} {selectedMeasurement.raw_unit}</div>
           {selectedGeometry?.type==='polygon'&&<div className={styles.cutoutSummary}><span><b>{selectedCutoutCount}</b> cutout{selectedCutoutCount===1?'':'s'}</span><span><b>{qty(selectedMeasurement.geometry?.cutout_quantity||0)}</b> SF excluded</span><span><b>{qty(selectedMeasurement.geometry?.perimeter_lf||0)}</b> LF edge</span></div>}
           {selectedSummary&&<div className={styles.selectedStats}><span><b>{qty(selectedSummary.mh)}</b> MH</span><span><b>{money(selectedSummary.cost)}</b> direct</span></div>}
-          {selectedSummary?.missing?<div className={styles.statusWarn}>{selectedSummary.missing} generated line{selectedSummary.missing===1?'':'s'} still need pricing.</div>:null}
+          {selectedSummary?.inputHolds?<div className={styles.statusWarn}>{selectedSummary.inputHolds} generated line{selectedSummary.inputHolds===1?'':'s'} waiting on assembly input. Geometry and unaffected quantities are saved.</div>:null}
+          {selectedSummary?.priceHolds?<div className={styles.statusWarn}>{selectedSummary.priceHolds} generated line{selectedSummary.priceHolds===1?'':'s'} still need pricing or a labor rate.</div>:null}
+          {selectedVersionRecord&&selectedAssemblyRecord&&<TakeoffAssemblyInputEditor measurement={selectedMeasurement} version={selectedVersionRecord} assembly={selectedAssemblyRecord} variables={variables} outputs={selectedOutputs} takeoffSetId={takeoffSet.id} locked={locked} onMessage={setMessage}/>} 
           {!locked&&<div className={styles.proActionGrid}>{tool==='edit'?<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void saveEdit()}><Check size={14}/> Save Shape</button><button type="button" className={styles.secondary} onClick={cancelTool}><X size={14}/> Cancel</button></>:<><button type="button" className={styles.secondary} onClick={beginEdit}><Pencil size={14}/> Edit Shape</button><button type="button" className={styles.secondary} disabled={busy} onClick={()=>void duplicateSelected()}><Copy size={14}/> Duplicate</button>{selectedGeometry?.type==='polygon'&&<button type="button" className={styles.secondary} onClick={beginCutout}><Scissors size={14}/> Add Cutout</button>}{selectedCutoutCount>0&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void removeLastCutout()}><Undo2 size={14}/> Remove Last</button>}</>}</div>}
           {tool==='cutout'&&preview&&<div className={`${styles.previewCard} ${styles.cutoutPreview}`}><span>Net concrete</span><strong>{qty(preview.quantity)} SF</strong><small>{qty(preview.cutoutQuantity||0)} SF total excluded</small><button type="button" disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}><Scissors size={15}/> Save cutout</button></div>}
           {!locked&&<button type="button" className={styles.danger} disabled={busy} onClick={()=>void removeSelected()}><Trash2 size={14}/> Delete takeoff</button>}
