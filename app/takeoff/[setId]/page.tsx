@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Calculator } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { TakeoffDrawingWorkspace } from '@/components/takeoff/TakeoffDrawingWorkspace';
@@ -51,21 +52,25 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   }
 
   const locked = Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
+  const estimateLabel = estimate ? `${estimate.estimate_number}-R${estimate.version}` : 'Estimate';
 
-  return <AppShell userName={profile.full_name || user.email || 'Owner'}>
-    <div className="contractor-page">
-      <div className="command-hero">
-        <div>
-          <div className="section-kicker">Graphical Takeoff</div>
-          <h1>{set.name}</h1>
-          <p>{estimate ? `${estimate.estimate_number}-R${estimate.version} — ${estimate.name}` : 'Estimate'} · {set.revision_label}{set.source_filename ? ` · ${set.source_filename}` : ''}</p>
+  return <AppShell userName={profile.full_name || user.email || 'Owner'} immersive>
+    <div className="takeoff-app-page">
+      <header className="takeoff-app-header">
+        <div className="takeoff-app-left">
+          <Link href="/takeoff" className="takeoff-app-back"><ArrowLeft size={17}/><span>Takeoff</span></Link>
+          <div className="takeoff-app-divider"/>
+          <div className="takeoff-app-title"><strong>{set.name}</strong><span>{estimateLabel} · {estimate?.name || 'Concrete Estimate'} · {set.revision_label}</span></div>
         </div>
-        <div className="command-actions"><Link className="button secondary" href="/takeoff">Back to Takeoff</Link><Link className="button secondary" href="/estimates">Estimate</Link></div>
-      </div>
+        <div className="takeoff-app-actions">
+          {locked&&<span className="takeoff-app-lock">READ ONLY</span>}
+          <Link href="/estimates" className="takeoff-app-link"><Calculator size={15}/> Estimate</Link>
+        </div>
+      </header>
 
-      {locked && <div className="alert warning"><strong>Issued revision — read only.</strong> Measurements remain visible, but drawing, calibration and deletion are locked. Create the next estimate/proposal revision for changed plans or scope.</div>}
+      {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <section className="section"><div className="surface"><div className="surface-header"><div><div className="surface-title">Attach PDF Plan Set</div><div className="surface-subtitle">The plan file becomes the permanent source drawing for this takeoff revision.</div></div></div><div className="surface-body">{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div></section> :
+      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> :
       <TakeoffDrawingWorkspace
         takeoffSet={set}
         estimate={estimate}
