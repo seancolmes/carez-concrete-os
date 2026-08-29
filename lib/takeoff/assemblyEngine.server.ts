@@ -1,9 +1,19 @@
 import 'server-only';
-import { evaluateTakeoffFormula, formulaTrace, roundTakeoff } from '@/lib/takeoff/formula';
+import { evaluateTakeoffFormula, formulaTrace, roundTakeoff, takeoffFormulaVariables } from '@/lib/takeoff/formula';
 
 const moneyRound = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export type AssemblyInputValues = Record<string, number | string | null | undefined>;
+type MissingAssemblyInput = { key: string; label: string; unit: string | null };
+
+const uniqueMissingInputs = (inputs: MissingAssemblyInput[]) => {
+  const seen = new Set<string>();
+  return inputs.filter(input => {
+    if (seen.has(input.key)) return false;
+    seen.add(input.key);
+    return true;
+  });
+};
 
 export async function resolveTakeoffLaborRate(supabase: any, companyId: string, riskClassCode: string | null) {
   const { data: profile } = await supabase
@@ -81,6 +91,7 @@ export async function prepareAssemblyOutputs({
 
   const assembly: any = Array.isArray((version as any).concrete_assemblies) ? (version as any).concrete_assemblies[0] : (version as any).concrete_assemblies;
   const values: Record<string, number> = { quantity: rawQuantity };
+  const missingRequired = new Map<string, MissingAssemblyInput>();
   for (const variable of variables || []) {
     if (variable.value_type !== 'number') continue;
     const requested = inputs[variable.variable_key];
@@ -88,7 +99,10 @@ export async function prepareAssemblyOutputs({
     const hasDefault = variable.default_value !== null && variable.default_value !== undefined && String(variable.default_value).trim() !== '';
     const value = Number.isFinite(supplied) ? supplied : hasDefault ? Number(variable.default_value) : NaN;
     if (!Number.isFinite(value)) {
-      if (variable.required) throw new Error(`${variable.label} is required.`);
+      if (variable.required) {
+        missingRequired.set(variable.variable_key, { key: variable.variable_key, label: variable.label, unit: variable.unit || null });
+        continue;
+      }
       values[variable.variable_key] = 0;
       continue;
     }
@@ -97,21 +111,45 @@ export async function prepareAssemblyOutputs({
     values[variable.variable_key] = value;
   }
 
+  const missingForFormula = (formula: any): MissingAssemblyInput[] => {
+    if (!formula) return [];
+    return takeoffFormulaVariables(formula)
+      .map(key => missingRequired.get(key))
+      .filter((input): input is MissingAssemblyInput => Boolean(input));
+  };
+  const holdTrace = (formula: any, missingInputs: MissingAssemblyInput[]) => ({
+    formula,
+    inputs: values,
+    result: null,
+    status: 'missing_input',
+    missing_inputs: missingInputs,
+  });
+
   const riskClassCode = String(requestedRiskClassCode || version.default_risk_class_code || '').trim() || null;
   const laborRate = await resolveTakeoffLaborRate(supabase, companyId, riskClassCode);
   const prepared: any[] = [];
   for (const component of components) {
-    const productionQuantity = Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, values), 4));
-    const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula
+    const quantityMissing = missingForFormula(component.quantity_formula);
+    const laborMissing = component.estimate_item_type === 'labor' && component.labor_rate_formula
+      ? missingForFormula(component.labor_rate_formula)
+      : [];
+    const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing]);
+
+    const productionQuantity = quantityMissing.length
+      ? 0
+      : Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, values), 4));
+    const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
       ? Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.labor_rate_formula, values), 6))
       : null;
-    const estimatedHours = component.estimate_item_type === 'labor' ? roundTakeoff(productionQuantity * Number(baseline || 0), 4) : 0;
+    const estimatedHours = component.estimate_item_type === 'labor' && !componentMissing.length
+      ? roundTakeoff(productionQuantity * Number(baseline || 0), 4)
+      : 0;
 
     let unitCost = 0;
     let directCost = 0;
-    let pricingStatus = productionQuantity === 0 ? 'not_priced' : 'missing_price';
-    let costSource: string | null = null;
-    if (component.estimate_item_type === 'labor') {
+    let pricingStatus = componentMissing.length ? 'missing_input' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
+    let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
+    if (!componentMissing.length && component.estimate_item_type === 'labor') {
       if (laborRate) {
         unitCost = laborRate.rate;
         directCost = moneyRound(estimatedHours * unitCost);
@@ -120,7 +158,7 @@ export async function prepareAssemblyOutputs({
       } else {
         pricingStatus = estimatedHours === 0 ? 'not_priced' : 'missing_labor_rate';
       }
-    } else if (productionQuantity > 0) {
+    } else if (!componentMissing.length && productionQuantity > 0) {
       const price = await resolveTakeoffCurrentUnitCost(supabase, companyId, component, component.output_unit);
       if (price) {
         unitCost = Number(price.unitCost || 0);
@@ -149,12 +187,17 @@ export async function prepareAssemblyOutputs({
       pricing_status: pricingStatus,
       labor_task: component.labor_task || '',
       formula_trace: {
-        quantity: formulaTrace(component.quantity_formula, values, productionQuantity),
-        labor_rate: component.labor_rate_formula && baseline !== null ? formulaTrace(component.labor_rate_formula, values, baseline) : null,
+        quantity: quantityMissing.length ? holdTrace(component.quantity_formula, quantityMissing) : formulaTrace(component.quantity_formula, values, productionQuantity),
+        labor_rate: component.labor_rate_formula
+          ? laborMissing.length || quantityMissing.length
+            ? holdTrace(component.labor_rate_formula, uniqueMissingInputs([...quantityMissing, ...laborMissing]))
+            : baseline !== null ? formulaTrace(component.labor_rate_formula, values, baseline) : null
+          : null,
+        missing_inputs: componentMissing,
         assembly: { code: assembly?.code, name: assembly?.name, source: version.source_label, reference: version.source_reference },
       },
     });
   }
 
-  return { version, assembly, variables: variables || [], components, values, riskClassCode, prepared };
+  return { version, assembly, variables: variables || [], components, values, missingRequired: [...missingRequired.values()], riskClassCode, prepared };
 }
