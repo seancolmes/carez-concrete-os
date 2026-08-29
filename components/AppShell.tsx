@@ -7,7 +7,7 @@ import {
   Home,Users,Inbox,Calculator,Briefcase,ClipboardCheck,ClipboardList,ReceiptText,TrendingUp,
   ShieldCheck,ShoppingCart,CreditCard,Wallet,Landmark,ListChecks,SlidersHorizontal,Banknote,Hammer,
   Receipt,HardHat,Gauge,Settings,Menu,KeyRound,CalendarDays,FileText,Wrench,PackageCheck,BarChart3,
-  Truck,Ruler,Search,ChevronRight,Boxes
+  Truck,Ruler,Search,ChevronRight,Boxes,LibraryBig
 } from 'lucide-react';
 import {BankSyncPulse} from '@/components/PlaidBankControls';
 import {OutlookSyncPulse} from '@/components/OutlookSyncPulse';
@@ -40,8 +40,8 @@ const workspaces:Workspace[]=[
         {href:'/proposals',label:'Proposal',Icon:FileText,hint:'Present pricing and capture customer acceptance'},
       ]},
       {label:'Estimating System',items:[
+        {href:'/takeoff/assemblies',label:'Assembly Library',Icon:LibraryBig,hint:'Concrete recipes, estimating inputs and labor-cost setup'},
         {href:'/takeoff/intelligence',label:'Production Intelligence',Icon:Gauge,hint:'Compare estimating baselines with clean Carez production evidence'},
-        {href:'/takeoff/plans',label:'Plan Sets',Icon:FileText,hint:'Manage plan-based takeoff sets and source drawings'},
       ]},
     ],
   },
