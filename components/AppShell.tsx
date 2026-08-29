@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {
   Home,Users,Inbox,Calculator,Briefcase,ClipboardCheck,ClipboardList,ReceiptText,TrendingUp,
   ShieldCheck,ShoppingCart,CreditCard,Wallet,Landmark,ListChecks,SlidersHorizontal,Banknote,Hammer,
   Receipt,HardHat,Gauge,Settings,Menu,KeyRound,CalendarDays,FileText,Wrench,PackageCheck,BarChart3,
-  Truck,Ruler,Search,ChevronRight,Boxes,LibraryBig
+  Truck,Ruler,Search,ChevronRight,Boxes,LibraryBig,PanelLeftOpen,X
 } from 'lucide-react';
 import {BankSyncPulse} from '@/components/PlaidBankControls';
 import {OutlookSyncPulse} from '@/components/OutlookSyncPulse';
@@ -125,6 +125,7 @@ function matchesPath(pathname:string,href:string){
 export function AppShell({children,userName,immersive=false}:{children:React.ReactNode;userName:string;immersive?:boolean}){
   const pathname=usePathname();
   const [menuOpen,setMenuOpen]=useState(false);
+  const [contextOpen,setContextOpen]=useState(false);
   const currentItem=useMemo(()=>{
     return [...allItems].sort((a,b)=>b.href.length-a.href.length).find(item=>matchesPath(pathname,item.href))||allItems.find(item=>item.href==='/');
   },[pathname]);
@@ -137,26 +138,47 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     {href:'/field',label:'Field',Icon:HardHat},
   ];
 
-  return <div className={`shell app-shell-v3 ${immersive?'shell-immersive':''}`}>
+  useEffect(()=>{
+    const close=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){
+        setContextOpen(false);
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown',close);
+    return()=>window.removeEventListener('keydown',close);
+  },[]);
+
+  return <div className={`shell app-shell-v3 industrial-shell ${immersive?'shell-immersive':''} ${contextOpen?'context-open':''}`}>
     <BankSyncPulse/><OutlookSyncPulse/>
 
     {!immersive&&<>
       <aside className="app-rail" aria-label="Carez workspaces">
         <Link href="/" className="app-rail-mark" aria-label="Carez Concrete home"><span>C</span></Link>
-        <nav className="app-rail-nav">{workspaces.slice(0,5).map(({key,label,Icon,home})=><Link key={key} href={home} prefetch={false} className={currentWorkspace.key===key?'active':''} title={label}><Icon/><span>{label}</span></Link>)}</nav>
+        <button
+          type="button"
+          className={`rail-context-toggle ${contextOpen?'active':''}`}
+          title={`Open ${currentWorkspace.label} tools`}
+          aria-label={`Open ${currentWorkspace.label} tools`}
+          aria-expanded={contextOpen}
+          aria-controls="carez-context-drawer"
+          onClick={()=>setContextOpen(open=>!open)}
+        ><PanelLeftOpen/><span>Tools</span></button>
+        <nav className="app-rail-nav">{workspaces.slice(0,5).map(({key,label,Icon,home})=><Link key={key} href={home} prefetch={false} className={currentWorkspace.key===key?'active':''} title={label} onClick={()=>setContextOpen(true)}><Icon/><span>{label}</span></Link>)}</nav>
         <div className="app-rail-bottom"><button type="button" onClick={()=>setMenuOpen(true)} title="All Carez tools"><Menu/><span>More</span></button><Link href="/settings" className={currentWorkspace.key==='system'?'active':''} title="Settings"><Settings/><span>Setup</span></Link></div>
       </aside>
 
-      <aside className="sidebar context-sidebar">
+      <button type="button" className="context-drawer-backdrop" aria-label="Close workspace tools" onClick={()=>setContextOpen(false)}/>
+      <aside id="carez-context-drawer" className="sidebar context-sidebar" aria-label={`${currentWorkspace.label} tools`} aria-hidden={!contextOpen}>
         <div className="context-brand"><img src="/brand/carez-wordmark.png" alt="Carez"/><span>CONCRETE</span></div>
-        <div className="context-heading"><div className="context-kicker">WORKSPACE</div><div className="context-title"><currentWorkspace.Icon/>{currentWorkspace.label}</div></div>
-        <nav className="context-nav" aria-label={`${currentWorkspace.label} navigation`}>{currentWorkspace.sections.map(section=><section key={section.label} className="context-section"><div className="context-section-label">{section.label}</div>{section.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} title={hint||label} className={active(href)?'active':''}><span className="context-link-icon"><Icon/></span><span className="context-link-copy"><strong>{label}</strong>{active(href)&&hint&&<small>{hint}</small>}</span><ChevronRight className="context-chevron"/></Link>)}</section>)}</nav>
-        <div className="context-footer"><button type="button" className="context-all-tools" onClick={()=>setMenuOpen(true)}><Search/> Find any Carez tool</button><div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div></div>
+        <div className="context-heading"><div className="context-heading-row"><div><div className="context-kicker">WORKSPACE</div><div className="context-title"><currentWorkspace.Icon/>{currentWorkspace.label}</div></div><button type="button" className="context-drawer-close" onClick={()=>setContextOpen(false)} aria-label="Close workspace tools"><X size={15}/></button></div></div>
+        <nav className="context-nav" aria-label={`${currentWorkspace.label} navigation`}>{currentWorkspace.sections.map(section=><section key={section.label} className="context-section"><div className="context-section-label">{section.label}</div>{section.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} title={hint||label} className={active(href)?'active':''} onClick={()=>setContextOpen(false)}><span className="context-link-icon"><Icon/></span><span className="context-link-copy"><strong>{label}</strong>{active(href)&&hint&&<small>{hint}</small>}</span><ChevronRight className="context-chevron"/></Link>)}</section>)}</nav>
+        <div className="context-footer"><button type="button" className="context-all-tools" onClick={()=>{setContextOpen(false);setMenuOpen(true);}}><Search/> Find any Carez tool</button><div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div></div>
       </aside>
     </>}
 
     <main className={`main ${immersive?'main-immersive':''}`}>
-      {!immersive&&<div className="topbar app-topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span>CONCRETE</span></div><div className="topbar-context"><span>{currentWorkspace.label}</span><strong>{currentItem?.label||'Home'}</strong>{currentItem?.hint&&<small>{currentItem.hint}</small>}</div><div className="topbar-actions"><button type="button" className="topbar-search" onClick={()=>setMenuOpen(true)}><Search/><span>Find tool</span></button><div className="user-chip">{userName}</div></div></div>}
+      {!immersive&&<div className="topbar app-topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span>CONCRETE</span></div><div className="topbar-context"><span>{currentWorkspace.label}</span><strong>{currentItem?.label||'Home'}</strong>{currentItem?.hint&&<small>{currentItem.hint}</small>}</div><div className="topbar-actions"><button type="button" className="workspace-context-button" onClick={()=>setContextOpen(true)} aria-label={`Open ${currentWorkspace.label} tools`}><PanelLeftOpen/><span>{currentWorkspace.label} tools</span></button><button type="button" className="topbar-search" onClick={()=>setMenuOpen(true)}><Search/><span>Find tool</span></button><div className="user-chip" title={userName}>{userName}</div></div></div>}
       {children}
     </main>
 
