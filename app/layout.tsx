@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import './globals.css';
 import './polish.css';
 import './construction-ui.css';
 import './plain-language.css';
@@ -15,7 +14,7 @@ import './jobs-v3.css';
 import './navigation-v3.css';
 import './owner-home-v3.css';
 import './employee-v3.css';
-import './industrial-workstation.css';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
