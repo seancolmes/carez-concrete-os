@@ -28,6 +28,17 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  // getUser() always performs a remote Auth request. In routing middleware that
+  // made every navigation depend on Supabase responding before Vercel's 25s
+  // middleware deadline. getClaims() is the recommended SSR verification path;
+  // with asymmetric signing keys it verifies against cached JWKS instead.
+  try {
+    await supabase.auth.getClaims();
+  } catch {
+    // Authorization is enforced again by protected Server Components/actions.
+    // Routing middleware must never make the entire application unavailable
+    // because the auth service is temporarily slow or unreachable.
+  }
+
   return response;
 }
