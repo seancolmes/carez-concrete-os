@@ -24,8 +24,9 @@ Target: professional, construction-native, low-friction software with the depth 
 - Fast concrete assembly palette.
 - Sheet navigation that can collapse to maximize plan area.
 - Clean inspector with measurement, assembly inputs and generated quantities.
-- Keyboard shortcuts and repeated-takeoff workflows for estimators.
-- Future phases: PDF vector snapping, area cutouts, duplicate/convert, overlays/revision comparison, text search, auto-count and batch scale/rename.
+- Keyboard shortcuts, committed geometry undo/redo and repeated-takeoff workflows for estimators.
+- Editable vertices, interior area cutouts, duplicate/nudge operations and a permanent resizable quantity worksheet.
+- Future phases: PDF vector snapping, multi-select, overlays/revision comparison, text search, auto-count and batch scale/rename.
 
 ## App shell target
 

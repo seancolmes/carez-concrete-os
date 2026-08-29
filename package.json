@@ -2,25 +2,33 @@
   "name": "carez-concrete-os",
   "version": "0.3.0",
   "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/domain.test.ts",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.1",
-    "lucide-react": "^0.468.0",
-    "next": "^15.2.0",
-    "pdfjs-dist": "^4.10.38",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@supabase/ssr": "0.6.1",
+    "@supabase/supabase-js": "2.112.4",
+    "geist": "1.7.0",
+    "lucide-react": "0.468.0",
+    "next": "15.5.24",
+    "pdfjs-dist": "4.10.38",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "typescript": "^5.7.0"
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "typescript": "5.9.3"
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {usePathname} from 'next/navigation';
 import {useEffect,useMemo,useState} from 'react';
 import {
@@ -139,14 +140,20 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
   ];
 
   useEffect(()=>{
-    const close=(event:KeyboardEvent)=>{
+    const onKey=(event:KeyboardEvent)=>{
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
+        event.preventDefault();
+        setContextOpen(false);
+        setMenuOpen(true);
+        return;
+      }
       if(event.key==='Escape'){
         setContextOpen(false);
         setMenuOpen(false);
       }
     };
-    window.addEventListener('keydown',close);
-    return()=>window.removeEventListener('keydown',close);
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
   },[]);
 
   return <div className={`shell app-shell-v3 industrial-shell ${immersive?'shell-immersive':''} ${contextOpen?'context-open':''}`}>
@@ -170,7 +177,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
 
       <button type="button" className="context-drawer-backdrop" aria-label="Close workspace tools" onClick={()=>setContextOpen(false)}/>
       <aside id="carez-context-drawer" className="sidebar context-sidebar" aria-label={`${currentWorkspace.label} tools`} aria-hidden={!contextOpen}>
-        <div className="context-brand"><img src="/brand/carez-wordmark.png" alt="Carez"/><span>CONCRETE</span></div>
+        <div className="context-brand"><Image src="/brand/carez-wordmark.png" alt="Carez" width={104} height={57} priority sizes="104px"/><span>CONCRETE</span></div>
         <div className="context-heading"><div className="context-heading-row"><div><div className="context-kicker">WORKSPACE</div><div className="context-title"><currentWorkspace.Icon/>{currentWorkspace.label}</div></div><button type="button" className="context-drawer-close" onClick={()=>setContextOpen(false)} aria-label="Close workspace tools"><X size={15}/></button></div></div>
         <nav className="context-nav" aria-label={`${currentWorkspace.label} navigation`}>{currentWorkspace.sections.map(section=><section key={section.label} className="context-section"><div className="context-section-label">{section.label}</div>{section.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} title={hint||label} className={active(href)?'active':''} onClick={()=>setContextOpen(false)}><span className="context-link-icon"><Icon/></span><span className="context-link-copy"><strong>{label}</strong>{active(href)&&hint&&<small>{hint}</small>}</span><ChevronRight className="context-chevron"/></Link>)}</section>)}</nav>
         <div className="context-footer"><button type="button" className="context-all-tools" onClick={()=>{setContextOpen(false);setMenuOpen(true);}}><Search/> Find any Carez tool</button><div className="sidebar-user"><div className="sidebar-user-label">Signed in</div><div className="sidebar-user-name">{userName}</div></div></div>
@@ -178,7 +185,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     </>}
 
     <main className={`main ${immersive?'main-immersive':''}`}>
-      {!immersive&&<div className="topbar app-topbar"><div className="mobile-brand-lockup"><img src="/brand/carez-wordmark.png" alt="Carez" className="mobile-brand-wordmark"/><span>CONCRETE</span></div><div className="topbar-context"><span>{currentWorkspace.label}</span><strong>{currentItem?.label||'Home'}</strong>{currentItem?.hint&&<small>{currentItem.hint}</small>}</div><div className="topbar-actions"><button type="button" className="workspace-context-button" onClick={()=>setContextOpen(true)} aria-label={`Open ${currentWorkspace.label} tools`}><PanelLeftOpen/><span>{currentWorkspace.label} tools</span></button><button type="button" className="topbar-search" onClick={()=>setMenuOpen(true)}><Search/><span>Find tool</span></button><div className="user-chip" title={userName}>{userName}</div></div></div>}
+      {!immersive&&<div className="topbar app-topbar"><div className="mobile-brand-lockup"><Image src="/brand/carez-wordmark.png" alt="Carez" width={104} height={57} priority sizes="104px" className="mobile-brand-wordmark"/><span>CONCRETE</span></div><div className="topbar-context"><span>{currentWorkspace.label}</span><strong>{currentItem?.label||'Home'}</strong>{currentItem?.hint&&<small>{currentItem.hint}</small>}</div><div className="topbar-actions"><button type="button" className="workspace-context-button" onClick={()=>setContextOpen(true)} aria-label={`Open ${currentWorkspace.label} tools`}><PanelLeftOpen/><span>{currentWorkspace.label} tools</span></button><button type="button" className="topbar-search" onClick={()=>setMenuOpen(true)} aria-keyshortcuts="Control+K Meta+K"><Search/><span>Find tool</span><kbd>Ctrl K</kbd></button><div className="user-chip" title={userName}>{userName}</div></div></div>}
       {children}
     </main>
 

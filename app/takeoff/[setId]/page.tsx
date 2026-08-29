@@ -27,7 +27,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('proposal_presentations').select('id,proposal_number,status').eq('estimate_id', set.estimate_id).eq('company_id', companyId).limit(1).maybeSingle(),
     set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('takeoff_sheets').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('page_number'),
-    supabase.from('takeoff_measurements').select('id,sheet_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
+    supabase.from('takeoff_measurements').select('id,sheet_id,estimate_section_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
     supabase.from('concrete_assemblies').select('id,code,name,category,primary_measurement,description').eq('company_id', companyId).eq('active', true).order('category').order('name'),
     supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,default_risk_class_code,source_label,source_reference').eq('company_id', companyId).eq('status', 'published').order('version_no', { ascending: false }),
     supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,min_value,max_value,required,help_text,sort_order').eq('company_id', companyId).order('sort_order'),
@@ -39,7 +39,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   let summaries: any[] = [];
   if (measurementIds.length) {
     const { data } = await supabase.from('takeoff_measurement_outputs')
-      .select('measurement_id,estimated_man_hours,direct_cost,pricing_status')
+      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,direct_cost,pricing_status')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
     summaries = data || [];

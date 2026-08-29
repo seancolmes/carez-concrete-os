@@ -1,12 +1,14 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {Search,X} from 'lucide-react';
 
 type NavItem={href:string;label:string;Icon:any;hint?:string};
 
 export function MobileNavSheet({open,onClose,groups,active}:{open:boolean;onClose:()=>void;groups:{label:string;items:NavItem[]}[];active:(href:string)=>boolean}){
   const [query,setQuery]=useState('');
+  const dialogRef=useRef<HTMLDivElement|null>(null);
+  const inputRef=useRef<HTMLInputElement|null>(null);
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
     if(!q)return groups;
@@ -15,15 +17,26 @@ export function MobileNavSheet({open,onClose,groups,active}:{open:boolean;onClos
   const close=()=>{setQuery('');onClose();};
   useEffect(()=>{
     if(!open)return;
-    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')close();};
-    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
+    const prior=document.activeElement as HTMLElement|null;
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){event.preventDefault();close();return;}
+      if(event.key!=='Tab'||!dialogRef.current)return;
+      const focusable=Array.from(dialogRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled])'));
+      if(!focusable.length)return;
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    };
+    requestAnimationFrame(()=>inputRef.current?.focus());
+    window.addEventListener('keydown',onKey);
+    return()=>{window.removeEventListener('keydown',onKey);prior?.focus();};
   },[open]); // eslint-disable-line react-hooks/exhaustive-deps
   if(!open)return null;
   const matchCount=filtered.reduce((sum,group)=>sum+group.items.length,0);
   return <div className="mobile-menu-backdrop" role="dialog" aria-modal="true" aria-label="Carez OS menu" onMouseDown={event=>{if(event.currentTarget===event.target)close();}}>
-    <div className="mobile-menu-sheet tool-finder-sheet">
+    <div ref={dialogRef} className="mobile-menu-sheet tool-finder-sheet">
       <div className="mobile-menu-head"><div><div className="mobile-menu-kicker">CAREZ CONCRETE</div><div className="mobile-menu-title">Find a Tool</div><div className="mobile-menu-subtitle">Search the deeper system only when you need it.</div></div><button type="button" className="mobile-menu-close" onClick={close} aria-label="Close menu"><X size={22}/></button></div>
-      <label className="tool-finder-search"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search: pour, invoice, crew, rebar…"/><kbd>ESC</kbd></label>
+      <label className="tool-finder-search"><Search size={18}/><input ref={inputRef} value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search: pour, invoice, crew, rebar…"/><kbd>ESC</kbd></label>
       <div className="tool-finder-meta">{query?`${matchCount} matching tool${matchCount===1?'':'s'}`:'Browse by workflow'}</div>
       <div className="mobile-menu-groups">{filtered.length?filtered.map(group=><section className="mobile-menu-group" key={group.label}><div className="mobile-menu-group-title">{group.label}</div><div className="mobile-menu-items">{group.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} onClick={close} className={active(href)?'active':''}><span className="mobile-menu-icon"><Icon size={18}/></span><span><strong>{label}</strong>{hint&&<small>{hint}</small>}</span></Link>)}</div></section>):<div className="tool-finder-empty"><Search size={24}/><strong>No Carez tool matches “{query}”</strong><span>Try a workflow word such as estimate, crew, pour, invoice, bank or equipment.</span></div>}</div>
     </div>

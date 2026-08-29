@@ -3,6 +3,18 @@ export type NormalizedPoint = { x: number; y: number };
 export type DrawingGeometry = {
   type: 'polyline' | 'polygon' | 'count';
   points: NormalizedPoint[];
+  /** Interior polygon rings subtracted from the outer area. */
+  holes?: NormalizedPoint[][];
+};
+
+export type DrawingMeasurement = {
+  quantity: number;
+  unit: 'EA' | 'LF' | 'SF';
+  perimeterLf: number;
+  grossQuantity?: number;
+  cutoutQuantity?: number;
+  outerPerimeterLf?: number;
+  cutoutPerimeterLf?: number;
 };
 
 export interface LineTakeoffSegment {
@@ -32,6 +44,8 @@ export interface TakeoffPath {
 const TAU = Math.PI * 2;
 const POINT_TOLERANCE = 1e-7;
 const MAX_PATH_SEGMENTS = 4000;
+const MAX_DRAWING_POINTS = 4000;
+const MAX_CUTOUTS = 100;
 const DEFAULT_ARC_STEP_DEGREES = 2;
 
 const finite = (value: unknown) => Number.isFinite(Number(value));
@@ -51,6 +65,68 @@ function pointsEqual(a: NormalizedPoint, b: NormalizedPoint, tolerance = POINT_T
   return Math.abs(a.x - b.x) <= tolerance && Math.abs(a.y - b.y) <= tolerance;
 }
 
+function pointOnSegment(point: NormalizedPoint, start: NormalizedPoint, end: NormalizedPoint) {
+  const cross = (point.y - start.y) * (end.x - start.x) - (point.x - start.x) * (end.y - start.y);
+  if (Math.abs(cross) > POINT_TOLERANCE) return false;
+  const dot = (point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y);
+  if (dot < -POINT_TOLERANCE) return false;
+  const lengthSquared = (end.x - start.x) ** 2 + (end.y - start.y) ** 2;
+  return dot <= lengthSquared + POINT_TOLERANCE;
+}
+
+function orientation(a: NormalizedPoint, b: NormalizedPoint, c: NormalizedPoint) {
+  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+  if (Math.abs(value) <= POINT_TOLERANCE) return 0;
+  return value > 0 ? 1 : -1;
+}
+
+function segmentsIntersect(a1: NormalizedPoint, a2: NormalizedPoint, b1: NormalizedPoint, b2: NormalizedPoint) {
+  const o1 = orientation(a1, a2, b1);
+  const o2 = orientation(a1, a2, b2);
+  const o3 = orientation(b1, b2, a1);
+  const o4 = orientation(b1, b2, a2);
+  if (o1 !== o2 && o3 !== o4) return true;
+  return (o1 === 0 && pointOnSegment(b1, a1, a2))
+    || (o2 === 0 && pointOnSegment(b2, a1, a2))
+    || (o3 === 0 && pointOnSegment(a1, b1, b2))
+    || (o4 === 0 && pointOnSegment(a2, b1, b2));
+}
+
+function ringSelfIntersects(points: NormalizedPoint[]) {
+  for (let first = 0; first < points.length; first += 1) {
+    const firstEnd = (first + 1) % points.length;
+    for (let second = first + 1; second < points.length; second += 1) {
+      const secondEnd = (second + 1) % points.length;
+      if (first === second || firstEnd === second || secondEnd === first) continue;
+      if (first === 0 && secondEnd === 0) continue;
+      if (segmentsIntersect(points[first], points[firstEnd], points[second], points[secondEnd])) return true;
+    }
+  }
+  return false;
+}
+
+function ringsIntersect(first: NormalizedPoint[], second: NormalizedPoint[]) {
+  for (let a = 0; a < first.length; a += 1) {
+    for (let b = 0; b < second.length; b += 1) {
+      if (segmentsIntersect(first[a], first[(a + 1) % first.length], second[b], second[(b + 1) % second.length])) return true;
+    }
+  }
+  return false;
+}
+
+function pointInPolygon(point: NormalizedPoint, polygon: NormalizedPoint[]) {
+  let inside = false;
+  for (let index = 0, prior = polygon.length - 1; index < polygon.length; prior = index, index += 1) {
+    const currentPoint = polygon[index];
+    const priorPoint = polygon[prior];
+    if (pointOnSegment(point, priorPoint, currentPoint)) return false;
+    const crosses = ((currentPoint.y > point.y) !== (priorPoint.y > point.y))
+      && point.x < ((priorPoint.x - currentPoint.x) * (point.y - currentPoint.y)) / (priorPoint.y - currentPoint.y) + currentPoint.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
 export function validateDrawingGeometry(geometry: DrawingGeometry) {
   if (!geometry || !['polyline', 'polygon', 'count'].includes(geometry.type)) throw new Error('Unsupported drawing geometry.');
   if (!Array.isArray(geometry.points)) throw new Error('Drawing points are missing.');
@@ -58,6 +134,29 @@ export function validateDrawingGeometry(geometry: DrawingGeometry) {
   if (geometry.points.length < minimum) throw new Error(`${geometry.type} requires at least ${minimum} point${minimum === 1 ? '' : 's'}.`);
   if (geometry.points.length > 2000) throw new Error('Drawing contains too many points.');
   for (const point of geometry.points) validateNormalizedPoint(point, 'Drawing point');
+  if (geometry.type === 'polygon' && ringSelfIntersects(geometry.points)) throw new Error('Measured area cannot cross over itself.');
+
+  if (geometry.holes === undefined) return;
+  if (geometry.type !== 'polygon') throw new Error('Cutouts are only supported inside area takeoffs.');
+  if (!Array.isArray(geometry.holes)) throw new Error('Area cutouts are invalid.');
+  if (geometry.holes.length > MAX_CUTOUTS) throw new Error('Area takeoff contains too many cutouts.');
+  const totalPoints = geometry.points.length + geometry.holes.reduce((total, hole) => total + (Array.isArray(hole) ? hole.length : 0), 0);
+  if (totalPoints > MAX_DRAWING_POINTS) throw new Error('Area takeoff contains too many total points.');
+
+  geometry.holes.forEach((hole, index) => {
+    if (!Array.isArray(hole) || hole.length < 3) throw new Error(`Cutout ${index + 1} requires at least 3 points.`);
+    for (const point of hole) validateNormalizedPoint(point, `Cutout ${index + 1} point`);
+    if (ringSelfIntersects(hole)) throw new Error(`Cutout ${index + 1} cannot cross over itself.`);
+    if (hole.some(point => !pointInPolygon(point, geometry.points)) || ringsIntersect(hole, geometry.points)) {
+      throw new Error(`Cutout ${index + 1} must stay strictly inside the measured concrete area.`);
+    }
+    for (let prior = 0; prior < index; prior += 1) {
+      const other = geometry.holes![prior];
+      if (ringsIntersect(hole, other) || pointInPolygon(hole[0], other) || pointInPolygon(other[0], hole)) {
+        throw new Error(`Cutout ${index + 1} overlaps another cutout.`);
+      }
+    }
+  });
 }
 
 export function validateTakeoffPath(path: TakeoffPath) {
@@ -272,7 +371,7 @@ export function calculateSlabArea(
   return Math.max(0, netPdfArea) * feetPerPdfUnit * feetPerPdfUnit;
 }
 
-export function measureDrawingGeometry(geometry: DrawingGeometry, pageWidth: number, pageHeight: number, calibration: any) {
+export function measureDrawingGeometry(geometry: DrawingGeometry, pageWidth: number, pageHeight: number, calibration: any): DrawingMeasurement {
   validateDrawingGeometry(geometry);
   assertPageDimensions(pageWidth, pageHeight);
   if (geometry.type === 'count') return { quantity: geometry.points.length, unit: 'EA', perimeterLf: 0 };
@@ -286,9 +385,24 @@ export function measureDrawingGeometry(geometry: DrawingGeometry, pageWidth: num
     };
   }
 
-  const area = polygonPdfArea(geometry.points, pageWidth, pageHeight) * feetPerPdfUnit * feetPerPdfUnit;
-  const perimeter = polylinePdfLength(geometry.points, pageWidth, pageHeight, true) * feetPerPdfUnit;
-  return { quantity: area, unit: 'SF', perimeterLf: perimeter };
+  const holes = geometry.holes || [];
+  const grossPdfArea = polygonPdfArea(geometry.points, pageWidth, pageHeight);
+  const cutoutPdfArea = holes.reduce((total, hole) => total + polygonPdfArea(hole, pageWidth, pageHeight), 0);
+  if (cutoutPdfArea >= grossPdfArea) throw new Error('Concrete cutouts cannot consume the entire measured area.');
+  const areaScale = feetPerPdfUnit * feetPerPdfUnit;
+  const grossQuantity = grossPdfArea * areaScale;
+  const cutoutQuantity = cutoutPdfArea * areaScale;
+  const outerPerimeterLf = polylinePdfLength(geometry.points, pageWidth, pageHeight, true) * feetPerPdfUnit;
+  const cutoutPerimeterLf = holes.reduce((total, hole) => total + polylinePdfLength(hole, pageWidth, pageHeight, true), 0) * feetPerPdfUnit;
+  return {
+    quantity: grossQuantity - cutoutQuantity,
+    unit: 'SF',
+    perimeterLf: outerPerimeterLf + cutoutPerimeterLf,
+    grossQuantity,
+    cutoutQuantity,
+    outerPerimeterLf,
+    cutoutPerimeterLf,
+  };
 }
 
 export function roundMeasurement(value: number, digits = 2) {

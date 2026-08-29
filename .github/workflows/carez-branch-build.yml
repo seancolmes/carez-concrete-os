@@ -20,13 +20,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Domain tests
+        run: pnpm test
       - name: Build
-        run: npm run build
+        run: pnpm build
 
 # This workflow intentionally validates main and active carez-* development branches.
