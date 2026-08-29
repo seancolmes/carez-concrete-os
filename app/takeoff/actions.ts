@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prepareAssemblyOutputs } from '@/lib/takeoff/assemblyEngine.server';
 
@@ -28,11 +29,11 @@ async function assertEstimateEditable(supabase: any, companyId: string, estimate
 
 export async function createTakeoffSet(fd: FormData) {
   const estimateId = String(fd.get('estimate_id') || '');
-  const name = String(fd.get('name') || '').trim();
-  if (!estimateId || !name) return;
+  const name = String(fd.get('name') || '').trim() || 'Concrete Takeoff';
+  if (!estimateId) throw new Error('Choose the estimate you are taking off.');
   const { supabase, user, companyId } = await ctx();
   await assertEstimateEditable(supabase, companyId, estimateId);
-  const { error } = await supabase.from('takeoff_sets').insert({
+  const { data, error } = await supabase.from('takeoff_sets').insert({
     company_id: companyId,
     estimate_id: estimateId,
     name,
@@ -40,20 +41,22 @@ export async function createTakeoffSet(fd: FormData) {
     source_filename: String(fd.get('source_filename') || '').trim() || null,
     notes: String(fd.get('notes') || '').trim() || null,
     created_by: user.id,
-  });
+  }).select('id').single();
   if (error) throw new Error(error.message);
   revalidatePath('/takeoff');
   revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');
+  redirect(`/takeoff/${data.id}`);
 }
 
 export async function createAssemblyMeasurement(fd: FormData) {
   const takeoffSetId = String(fd.get('takeoff_set_id') || '');
   const assemblyVersionId = String(fd.get('assembly_version_id') || '');
   const sectionId = String(fd.get('estimate_section_id') || '') || null;
-  const name = String(fd.get('name') || '').trim();
+  const requestedName = String(fd.get('name') || '').trim();
+  const location = String(fd.get('location') || '').trim();
   const rawQuantity = num(fd.get('raw_quantity'));
-  if (!takeoffSetId || !assemblyVersionId || !name || !Number.isFinite(rawQuantity) || rawQuantity <= 0) throw new Error('Name and measured quantity are required.');
+  if (!takeoffSetId || !assemblyVersionId || !Number.isFinite(rawQuantity) || rawQuantity <= 0) throw new Error('Choose an assembly and enter the measured quantity.');
 
   const { supabase, companyId } = await ctx();
   const { data: set } = await supabase.from('takeoff_sets').select('id,estimate_id,status').eq('id', takeoffSetId).eq('company_id', companyId).maybeSingle();
@@ -74,6 +77,9 @@ export async function createAssemblyMeasurement(fd: FormData) {
     riskClassCode: requestedRiskClass,
   });
 
+  const assemblyName = String(engine.assembly?.name || 'Concrete');
+  const { count } = await supabase.from('takeoff_measurements').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('takeoff_set_id', takeoffSetId).eq('assembly_version_id', assemblyVersionId).eq('status', 'active');
+  const name = requestedName || `${assemblyName}${location ? ` — ${location}` : ''} ${Number(count || 0) + 1}`;
   const primaryUnit = String(engine.assembly?.primary_measurement || 'LF');
   const measurementType = primaryUnit === 'SF' ? 'area' : primaryUnit === 'EA' ? 'count' : primaryUnit === 'CY' ? 'volume' : 'linear';
   const { error } = await supabase.rpc('carez_commit_takeoff_measurement', {
@@ -81,7 +87,7 @@ export async function createAssemblyMeasurement(fd: FormData) {
     p_estimate_section_id: sectionId,
     p_assembly_version_id: assemblyVersionId,
     p_name: name,
-    p_location: String(fd.get('location') || '').trim(),
+    p_location: location,
     p_drawing_reference: String(fd.get('drawing_reference') || '').trim(),
     p_measurement_type: measurementType,
     p_raw_quantity: rawQuantity,
