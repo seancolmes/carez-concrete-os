@@ -1,3 +1,5 @@
+import { evaluateRule, ruleVariables, type RuleExpression } from './rules.ts';
+
 export type AssemblyPropertyValue = number | string | boolean | null | undefined;
 
 export type AssemblyPropertyVariable = {
@@ -12,6 +14,7 @@ export type AssemblyPropertyVariable = {
   max_value?: number | string | null;
   required?: boolean;
   allow_override?: boolean;
+  activation_rule?: RuleExpression | null;
 };
 
 export type AssemblyPropertyBinding = {
@@ -167,15 +170,24 @@ export function resolveAssemblyPropertyValues({
   addNumericNamespace(formulaValues, 'Project', context.project);
   addNumericNamespace(formulaValues, 'Parent', context.parent);
   addNumericNamespace(formulaValues, 'PlanFact', context.planFact);
-  for (const [key, raw] of Object.entries(explicitInputs || {})) {
-    const value = Number(raw);
-    if (supplied(raw) && Number.isFinite(value)) formulaValues[key] = value;
-  }
 
   const resolveVariable = (variable: AssemblyPropertyVariable): AssemblyPropertyValue => {
     if (resolved.has(variable.variable_key)) return storedValues[variable.variable_key];
     if (resolving.has(variable.variable_key)) throw new Error(`Assembly property binding cycle detected at ${variable.label}.`);
     resolving.add(variable.variable_key);
+
+    if (variable.activation_rule) {
+      for (const dependency of ruleVariables(variable.activation_rule)) {
+        const key = dependency.replace(/^properties\./, '');
+        const sibling = byKey.get(key);
+        if (sibling) resolveVariable(sibling);
+      }
+      if (!evaluateRule(variable.activation_rule, { properties: storedValues })) {
+        resolving.delete(variable.variable_key);
+        resolved.add(variable.variable_key);
+        return undefined;
+      }
+    }
 
     const explicit = explicitInputs[variable.variable_key];
     let boundValue: AssemblyPropertyValue;
@@ -257,3 +269,5 @@ export function resolveAssemblyPropertyValues({
     missingRequired: [...missingRequired.values()],
   };
 }
+export const isAssemblyVariableActive = (variable: AssemblyPropertyVariable, values: Record<string, AssemblyPropertyValue>) =>
+  !variable.activation_rule || evaluateRule(variable.activation_rule, { properties: values });
