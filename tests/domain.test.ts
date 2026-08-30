@@ -217,6 +217,59 @@ test('nested formwork child activation keeps inactive descendants structurally a
   assert.deepEqual(outputSnapshotState({ estimate_visible: true }, inactive), { is_active: false, estimate_visible: true });
 });
 
+test('footing placement methods preserve direct-chute quantities and hold only their own missing inputs', () => {
+  const concreteFormula = { op: 'mul' as const, args: [
+    { op: 'div' as const, args: [{ op: 'mul' as const, args: [
+      { var: 'quantity' },
+      { op: 'div' as const, args: [{ var: 'width_in' }, { const: 12 }] },
+      { op: 'div' as const, args: [{ var: 'depth_in' }, { const: 12 }] },
+    ] }, { const: 27 }] },
+    { op: 'add' as const, args: [{ const: 1 }, { op: 'div' as const, args: [{ var: 'concrete_waste_pct' }, { const: 100 }] }] },
+  ] };
+  const directRule = { op: 'eq' as const, left: { var: 'properties.placement_method' }, right: { const: 'direct_chute' } };
+  const pumpRule = { op: 'eq' as const, left: { var: 'properties.placement_method' }, right: { const: 'line_pump' } };
+  const geometry = { quantity: 40, width_in: 24, depth_in: 10, concrete_waste_pct: 3 };
+  const concreteCy = evaluateTakeoffFormula(concreteFormula, geometry);
+
+  assert.ok(Math.abs(concreteCy - 2.5432098765432096) < 1e-10);
+  assert.equal(evaluateTakeoffFormula(concreteFormula, geometry), concreteCy, 'V6 and V7 use the identical concrete formula');
+  assert.ok(Math.abs(concreteCy * .552 - 1.403851851851852) < 1e-10);
+  assert.ok(Math.abs(concreteCy * .4 - 1.017283950617284) < 1e-10);
+
+  const direct = { properties: { placement_method: 'direct_chute' } };
+  const pump = { properties: { placement_method: 'line_pump' } };
+  const unresolved = { properties: {} };
+  assert.equal(evaluateRule(directRule, direct), true);
+  assert.equal(evaluateRule(pumpRule, direct), false);
+  assert.equal(evaluateRule(directRule, pump), false);
+  assert.equal(evaluateRule(pumpRule, pump), true);
+  assert.equal(evaluateRule(directRule, unresolved), false);
+  assert.equal(evaluateRule(pumpRule, unresolved), false);
+
+  const variables = [
+    { id: 'method', variable_key: 'placement_method', label: 'Placement Method', value_type: 'enum', required: true, options: [{ value: 'direct_chute', label: 'Direct Chute' }, { value: 'line_pump', label: 'Line Pump' }] },
+    { id: 'hours', variable_key: 'line_pump_hours', label: 'Line Pump Hours', value_type: 'number', required: true, activation_rule: pumpRule },
+    { id: 'productivity', variable_key: 'line_pump_place_mh_per_cy', label: 'Placement Labor MH / CY', value_type: 'number', required: true, activation_rule: pumpRule },
+  ];
+  assert.deepEqual(resolveAssemblyPropertyValues({ variables, bindings: [], explicitInputs: { placement_method: 'direct_chute' }, context: {} }).missingRequired, []);
+  assert.deepEqual(resolveAssemblyPropertyValues({ variables, bindings: [], explicitInputs: { placement_method: 'line_pump', line_pump_place_mh_per_cy: .4 }, context: {} }).missingRequired.map(value => value.key), ['line_pump_hours']);
+  assert.deepEqual(resolveAssemblyPropertyValues({ variables, bindings: [], explicitInputs: { placement_method: 'line_pump', line_pump_hours: 4 }, context: {} }).missingRequired.map(value => value.key), ['line_pump_place_mh_per_cy']);
+  assert.deepEqual(resolveAssemblyPropertyValues({ variables, bindings: [], explicitInputs: {}, context: {} }).missingRequired.map(value => value.key), ['placement_method']);
+
+  const paths = [
+    'footing_concrete_material',
+    'formwork/footing_form_labor', 'formwork/footing_form_material',
+    'reinforcement/footing_rebar_labor', 'reinforcement/footing_rebar_material',
+    'placement_direct/footing_place_labor',
+    'placement_line_pump/footing_place_labor', 'placement_line_pump/line_pump_service',
+  ];
+  assert.equal(paths.length, 8);
+  assert.equal(paths.filter(path => path === 'footing_place_labor').length, 0, 'no legacy root placement path remains');
+  assert.equal(paths.filter(path => path.startsWith('placement_direct/')).length, 1);
+  assert.equal(paths.filter(path => path.startsWith('placement_line_pump/')).length, 2);
+  assert.equal(evaluateTakeoffFormula(concreteFormula, geometry), concreteCy, 'placement selection does not change source geometry or concrete CY');
+});
+
 test('reusable reinforcement method composes independently with formwork and preserves V4 quantities', () => {
   const formworkRule = { op: 'eq' as const, left: { var: 'properties.formwork_method' }, right: { const: 'formed_footing' } };
   const reinforcementRule = { op: 'eq' as const, left: { var: 'properties.reinforcement_method' }, right: { const: 'continuous_rebar' } };
