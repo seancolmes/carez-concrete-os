@@ -86,9 +86,18 @@ export function TakeoffAssemblyInputEditor({ measurement, version, assembly, var
     {missingLabels.length > 0 && <div className={styles.statusWarn}>Input required: {missingLabels.join(', ')}. Geometry and unaffected assembly outputs are already saved.</div>}
     <div className={styles.variableGrid}>{rows.map(variable => <label className={styles.field} key={variable.id}>
       <span>{variable.label}{variable.required ? ' *' : ''}</span>
-      <div className={styles.inputUnit}>
+      {variable.value_type === 'boolean' ? <span className={styles.checkRow}><input
+          type="checkbox"
+          checked={values[variable.variable_key] === 'true'}
+          disabled={locked || saving}
+          onChange={event => setValues(current => ({ ...current, [variable.variable_key]: event.target.checked ? 'true' : 'false' }))}
+        /> Enabled</span> : variable.value_type === 'enum' ? <select
+          value={values[variable.variable_key] ?? ''}
+          disabled={locked || saving}
+          onChange={event => setValues(current => ({ ...current, [variable.variable_key]: event.target.value }))}
+        ><option value="">Select…</option>{(Array.isArray(variable.options) ? variable.options : []).map((option: unknown) => <option key={String(option)} value={String(option)}>{String(option)}</option>)}</select> : <div className={styles.inputUnit}>
         <input
-          type={variable.value_type === 'number' ? 'number' : 'text'}
+          type={['number', 'dimension', 'percentage'].includes(variable.value_type) ? 'number' : 'text'}
           step="any"
           min={variable.min_value ?? undefined}
           max={variable.max_value ?? undefined}
@@ -97,7 +106,7 @@ export function TakeoffAssemblyInputEditor({ measurement, version, assembly, var
           onChange={event => setValues(current => ({ ...current, [variable.variable_key]: event.target.value }))}
         />
         {variable.unit && <b>{variable.unit}</b>}
-      </div>
+      </div>}
       {variable.help_text && <small>{variable.help_text}</small>}
     </label>)}</div>
     {!locked && <button type="button" className={styles.primary} disabled={saving} onClick={() => void recalculate()}>

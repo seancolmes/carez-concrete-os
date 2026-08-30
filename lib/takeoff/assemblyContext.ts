@@ -4,9 +4,10 @@ export type AssemblyPropertyVariable = {
   id: string;
   variable_key: string;
   label: string;
-  value_type: 'number' | 'boolean' | 'text' | string;
+  value_type: 'number' | 'dimension' | 'percentage' | 'boolean' | 'enum' | 'text' | string;
   unit?: string | null;
   default_value?: unknown;
+  options?: unknown;
   min_value?: number | string | null;
   max_value?: number | string | null;
   required?: boolean;
@@ -58,7 +59,7 @@ const lookupContextValue = (namespace: string, key: string, context: AssemblyRes
 
 const coercePropertyValue = (variable: AssemblyPropertyVariable, raw: AssemblyPropertyValue): AssemblyPropertyValue => {
   if (!supplied(raw)) return undefined;
-  if (variable.value_type === 'number') {
+  if (['number', 'dimension', 'percentage'].includes(variable.value_type)) {
     const value = Number(raw);
     if (!Number.isFinite(value)) throw new Error(`${variable.label} is not a valid number.`);
     if (variable.min_value !== null && variable.min_value !== undefined && value < Number(variable.min_value)) {
@@ -76,7 +77,12 @@ const coercePropertyValue = (variable: AssemblyPropertyVariable, raw: AssemblyPr
     if (['false', '0', 'no', 'off'].includes(normalized)) return false;
     throw new Error(`${variable.label} must be true or false.`);
   }
-  return String(raw);
+  const value = String(raw);
+  if (variable.value_type === 'enum') {
+    const options = Array.isArray(variable.options) ? variable.options.map(String) : [];
+    if (!options.includes(value)) throw new Error(`${variable.label} has an invalid selection.`);
+  }
+  return value;
 };
 
 const addNumericNamespace = (formulaValues: Record<string, number>, prefix: string, values?: Record<string, AssemblyPropertyValue>) => {
@@ -183,7 +189,7 @@ export function resolveAssemblyPropertyValues({
       resolving.delete(variable.variable_key);
       resolved.add(variable.variable_key);
       return undefined;
-    } else if (variable.value_type === 'number') {
+    } else if (['number', 'dimension', 'percentage'].includes(variable.value_type)) {
       raw = 0;
       source = 'implicit_zero';
     } else {
@@ -196,7 +202,7 @@ export function resolveAssemblyPropertyValues({
     if (value !== undefined && value !== null) {
       storedValues[variable.variable_key] = value as number | string | boolean;
       sources[variable.variable_key] = source;
-      if (variable.value_type === 'number') {
+      if (['number', 'dimension', 'percentage'].includes(variable.value_type)) {
         const numeric = Number(value);
         formulaValues[variable.variable_key] = numeric;
         formulaValues[`Properties.${variable.variable_key}`] = numeric;
