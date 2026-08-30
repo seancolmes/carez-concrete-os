@@ -28,7 +28,7 @@ export default async function TakeoffPage(){
     supabase.from('takeoff_sets').select('id,estimate_id,name,revision_label,status,source_document_id,source_filename,page_count,created_at').eq('company_id',companyId).eq('status','active').order('created_at',{ascending:false}),
     supabase.from('takeoff_measurements').select('id,takeoff_set_id,assembly_version_id,name,raw_quantity,raw_unit,location,status,created_at').eq('company_id',companyId).eq('status','active').order('created_at',{ascending:false}),
     supabase.from('takeoff_measurement_outputs').select('id,measurement_id,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,direct_cost,pricing_status,cost_source').eq('company_id',companyId),
-    supabase.from('concrete_assemblies').select('id,code,name,category,primary_measurement,description').eq('company_id',companyId).eq('active',true).order('category').order('name'),
+    supabase.from('concrete_assemblies').select('id,code,name,category,primary_measurement,description').eq('company_id',companyId).eq('active',true).eq('direct_takeoff_enabled',true).order('category').order('name'),
     supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,default_risk_class_code,source_label,source_reference').eq('company_id',companyId).eq('status','published').order('version_no',{ascending:false}),
     supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,options,min_value,max_value,required,help_text,sort_order').eq('company_id',companyId).order('sort_order'),
     supabase.from('estimate_takeoff_summary').select('*').eq('company_id',companyId),

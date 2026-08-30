@@ -178,6 +178,18 @@ test('40 LF formed footing preserves V2 quantities while earth formed disables o
   assert.equal(evaluateRule(methodRule, { properties: { formwork_method: 'earth_formed' } }), false);
 });
 
+test('nested formwork child activation keeps inactive descendants structurally auditable', () => {
+  const childRule = { op: 'eq' as const, left: { var: 'properties.formwork_method' }, right: { const: 'formed_footing' } };
+  const active = evaluateRule(childRule, { properties: { formwork_method: 'formed_footing' } });
+  const inactive = evaluateRule(childRule, { properties: { formwork_method: 'earth_formed' } });
+  const unresolved = evaluateRule(childRule, { properties: {} });
+  assert.equal(active, true);
+  assert.equal(inactive, false);
+  assert.equal(unresolved, false);
+  assert.deepEqual(outputSnapshotState({ estimate_visible: true }, active), { is_active: true, estimate_visible: true });
+  assert.deepEqual(outputSnapshotState({ estimate_visible: true }, inactive), { is_active: false, estimate_visible: true });
+});
+
 test('physical linear footprints preserve source geometry and calibrated width', () => {
   const source = [{ x: .1, y: .5 }, { x: .9, y: .5 }];
   const original = JSON.stringify(source);
@@ -249,6 +261,7 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   const nestedAssemblies = readMigration('20260830063312_nested_assembly_runtime_lineage.sql');
   const formworkActivation = readMigration('20260830090000_footing_formwork_method_activation.sql');
   const activationRootValidation = readMigration('20260830090100_activation_rule_root_validation.sql');
+  const reusableMethodModule = readMigration('20260830090200_reusable_formwork_method_module.sql');
 
   assert.match(commit, /source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
   assert.match(award, /i\.source_takeoff_output_id,i\.source_takeoff_measurement_id/);
@@ -274,4 +287,8 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   assert.match(formworkActivation, /carez_sync_takeoff_measurement_outputs/);
   assert.match(formworkActivation, /delete from public\.estimate_items/);
   assert.match(activationRootValidation, /carez_activation_rule_value_is_valid/);
+  assert.match(reusableMethodModule, /direct_takeoff_enabled boolean not null default true/);
+  assert.match(reusableMethodModule, /concrete_assembly_children[\s\S]*activation_rule jsonb/);
+  assert.match(reusableMethodModule, /Every child assembly activation rule/);
+  assert.match(reusableMethodModule, /variable_bindings,activation_rule,sort_order/);
 });

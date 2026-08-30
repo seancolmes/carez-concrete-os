@@ -163,6 +163,8 @@ export async function prepareAssemblyOutputs({
     parentProperties,
     path,
     inheritedMissing,
+    nodeActive,
+    nodeActivation,
     depth,
     isRoot,
   }: {
@@ -172,6 +174,8 @@ export async function prepareAssemblyOutputs({
     parentProperties: Record<string, AssemblyPropertyValue>;
     path: string[];
     inheritedMissing: MissingAssemblyInput[];
+    nodeActive: boolean;
+    nodeActivation: Record<string, unknown> | null;
     depth: number;
     isRoot: boolean;
   }) => {
@@ -220,26 +224,29 @@ export async function prepareAssemblyOutputs({
     const requested = String(requestedRiskClassCode || '').trim() || null;
     const nodeRiskClassCode = requested || String(loaded.version.default_risk_class_code || '').trim() || null;
     if (isRoot) rootRiskClassCode = nodeRiskClassCode;
-    const laborRate = await getLaborRate(nodeRiskClassCode);
+    const laborRate = nodeActive ? await getLaborRate(nodeRiskClassCode) : null;
 
     for (const component of loaded.components) {
       const activationRule = component.activation_rule as RuleExpression | null;
-      const activationMissing = uniqueMissingInputs(ruleVariables(activationRule)
+      const activationMissing = nodeActive ? uniqueMissingInputs(ruleVariables(activationRule)
         .filter(key => key.startsWith('properties.'))
         .map(key => key.slice('properties.'.length))
         .filter(key => !(key in resolution.storedValues))
-        .map(key => missingByKey.get(key) || { key, label: key, unit: null }));
+        .map(key => missingByKey.get(key) || { key, label: key, unit: null })) : [];
+      const ancestorMissing = nodeActivation?.status === 'missing_input' && Array.isArray(nodeActivation.missing_inputs)
+        ? nodeActivation.missing_inputs as MissingAssemblyInput[]
+        : [];
       const activationContext = { properties: storedValues, takeoff: takeoffContext, project: externalContext.project || {}, parent: parentProperties, planFacts: externalContext.planFacts || {} };
-      const isActive = activationMissing.length === 0 && evaluateRule(activationRule, activationContext);
-      const quantityMissing = uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.quantity_formula)]);
-      const laborMissing = component.estimate_item_type === 'labor' && component.labor_rate_formula
+      const isActive = nodeActive && activationMissing.length === 0 && evaluateRule(activationRule, activationContext);
+      const quantityMissing = nodeActive ? uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.quantity_formula)]) : [];
+      const laborMissing = nodeActive && component.estimate_item_type === 'labor' && component.labor_rate_formula
         ? uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.labor_rate_formula)])
-        : inheritedMissing;
-      const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing, ...activationMissing]);
+        : nodeActive ? inheritedMissing : [];
+      const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing, ...activationMissing, ...ancestorMissing]);
       const productionQuantity = !isActive || quantityMissing.length
         ? 0
         : Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, formulaValues), 4));
-      const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
+      const baseline = isActive && component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
         ? Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.labor_rate_formula, formulaValues), 6))
         : null;
       const estimatedHours = isActive && component.estimate_item_type === 'labor' && !componentMissing.length
@@ -248,7 +255,7 @@ export async function prepareAssemblyOutputs({
 
       let unitCost = 0;
       let directCost = 0;
-      let pricingStatus = activationMissing.length ? 'missing_input' : !isActive || componentMissing.length ? 'not_priced' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
+      let pricingStatus = activationMissing.length || ancestorMissing.length ? 'missing_input' : !isActive || componentMissing.length ? 'not_priced' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
       let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
       if (isActive && !componentMissing.length && component.estimate_item_type === 'labor') {
         if (laborRate) {
@@ -301,9 +308,10 @@ export async function prepareAssemblyOutputs({
           activation: {
             rule: activationRule,
             result: isActive,
-            status: activationMissing.length ? 'missing_input' : isActive ? 'active' : 'inactive',
-            missing_inputs: activationMissing,
+            status: !nodeActive ? String(nodeActivation?.status || 'inactive_ancestor') : activationMissing.length ? 'missing_input' : isActive ? 'active' : 'inactive',
+            missing_inputs: uniqueMissingInputs([...activationMissing, ...ancestorMissing]),
             context: { properties: storedValues },
+            ancestor: nodeActivation,
           },
           property_sources: resolution.sources,
           assembly: {
@@ -319,13 +327,29 @@ export async function prepareAssemblyOutputs({
     }
 
     for (const child of loaded.children) {
-      const quantityMissing = uniqueMissingInputs([...inheritedMissing, ...missingForFormula(child.quantity_formula)]);
-      const childQuantity = quantityMissing.length
+      const childRule = child.activation_rule as RuleExpression | null;
+      const childActivationMissing = nodeActive ? uniqueMissingInputs(ruleVariables(childRule)
+        .filter(key => key.startsWith('properties.'))
+        .map(key => key.slice('properties.'.length))
+        .filter(key => !(key in resolution.storedValues))
+        .map(key => missingByKey.get(key) || { key, label: key, unit: null })) : [];
+      const childContext = { properties: storedValues, takeoff: takeoffContext, project: externalContext.project || {}, parent: parentProperties, planFacts: externalContext.planFacts || {} };
+      const childActive = nodeActive && childActivationMissing.length === 0 && evaluateRule(childRule, childContext);
+      const childActivation = {
+        child_key: child.child_key,
+        rule: childRule,
+        result: childActive,
+        status: !nodeActive ? 'inactive_ancestor' : childActivationMissing.length ? 'missing_input' : childActive ? 'active' : 'inactive',
+        missing_inputs: childActivationMissing,
+        context: { properties: storedValues },
+      };
+      const quantityMissing = childActive ? uniqueMissingInputs([...inheritedMissing, ...missingForFormula(child.quantity_formula)]) : [];
+      const childQuantity = !childActive || quantityMissing.length
         ? 0
         : Math.max(0, roundTakeoff(evaluateTakeoffFormula(child.quantity_formula, formulaValues), 6));
       const childInputs: AssemblyInputValues = {};
       const bindingMissing: MissingAssemblyInput[] = [];
-      for (const [key, formula] of Object.entries((child.variable_bindings as Record<string, any>) || {})) {
+      for (const [key, formula] of childActive ? Object.entries((child.variable_bindings as Record<string, any>) || {}) : []) {
         const missing = missingForFormula(formula);
         if (missing.length) {
           bindingMissing.push(...missing.map(item => ({ ...item, key: `${child.child_key}.${key}:${item.key}` })));
@@ -339,7 +363,9 @@ export async function prepareAssemblyOutputs({
         nodeInputs: childInputs,
         parentProperties: resolution.storedValues,
         path: [...path, child.child_key],
-        inheritedMissing: uniqueMissingInputs([...quantityMissing, ...bindingMissing]),
+        inheritedMissing: childActive ? uniqueMissingInputs([...quantityMissing, ...bindingMissing]) : [],
+        nodeActive: childActive,
+        nodeActivation: childActivation,
         depth: depth + 1,
         isRoot: false,
       });
@@ -353,6 +379,8 @@ export async function prepareAssemblyOutputs({
     parentProperties: {},
     path: [],
     inheritedMissing: [],
+    nodeActive: true,
+    nodeActivation: null,
     depth: 0,
     isRoot: true,
   });
