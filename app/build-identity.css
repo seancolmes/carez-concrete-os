@@ -1,0 +1,20 @@
+.carez-build-identity{
+  position:fixed;
+  right:10px;
+  bottom:8px;
+  z-index:10000;
+  pointer-events:none;
+  padding:4px 6px;
+  border:1px solid rgba(111,129,147,.45);
+  border-radius:3px;
+  background:rgba(27,33,40,.88);
+  color:#d7dee6;
+  font:700 8px/1.2 var(--font-geist-mono),ui-monospace,SFMono-Regular,Consolas,monospace;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  box-shadow:none;
+}
+
+@media print{
+  .carez-build-identity{display:none!important}
+}

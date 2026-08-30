@@ -17,6 +17,12 @@ import './navigation-v3.css';
 import './owner-home-v3.css';
 import './employee-v3.css';
 import './globals.css';
+import './carez-figma.css';
+import './estimating-workstation.css';
+import './commercial-workstation.css';
+import './review-workstation.css';
+import './crm-workstation.css';
+import './build-identity.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
@@ -24,5 +30,18 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}><body className={GeistSans.className}>{children}</body></html>;
+  const vercelEnvironment = process.env.VERCEL_ENV;
+  const branch = process.env.VERCEL_GIT_COMMIT_REF;
+  const shortSha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
+  const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
+
+  return <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <body className={GeistSans.className}>
+      {children}
+      {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
+        {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
+      </div>}
+    </body>
+  </html>;
 }
