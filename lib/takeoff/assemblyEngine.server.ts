@@ -138,6 +138,7 @@ export async function prepareAssemblyOutputs({
     return pending;
   };
 
+  const rootLoaded = await loadVersion(assemblyVersionId);
   const laborRateCache = new Map<string, Promise<any>>();
   const getLaborRate = (riskCode: string | null) => {
     const key = riskCode || '';
@@ -149,7 +150,6 @@ export async function prepareAssemblyOutputs({
   };
 
   const prepared: any[] = [];
-  let rootLoaded: LoadedVersion | null = null;
   let rootValues: Record<string, number | string | boolean> = {};
   let rootMissing: MissingAssemblyInput[] = [];
   let rootRiskClassCode: string | null = null;
@@ -175,7 +175,6 @@ export async function prepareAssemblyOutputs({
   }) => {
     if (depth > 16) throw new Error('Assembly child nesting exceeds the supported depth.');
     const loaded = await loadVersion(versionId);
-    if (isRoot) rootLoaded = loaded;
 
     const takeoffContext = buildTakeoffPropertyContext(nodeQuantity, loaded.assembly.primary_measurement, nodeInputs);
     const resolution = resolveAssemblyPropertyValues({
@@ -339,7 +338,6 @@ export async function prepareAssemblyOutputs({
     isRoot: true,
   });
 
-  if (!rootLoaded) throw new Error('Published assembly version not found.');
   if (!prepared.length) throw new Error('This assembly has no output components.');
   return {
     version: rootLoaded.version,
