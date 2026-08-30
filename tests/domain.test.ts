@@ -10,6 +10,7 @@ import {
   type TakeoffPath,
 } from '../lib/takeoff/geometry.ts';
 import { evaluateTakeoffFormula, takeoffFormulaVariables } from '../lib/takeoff/formula.ts';
+import { buildTakeoffPropertyContext, resolveAssemblyPropertyValues } from '../lib/takeoff/assemblyContext.ts';
 
 const calibration = { known_distance_ft: 10, pdf_distance: 100 };
 
@@ -84,6 +85,47 @@ test('assembly formulas remain deterministic, expose dependencies and reject uns
   assert.throws(() => evaluateTakeoffFormula({ op: 'div', args: [{ const: 1 }, { const: 0 }] }, {}), /divide by zero/);
 });
 
+test('custom assembly properties resolve deterministic namespace bindings and preserve explicit authority rules', () => {
+  const variables = [
+    { id: 'thickness', variable_key: 'thickness_in', label: 'Thickness', value_type: 'number', unit: 'IN', default_value: 6, required: true, allow_override: true },
+    { id: 'psi', variable_key: 'concrete_psi', label: 'Concrete PSI', value_type: 'number', unit: 'PSI', required: true, allow_override: false },
+    { id: 'waste', variable_key: 'waste_pct', label: 'Waste', value_type: 'number', unit: '%', default_value: 3, required: false, allow_override: true },
+  ];
+  const bindings = [
+    { variable_id: 'psi', source_namespace: 'plan_fact', source_key: 'concrete.compressive_strength_psi', precedence: 200 },
+  ];
+  const takeoff = buildTakeoffPropertyContext(24, 'LF', { perimeter_lf: 50 });
+  const resolved = resolveAssemblyPropertyValues({
+    variables,
+    bindings,
+    explicitInputs: { concrete_psi: 3000 },
+    context: { takeoff, planFact: { 'concrete.compressive_strength_psi': 4000 } },
+  });
+
+  assert.equal(resolved.storedValues.thickness_in, 6);
+  assert.equal(resolved.storedValues.concrete_psi, 4000);
+  assert.equal(resolved.sources.concrete_psi, 'PlanFact.concrete.compressive_strength_psi');
+  assert.equal(resolved.formulaValues['Takeoff.Length'], 24);
+  assert.equal(resolved.formulaValues['Takeoff.Perimeter'], 50);
+  assert.equal(resolved.formulaValues['Properties.concrete_psi'], 4000);
+  assert.equal(evaluateTakeoffFormula({ op: 'mul', args: [{ var: 'Takeoff.Length' }, { var: 'Properties.thickness_in' }] }, resolved.formulaValues), 144);
+});
+
+test('custom assembly property-to-property cycles are rejected', () => {
+  assert.throws(() => resolveAssemblyPropertyValues({
+    variables: [
+      { id: 'a', variable_key: 'a', label: 'A', value_type: 'number', required: true },
+      { id: 'b', variable_key: 'b', label: 'B', value_type: 'number', required: true },
+    ],
+    bindings: [
+      { variable_id: 'a', source_namespace: 'property', source_key: 'b', precedence: 100 },
+      { variable_id: 'b', source_namespace: 'property', source_key: 'a', precedence: 100 },
+    ],
+    explicitInputs: {},
+    context: {},
+  }), /binding cycle/);
+});
+
 test('committed command history branches safely and confirms durable undo/redo', () => {
   const history = new GeometryCommandHistory(3);
   const before: DrawingGeometry = { type: 'count', points: [{ x: .1, y: .1 }] };
@@ -113,6 +155,8 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   const foundation = readMigration('20260829_takeoff_assembly_foundation.sql');
   const geometryUpdate = readMigration('20260829_takeoff_pro_geometry_update_hardening.sql');
   const inputHolds = readMigration('20260829200913_takeoff_missing_input_holds.sql');
+  const customAssemblies = readMigration('20260830063109_custom_assembly_authoring_foundation.sql');
+  const nestedAssemblies = readMigration('20260830063312_nested_assembly_runtime_lineage.sql');
 
   assert.match(commit, /source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
   assert.match(award, /i\.source_takeoff_output_id,i\.source_takeoff_measurement_id/);
@@ -122,4 +166,13 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   assert.match(geometryUpdate, /source_takeoff_measurement_id=v_measurement\.id/);
   assert.match(inputHolds, /missing_input/);
   assert.match(inputHolds, /security_invoker = true/);
+  assert.match(customAssemblies, /create table public\.concrete_assembly_folders/);
+  assert.match(customAssemblies, /create table public\.concrete_assembly_property_bindings/);
+  assert.match(customAssemblies, /create table public\.concrete_assembly_children/);
+  assert.match(customAssemblies, /carez_create_custom_assembly/);
+  assert.match(customAssemblies, /carez_create_assembly_revision/);
+  assert.match(customAssemblies, /carez_publish_assembly_version/);
+  assert.match(nestedAssemblies, /carez_assembly_component_paths/);
+  assert.match(nestedAssemblies, /component_path_key/);
+  assert.match(nestedAssemblies, /v_path_key/);
 });
