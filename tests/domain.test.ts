@@ -190,6 +190,45 @@ test('nested formwork child activation keeps inactive descendants structurally a
   assert.deepEqual(outputSnapshotState({ estimate_visible: true }, inactive), { is_active: false, estimate_visible: true });
 });
 
+test('reusable reinforcement method composes independently with formwork and preserves V4 quantities', () => {
+  const formworkRule = { op: 'eq' as const, left: { var: 'properties.formwork_method' }, right: { const: 'formed_footing' } };
+  const reinforcementRule = { op: 'eq' as const, left: { var: 'properties.reinforcement_method' }, right: { const: 'continuous_rebar' } };
+  const combinations = [
+    { formwork_method: 'earth_formed', reinforcement_method: 'none', formwork: false, reinforcement: false },
+    { formwork_method: 'earth_formed', reinforcement_method: 'continuous_rebar', formwork: false, reinforcement: true },
+    { formwork_method: 'formed_footing', reinforcement_method: 'none', formwork: true, reinforcement: false },
+    { formwork_method: 'formed_footing', reinforcement_method: 'continuous_rebar', formwork: true, reinforcement: true },
+  ];
+  for (const state of combinations) {
+    const context = { properties: state };
+    assert.equal(evaluateRule(formworkRule, context), state.formwork);
+    assert.equal(evaluateRule(reinforcementRule, context), state.reinforcement);
+  }
+
+  const rebarFormula = { op: 'mul' as const, args: [
+    { var: 'quantity' }, { var: 'longitudinal_bars' }, { var: 'rebar_lb_per_ft' },
+    { op: 'add' as const, args: [{ const: 1 }, { op: 'div' as const, args: [{ var: 'rebar_waste_pct' }, { const: 100 }] }] },
+  ] };
+  const fixture = { quantity: 40, longitudinal_bars: 2, rebar_lb_per_ft: .668, rebar_waste_pct: 10 };
+  const v4RootRebar = evaluateTakeoffFormula(rebarFormula, fixture);
+  const v5NestedRebar = evaluateTakeoffFormula(rebarFormula, { ...fixture, quantity: fixture.quantity });
+  assert.ok(Math.abs(v4RootRebar - 58.784) < 1e-10);
+  assert.equal(v5NestedRebar, v4RootRebar);
+  assert.equal(v5NestedRebar * .008, v4RootRebar * .008);
+
+  const unresolved = resolveAssemblyPropertyValues({
+    variables: [{ id: 'reinforcement', variable_key: 'reinforcement_method', label: 'Reinforcement Method', value_type: 'enum', options: [{ value: 'none', label: 'No Reinforcement' }, { value: 'continuous_rebar', label: 'Continuous Rebar' }], required: true }],
+    bindings: [], explicitInputs: {}, context: {},
+  });
+  assert.deepEqual(unresolved.missingRequired, [{ key: 'reinforcement_method', label: 'Reinforcement Method', unit: null }]);
+  assert.equal(evaluateRule(reinforcementRule, { properties: {} }), false);
+  assert.deepEqual(outputSnapshotState({ estimate_visible: true }, false), { is_active: false, estimate_visible: true });
+  const drawingSelector = readFileSync(new URL('../app/takeoff/[setId]/page.tsx', import.meta.url), 'utf8');
+  const manualSelector = readFileSync(new URL('../app/takeoff/page.tsx', import.meta.url), 'utf8');
+  assert.match(drawingSelector, /direct_takeoff_enabled', true/);
+  assert.match(manualSelector, /direct_takeoff_enabled',true/);
+});
+
 test('physical linear footprints preserve source geometry and calibrated width', () => {
   const source = [{ x: .1, y: .5 }, { x: .9, y: .5 }];
   const original = JSON.stringify(source);
