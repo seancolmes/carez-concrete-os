@@ -187,7 +187,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
           aria-controls="carez-context-drawer"
           onClick={toggleCurrentWorkspace}
         ><PanelLeftOpen/><span>Tools</span></button>
-        <nav className="app-rail-nav">{workspaces.slice(0,5).map(({key,label,Icon,home})=><Link key={key} href={home} prefetch={false} className={(contextOpen?contextWorkspace.key:currentWorkspace.key)===key?'active':''} title={label} aria-current={currentWorkspace.key===key?'page':undefined} onClick={()=>{setContextWorkspaceKey(key);setContextOpen(true);}}><Icon aria-hidden="true"/><span>{label}</span></Link>)}</nav>
+        <nav className="app-rail-nav">{workspaces.slice(0,5).map(({key,label,Icon,home})=><Link key={key} href={home} prefetch={false} className={(contextOpen?contextWorkspace.key:currentWorkspace.key)===key?'active':''} title={label} aria-current={currentWorkspace.key===key?'page':undefined} onClick={(event)=>{event.preventDefault();setContextWorkspaceKey(key);setContextOpen(true);}}><Icon aria-hidden="true"/><span>{label}</span></Link>)}</nav>
         <div className="app-rail-bottom"><button type="button" onClick={()=>setMenuOpen(true)} title="All Carez tools"><Menu aria-hidden="true"/><span>More</span></button><Link href="/settings" className={currentWorkspace.key==='system'?'active':''} title="Settings" aria-current={currentWorkspace.key==='system'?'page':undefined}><Settings aria-hidden="true"/><span>Setup</span></Link></div>
       </aside>
 
