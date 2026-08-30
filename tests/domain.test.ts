@@ -12,7 +12,7 @@ import {
 import { evaluateTakeoffFormula, takeoffFormulaVariables } from '../lib/takeoff/formula.ts';
 import { buildTakeoffPropertyContext, resolveAssemblyPropertyValues } from '../lib/takeoff/assemblyContext.ts';
 import { evaluateRule, validateRuleExpression } from '../lib/takeoff/rules.ts';
-import { linearFootprint } from '../lib/takeoff/physicalGeometry.ts';
+import { linearFootprint, parseRenderConfig } from '../lib/takeoff/physicalGeometry.ts';
 
 const calibration = { known_distance_ft: 10, pdf_distance: 100 };
 
@@ -152,6 +152,15 @@ test('physical linear footprints preserve source geometry and calibrated width',
   assert.ok(Math.abs(wider[0].y - wider[3].y) > Math.abs(center[0].y - center[3].y));
   const corner = linearFootprint([{ x: .1, y: .1 }, { x: .5, y: .1 }, { x: .5, y: .5 }], 100, 100, .1, 24);
   assert.equal(corner.length, 6);
+});
+
+test('physical render configuration is explicit and legacy configurations fall back safely', () => {
+  assert.deepEqual(parseRenderConfig({ mode: 'linear_buffer', widthVariable: 'width_in', widthUnit: 'IN', defaultAnchor: 'center' }), {
+    mode: 'linear_buffer', widthVariable: 'width_in', widthUnit: 'IN', defaultAnchor: 'center',
+  });
+  assert.equal(parseRenderConfig(null), null);
+  assert.equal(parseRenderConfig({ mode: 'linear_buffer', widthVariable: 'width_in', widthUnit: 'CM' }), null);
+  assert.deepEqual(parseRenderConfig({ mode: 'area_polygon' }), { mode: 'area_polygon', widthVariable: undefined, widthUnit: undefined, defaultAnchor: 'center' });
 });
 
 test('custom assembly property-to-property cycles are rejected', () => {
