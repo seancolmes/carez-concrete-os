@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { updateDrawingMeasurementInputs } from '@/app/takeoff/[setId]/actions';
+import { enumOptions } from '@/lib/takeoff/assemblyContext';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
 type Props = {
@@ -95,7 +96,7 @@ export function TakeoffAssemblyInputEditor({ measurement, version, assembly, var
           value={values[variable.variable_key] ?? ''}
           disabled={locked || saving}
           onChange={event => setValues(current => ({ ...current, [variable.variable_key]: event.target.value }))}
-        ><option value="">Select…</option>{(Array.isArray(variable.options) ? variable.options : []).map((option: unknown) => <option key={String(option)} value={String(option)}>{String(option)}</option>)}</select> : <div className={styles.inputUnit}>
+        ><option value="">Select…</option>{enumOptions(variable.options).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <div className={styles.inputUnit}>
         <input
           type={['number', 'dimension', 'percentage'].includes(variable.value_type) ? 'number' : 'text'}
           step="any"

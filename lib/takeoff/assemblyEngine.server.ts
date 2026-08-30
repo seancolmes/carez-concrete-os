@@ -6,6 +6,8 @@ import {
   type AssemblyPropertyValue,
   type MissingAssemblyProperty,
 } from '@/lib/takeoff/assemblyContext';
+import { evaluateRule, ruleVariables, type RuleExpression } from '@/lib/takeoff/rules';
+import { outputSnapshotState, resolveResourceBehavior } from '@/lib/takeoff/outputMetadata';
 
 const moneyRound = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -221,26 +223,34 @@ export async function prepareAssemblyOutputs({
     const laborRate = await getLaborRate(nodeRiskClassCode);
 
     for (const component of loaded.components) {
+      const activationRule = component.activation_rule as RuleExpression | null;
+      const activationMissing = uniqueMissingInputs(ruleVariables(activationRule)
+        .filter(key => key.startsWith('properties.'))
+        .map(key => key.slice('properties.'.length))
+        .filter(key => !(key in resolution.storedValues))
+        .map(key => missingByKey.get(key) || { key, label: key, unit: null }));
+      const activationContext = { properties: storedValues, takeoff: takeoffContext, project: externalContext.project || {}, parent: parentProperties, planFacts: externalContext.planFacts || {} };
+      const isActive = activationMissing.length === 0 && evaluateRule(activationRule, activationContext);
       const quantityMissing = uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.quantity_formula)]);
       const laborMissing = component.estimate_item_type === 'labor' && component.labor_rate_formula
         ? uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.labor_rate_formula)])
         : inheritedMissing;
-      const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing]);
-      const productionQuantity = quantityMissing.length
+      const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing, ...activationMissing]);
+      const productionQuantity = !isActive || quantityMissing.length
         ? 0
         : Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, formulaValues), 4));
       const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
         ? Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.labor_rate_formula, formulaValues), 6))
         : null;
-      const estimatedHours = component.estimate_item_type === 'labor' && !componentMissing.length
+      const estimatedHours = isActive && component.estimate_item_type === 'labor' && !componentMissing.length
         ? roundTakeoff(productionQuantity * Number(baseline || 0), 4)
         : 0;
 
       let unitCost = 0;
       let directCost = 0;
-      let pricingStatus = componentMissing.length ? 'missing_input' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
+      let pricingStatus = activationMissing.length ? 'missing_input' : !isActive || componentMissing.length ? 'not_priced' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
       let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
-      if (!componentMissing.length && component.estimate_item_type === 'labor') {
+      if (isActive && !componentMissing.length && component.estimate_item_type === 'labor') {
         if (laborRate) {
           unitCost = laborRate.rate;
           directCost = moneyRound(estimatedHours * unitCost);
@@ -249,7 +259,7 @@ export async function prepareAssemblyOutputs({
         } else {
           pricingStatus = estimatedHours === 0 ? 'not_priced' : 'missing_labor_rate';
         }
-      } else if (!componentMissing.length && productionQuantity > 0) {
+      } else if (isActive && !componentMissing.length && productionQuantity > 0) {
         const price = await resolveTakeoffCurrentUnitCost(supabase, companyId, component, component.output_unit);
         if (price) {
           unitCost = Number(price.unitCost || 0);
@@ -277,6 +287,8 @@ export async function prepareAssemblyOutputs({
         cost_source: costSource || '',
         direct_cost: directCost,
         pricing_status: pricingStatus,
+        ...outputSnapshotState(component, isActive),
+        resource_behavior: resolveResourceBehavior(component),
         labor_task: component.labor_task || '',
         formula_trace: {
           quantity: quantityMissing.length ? holdTrace(component.quantity_formula, quantityMissing) : formulaTrace(component.quantity_formula, formulaValues, productionQuantity),
@@ -286,6 +298,13 @@ export async function prepareAssemblyOutputs({
               : baseline !== null ? formulaTrace(component.labor_rate_formula, formulaValues, baseline) : null
             : null,
           missing_inputs: componentMissing,
+          activation: {
+            rule: activationRule,
+            result: isActive,
+            status: activationMissing.length ? 'missing_input' : isActive ? 'active' : 'inactive',
+            missing_inputs: activationMissing,
+            context: { properties: storedValues },
+          },
           property_sources: resolution.sources,
           assembly: {
             version_id: loaded.version.id,

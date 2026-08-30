@@ -39,7 +39,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   let summaries: any[] = [];
   if (measurementIds.length) {
     const { data } = await supabase.from('takeoff_measurement_outputs')
-      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,formula_trace')
+      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
     summaries = data || [];

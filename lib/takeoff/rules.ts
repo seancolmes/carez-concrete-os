@@ -8,6 +8,19 @@ export type RuleExpression =
   | { op: 'in'; value: RuleValue; values: RuleValue[] };
 export type RuleContext = Record<string, unknown>;
 
+export const ruleVariables = (rule: RuleExpression | null | undefined): string[] => {
+  if (!rule) return [];
+  validateRuleExpression(rule);
+  const values = (value: RuleValue) => 'var' in value ? [value.var] : [];
+  switch (rule.op) {
+    case 'eq': case 'neq': case 'gt': case 'gte': case 'lt': case 'lte': return [...values(rule.left), ...values(rule.right)];
+    case 'and': case 'or': return rule.args.flatMap(ruleVariables);
+    case 'not': return ruleVariables(rule.arg);
+    case 'exists': return values(rule.value);
+    case 'in': return [...values(rule.value), ...rule.values.flatMap(values)];
+  }
+};
+
 const resolve = (value: RuleValue, context: RuleContext): RuleScalar | RuleScalar[] | null | undefined => {
   if ('const' in value) return value.const;
   let current: unknown = context;

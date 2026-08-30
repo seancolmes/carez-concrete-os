@@ -31,6 +31,21 @@ export type AssemblyResolutionContext = {
 
 export type MissingAssemblyProperty = { key: string; label: string; unit: string | null };
 
+export type AssemblyEnumOption = { value: string; label: string };
+
+export const enumOptions = (options: unknown): AssemblyEnumOption[] => Array.isArray(options)
+  ? options.map(option => {
+    if (option && typeof option === 'object' && typeof (option as { value?: unknown }).value === 'string') {
+      const value = (option as { value: string }).value;
+      const label = typeof (option as { label?: unknown }).label === 'string'
+        ? (option as { label: string }).label
+        : value;
+      return { value, label };
+    }
+    return { value: String(option), label: String(option) };
+  })
+  : [];
+
 const supplied = (value: AssemblyPropertyValue) => value !== null && value !== undefined && !(typeof value === 'string' && value.trim() === '');
 
 const namespacePrefix: Record<string, string> = {
@@ -79,8 +94,7 @@ const coercePropertyValue = (variable: AssemblyPropertyVariable, raw: AssemblyPr
   }
   const value = String(raw);
   if (variable.value_type === 'enum') {
-    const options = Array.isArray(variable.options) ? variable.options.map(String) : [];
-    if (!options.includes(value)) throw new Error(`${variable.label} has an invalid selection.`);
+    if (!enumOptions(variable.options).some(option => option.value === value)) throw new Error(`${variable.label} has an invalid selection.`);
   }
   return value;
 };

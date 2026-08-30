@@ -10,9 +10,10 @@ import {
   type TakeoffPath,
 } from '../lib/takeoff/geometry.ts';
 import { evaluateTakeoffFormula, takeoffFormulaVariables } from '../lib/takeoff/formula.ts';
-import { buildTakeoffPropertyContext, resolveAssemblyPropertyValues } from '../lib/takeoff/assemblyContext.ts';
-import { evaluateRule, validateRuleExpression } from '../lib/takeoff/rules.ts';
+import { buildTakeoffPropertyContext, enumOptions, resolveAssemblyPropertyValues } from '../lib/takeoff/assemblyContext.ts';
+import { evaluateRule, ruleVariables, validateRuleExpression } from '../lib/takeoff/rules.ts';
 import { linearFootprint, parseRenderConfig } from '../lib/takeoff/physicalGeometry.ts';
+import { outputSnapshotState, resolveResourceBehavior } from '../lib/takeoff/outputMetadata.ts';
 
 const calibration = { known_distance_ft: 10, pdf_distance: 100 };
 
@@ -129,6 +130,17 @@ test('intelligent takeoff typed properties support dimensions, percentages, bool
   assert.throws(() => resolveAssemblyPropertyValues({ variables: [{ id: 'method', variable_key: 'method', label: 'Method', value_type: 'enum', options: ['A'], required: true }], bindings: [], explicitInputs: { method: 'B' }, context: {} }), /invalid selection/);
 });
 
+test('enum properties retain stable values while rendering explicit labels', () => {
+  const options = [{ value: 'earth_formed', label: 'Earth Formed' }, { value: 'formed_footing', label: 'Formed Footing' }];
+  assert.deepEqual(enumOptions(options), options);
+  const resolved = resolveAssemblyPropertyValues({
+    variables: [{ id: 'method', variable_key: 'formwork_method', label: 'Formwork Method', value_type: 'enum', options, required: true }],
+    bindings: [], explicitInputs: { formwork_method: 'formed_footing' }, context: {},
+  });
+  assert.equal(resolved.storedValues.formwork_method, 'formed_footing');
+  assert.equal(resolveAssemblyPropertyValues({ variables: [{ id: 'method', variable_key: 'formwork_method', label: 'Formwork Method', value_type: 'enum', options, required: true }], bindings: [], explicitInputs: {}, context: {} }).missingRequired.length, 1);
+});
+
 test('typed activation rules are deterministic and reject executable expressions', () => {
   const context = { quantity: 40, element: { width_in: 24 }, methods: { formwork: { code: 'EARTH_FORMED' } } };
   assert.equal(evaluateRule({ op: 'and', args: [{ op: 'eq', left: { var: 'methods.formwork.code' }, right: { const: 'EARTH_FORMED' } }, { op: 'gte', left: { var: 'element.width_in' }, right: { const: 24 } }] }, context), true);
@@ -138,6 +150,32 @@ test('typed activation rules are deterministic and reject executable expressions
   assert.equal(evaluateRule({ op: 'lt', left: { var: 'quantity' }, right: { const: 40 } }, context), false);
   assert.equal(evaluateRule({ op: 'exists', value: { var: 'methods.placement.code' } }, context), false);
   assert.throws(() => validateRuleExpression({ op: 'eval', source: 'alert(1)' }), /Unsupported/);
+});
+
+test('formwork activation and output metadata are deterministic', () => {
+  const rule = { op: 'eq' as const, left: { var: 'properties.formwork_method' }, right: { const: 'formed_footing' } };
+  assert.deepEqual(ruleVariables(rule), ['properties.formwork_method']);
+  assert.equal(evaluateRule(rule, { properties: { formwork_method: 'earth_formed' } }), false);
+  assert.equal(evaluateRule(rule, { properties: { formwork_method: 'formed_footing' } }), true);
+  assert.deepEqual(outputSnapshotState({ estimate_visible: true }, false), { is_active: false, estimate_visible: true });
+  assert.equal(resolveResourceBehavior({ estimate_item_type: 'labor' }), 'labor');
+  assert.equal(resolveResourceBehavior({ estimate_item_type: 'material' }), 'consumed_material');
+  assert.equal(resolveResourceBehavior({ estimate_item_type: 'equipment' }), 'owned_equipment');
+  assert.equal(resolveResourceBehavior({ estimate_item_type: 'subcontractor' }), 'subcontractor');
+  assert.equal(resolveResourceBehavior({ estimate_item_type: 'other' }), 'legacy_other');
+});
+
+test('40 LF formed footing preserves V2 quantities while earth formed disables only formwork', () => {
+  const values = { quantity: 40, width_in: 24, depth_in: 10, form_sides: 2, longitudinal_bars: 2, rebar_lb_per_ft: .668, rebar_waste_pct: 10, concrete_waste_pct: 3 };
+  const form = { op: 'mul' as const, args: [{ var: 'quantity' }, { op: 'div' as const, args: [{ var: 'depth_in' }, { const: 12 }] }, { var: 'form_sides' }] };
+  const rebar = { op: 'mul' as const, args: [{ var: 'quantity' }, { var: 'longitudinal_bars' }, { var: 'rebar_lb_per_ft' }, { op: 'add' as const, args: [{ const: 1 }, { op: 'div' as const, args: [{ var: 'rebar_waste_pct' }, { const: 100 }] }] }] };
+  const concrete = { op: 'mul' as const, args: [{ op: 'div' as const, args: [{ op: 'mul' as const, args: [{ var: 'quantity' }, { op: 'div' as const, args: [{ var: 'width_in' }, { const: 12 }] }, { op: 'div' as const, args: [{ var: 'depth_in' }, { const: 12 }] }] }, { const: 27 }] }, { op: 'add' as const, args: [{ const: 1 }, { op: 'div' as const, args: [{ var: 'concrete_waste_pct' }, { const: 100 }] }] }] };
+  assert.equal(evaluateTakeoffFormula(form, values), 66.66666666666667);
+  assert.ok(Math.abs(evaluateTakeoffFormula(rebar, values) - 58.784) < 1e-10);
+  assert.ok(Math.abs(evaluateTakeoffFormula(concrete, values) - 2.5432098765432096) < 1e-10);
+  const methodRule = { op: 'eq' as const, left: { var: 'properties.formwork_method' }, right: { const: 'formed_footing' } };
+  assert.equal(evaluateRule(methodRule, { properties: { formwork_method: 'formed_footing' } }), true);
+  assert.equal(evaluateRule(methodRule, { properties: { formwork_method: 'earth_formed' } }), false);
 });
 
 test('physical linear footprints preserve source geometry and calibrated width', () => {
@@ -209,6 +247,8 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   const inputHolds = readMigration('20260829200913_takeoff_missing_input_holds.sql');
   const customAssemblies = readMigration('20260830063109_custom_assembly_authoring_foundation.sql');
   const nestedAssemblies = readMigration('20260830063312_nested_assembly_runtime_lineage.sql');
+  const formworkActivation = readMigration('20260830090000_footing_formwork_method_activation.sql');
+  const activationRootValidation = readMigration('20260830090100_activation_rule_root_validation.sql');
 
   assert.match(commit, /source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
   assert.match(award, /i\.source_takeoff_output_id,i\.source_takeoff_measurement_id/);
@@ -227,4 +267,11 @@ test('migration contract preserves takeoff-to-estimate-to-budget lineage', () =>
   assert.match(nestedAssemblies, /carez_assembly_component_paths/);
   assert.match(nestedAssemblies, /component_path_key/);
   assert.match(nestedAssemblies, /v_path_key/);
+  assert.match(formworkActivation, /is_active boolean not null default true/);
+  assert.match(formworkActivation, /resource_behavior text/);
+  assert.match(formworkActivation, /estimate_visible boolean not null default true/);
+  assert.match(formworkActivation, /carez_activation_rule_is_valid/);
+  assert.match(formworkActivation, /carez_sync_takeoff_measurement_outputs/);
+  assert.match(formworkActivation, /delete from public\.estimate_items/);
+  assert.match(activationRootValidation, /carez_activation_rule_value_is_valid/);
 });

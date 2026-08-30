@@ -39,7 +39,7 @@ const money = (value: number) => new Intl.NumberFormat('en-US', {
 const quantity = (value: unknown, digits = 2) => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: digits });
 const textKey = (output: any) => `${output.component_key || ''} ${output.label || ''}`.toLowerCase();
 const outputQuantity = (outputs: any[], match: RegExp) => {
-  const relevant = outputs.filter(output => match.test(textKey(output)));
+  const relevant = outputs.filter(output => output.is_active !== false && match.test(textKey(output)));
   if (!relevant.length) return '—';
   const held = relevant.some(output => output.pricing_status === 'missing_input');
   const calculable = relevant.filter(output => output.pricing_status !== 'missing_input');
@@ -93,7 +93,7 @@ export function TakeoffQuantityDock({
     const assembly: any = version ? assemblyMap.get(version.assembly_id) : null;
     const section: any = sectionMap.get(measurement.estimate_section_id);
     const sheet: any = sheetMap.get(measurement.sheet_id);
-    const rowOutputs = outputsByMeasurement.get(measurement.id) || [];
+    const rowOutputs = (outputsByMeasurement.get(measurement.id) || []).filter(output => output.is_active !== false);
     const warnings = [...new Set(rowOutputs.flatMap(outputWarnings))];
     return {
       measurement,
