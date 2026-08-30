@@ -1,16 +1,27 @@
 import 'server-only';
 import { evaluateTakeoffFormula, formulaTrace, roundTakeoff, takeoffFormulaVariables } from '@/lib/takeoff/formula';
+import {
+  buildTakeoffPropertyContext,
+  resolveAssemblyPropertyValues,
+  type AssemblyPropertyValue,
+  type MissingAssemblyProperty,
+} from '@/lib/takeoff/assemblyContext';
 
 const moneyRound = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-export type AssemblyInputValues = Record<string, number | string | null | undefined>;
-type MissingAssemblyInput = { key: string; label: string; unit: string | null };
+export type AssemblyInputValues = Record<string, AssemblyPropertyValue>;
+type MissingAssemblyInput = MissingAssemblyProperty;
+export type AssemblyExternalContext = {
+  project?: Record<string, AssemblyPropertyValue>;
+  planFacts?: Record<string, AssemblyPropertyValue>;
+};
 
 const uniqueMissingInputs = (inputs: MissingAssemblyInput[]) => {
   const seen = new Set<string>();
   return inputs.filter(input => {
-    if (seen.has(input.key)) return false;
-    seen.add(input.key);
+    const key = `${input.key}|${input.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 };
@@ -71,6 +82,7 @@ export async function prepareAssemblyOutputs({
   rawQuantity,
   inputs,
   riskClassCode: requestedRiskClassCode,
+  context: externalContext = {},
 }: {
   supabase: any;
   companyId: string;
@@ -78,126 +90,265 @@ export async function prepareAssemblyOutputs({
   rawQuantity: number;
   inputs: AssemblyInputValues;
   riskClassCode?: string | null;
+  context?: AssemblyExternalContext;
 }) {
   if (!Number.isFinite(rawQuantity) || rawQuantity <= 0) throw new Error('Measured quantity must be greater than zero.');
 
-  const [{ data: version }, { data: variables }, { data: components }] = await Promise.all([
-    supabase.from('concrete_assembly_versions').select('id,assembly_id,status,default_risk_class_code,source_label,source_reference,concrete_assemblies(code,name,primary_measurement)').eq('id', assemblyVersionId).eq('company_id', companyId).maybeSingle(),
-    supabase.from('concrete_assembly_variables').select('*').eq('assembly_version_id', assemblyVersionId).eq('company_id', companyId).order('sort_order'),
-    supabase.from('concrete_assembly_components').select('*').eq('assembly_version_id', assemblyVersionId).eq('company_id', companyId).order('sort_order'),
-  ]);
-  if (!version || version.status !== 'published') throw new Error('Published assembly version not found.');
-  if (!components?.length) throw new Error('This assembly has no components.');
-
-  const assembly: any = Array.isArray((version as any).concrete_assemblies) ? (version as any).concrete_assemblies[0] : (version as any).concrete_assemblies;
-  const values: Record<string, number> = { quantity: rawQuantity };
-  const missingRequired = new Map<string, MissingAssemblyInput>();
-  for (const variable of variables || []) {
-    if (variable.value_type !== 'number') continue;
-    const requested = inputs[variable.variable_key];
-    const supplied = requested !== null && requested !== undefined && String(requested).trim() !== '' ? Number(requested) : NaN;
-    const hasDefault = variable.default_value !== null && variable.default_value !== undefined && String(variable.default_value).trim() !== '';
-    const value = Number.isFinite(supplied) ? supplied : hasDefault ? Number(variable.default_value) : NaN;
-    if (!Number.isFinite(value)) {
-      if (variable.required) {
-        missingRequired.set(variable.variable_key, { key: variable.variable_key, label: variable.label, unit: variable.unit || null });
-        continue;
-      }
-      values[variable.variable_key] = 0;
-      continue;
-    }
-    if (variable.min_value !== null && value < Number(variable.min_value)) throw new Error(`${variable.label} must be at least ${variable.min_value}.`);
-    if (variable.max_value !== null && value > Number(variable.max_value)) throw new Error(`${variable.label} must be no more than ${variable.max_value}.`);
-    values[variable.variable_key] = value;
-  }
-
-  const missingForFormula = (formula: any): MissingAssemblyInput[] => {
-    if (!formula) return [];
-    return takeoffFormulaVariables(formula)
-      .map(key => missingRequired.get(key))
-      .filter((input): input is MissingAssemblyInput => Boolean(input));
+  type LoadedVersion = {
+    version: any;
+    assembly: { code: string; name: string; category: string; primary_measurement: string; description: string | null };
+    variables: any[];
+    components: any[];
+    bindings: any[];
+    children: any[];
   };
-  const holdTrace = (formula: any, missingInputs: MissingAssemblyInput[]) => ({
-    formula,
-    inputs: values,
-    result: null,
-    status: 'missing_input',
-    missing_inputs: missingInputs,
-  });
 
-  const riskClassCode = String(requestedRiskClassCode || version.default_risk_class_code || '').trim() || null;
-  const laborRate = await resolveTakeoffLaborRate(supabase, companyId, riskClassCode);
+  const versionCache = new Map<string, Promise<LoadedVersion>>();
+  const loadVersion = (versionId: string) => {
+    const cached = versionCache.get(versionId);
+    if (cached) return cached;
+    const pending = (async () => {
+      const [versionResult, variablesResult, componentsResult, bindingsResult, childrenResult] = await Promise.all([
+        supabase.from('concrete_assembly_versions')
+          .select('id,assembly_id,status,default_risk_class_code,source_label,source_reference,assembly_code_snapshot,assembly_name_snapshot,category_snapshot,primary_measurement_snapshot,description_snapshot')
+          .eq('id', versionId).eq('company_id', companyId).maybeSingle(),
+        supabase.from('concrete_assembly_variables').select('*').eq('assembly_version_id', versionId).eq('company_id', companyId).order('sort_order'),
+        supabase.from('concrete_assembly_components').select('*').eq('assembly_version_id', versionId).eq('company_id', companyId).order('sort_order'),
+        supabase.from('concrete_assembly_property_bindings').select('*').eq('assembly_version_id', versionId).eq('company_id', companyId).order('precedence', { ascending: false }).order('sort_order'),
+        supabase.from('concrete_assembly_children').select('*').eq('assembly_version_id', versionId).eq('company_id', companyId).order('sort_order'),
+      ]);
+      const version = versionResult.data;
+      if (!version || version.status !== 'published') throw new Error('Published assembly version not found.');
+      return {
+        version,
+        assembly: {
+          code: String(version.assembly_code_snapshot || ''),
+          name: String(version.assembly_name_snapshot || ''),
+          category: String(version.category_snapshot || ''),
+          primary_measurement: String(version.primary_measurement_snapshot || ''),
+          description: version.description_snapshot || null,
+        },
+        variables: variablesResult.data || [],
+        components: componentsResult.data || [],
+        bindings: bindingsResult.data || [],
+        children: childrenResult.data || [],
+      };
+    })();
+    versionCache.set(versionId, pending);
+    return pending;
+  };
+
+  const laborRateCache = new Map<string, Promise<any>>();
+  const getLaborRate = (riskCode: string | null) => {
+    const key = riskCode || '';
+    const cached = laborRateCache.get(key);
+    if (cached) return cached;
+    const pending = resolveTakeoffLaborRate(supabase, companyId, riskCode);
+    laborRateCache.set(key, pending);
+    return pending;
+  };
+
   const prepared: any[] = [];
-  for (const component of components) {
-    const quantityMissing = missingForFormula(component.quantity_formula);
-    const laborMissing = component.estimate_item_type === 'labor' && component.labor_rate_formula
-      ? missingForFormula(component.labor_rate_formula)
-      : [];
-    const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing]);
+  let rootLoaded: LoadedVersion | null = null;
+  let rootValues: Record<string, number | string | boolean> = {};
+  let rootMissing: MissingAssemblyInput[] = [];
+  let rootRiskClassCode: string | null = null;
 
-    const productionQuantity = quantityMissing.length
-      ? 0
-      : Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, values), 4));
-    const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
-      ? Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.labor_rate_formula, values), 6))
-      : null;
-    const estimatedHours = component.estimate_item_type === 'labor' && !componentMissing.length
-      ? roundTakeoff(productionQuantity * Number(baseline || 0), 4)
-      : 0;
+  const prepareNode = async ({
+    versionId,
+    nodeQuantity,
+    nodeInputs,
+    parentProperties,
+    path,
+    inheritedMissing,
+    depth,
+    isRoot,
+  }: {
+    versionId: string;
+    nodeQuantity: number;
+    nodeInputs: AssemblyInputValues;
+    parentProperties: Record<string, AssemblyPropertyValue>;
+    path: string[];
+    inheritedMissing: MissingAssemblyInput[];
+    depth: number;
+    isRoot: boolean;
+  }) => {
+    if (depth > 16) throw new Error('Assembly child nesting exceeds the supported depth.');
+    const loaded = await loadVersion(versionId);
+    if (isRoot) rootLoaded = loaded;
 
-    let unitCost = 0;
-    let directCost = 0;
-    let pricingStatus = componentMissing.length ? 'missing_input' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
-    let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
-    if (!componentMissing.length && component.estimate_item_type === 'labor') {
-      if (laborRate) {
-        unitCost = laborRate.rate;
-        directCost = moneyRound(estimatedHours * unitCost);
-        pricingStatus = 'priced';
-        costSource = laborRate.source;
-      } else {
-        pricingStatus = estimatedHours === 0 ? 'not_priced' : 'missing_labor_rate';
-      }
-    } else if (!componentMissing.length && productionQuantity > 0) {
-      const price = await resolveTakeoffCurrentUnitCost(supabase, companyId, component, component.output_unit);
-      if (price) {
-        unitCost = Number(price.unitCost || 0);
-        directCost = moneyRound(productionQuantity * unitCost);
-        pricingStatus = price.status;
-        costSource = price.source;
-      }
-    }
-
-    prepared.push({
-      assembly_component_id: component.id,
-      component_key: component.component_key,
-      label: component.label,
-      estimate_item_type: component.estimate_item_type,
-      cost_code_id: component.cost_code_id || '',
-      catalog_item_id: component.catalog_item_id || '',
-      production_task_id: component.production_task_id || '',
-      production_quantity: productionQuantity,
-      production_unit: component.output_unit,
-      estimated_man_hours: estimatedHours,
-      baseline_man_hours_per_unit: baseline ?? '',
-      baseline_source: component.baseline_source || '',
-      unit_cost: unitCost,
-      cost_source: costSource || '',
-      direct_cost: directCost,
-      pricing_status: pricingStatus,
-      labor_task: component.labor_task || '',
-      formula_trace: {
-        quantity: quantityMissing.length ? holdTrace(component.quantity_formula, quantityMissing) : formulaTrace(component.quantity_formula, values, productionQuantity),
-        labor_rate: component.labor_rate_formula
-          ? laborMissing.length || quantityMissing.length
-            ? holdTrace(component.labor_rate_formula, uniqueMissingInputs([...quantityMissing, ...laborMissing]))
-            : baseline !== null ? formulaTrace(component.labor_rate_formula, values, baseline) : null
-          : null,
-        missing_inputs: componentMissing,
-        assembly: { code: assembly?.code, name: assembly?.name, source: version.source_label, reference: version.source_reference },
+    const takeoffContext = buildTakeoffPropertyContext(nodeQuantity, loaded.assembly.primary_measurement, nodeInputs);
+    const resolution = resolveAssemblyPropertyValues({
+      variables: loaded.variables,
+      bindings: loaded.bindings,
+      explicitInputs: nodeInputs,
+      context: {
+        takeoff: takeoffContext,
+        project: externalContext.project,
+        parent: parentProperties,
+        planFact: externalContext.planFacts,
       },
     });
-  }
+    const storedValues: Record<string, number | string | boolean> = { ...resolution.storedValues, quantity: nodeQuantity };
+    const formulaValues: Record<string, number> = { ...resolution.formulaValues, quantity: nodeQuantity };
+    const missingByKey = new Map<string, MissingAssemblyInput>();
+    for (const input of resolution.missingRequired) {
+      missingByKey.set(input.key, input);
+      missingByKey.set(`Properties.${input.key}`, input);
+    }
 
-  return { version, assembly, variables: variables || [], components, values, missingRequired: [...missingRequired.values()], riskClassCode, prepared };
+    if (isRoot) {
+      rootValues = storedValues;
+      rootMissing = resolution.missingRequired;
+    }
+
+    const missingForFormula = (formula: any): MissingAssemblyInput[] => {
+      if (!formula) return [];
+      return uniqueMissingInputs(takeoffFormulaVariables(formula)
+        .filter(key => !(key in formulaValues))
+        .map(key => missingByKey.get(key) || { key, label: key, unit: null }));
+    };
+    const holdTrace = (formula: any, missingInputs: MissingAssemblyInput[]) => ({
+      formula,
+      inputs: formulaValues,
+      result: null,
+      status: 'missing_input',
+      missing_inputs: missingInputs,
+    });
+
+    const requested = String(requestedRiskClassCode || '').trim() || null;
+    const nodeRiskClassCode = requested || String(loaded.version.default_risk_class_code || '').trim() || null;
+    if (isRoot) rootRiskClassCode = nodeRiskClassCode;
+    const laborRate = await getLaborRate(nodeRiskClassCode);
+
+    for (const component of loaded.components) {
+      const quantityMissing = uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.quantity_formula)]);
+      const laborMissing = component.estimate_item_type === 'labor' && component.labor_rate_formula
+        ? uniqueMissingInputs([...inheritedMissing, ...missingForFormula(component.labor_rate_formula)])
+        : inheritedMissing;
+      const componentMissing = uniqueMissingInputs([...quantityMissing, ...laborMissing]);
+      const productionQuantity = quantityMissing.length
+        ? 0
+        : Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.quantity_formula, formulaValues), 4));
+      const baseline = component.estimate_item_type === 'labor' && component.labor_rate_formula && !quantityMissing.length && !laborMissing.length
+        ? Math.max(0, roundTakeoff(evaluateTakeoffFormula(component.labor_rate_formula, formulaValues), 6))
+        : null;
+      const estimatedHours = component.estimate_item_type === 'labor' && !componentMissing.length
+        ? roundTakeoff(productionQuantity * Number(baseline || 0), 4)
+        : 0;
+
+      let unitCost = 0;
+      let directCost = 0;
+      let pricingStatus = componentMissing.length ? 'missing_input' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
+      let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
+      if (!componentMissing.length && component.estimate_item_type === 'labor') {
+        if (laborRate) {
+          unitCost = laborRate.rate;
+          directCost = moneyRound(estimatedHours * unitCost);
+          pricingStatus = 'priced';
+          costSource = laborRate.source;
+        } else {
+          pricingStatus = estimatedHours === 0 ? 'not_priced' : 'missing_labor_rate';
+        }
+      } else if (!componentMissing.length && productionQuantity > 0) {
+        const price = await resolveTakeoffCurrentUnitCost(supabase, companyId, component, component.output_unit);
+        if (price) {
+          unitCost = Number(price.unitCost || 0);
+          directCost = moneyRound(productionQuantity * unitCost);
+          pricingStatus = price.status;
+          costSource = price.source;
+        }
+      }
+
+      const componentPath = [...path, component.component_key].join('/');
+      prepared.push({
+        assembly_component_id: component.id,
+        component_key: componentPath,
+        label: component.label,
+        estimate_item_type: component.estimate_item_type,
+        cost_code_id: component.cost_code_id || '',
+        catalog_item_id: component.catalog_item_id || '',
+        production_task_id: component.production_task_id || '',
+        production_quantity: productionQuantity,
+        production_unit: component.output_unit,
+        estimated_man_hours: estimatedHours,
+        baseline_man_hours_per_unit: baseline ?? '',
+        baseline_source: component.baseline_source || '',
+        unit_cost: unitCost,
+        cost_source: costSource || '',
+        direct_cost: directCost,
+        pricing_status: pricingStatus,
+        labor_task: component.labor_task || '',
+        formula_trace: {
+          quantity: quantityMissing.length ? holdTrace(component.quantity_formula, quantityMissing) : formulaTrace(component.quantity_formula, formulaValues, productionQuantity),
+          labor_rate: component.labor_rate_formula
+            ? laborMissing.length || quantityMissing.length
+              ? holdTrace(component.labor_rate_formula, uniqueMissingInputs([...quantityMissing, ...laborMissing]))
+              : baseline !== null ? formulaTrace(component.labor_rate_formula, formulaValues, baseline) : null
+            : null,
+          missing_inputs: componentMissing,
+          property_sources: resolution.sources,
+          assembly: {
+            version_id: loaded.version.id,
+            code: loaded.assembly.code,
+            name: loaded.assembly.name,
+            source: loaded.version.source_label,
+            reference: loaded.version.source_reference,
+            path: path.join('/'),
+          },
+        },
+      });
+    }
+
+    for (const child of loaded.children) {
+      const quantityMissing = uniqueMissingInputs([...inheritedMissing, ...missingForFormula(child.quantity_formula)]);
+      const childQuantity = quantityMissing.length
+        ? 0
+        : Math.max(0, roundTakeoff(evaluateTakeoffFormula(child.quantity_formula, formulaValues), 6));
+      const childInputs: AssemblyInputValues = {};
+      const bindingMissing: MissingAssemblyInput[] = [];
+      for (const [key, formula] of Object.entries((child.variable_bindings as Record<string, any>) || {})) {
+        const missing = missingForFormula(formula);
+        if (missing.length) {
+          bindingMissing.push(...missing.map(item => ({ ...item, key: `${child.child_key}.${key}:${item.key}` })));
+          continue;
+        }
+        childInputs[key] = roundTakeoff(evaluateTakeoffFormula(formula as any, formulaValues), 6);
+      }
+      await prepareNode({
+        versionId: child.child_assembly_version_id,
+        nodeQuantity: childQuantity,
+        nodeInputs: childInputs,
+        parentProperties: resolution.storedValues,
+        path: [...path, child.child_key],
+        inheritedMissing: uniqueMissingInputs([...quantityMissing, ...bindingMissing]),
+        depth: depth + 1,
+        isRoot: false,
+      });
+    }
+  };
+
+  await prepareNode({
+    versionId: assemblyVersionId,
+    nodeQuantity: rawQuantity,
+    nodeInputs: inputs,
+    parentProperties: {},
+    path: [],
+    inheritedMissing: [],
+    depth: 0,
+    isRoot: true,
+  });
+
+  if (!rootLoaded) throw new Error('Published assembly version not found.');
+  if (!prepared.length) throw new Error('This assembly has no output components.');
+  return {
+    version: rootLoaded.version,
+    assembly: rootLoaded.assembly,
+    variables: rootLoaded.variables,
+    components: rootLoaded.components,
+    values: rootValues,
+    missingRequired: rootMissing,
+    riskClassCode: rootRiskClassCode,
+    prepared,
+  };
 }
