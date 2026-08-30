@@ -141,6 +141,19 @@ test('enum properties retain stable values while rendering explicit labels', () 
   assert.equal(resolveAssemblyPropertyValues({ variables: [{ id: 'method', variable_key: 'formwork_method', label: 'Formwork Method', value_type: 'enum', options, required: true }], bindings: [], explicitInputs: {}, context: {} }).missingRequired.length, 1);
 });
 
+test('enum reference attributes resolve generically into deterministic formula namespaces', () => {
+  const options = [{ value: '4', label: '#4', attributes: { weight_lb_per_ft: .668, nominal_area_in2: .20 } }, { value: 'broken', label: 'Broken', attributes: { weight_lb_per_ft: 'nope', 'bad-key': 1 } }];
+  const resolved = resolveAssemblyPropertyValues({ variables: [{ id: 'bar', variable_key: 'bar_size', label: 'Bar Size', value_type: 'enum', options }], bindings: [], explicitInputs: { bar_size: '4' }, context: {} });
+  assert.equal(resolved.storedValues.bar_size, '4');
+  assert.equal(resolved.formulaValues['bar_size.weight_lb_per_ft'], .668);
+  assert.equal(resolved.formulaValues['Properties.bar_size.weight_lb_per_ft'], .668);
+  assert.match(resolved.sources['bar_size.weight_lb_per_ft'], /enum_reference/);
+  assert.equal(enumOptions(options)[1].attributes, undefined);
+  assert.throws(() => resolveAssemblyPropertyValues({ variables: [{ id: 'bar', variable_key: 'bar_size', label: 'Bar Size', value_type: 'enum', options }], bindings: [], explicitInputs: { bar_size: 'unknown' }, context: {} }), /invalid selection/);
+  const weights = { 3: .376, 4: .668, 5: 1.043, 8: 2.670, 11: 5.313, 18: 13.600 };
+  for (const [bar, weight] of Object.entries(weights)) assert.equal(evaluateTakeoffFormula({ var: 'bar_size.weight_lb_per_ft' }, resolveAssemblyPropertyValues({ variables: [{ id: 'bar', variable_key: 'bar_size', label: 'Bar Size', value_type: 'enum', options: Object.entries(weights).map(([value, valueWeight]) => ({ value, label: `#${value}`, attributes: { weight_lb_per_ft: valueWeight } })) }], bindings: [], explicitInputs: { bar_size: bar }, context: {} }).formulaValues), weight);
+});
+
 test('typed activation rules are deterministic and reject executable expressions', () => {
   const context = { quantity: 40, element: { width_in: 24 }, methods: { formwork: { code: 'EARTH_FORMED' } } };
   assert.equal(evaluateRule({ op: 'and', args: [{ op: 'eq', left: { var: 'methods.formwork.code' }, right: { const: 'EARTH_FORMED' } }, { op: 'gte', left: { var: 'element.width_in' }, right: { const: 24 } }] }, context), true);

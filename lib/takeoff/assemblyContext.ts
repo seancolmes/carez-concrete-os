@@ -31,7 +31,18 @@ export type AssemblyResolutionContext = {
 
 export type MissingAssemblyProperty = { key: string; label: string; unit: string | null };
 
-export type AssemblyEnumOption = { value: string; label: string };
+export type AssemblyEnumOption = { value: string; label: string; attributes?: Record<string, number> };
+
+const attributeKey = /^[a-z][a-z0-9_]*$/;
+const enumAttributes = (attributes: unknown): Record<string, number> => {
+  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return {};
+  const safe: Record<string, number> = {};
+  for (const [key, raw] of Object.entries(attributes)) {
+    const value = Number(raw);
+    if (attributeKey.test(key) && Number.isFinite(value)) safe[key] = value;
+  }
+  return safe;
+};
 
 export const enumOptions = (options: unknown): AssemblyEnumOption[] => Array.isArray(options)
   ? options.map(option => {
@@ -40,7 +51,8 @@ export const enumOptions = (options: unknown): AssemblyEnumOption[] => Array.isA
       const label = typeof (option as { label?: unknown }).label === 'string'
         ? (option as { label: string }).label
         : value;
-      return { value, label };
+      const attributes = enumAttributes((option as { attributes?: unknown }).attributes);
+      return Object.keys(attributes).length ? { value, label, attributes } : { value, label };
     }
     return { value: String(option), label: String(option) };
   })
@@ -220,6 +232,15 @@ export function resolveAssemblyPropertyValues({
         const numeric = Number(value);
         formulaValues[variable.variable_key] = numeric;
         formulaValues[`Properties.${variable.variable_key}`] = numeric;
+      }
+      if (variable.value_type === 'enum') {
+        const option = enumOptions(variable.options).find(candidate => candidate.value === value);
+        for (const [attribute, numeric] of Object.entries(option?.attributes || {})) {
+          const key = `${variable.variable_key}.${attribute}`;
+          formulaValues[key] = numeric;
+          formulaValues[`Properties.${key}`] = numeric;
+          sources[key] = `enum_reference · ${variable.label} · ${option?.label || value}`;
+        }
       }
     }
     resolving.delete(variable.variable_key);

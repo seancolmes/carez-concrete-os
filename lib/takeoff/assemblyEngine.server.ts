@@ -201,6 +201,12 @@ export async function prepareAssemblyOutputs({
       missingByKey.set(input.key, input);
       missingByKey.set(`Properties.${input.key}`, input);
     }
+    const missingInput = (key: string): MissingAssemblyInput => {
+      const direct = missingByKey.get(key);
+      if (direct) return direct;
+      const variable = loaded.variables.find((item: { variable_key: string; label: string; unit?: string | null }) => item.variable_key === key.replace(/^Properties\./, '').split('.')[0]);
+      return variable ? { key, label: variable.label, unit: variable.unit || null } : { key, label: key, unit: null };
+    };
 
     if (isRoot) {
       rootValues = storedValues;
@@ -211,7 +217,7 @@ export async function prepareAssemblyOutputs({
       if (!formula) return [];
       return uniqueMissingInputs(takeoffFormulaVariables(formula)
         .filter(key => !(key in formulaValues))
-        .map(key => missingByKey.get(key) || { key, label: key, unit: null }));
+        .map(missingInput));
     };
     const holdTrace = (formula: any, missingInputs: MissingAssemblyInput[]) => ({
       formula,
