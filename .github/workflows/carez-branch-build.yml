@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - staging
       - carez-os-full-build
       - 'carez-*'
   workflow_dispatch:
@@ -39,4 +40,4 @@ jobs:
       - name: Build
         run: pnpm build
 
-# This workflow intentionally validates main and active carez-* development branches.
+# This workflow intentionally validates main, staging, and active carez-* development branches.
