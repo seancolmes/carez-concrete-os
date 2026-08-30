@@ -30,7 +30,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('takeoff_measurements').select('id,sheet_id,estimate_section_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,geometry_anchor,geometry_offset_in,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
     supabase.from('concrete_assemblies').select('id,code,name,category,primary_measurement,description,display_style').eq('company_id', companyId).eq('active', true).eq('direct_takeoff_enabled', true).order('category').order('name'),
     supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,default_risk_class_code,source_label,source_reference,render_config').eq('company_id', companyId).eq('status', 'published').order('version_no', { ascending: false }),
-    supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,options,min_value,max_value,required,help_text,sort_order').eq('company_id', companyId).order('sort_order'),
+    supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,options,min_value,max_value,required,help_text,sort_order,activation_rule').eq('company_id', companyId).order('sort_order'),
     supabase.from('estimate_sections').select('id,name,scope_type,sort_order').eq('estimate_id', set.estimate_id).eq('company_id', companyId).order('sort_order'),
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
   ]);

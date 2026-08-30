@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { updateDrawingMeasurementInputs } from '@/app/takeoff/[setId]/actions';
-import { enumOptions } from '@/lib/takeoff/assemblyContext';
+import { enumOptions, isAssemblyVariableActive } from '@/lib/takeoff/assemblyContext';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
 type Props = {
@@ -85,7 +85,7 @@ export function TakeoffAssemblyInputEditor({ measurement, version, assembly, var
     <div className={styles.groupTitle}>Assembly Inputs</div>
     <div className={styles.groupHelp}>Change estimating assumptions here. Carez recalculates dependent quantities and linked estimate lines without redrawing the takeoff.</div>
     {missingLabels.length > 0 && <div className={styles.statusWarn}>Input required: {missingLabels.join(', ')}. Geometry and unaffected assembly outputs are already saved.</div>}
-    <div className={styles.variableGrid}>{rows.map(variable => <label className={styles.field} key={variable.id}>
+    <div className={styles.variableGrid}>{rows.filter(variable => isAssemblyVariableActive(variable, values)).map(variable => <label className={styles.field} key={variable.id}>
       <span>{variable.label}{variable.required ? ' *' : ''}</span>
       {variable.value_type === 'boolean' ? <span className={styles.checkRow}><input
           type="checkbox"
