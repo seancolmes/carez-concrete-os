@@ -12,7 +12,7 @@
     "build": "node scripts/copy-pdf-worker.mjs && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/domain.test.ts tests/placement-v7.test.ts tests/scale-regions.test.ts",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/domain.test.ts tests/placement-v7.test.ts tests/scale-regions.test.ts tests/estimate-worksheet.test.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
