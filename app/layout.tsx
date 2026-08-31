@@ -29,6 +29,7 @@ import './b2-estimating-surfaces.css';
 import './b2-theme.css';
 import './b2-workstation-pass2.css';
 import './b2-design-system.css';
+import './b2-estimator-focus.css';
 import './jobs-b2.css';
 import './b2-context-drawer.css';
 

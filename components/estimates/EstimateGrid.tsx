@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {CheckSquare,ExternalLink,Search,Square} from 'lucide-react';
+import {CheckSquare,ExternalLink,Search,Square,X} from 'lucide-react';
 
 export type EstimateGridStage='working'|'ready'|'issued'|'awarded'|'history';
 
@@ -44,6 +44,7 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
   const [stage,setStage]=useState<'all'|EstimateGridStage>('all');
   const [activeIndex,setActiveIndex]=useState(0);
   const [selectedIds,setSelectedIds]=useState<Set<string>>(()=>new Set());
+  const [inspectedId,setInspectedId]=useState<string|null>(null);
 
   const visibleRows=useMemo(()=>{
     const normalized=query.trim().toLowerCase();
@@ -108,8 +109,9 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
   }
 
   const allVisibleSelected=visibleRows.length>0&&visibleRows.every(row=>selectedIds.has(row.id));
+  const inspected=rows.find(row=>row.id===inspectedId)||null;
 
-  return <div ref={shellRef} className="industrial-grid-shell estimate-grid-shell" tabIndex={0} onKeyDown={handleKeyDown} aria-label="Estimate workbench grid">
+  return <div className="estimate-workbench-layout"><div ref={shellRef} className="industrial-grid-shell estimate-grid-shell" tabIndex={0} onKeyDown={handleKeyDown} aria-label="Estimate workbench grid">
     <div className="industrial-grid-toolbar">
       <label className="industrial-grid-search"><Search/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search estimate, job, or project" aria-label="Search estimates"/></label>
       <div className="industrial-filter-group" aria-label="Estimate status filter">
@@ -141,7 +143,7 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
         </tr></thead>
         <tbody>{visibleRows.length===0?<tr><td colSpan={12} style={{height:72,textAlign:'center',color:'var(--muted)'}}>No estimates match the current filter.</td></tr>:visibleRows.map((row,index)=>{
           const selected=selectedIds.has(row.id),active=index===activeIndex,marginLow=row.projectedMargin<row.targetMargin;
-          return <tr key={row.id} data-grid-index={index} className={`${active?'is-active':''} ${selected?'is-selected':''}`} aria-selected={selected} onClick={()=>setActiveIndex(index)} onDoubleClick={()=>router.push(row.estimateHref)}>
+          return <tr key={row.id} data-grid-index={index} className={`${active?'is-active':''} ${selected?'is-selected':''}`} aria-selected={selected} onClick={()=>{setActiveIndex(index);setInspectedId(row.id)}} onDoubleClick={()=>router.push(row.estimateHref)}>
             <td className="freeze-select center"><button type="button" className={`industrial-row-check ${selected?'selected':''}`} onClick={event=>{event.stopPropagation();toggleRow(row.id);}} aria-label={selected?`Clear ${row.displayNumber} selection`:`Select ${row.displayNumber}`}>{selected?<CheckSquare size={14}/>:<Square size={14}/>}</button></td>
             <td className="freeze-primary"><Link className="industrial-grid-link" href={row.estimateHref}>{row.displayNumber}</Link></td>
             <td className="freeze-secondary"><span className="industrial-grid-primary">{row.name}</span><span className="industrial-grid-secondary">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</span></td>
@@ -160,5 +162,5 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
     </div>
 
     <div className="industrial-grid-statusbar"><span>{visibleRows.length} visible of {rows.length}</span><span>{selectedIds.size} selected</span><span>Frozen estimate and project columns remain visible while scrolling.</span></div>
-  </div>;
+  </div><aside className="estimate-inspector" aria-label="Selected estimate inspector">{inspected?<><button className="estimate-inspector-close" type="button" onClick={()=>setInspectedId(null)} aria-label="Close estimate inspector"><X size={14}/></button><div className="section-kicker">ESTIMATE REVISION</div><strong>{inspected.displayNumber}</strong><p>{inspected.name}</p><div className="estimate-inspector-grid"><span>Stage<b>{inspected.stageLabel}</b></span><span>Takeoff<b>{inspected.takeoffObjects} obj</b></span><span>Direct Cost<b>{money(inspected.directCost)}</b></span><span>Sell<b>{money(inspected.quote)}</b></span><span>Margin<b>{inspected.projectedMargin.toFixed(1)}%</b></span><span>Target<b>{inspected.targetMargin.toFixed(1)}%</b></span><span>Holds<b>{inspected.priceHolds}</b></span><span>Updated<b>{date(inspected.updatedAt)}</b></span></div><Link className="button" href={inspected.estimateHref}>Open Estimate <ExternalLink size={13}/></Link></>:<div className="estimate-inspector-empty">Select an estimate to inspect its authoritative pricing summary and available actions.</div>}</aside></div>;
 }
