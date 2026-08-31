@@ -1,0 +1,40 @@
+name: Fix Scale Region Migration
+
+on:
+  push:
+    branches:
+      - carez-takeoff-scale-regions
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.head_commit.message == 'chore(takeoff): fix scale migration backfill'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: carez-takeoff-scale-regions
+          fetch-depth: 0
+      - name: Correct legacy scale-region backfill column alignment
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/20260831012021_takeoff_scale_regions.sql')
+          text = path.read_text()
+          old = "coalesce((s.calibration->>'calibrated_at')::timestamptz,now()),s.created_at,s.created_at,s.updated_at"
+          new = "coalesce((s.calibration->>'calibrated_at')::timestamptz,now()),s.created_at,s.updated_at"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one legacy backfill expression, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit correction
+        run: |
+          rm -f .github/workflows/fix-scale-region-migration.yml
+          git config user.name "Carez Release Automation"
+          git config user.email "117563283+seancolmes@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(takeoff): correct legacy scale backfill"
+          git push origin HEAD:carez-takeoff-scale-regions
