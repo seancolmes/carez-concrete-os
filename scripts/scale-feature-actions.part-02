@@ -1,0 +1,139 @@
+ignoreDuplicates: false });
+  if (error) throw new Error(error.message);
+  const { error: setError } = await supabase.from('takeoff_sets').update({ page_count: clean.length }).eq('id', setId).eq('company_id', companyId);
+  if (setError) throw new Error(setError.message);
+  revalidatePath(`/takeoff/${setId}`);
+  return { pageCount: clean.length };
+}
+
+export async function saveTakeoffScaleRegion(input: ScaleRegionInput) {
+  const { supabase, companyId } = await ctx();
+  return upsertScaleRegion(supabase, companyId, input);
+}
+
+export async function saveSheetCalibration(input: CalibrationInput) {
+  if (!input?.sheetId || !Array.isArray(input.points) || input.points.length !== 2) throw new Error('Click exactly two calibration points.');
+  const known = Number(input.knownDistanceFt);
+  const width = Number(input.pageWidth);
+  const height = Number(input.pageHeight);
+  const calibration = calibrationFromManual(input.points, known, width, height);
+  const { supabase, companyId } = await ctx();
+  const { data: sheet } = await supabase.from('takeoff_sheets').select('id,takeoff_set_id,page_number,sheet_number').eq('id', input.sheetId).eq('company_id', companyId).maybeSingle();
+  if (!sheet) throw new Error('Takeoff sheet not found.');
+  return upsertScaleRegion(supabase, companyId, {
+    takeoffSetId: sheet.takeoff_set_id,
+    sheetId: sheet.id,
+    name: `${sheet.sheet_number || `Page ${sheet.page_number}`} Scale`,
+    regionBounds: null,
+    scaleLabel: calibration.scale_label,
+    scaleKind: 'manual',
+    sourceType: 'manual',
+    calibration,
+    isDefault: true,
+  });
+}
+
+export async function deleteTakeoffScaleRegion(regionId: string, setId: string) {
+  if (!regionId || !setId) return;
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, setId);
+  const { error } = await supabase.rpc('carez_delete_takeoff_scale_region', { p_region_id: regionId });
+  if (error) throw new Error(error.message);
+  refreshTakeoff(setId);
+}
+
+export async function createDrawingMeasurement(input: DrawingInput) {
+  if (!input?.takeoffSetId || !input.sheetId || !input.assemblyVersionId || !String(input.name || '').trim()) throw new Error('Assembly and object name are required.');
+  const { supabase, companyId } = await ctx();
+  const set = await editableSet(supabase, companyId, input.takeoffSetId);
+  const cleanGeometry = cleanDrawingGeometry(input.geometry);
+  const context = await loadDrawingContext({
+    supabase,
+    companyId,
+    sheetId: input.sheetId,
+    assemblyVersionId: input.assemblyVersionId,
+    geometry: cleanGeometry,
+    scaleRegionId: input.scaleRegionId,
+  });
+  if (context.sheet.takeoff_set_id !== input.takeoffSetId) throw new Error('Takeoff sheet does not belong to this takeoff set.');
+  const measured = measureDrawingGeometry(cleanGeometry, Number(context.sheet.page_width || 0), Number(context.sheet.page_height || 0), context.calibration);
+  if (measured.unit !== context.primaryUnit) throw new Error(`Drawing produced ${measured.unit}; assembly requires ${context.primaryUnit}.`);
+  const values: Record<string, number | string | null | undefined> = { ...(input.variables || {}) };
+  if (context.primaryUnit === 'SF' && measured.perimeterLf > 0) values.perimeter_lf = roundMeasurement(measured.perimeterLf, 3);
+
+  const engine = await prepareAssemblyOutputs({
+    supabase,
+    companyId,
+    assemblyVersionId: input.assemblyVersionId,
+    rawQuantity: roundMeasurement(measured.quantity, 4),
+    inputs: values,
+    riskClassCode: input.riskClassCode || context.version.default_risk_class_code || null,
+  });
+
+  if (input.estimateSectionId) {
+    const { count } = await supabase.from('estimate_sections').select('id', { count: 'exact', head: true }).eq('id', input.estimateSectionId).eq('estimate_id', set.estimate_id).eq('company_id', companyId);
+    if ((count || 0) !== 1) throw new Error('Estimate scope area does not belong to this estimate.');
+  }
+
+  const reference = String(input.drawingReference || '').trim() || `${context.sheet.sheet_number || `Page ${context.sheet.page_number}`}${context.sheet.title ? ` — ${context.sheet.title}` : ''}`;
+  const geometry = storedGeometry(cleanGeometry, Number(context.sheet.page_number), measured);
+  const { data, error } = await supabase.rpc('carez_commit_drawing_measurement', {
+    p_takeoff_set_id: input.takeoffSetId,
+    p_sheet_id: input.sheetId,
+    p_estimate_section_id: input.estimateSectionId || null,
+    p_assembly_version_id: input.assemblyVersionId,
+    p_name: String(input.name).trim(),
+    p_location: String(input.location || '').trim(),
+    p_drawing_reference: reference,
+    p_measurement_type: context.primaryUnit === 'SF' ? 'area' : context.primaryUnit === 'EA' ? 'count' : 'linear',
+    p_raw_quantity: roundMeasurement(measured.quantity, 4),
+    p_raw_unit: context.primaryUnit,
+    p_variables: engine.values,
+    p_risk_class_code: engine.riskClassCode || '',
+    p_geometry: geometry,
+    p_outputs: engine.prepared,
+    p_scale_region_id: context.scaleRegion?.id || null,
+  });
+  if (error) throw new Error(error.message);
+  refreshTakeoff(input.takeoffSetId);
+  return {
+    id: data as string,
+    quantity: roundMeasurement(measured.quantity),
+    unit: context.primaryUnit,
+    perimeterLf: roundMeasurement(measured.perimeterLf),
+    cutoutQuantity: roundMeasurement(measured.cutoutQuantity || 0),
+    inputHolds: inputHoldCount(engine.prepared),
+  };
+}
+
+export async function updateDrawingMeasurementGeometry(input: GeometryUpdateInput) {
+  if (!input?.measurementId || !input.takeoffSetId) throw new Error('Takeoff measurement is required.');
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, input.takeoffSetId);
+  const { data: measurement } = await supabase.from('takeoff_measurements')
+    .select('id,takeoff_set_id,sheet_id,assembly_version_id,variables,risk_class_code,scale_region_id')
+    .eq('id', input.measurementId)
+    .eq('takeoff_set_id', input.takeoffSetId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (!measurement?.sheet_id) throw new Error('Drawing takeoff measurement not found.');
+  const result = await recalculateDrawingMeasurement({
+    supabase,
+    companyId,
+    measurement,
+    geometry: cleanDrawingGeometry(input.geometry),
+    variables: { ...((measurement.variables as any) || {}) },
+  });
+  refreshTakeoff(input.takeoffSetId);
+  return result;
+}
+
+export async function updateDrawingMeasurementInputs(input: AssemblyInputUpdate) {
+  if (!input?.measurementId || !input.takeoffSetId || !input.variables) throw new Error('Takeoff measurement inputs are required.');
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, input.takeoffSetId);
+  const { data: measurement } = await supabase.from('takeoff_measurements')
+    .select('id,takeoff_set_id,sheet_id,assembly_version_id,geometry,risk_class_code,scale_region_id')
+    .eq('id', input.measurementId)
+    .eq('takeoff_set_id', input.takeoffSetId)
+    .eq('com

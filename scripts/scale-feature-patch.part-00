@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+ROOT = Path.cwd()
+
+
+def replace_once(path: Path, old: str, new: str) -> None:
+    text = path.read_text()
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f'{path}: expected one match, found {count}: {old[:120]!r}')
+    path.write_text(text.replace(old, new, 1))
+
+
+def replace_all_checked(path: Path, old: str, new: str, minimum: int = 1) -> None:
+    text = path.read_text()
+    count = text.count(old)
+    if count < minimum:
+        raise RuntimeError(f'{path}: expected at least {minimum} matches, found {count}: {old[:120]!r}')
+    path.write_text(text.replace(old, new))
+
+
+package_path = ROOT / 'package.json'
+package = json.loads(package_path.read_text())
+old_test = package['scripts']['test']
+if 'tests/scale-regions.test.ts' not in old_test:
+    package['scripts']['test'] = old_test + ' tests/scale-regions.test.ts'
+package_path.write_text(json.dumps(package, indent=2) + '\n')
+
+geometry_path = ROOT / 'lib' / 'takeoff' / 'geometry.ts'
+replace_once(
+    geometry_path,
+    """export function calibrationScale(calibration: any) {
+  const knownDistanceFt = Number(calibration?.known_distance_ft || 0);
+  const pdfDistanceUnits = Number(calibration?.pdf_distance || 0);
+  if (!(knownDistanceFt > 0) || !(pdfDistanceUnits > 0)) throw new Error('This drawing sheet is not calibrated.');
+  return knownDistanceFt / pdfDistanceUnits;
+}""",
+    """export function calibrationScale(calibration: any) {
+  const directScale = Number(calibration?.ft_per_pdf_unit || 0);
+  if (directScale > 0) return directScale;
+  const knownDistanceFt = Number(calibration?.known_distance_ft || 0);
+  const pdfDistanceUnits = Number(calibration?.pdf_distance || 0);
+  if (!(knownDistanceFt > 0) || !(pdfDistanceUnits > 0)) throw new Error('This drawing sheet is not calibrated.');
+  return knownDistanceFt / pdfDistanceUnits;
+}""",
+)
+
+quantity_path = ROOT / 'components' / 'takeoff' / 'TakeoffQuantityDock.tsx'
+replace_once(
+    quantity_path,
+    "import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';\n",
+    "import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';\nimport { formatTakeoffQuantityValue } from '@/lib/takeoff/lengthFormat';\n",
+)
+replace_once(
+    quantity_path,
+    '<span role="cell" className={styles.numeric}>{quantity(row.measurement.raw_quantity)}</span>\n              <span role="cell">{row.measurement.raw_unit}</span>',
+    '<span role="cell" className={styles.numeric} title={`${row.measurement.raw_quantity} ${row.measurement.raw_unit}`}>{formatTakeoffQuantityValue(row.measurement.raw_quantity, row.measurement.raw_unit)}</span>\n              <span role="cell">{row.measurement.raw_unit}</span>',
+)
+
+workspace = ROOT / 'components' / 'takeoff' / 'TakeoffDrawingWorkspace.tsx'
+replace_once(
+    workspace,
+    "  createDrawingMeasurement,deleteDrawingMeasurement,duplicateDrawingMeasurement,initializeTakeoffSheets,\n  saveSheetCalibration,updateDrawingMeasurementGeometry\n",
+    "  createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,duplicateDrawingMeasurement,initializeTakeoffSheets,\n  saveTakeoffScaleRegion,updateDrawingMeasurementGeometry\n",
+)
+replace_once(
+    workspace,
+    "import {enumOptions,isAssemblyVariableActive} from './assemblyContext';\n" if False else "import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContext';\n",
+    "import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContext';\nimport {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';\nimport {boundsFromPoints,calibrationFromDetectedScale,calibrationFromManual,findScaleRegionForPoint,type ScaleCalibration,type ScaleCandidate,type TakeoffScaleRegion} from '@/lib/takeoff/scaleRegions';\n",
+)
+replace_once(
+    workspace,
+    "import {TakeoffQuantityDock} from './TakeoffQuantityDock';\nimport {TakeoffVertexEditor} from './TakeoffVertexEditor';\n",
+    "import {TakeoffQuantityDock} from './TakeoffQuantityDock';\nimport {TakeoffScaleOverlay} from './TakeoffScaleOverlay';\nimport {TakeoffScalePanel} from './TakeoffScalePanel';\nimport {TakeoffVertexEditor} from './TakeoffVertexEditor';\nimport {usePdfScaleDetection} from './usePdfScaleDetection';\n",
+)
+replace_once(workspace, "type Tool='select'|'pan'|'calibrate'|'draw'|'cutout'|'edit';", "type Tool='select'|'pan'|'calibrate'|'scaleRegion'|'draw'|'cutout'|'edit';")
+replace_once(workspace, "  initialSheets:any[];\n  initialMeasurements:any[];", "  initialSheets:any[];\n  scaleRegions:any[];\n  initialMeasurements:any[];")
+replace_once(
+    workspace,
+    "function physicalFootprint(points:NormalizedPoint[],version:any,values:any,sheet:any,box:any,anchor:any='center',offset:any=0){const config=parseRenderConfig(version?.render_config);const scale=Number(sheet?.calibration?.ft_per_pdf_unit||sheet?.calibration?.known_distance_ft/sheet?.calibration?.pdf_distance);",
+    "function physicalFootprint(points:NormalizedPoint[],version:any,values:any,calibration:any,box:any,anchor:any='center',offset:any=0){const config=parseRenderConfig(version?.render_config);const scale=Number(calibration?.ft_per_pdf_unit||calibration?.known_distance_ft/calibration?.pdf_distance);",
+)
+replace_once(
+    workspace,
+    "  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,locked}=props;",
+    "  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,locked}=props;",
+)
+replace_once(
+    workspace,
+    "  const [knownDistanceFt,setKnownDistanceFt]=useState('10');\n  const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);",
+    "  const [knownDistanceFt,setKnownDistanceFt]=useState('10');\n  const [draftScaleRegionId,setDraftScaleRegionId]=useState<string|null>(null);\n  const [scaleRegionPoints,setScaleRegionPoints]=useState<NormalizedPoint[]>([]);\n  const [pendingScaleCandidate,setPendingScaleCandidate]=useState<ScaleCandidate|null>(null);\n  const [pendingManualCalibration,setPendingManualCalibration]=useState<ScaleCalibration|null>(null);\n  const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);",
+)
+replace_once(
+    workspace,
+    "  const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);\n  const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);\n  const currentScale=currentSheet?.scale_status==='calibrated';\n  const selectedMeasurement=initialMeasurements.find((m:any)=>m.id===selectedMeasurementId)||null;\n  const selectedGeometry=useMemo(()=>selectedMeasurement?drawingGeometry(selectedMeasurement.geometry):null,[s

@@ -1,0 +1,44 @@
+electedMeasurement]);\n  const selectedCutoutCount=selectedGeometry?.holes?.length||0;",
+    "  const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);\n  const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);\n  const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);\n  const scaleRegionMap=useMemo(()=>new Map((scaleRegions as TakeoffScaleRegion[]).map(region=>[region.id,region])),[scaleRegions]);\n  const currentScale=currentScaleRegions.length>0||currentSheet?.scale_status==='calibrated';\n  const {candidates:scaleCandidates,status:scaleDetectionStatus}=usePdfScaleDetection(pdfRef,pdfReady,pageNumber);\n  const visibleScaleCandidates=useMemo(()=>scaleCandidates.filter(candidate=>!currentScaleRegions.some(region=>region.is_default&&region.source_type==='pdf_text'&&region.scale_label===candidate.label)),[scaleCandidates,currentScaleRegions]);\n  const selectedMeasurement=initialMeasurements.find((m:any)=>m.id===selectedMeasurementId)||null;\n  const selectedGeometry=useMemo(()=>selectedMeasurement?drawingGeometry(selectedMeasurement.geometry):null,[selectedMeasurement]);\n  const selectedScaleRegion=selectedMeasurement?scaleRegionMap.get(selectedMeasurement.scale_region_id):null;\n  const selectedCalibration=selectedScaleRegion?.calibration||currentSheet?.calibration||null;\n  const draftScaleRegion=draftScaleRegionId?scaleRegionMap.get(draftScaleRegionId):null;\n  const draftCalibration=draftScaleRegion?.calibration||null;\n  const selectedCutoutCount=selectedGeometry?.holes?.length||0;",
+)
+replace_once(
+    workspace,
+    "    setDraftPoints([]);\n    setHoverPoint(null);",
+    "    setDraftPoints([]);\n    setDraftScaleRegionId(null);\n    setHoverPoint(null);",
+)
+old_preview = """  const preview=useMemo<DrawingMeasurement|null>(()=>{
+    if(!renderBox||!currentSheet)return null;
+    if(tool==='cutout'&&selectedGeometry?.type==='polygon'&&draftPoints.length>=3){
+      try{const measured=measureDrawingGeometry({...selectedGeometry,holes:[...(selectedGeometry.holes||[]),draftPoints]},renderBox.pdfWidth,renderBox.pdfHeight,currentSheet.calibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return null;}
+    }
+    if(tool!=='draw'||!selectedAssembly||!draftPoints.length)return null;
+    const type=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
+    const required=type==='polygon'?3:type==='polyline'?2:1;if(draftPoints.length<required)return null;
+    try{const measured=measureDrawingGeometry({type,points:draftPoints} as DrawingGeometry,renderBox.pdfWidth,renderBox.pdfHeight,currentSheet.calibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return type==='count'?{quantity:draftPoints.length,unit:'EA',perimeterLf:0}:null;}
+  },[draftPoints,renderBox,selectedAssembly,currentSheet,tool,selectedGeometry]);"""
+new_preview = """  const preview=useMemo<DrawingMeasurement|null>(()=>{
+    if(!renderBox||!currentSheet)return null;
+    if(tool==='cutout'&&selectedGeometry?.type==='polygon'&&draftPoints.length>=3){
+      try{const measured=measureDrawingGeometry({...selectedGeometry,holes:[...(selectedGeometry.holes||[]),draftPoints]},renderBox.pdfWidth,renderBox.pdfHeight,selectedCalibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return null;}
+    }
+    if(tool!=='draw'||!selectedAssembly||!draftPoints.length)return null;
+    const type=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
+    const required=type==='polygon'?3:type==='polyline'?2:1;if(draftPoints.length<required)return null;
+    if(type!=='count'&&!draftCalibration)return null;
+    try{const measured=measureDrawingGeometry({type,points:draftPoints} as DrawingGeometry,renderBox.pdfWidth,renderBox.pdfHeight,draftCalibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return type==='count'?{quantity:draftPoints.length,unit:'EA',perimeterLf:0}:null;}
+  },[draftPoints,renderBox,selectedAssembly,currentSheet,tool,selectedGeometry,selectedCalibration,draftCalibration]);"""
+replace_once(workspace, old_preview, new_preview)
+replace_once(workspace, "    if(geometryType!=='count'&&!currentScale){setMessage('Set the sheet scale before measuring length or area.');return;}", "    if(geometryType!=='count'&&!draftScaleRegionId){setMessage('Start the takeoff inside an accepted scale region.');return;}")
+replace_once(
+    workspace,
+    "const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});",
+    "const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,scaleRegionId:draftScaleRegionId,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});",
+)
+replace_once(
+    workspace,
+    "      setMessage(`Saved ${finalName} · ${qty(result.quantity)} ${result.unit}${result.perimeterLf?` · ${qty(result.perimeterLf)} LF perimeter`:''}${holdText}`);\n      setDraftPoints([]);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();",
+    "      setMessage(`Saved ${finalName} · ${formatTakeoffMeasurement(result.quantity,result.unit)}${result.perimeterLf?` · ${formatArchitecturalLength(result.perimeterLf)} perimeter`:''}${holdText}`);\n      setDraftPoints([]);setDraftScaleRegionId(null);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();",
+)
+replace_once(workspace, "draftPoints,currentScale,currentMeasurements", "draftPoints,draftScaleRegionId,currentMeasurements")
+replace_once(workspace, "setMessage(`${success} · ${qty(result.quantity)} ${result.unit}`);", "setMessage(`${success} · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);")
+replace_once(workspace, "setMessage(`Duplicated takeoff · ${qty(result.quantity)} ${result.unit}`);", "setMessage(`Duplicated takeoff · ${formatTakeoffMeasurement(

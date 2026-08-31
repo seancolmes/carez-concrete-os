@@ -1,0 +1,130 @@
+m public.takeoff_scale_regions where company_id=v_company and sheet_id=v_region.sheet_id) then
+    update public.takeoff_sheets set scale_status='regional',calibration=null,updated_at=now() where id=v_region.sheet_id and company_id=v_company;
+  else
+    update public.takeoff_sheets set scale_status='uncalibrated',calibration=null,updated_at=now() where id=v_region.sheet_id and company_id=v_company;
+  end if;
+end;
+$$;
+revoke all on function public.carez_delete_takeoff_scale_region(uuid) from public,anon;
+grant execute on function public.carez_delete_takeoff_scale_region(uuid) to authenticated,service_role;
+
+insert into public.takeoff_scale_regions(
+  company_id,takeoff_set_id,sheet_id,name,region_bounds,scale_label,scale_kind,source_type,
+  source_text,source_bounds,confidence,calibration,is_default,created_by,accepted_at,created_at,updated_at
+)
+select
+  s.company_id,s.takeoff_set_id,s.id,
+  coalesce(nullif(trim(s.sheet_number),''),concat('Page ',s.page_number))||' Scale',
+  null,
+  coalesce(nullif(s.calibration->>'scale_label',''),concat(coalesce(s.calibration->>'known_distance_ft','?'),' FT manual calibration')),
+  'manual','legacy',null,null,null,
+  s.calibration||jsonb_build_object(
+    'ft_per_pdf_unit',coalesce(
+      (s.calibration->>'ft_per_pdf_unit')::numeric,
+      (s.calibration->>'known_distance_ft')::numeric/nullif((s.calibration->>'pdf_distance')::numeric,0)
+    ),
+    'method',coalesce(nullif(s.calibration->>'method',''),'legacy'),
+    'scale_label',coalesce(nullif(s.calibration->>'scale_label',''),concat(coalesce(s.calibration->>'known_distance_ft','?'),' FT manual calibration'))
+  ),
+  true,null,
+  coalesce((s.calibration->>'calibrated_at')::timestamptz,now()),s.created_at,s.created_at,s.updated_at
+from public.takeoff_sheets s
+where s.scale_status='calibrated'
+  and s.calibration is not null
+  and coalesce((s.calibration->>'ft_per_pdf_unit')::numeric,
+               (s.calibration->>'known_distance_ft')::numeric/nullif((s.calibration->>'pdf_distance')::numeric,0),0)>0
+  and not exists(select 1 from public.takeoff_scale_regions r where r.company_id=s.company_id and r.sheet_id=s.id and r.is_default);
+
+update public.takeoff_measurements m
+set scale_region_id=r.id
+from public.takeoff_scale_regions r
+where m.company_id=r.company_id
+  and m.sheet_id=r.sheet_id
+  and m.scale_region_id is null
+  and m.source='drawing'
+  and r.is_default;
+
+drop function if exists public.carez_commit_drawing_measurement(uuid,uuid,uuid,uuid,text,text,text,text,numeric,text,jsonb,text,jsonb,jsonb);
+create function public.carez_commit_drawing_measurement(
+  p_takeoff_set_id uuid,
+  p_sheet_id uuid,
+  p_estimate_section_id uuid,
+  p_assembly_version_id uuid,
+  p_name text,
+  p_location text,
+  p_drawing_reference text,
+  p_measurement_type text,
+  p_raw_quantity numeric,
+  p_raw_unit text,
+  p_variables jsonb,
+  p_risk_class_code text,
+  p_geometry jsonb,
+  p_outputs jsonb,
+  p_scale_region_id uuid default null
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path=public
+as $$
+declare
+  v_company_id uuid:=public.get_my_company_id();
+  v_measurement_id uuid;
+  v_scale_region public.takeoff_scale_regions%rowtype;
+begin
+  if v_company_id is null or not exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role<>'employee') then raise exception 'Owner access required.'; end if;
+  if p_sheet_id is null or not exists(select 1 from public.takeoff_sheets s where s.id=p_sheet_id and s.company_id=v_company_id and s.takeoff_set_id=p_takeoff_set_id) then raise exception 'Drawing sheet does not belong to this takeoff set.'; end if;
+  if p_geometry is null or jsonb_typeof(p_geometry)<>'object' then raise exception 'Drawing geometry is required.'; end if;
+
+  if p_measurement_type<>'count' then
+    if p_scale_region_id is null then
+      select id into p_scale_region_id from public.takeoff_scale_regions where company_id=v_company_id and sheet_id=p_sheet_id and is_default limit 1;
+    end if;
+    select * into v_scale_region from public.takeoff_scale_regions where id=p_scale_region_id and company_id=v_company_id and sheet_id=p_sheet_id;
+    if v_scale_region.id is null then raise exception 'An accepted scale region is required for LF or SF takeoff.'; end if;
+    if not public.carez_geometry_within_scale_bounds(p_geometry,v_scale_region.region_bounds) then raise exception 'Takeoff geometry must stay inside one accepted scale region.'; end if;
+  end if;
+
+  v_measurement_id:=public.carez_commit_takeoff_measurement(
+    p_takeoff_set_id,p_estimate_section_id,p_assembly_version_id,p_name,p_location,p_drawing_reference,
+    p_measurement_type,p_raw_quantity,p_raw_unit,p_variables,p_risk_class_code,p_outputs
+  );
+  update public.takeoff_measurements
+    set sheet_id=p_sheet_id,geometry=p_geometry,source='drawing',scale_region_id=case when p_measurement_type='count' then null else p_scale_region_id end
+    where id=v_measurement_id and company_id=v_company_id;
+  return v_measurement_id;
+end;
+$$;
+revoke all on function public.carez_commit_drawing_measurement(uuid,uuid,uuid,uuid,text,text,text,text,numeric,text,jsonb,text,jsonb,jsonb,uuid) from public,anon;
+grant execute on function public.carez_commit_drawing_measurement(uuid,uuid,uuid,uuid,text,text,text,text,numeric,text,jsonb,text,jsonb,jsonb,uuid) to authenticated,service_role;
+
+drop function if exists public.carez_update_drawing_measurement(uuid,jsonb,numeric,text,jsonb,jsonb);
+create function public.carez_update_drawing_measurement(
+  p_measurement_id uuid,
+  p_geometry jsonb,
+  p_raw_quantity numeric,
+  p_raw_unit text,
+  p_variables jsonb,
+  p_outputs jsonb,
+  p_scale_region_id uuid default null
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path=public
+as $$
+declare
+  v_company uuid:=public.get_my_company_id();
+  v_measurement public.takeoff_measurements%rowtype;
+  v_status text;
+  v_scale_region public.takeoff_scale_regions%rowtype;
+  v_scale_region_id uuid;
+begin
+  if v_company is null or not exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role<>'employee') then raise exception 'Owner access required.'; end if;
+  select * into v_measurement from public.takeoff_measurements where id=p_measurement_id and company_id=v_company for update;
+  if not found then raise exception 'Takeoff measurement not found.'; end if;
+  if v_measurement.source<>'drawing' or v_measurement.sheet_id is null then raise exception 'Only drawing takeoff geometry can be edited here.'; end if;
+  select status into v_status from public.estimates where id=v_measurement.estimate_id and company_id=v_company;
+  if v_status in ('accepted','approved','superseded') or exists(select 1 from public.proposal_presentations p where p.company_id=v_company and p.estimate_id=v_measurement.estimate_id) then raise exception 'This estimate revision is locked.'; end if;
+  if p_geometry is null or jsonb_typeof(p_geometry)<>'object' then raise exception 'Drawing geometry is required.'; end if;
+  if p_raw_quantity<0 then raise exc

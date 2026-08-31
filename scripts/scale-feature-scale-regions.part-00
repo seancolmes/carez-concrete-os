@@ -1,0 +1,200 @@
+import type { DrawingGeometry, NormalizedPoint } from './geometry';
+
+export type ScaleRegionBounds = { x: number; y: number; width: number; height: number };
+export type ScaleKind = 'architectural' | 'engineering' | 'metric' | 'manual' | 'nts';
+export type ScaleSourceType = 'pdf_text' | 'manual' | 'legacy';
+
+export type ScaleCalibration = {
+  ft_per_pdf_unit: number;
+  method: 'pdf_text' | 'manual' | 'legacy';
+  scale_label: string;
+  source_text?: string | null;
+  source_bounds?: ScaleRegionBounds | null;
+  confidence?: number | null;
+  known_distance_ft?: number;
+  pdf_distance?: number;
+  points?: NormalizedPoint[];
+  accepted_at?: string;
+};
+
+export type TakeoffScaleRegion = {
+  id: string;
+  sheet_id: string;
+  takeoff_set_id?: string;
+  name: string;
+  region_bounds: ScaleRegionBounds | null;
+  scale_label: string;
+  scale_kind: ScaleKind;
+  source_type: ScaleSourceType;
+  source_text?: string | null;
+  source_bounds?: ScaleRegionBounds | null;
+  confidence?: number | null;
+  calibration: ScaleCalibration;
+  is_default: boolean;
+};
+
+export type ScaleCandidate = {
+  id: string;
+  label: string;
+  scaleKind: ScaleKind;
+  sourceText: string;
+  sourceBounds: ScaleRegionBounds | null;
+  confidence: number;
+  feetPerPdfUnit: number | null;
+  usable: boolean;
+};
+
+export type PdfTextItemLike = {
+  str?: unknown;
+  transform?: unknown;
+  width?: unknown;
+  height?: unknown;
+};
+
+const FRACTIONS: Record<string, string> = {
+  '¼': '1/4', '½': '1/2', '¾': '3/4', '⅛': '1/8', '⅜': '3/8', '⅝': '5/8', '⅞': '7/8',
+};
+
+const finite = (value: unknown) => Number.isFinite(Number(value));
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
+export function normalizeScaleText(value: unknown) {
+  return String(value || '')
+    .replace(/[¼½¾⅛⅜⅝⅞]/g, match => ` ${FRACTIONS[match]} `)
+    .replace(/[“”″]/g, '"')
+    .replace(/[‘’′]/g, "'")
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mixedNumber(value: string) {
+  const normalized = normalizeScaleText(value);
+  if (!normalized) return 0;
+  const parts = normalized.split(' ').filter(Boolean);
+  let total = 0;
+  for (const part of parts) {
+    if (part.includes('/')) {
+      const [numerator, denominator] = part.split('/').map(Number);
+      if (!(denominator > 0)) return NaN;
+      total += numerator / denominator;
+    } else {
+      total += Number(part);
+    }
+  }
+  return total;
+}
+
+function decimalFraction(value: number, maxDenominator = 64) {
+  if (!Number.isFinite(value)) return '';
+  const whole = Math.floor(value);
+  const fraction = value - whole;
+  if (fraction < 1e-9) return String(whole);
+  let bestNumerator = 0;
+  let bestDenominator = 1;
+  let bestError = Infinity;
+  for (let denominator = 2; denominator <= maxDenominator; denominator += 1) {
+    const numerator = Math.round(fraction * denominator);
+    const error = Math.abs(fraction - numerator / denominator);
+    if (error < bestError) {
+      bestError = error;
+      bestNumerator = numerator;
+      bestDenominator = denominator;
+    }
+  }
+  const divisor = (() => {
+    let a = bestNumerator;
+    let b = bestDenominator;
+    while (b) [a, b] = [b, a % b];
+    return a || 1;
+  })();
+  const fractionText = `${bestNumerator / divisor}/${bestDenominator / divisor}`;
+  return whole ? `${whole} ${fractionText}` : fractionText;
+}
+
+export function parseScaleNotation(rawText: unknown): Omit<ScaleCandidate, 'id' | 'sourceBounds'> | null {
+  const sourceText = normalizeScaleText(rawText);
+  if (!sourceText) return null;
+
+  const nts = /\b(?:N\.?T\.?S\.?|NOT\s+TO\s+SCALE)\b/i.test(sourceText);
+  if (nts && /\bSCALE\b/i.test(sourceText)) {
+    return {
+      label: 'NTS',
+      scaleKind: 'nts',
+      sourceText,
+      confidence: 0.99,
+      feetPerPdfUnit: null,
+      usable: false,
+    };
+  }
+
+  const imperial = sourceText.match(/(?:\bSCALE\b\s*:?\s*)?((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?))\s*(?:\"|IN(?:CH(?:ES)?)?)\s*(?:=|:)\s*(\d+(?:\.\d+)?)\s*(?:'|FT|FEET)(?:\s*-?\s*((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?))\s*(?:\"|IN(?:CH(?:ES)?)?))?/i);
+  if (imperial) {
+    const paperInches = mixedNumber(imperial[1]);
+    const realFeet = Number(imperial[2]);
+    const realInches = imperial[3] ? mixedNumber(imperial[3]) : 0;
+    const actualFeet = realFeet + realInches / 12;
+    if (paperInches > 0 && actualFeet > 0) {
+      const paperLabel = decimalFraction(paperInches);
+      const rightInches = decimalFraction(realInches);
+      const label = `${paperLabel}\" = ${realFeet}'-${rightInches}\"`;
+      return {
+        label,
+        scaleKind: paperInches === 1 && actualFeet > 1 ? 'engineering' : 'architectural',
+        sourceText,
+        confidence: /\bSCALE\b/i.test(sourceText) ? 0.99 : 0.92,
+        feetPerPdfUnit: actualFeet / (paperInches * 72),
+        usable: true,
+      };
+    }
+  }
+
+  const ratio = sourceText.match(/(?:\bSCALE\b\s*:?\s*)?\b1\s*:\s*(\d{2,5})\b/i);
+  if (ratio && (/\bSCALE\b/i.test(sourceText) || /^1\s*:\s*\d{2,5}$/i.test(sourceText))) {
+    const denominator = Number(ratio[1]);
+    if (denominator > 1) {
+      return {
+        label: `1:${denominator}`,
+        scaleKind: 'metric',
+        sourceText,
+        confidence: /\bSCALE\b/i.test(sourceText) ? 0.98 : 0.82,
+        feetPerPdfUnit: denominator / (72 * 12),
+        usable: true,
+      };
+    }
+  }
+
+  return null;
+}
+
+function textItemBounds(item: PdfTextItemLike, pageWidth: number, pageHeight: number): ScaleRegionBounds | null {
+  if (!Array.isArray(item.transform) || item.transform.length < 6 || !finite(item.transform[4]) || !finite(item.transform[5])) return null;
+  const transform = item.transform.map(Number);
+  const width = Math.abs(Number(item.width || 0));
+  const height = Math.max(Math.abs(Number(item.height || 0)), Math.hypot(transform[2], transform[3]), 1);
+  const x = transform[4];
+  const baseline = transform[5];
+  return {
+    x: clamp01(x / pageWidth),
+    y: clamp01(1 - (baseline + height) / pageHeight),
+    width: clamp01(width / pageWidth),
+    height: clamp01(height / pageHeight),
+  };
+}
+
+function unionBounds(bounds: ScaleRegionBounds[]): ScaleRegionBounds | null {
+  if (!bounds.length) return null;
+  const x1 = Math.min(...bounds.map(bound => bound.x));
+  const y1 = Math.min(...bounds.map(bound => bound.y));
+  const x2 = Math.max(...bounds.map(bound => bound.x + bound.width));
+  const y2 = Math.max(...bounds.map(bound => bound.y + bound.height));
+  return { x: clamp01(x1), y: clamp01(y1), width: clamp01(x2 - x1), height: clamp01(y2 - y1) };
+}
+
+export function detectScaleCandidates(items: PdfTextItemLike[], pageWidth: number, pageHeight: number, pageNumber = 1) {
+  if (!(pageWidth > 0) || !(pageHeight > 0)) return [] as ScaleCandidate[];
+  const entries = (Array.isArray(items) ? items : [])
+    .map((item, index) => {
+      const text = normalizeScaleText(item?.str);
+      const bounds = textItemBounds(item, pageWidth, pageHeight);
+      return text && bounds ? { index, text, bounds, baseline: bounds.y + boun
