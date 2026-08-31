@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Canonical owner:** `docs/ARCHITECTURE.md`, `docs/modules/takeoff.md`, `docs/modules/estimating.md`  
+> **Use:** Supporting visual/interaction contract. Where this file conflicts with a canonical document, the canonical document wins.  
+> **Supersession:** Active until explicitly superseded by an approved replacement design.
+
 # Carez Concrete OS — B2 Estimator Focus redesign
 
 ## Visual contract
