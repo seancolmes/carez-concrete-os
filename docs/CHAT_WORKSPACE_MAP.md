@@ -6,7 +6,7 @@ Status: Canonical workflow document
 
 ChatGPT chats are working rooms, not permanent product memory. Approved Carez truth belongs in canonical GitHub documentation.
 
-Use a small set of permanent domain chats for exploration and coordination. Create temporary implementation chats only for focused build/debugging work. Do not create a new permanent chat for every page, feature, or PR.
+Use a small set of permanent domain chats for exploration and coordination. Create temporary implementation chats only for focused build/debugging/research work. Do not create a new permanent chat for every page, feature, or PR.
 
 ## Permanent chats
 
@@ -25,6 +25,16 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 | `95 — UX & Design System` | global shell, navigation, typography, color, iconography, density, shared components, responsive rules | architecture/design-system rules and accepted B2 design documents |
 | `99 — QA, Release & Debugging` | cross-module acceptance, browser QA, staging verification, release/promotion defects | `docs/CURRENT_STATE.md`, QA/release workflow docs |
 
+## Mode routing
+
+Regular Chat is the default mode for permanent domain chats. Use it for brainstorming, product/architecture decisions, GitHub inspection, screenshots, scoped research, planning, QA reasoning, and creating implementation prompts.
+
+Use Work selectively for a bounded objective that is large/multi-step, research-heavy, document/file-heavy, artifact-heavy, or benefits from persistent agentic execution. Work is not the default home for permanent domain conversations.
+
+Use Codex when actual repository coding is required and the objective involves substantial implementation, difficult cross-file debugging, migrations, complex domain logic, or browser automation. Routine GitHub/docs inspection and simple localized work should be handled directly when possible.
+
+Every substantive Carez response must tell the user the recommended CHAT, MODE, whether a TEMP CHAT is needed, WHY, the exact NEXT ACTION, and where to RETURN afterward. The user should not need to memorize this document.
+
 ## Routing rules
 
 1. Every idea gets one primary owning chat. Do not duplicate the same brainstorm across multiple chats.
@@ -34,55 +44,34 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 5. New ideas with unclear ownership begin in `00`; route them before substantial design work.
 6. Current implementation priority is never inferred from chat order. Read `CURRENT_STATE.md` and `ROADMAP.md`.
 
-## Temporary implementation chats
+## Temporary chats
 
-Create a temporary chat only when a coherent implementation/debugging objective benefits from isolated context.
+Create a temporary chat only when a coherent implementation/debugging/research objective benefits from isolated context.
 
 Naming:
-
-`<domain number><letter> — <objective> — Implementation`
+- `<domain number><letter> — <objective> — Implementation` for focused build/debug work.
+- `<domain number><letter> — <objective> — Work` for focused Work-mode research/artifact execution.
 
 Examples:
 - `20A — Assembly Creator — Implementation`
-- `20B — Builder Methods — Implementation`
 - `30A — Pricing Review — Implementation`
 - `60A — Mobile Timeclock — Implementation`
-- `60B — Pour Control — Implementation`
+- `95A — Design System Audit — Work`
 
-Temporary chats should be narrow. They do not become new sources of product truth.
-
-Before implementation they must read canonical docs and inspect existing code. At completion, reconcile decisions/issues/PRs/verification into GitHub. After that they may be archived without creating a transcript handoff.
+Temporary chats are narrow and disposable. They do not become sources of product truth. Before execution, read canonical docs and inspect existing evidence. At completion, reconcile decisions/issues/PRs/verification into GitHub, return to the owning permanent chat, and archive the temporary chat when safe.
 
 ## Continuation rule
 
-When a permanent chat becomes too long, create a continuation chat using the same domain identity, for example:
+When a permanent chat becomes too long, create a continuation using the same domain identity, for example `20 — Assembly & Resource Engine — Continuation 2`.
 
-`20 — Assembly & Resource Engine — Continuation 2`
-
-Do not summarize the entire old chat as authority. Bootstrap the continuation from current GitHub truth:
-
-1. `docs/README.md`
-2. `docs/CURRENT_STATE.md`
-3. applicable module spec
-4. applicable ADRs / accepted detailed designs
-5. relevant open issues / PRs
-6. repository implementation evidence
-
-Only include unresolved conversational context that has not yet become a canonical decision.
+Bootstrap from current GitHub truth: `docs/README.md`, `docs/CURRENT_STATE.md`, applicable module specs, ADRs/accepted designs, relevant issues/PRs, and repository evidence. Do not summarize the entire old transcript as authority. Carry forward only unresolved conversational context that has not yet become canonical.
 
 ## Approval and closeout
 
-When a significant decision is approved:
-
 Idea → brainstorm/research → proposed → approved → canonical GitHub docs updated → issue/implementation → tests/browser QA → verified → `CURRENT_STATE.md` updated when appropriate.
 
-Before archiving a temporary implementation chat, confirm:
-- approved product decisions are in module/architecture/ADR docs;
-- implementation work is represented by an issue/PR or merged code;
-- UI claims have browser evidence;
-- remaining work is captured in GitHub;
-- current-state documentation is updated only when verified state changed.
+Before archiving a temporary chat, confirm approved decisions are canonical, implementation is represented in GitHub, UI claims have browser evidence, remaining work is captured, and current-state documentation reflects only verified changes.
 
 ## Chat lifecycle
 
-Permanent domain chats may remain for long-term exploration. Temporary implementation/debugging chats should be archived after reconciliation. Old chats whose approved truth is already canonical may remain historical but should not be used as current authority.
+Permanent domain chats may remain for long-term exploration. Temporary implementation/Work chats should be archived after reconciliation. Old chats whose approved truth is already canonical may remain historical but should not be used as current authority.
