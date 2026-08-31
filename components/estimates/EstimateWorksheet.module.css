@@ -10,6 +10,7 @@
 
 .grid,
 .groupHead,
+.groupControls,
 .row,
 .subtotal {
   display: grid;
@@ -46,8 +47,28 @@
 
 .groupHead {
   min-height: 54px;
+  list-style: none;
+  cursor: pointer;
   background: #e8eef5;
   border-bottom: 1px solid #b8c3d1;
+  transition: background .12s ease;
+}
+
+.groupHead::-webkit-details-marker {
+  display: none;
+}
+
+.groupHead::marker {
+  content: '';
+}
+
+.groupHead:hover {
+  background: #e1e9f2;
+}
+
+.groupHead:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
 }
 
 .groupIdentity {
@@ -56,6 +77,23 @@
   flex-direction: column;
   gap: 3px;
   padding: 9px 10px;
+}
+
+.groupTitleLine {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.disclosureIcon {
+  flex: 0 0 auto;
+  color: #526171;
+  transition: transform .14s ease;
+}
+
+.group[open] .disclosureIcon {
+  transform: rotate(90deg);
 }
 
 .groupIdentity strong {
@@ -83,6 +121,32 @@
 
 .groupTotal {
   grid-column: 7 / span 2;
+}
+
+.groupMeta {
+  grid-column: 3 / span 4;
+  overflow: hidden;
+  padding: 9px 10px;
+  color: #526171;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupControls {
+  min-height: 44px;
+  border-bottom: 1px solid #dbe2ea;
+  background: #f8fafc;
+}
+
+.groupControlLabel {
+  grid-column: 1 / span 2;
+  padding: 7px 10px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .scopeCell {
@@ -274,6 +338,10 @@
 
 .manualGroup .groupHead {
   background: #f6f7f9;
+}
+
+.manualGroup .groupHead:hover {
+  background: #eef1f5;
 }
 
 .empty {

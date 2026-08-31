@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { assignTakeoffMeasurementSection, updateGeneratedEstimateItemPrice } from '@/app/estimates/actions';
 import { formatTakeoffMeasurement } from '@/lib/takeoff/lengthFormat';
 import {
@@ -218,13 +219,18 @@ export function EstimateWorksheet({
         const groupTotal = rows.reduce((sum, row) => sum + Number(row.direct_cost || 0), 0);
         const section = measurement.estimate_section_id ? sectionMap.get(measurement.estimate_section_id) : null;
         const reference = [measurement.location, measurement.drawing_reference].filter(Boolean).join(' · ');
-        return <section className={styles.group} key={measurement.id}>
-          <div className={styles.groupHead}>
+        return <details className={styles.group} key={measurement.id} open>
+          <summary className={styles.groupHead}>
             <div className={styles.groupIdentity}>
-              <strong>{measurement.name}</strong>
+              <div className={styles.groupTitleLine}><ChevronRight className={styles.disclosureIcon} size={15}/><strong>{measurement.name}</strong></div>
               <span>{section?.name || 'Unassigned scope'}{reference ? ` · ${reference}` : ''}</span>
             </div>
             <div className={styles.groupQuantity}>{formatTakeoffMeasurement(measurement.raw_quantity, measurement.raw_unit)}</div>
+            <div className={styles.groupMeta}>{rows.length} cost line{rows.length === 1 ? '' : 's'} · {section?.name || 'Unassigned scope'}</div>
+            <div className={styles.groupTotal} style={{gridColumn: '7 / span 2'}}>{money(groupTotal)}</div>
+          </summary>
+          <div className={styles.groupControls}>
+            <div className={styles.groupControlLabel}>Estimate scope</div>
             <div className={styles.scopeCell}>
               <form action={assignTakeoffMeasurementSection} className={styles.scopeForm}>
                 <input type="hidden" name="estimate_id" value={estimateId}/>
@@ -236,29 +242,28 @@ export function EstimateWorksheet({
                 <button type="submit" disabled={locked}>Assign</button>
               </form>
             </div>
-            <div className={styles.groupTotal} style={{gridColumn: '7 / span 2'}}>{money(groupTotal)}</div>
           </div>
           {rows.map(item => <WorksheetRow key={item.id} estimateId={estimateId} item={item} output={outputByItem.get(item.id)} locked={locked}/>) }
           <WorksheetSubtotal items={rows}/>
-        </section>;
+        </details>;
       })}
 
       {manualGroups.map(([sectionId, rows]) => {
         const section = sectionId === 'unassigned' ? null : sectionMap.get(sectionId);
         const groupTotal = rows.reduce((sum, row) => sum + Number(row.direct_cost || 0), 0);
-        return <section className={`${styles.group} ${styles.manualGroup}`} key={`manual-${sectionId}`}>
-          <div className={styles.groupHead}>
+        return <details className={`${styles.group} ${styles.manualGroup}`} key={`manual-${sectionId}`} open>
+          <summary className={styles.groupHead}>
             <div className={styles.groupIdentity}>
-              <strong>{section?.name || 'Unassigned / General'} — Manual costs</strong>
+              <div className={styles.groupTitleLine}><ChevronRight className={styles.disclosureIcon} size={15}/><strong>{section?.name || 'Unassigned / General'} — Manual costs</strong></div>
               <span>Costs entered outside the Takeoff assembly system</span>
             </div>
             <div className={styles.groupQuantity}>{rows.length} line{rows.length === 1 ? '' : 's'}</div>
-            <div className={styles.scopeCell}><span className={styles.meta}>Manual exception lines remain editable through the controlled cost-entry form.</span></div>
+            <div className={styles.groupMeta}>Manual exception lines</div>
             <div className={styles.groupTotal} style={{gridColumn: '7 / span 2'}}>{money(groupTotal)}</div>
-          </div>
+          </summary>
           {rows.map(item => <WorksheetRow key={item.id} estimateId={estimateId} item={item} locked={locked}/>) }
           <WorksheetSubtotal items={rows}/>
-        </section>;
+        </details>;
       })}
     </div>
   </div>;
