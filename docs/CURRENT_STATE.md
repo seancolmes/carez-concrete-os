@@ -9,7 +9,8 @@ Governance work branch: `carez-governance-foundation`
 - Private repository: `seancolmes/carez-concrete-os`.
 - `staging` is the canonical modernization/release-candidate line.
 - Production `main` remains protected from unverified promotion.
-- Current observed `staging` head at governance start: `f9f81dbb8ccddee872d8d3154d42ae01e96ceccc` (`feat(ui): apply B2 estimator focus surfaces`).
+- Current observed `staging` head at browser verification: `17b745863cc8bbb3f555784e27146ff56b1de40f` (`docs: add mandatory Chat Work Codex routing`).
+- Current B2 shell/UI implementation is present on this line through the earlier accepted shell/B2 commits, including `60d10f383e74961db9d2ccaec024d0785ad17575` (`fix(shell): restore B2 rail context menus`) and `f9f81dbb8ccddee872d8d3154d42ae01e96ceccc` (`feat(ui): apply B2 estimator focus surfaces`).
 - CI validates `main`, `staging`, and `carez-*` branches with frozen install, typecheck, domain tests, and build.
 
 ## Architecture already established
@@ -34,32 +35,41 @@ Additional accepted foundation exists for custom assembly authoring, property bi
 
 Recent `staging` commits include B2 redesign work for dashboard/jobs/shell surfaces and restoration of rail context menus.
 
-The prior architecture snapshot documented a blocking desktop shell defect where closing the context drawer also removed the permanent app rail. Because `staging` has received subsequent shell/B2 commits, that defect must now be treated as **requiring fresh browser verification**, not assumed open or assumed fixed from source history alone.
+The prior architecture snapshot documented a blocking desktop shell defect where closing the context drawer also removed the permanent app rail. Fresh authenticated browser evidence on the current `staging` deployment at SHA `17b7458` now confirms that the historical defect is **not present in the tested desktop state**.
 
-Desktop acceptance invariant remains:
+Observed browser evidence at a 1920×1032 Chrome window:
+
+- Dashboard with Projects context drawer open: permanent app rail remains visible at left and the workspace remains to the right of the drawer.
+- Dashboard with Dashboard context drawer open: permanent app rail remains visible and interactive.
+- Authenticated Takeoff drawing workstation with Takeoff context drawer open: rail, drawer, sheet pane, canvas, inspector, and workstation chrome coexist without rail overlap.
+- Same Takeoff drawing workstation after the context drawer closes: the permanent rail remains visible and the workstation reclaims only the drawer width.
+
+Desktop shell invariant is therefore browser-verified **PASS** for the tested staging build and viewport:
 
 ```text
 OPEN:   [ app rail ][ context drawer ][ workspace ]
 CLOSED: [ app rail ][ workspace ]
 ```
 
+This acceptance is specific to the tested staging SHA and desktop viewport. Rendered-UI verification must be repeated after later shell/UI changes.
+
 ## Current priority
 
-1. Reconcile and browser-verify the current B2 desktop shell behavior on `staging`.
-2. Complete authenticated Takeoff P0 QA against production-like records.
-3. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-4. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+1. Complete authenticated Takeoff P0 QA against production-like records.
+2. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
+3. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
 
 ## Validation baseline
 
-Last documented modernization validation before later B2 commits:
-
-- TypeScript/typecheck: PASS.
-- Domain/lineage tests: PASS.
-- Optimized build: PASS.
+- B2 desktop shell invariant: PASS on authenticated `staging` SHA `17b7458` at 1920×1032 Chrome viewport.
+- Permanent rail retained through context drawer open/close on Dashboard and the Takeoff drawing workstation.
+- Takeoff workstation reflow preserved sheet pane, drawing canvas, and inspector when the context drawer closed.
+- Last documented modernization TypeScript/typecheck: PASS.
+- Last documented domain/lineage tests: PASS.
+- Last documented optimized build: PASS.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
-Because later UI commits exist, browser acceptance must be re-run for the affected B2 surfaces. Do not carry forward rendered-UI verification across later UI commits without evidence.
+Authenticated Takeoff P0 behavioral QA remains open; the shell acceptance above does not by itself verify geometry editing, calibration, persistence, lineage, worksheet behavior, or authenticated estimating workflows.
 
 ## Known deferred work
 
