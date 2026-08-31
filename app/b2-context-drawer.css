@@ -1,0 +1,28 @@
+/* Carez Concrete OS — B2 desktop rail context drawers.
+   Preserve permanent primary rail; only the secondary context drawer opens/closes. */
+:root{--b2-context-width:268px}
+
+@media(min-width:981px){
+  .b2-shell.b2-context-open{grid-template-columns:var(--b2-rail-width) var(--b2-context-width) minmax(0,1fr)!important}
+  .b2-context-drawer{position:sticky;top:0;z-index:115;display:flex;height:100vh;min-height:0;flex-direction:column;overflow:hidden;border-right:1px solid var(--b2-border);background:#11151b;color:var(--b2-text)}
+  .b2-context-head{height:74px;min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px 0 14px;border-bottom:1px solid var(--b2-border);background:#12161c}
+  .b2-context-head>div{min-width:0}.b2-context-head>div>span{display:block;color:var(--b2-text-muted);font-size:9px;font-weight:600;letter-spacing:.08em}.b2-context-head strong{display:flex;align-items:center;gap:8px;margin-top:5px;color:var(--b2-text);font-size:14px;font-weight:600;line-height:1}.b2-context-head strong svg{width:18px;height:18px;color:var(--b2-blue);stroke-width:1.5}
+  .b2-context-head button{width:28px;height:28px;display:grid;place-items:center;flex:none;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--b2-text-muted);cursor:pointer}.b2-context-head button:hover{border-color:var(--b2-border);background:rgba(30,91,255,.08);color:var(--b2-text)}.b2-context-head button svg{width:16px;height:16px;stroke-width:1.5}
+
+  .b2-context-nav{flex:1;min-height:0;overflow-y:auto;padding:8px 7px 12px;scrollbar-width:thin;scrollbar-color:#343a42 transparent}
+  .b2-context-nav section+section{margin-top:8px;padding-top:8px;border-top:1px solid rgba(163,166,179,.10)}
+  .b2-context-section-label{padding:0 7px 5px;color:var(--b2-text-muted);font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .b2-context-nav a{position:relative;display:grid;grid-template-columns:26px minmax(0,1fr) 13px;align-items:center;gap:7px;min-height:38px;padding:6px 7px;border:1px solid transparent;border-radius:4px;color:var(--b2-text-2);text-decoration:none}
+  .b2-context-nav a:hover{border-color:#343a42;background:rgba(30,91,255,.07);color:var(--b2-text)}
+  .b2-context-nav a.active{border-color:rgba(30,91,255,.45);background:rgba(30,91,255,.12);color:var(--b2-text)}
+  .b2-context-nav a>svg:first-child{width:17px;height:17px;color:var(--b2-text-muted);stroke-width:1.5}.b2-context-nav a.active>svg:first-child{color:var(--b2-blue)}
+  .b2-context-nav a>span{min-width:0}.b2-context-nav a strong{display:block;overflow:hidden;color:inherit;font-size:11px;font-weight:500;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}.b2-context-nav a small{display:block;margin-top:2px;overflow:hidden;color:var(--b2-text-muted);font-size:9px;font-weight:400;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+  .b2-context-chevron{width:12px!important;height:12px!important;color:#59606a;opacity:.35;stroke-width:1.5}.b2-context-nav a:hover .b2-context-chevron,.b2-context-nav a.active .b2-context-chevron{opacity:1;color:var(--b2-text-2)}
+
+  .b2-context-footer{padding:8px;border-top:1px solid var(--b2-border);background:#0f1318}.b2-context-footer button{width:100%;height:31px;display:flex;align-items:center;gap:7px;padding:0 9px;border:1px solid var(--b2-border);border-radius:4px;background:#12161c;color:var(--b2-text-2);font-size:10px;font-weight:500;cursor:pointer}.b2-context-footer button:hover{border-color:#3c4652;background:rgba(30,91,255,.08);color:var(--b2-text)}.b2-context-footer button svg{width:15px;height:15px;stroke-width:1.5}
+
+  .b2-shell.b2-context-open .b2-main{min-width:0}
+  .b2-shell.b2-context-open .b2-content-workstation{min-width:0}
+}
+
+@media(max-width:980px){.b2-context-drawer{display:none!important}}

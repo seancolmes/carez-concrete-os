@@ -30,6 +30,7 @@ import './b2-theme.css';
 import './b2-workstation-pass2.css';
 import './b2-design-system.css';
 import './jobs-b2.css';
+import './b2-context-drawer.css';
 
 const inter = Inter({
   subsets: ['latin'],
