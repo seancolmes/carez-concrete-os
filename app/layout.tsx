@@ -23,6 +23,7 @@ import './commercial-workstation.css';
 import './review-workstation.css';
 import './crm-workstation.css';
 import './build-identity.css';
+import './b2-estimator.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
