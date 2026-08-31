@@ -16,7 +16,7 @@ Use:
 3. tests/build output;
 4. browser/Vercel evidence for rendered behavior.
 
-Do not use an old chat or architecture snapshot as proof that a current bug still exists or is fixed.
+Do not use an old chat, architecture snapshot, handoff PDF, or archived Project file as proof that a current bug still exists or is fixed.
 
 ## Database / persisted behavior
 Use:
@@ -24,20 +24,37 @@ Use:
 2. server/domain code;
 3. RLS/policy evidence.
 
+## Active ChatGPT Project sources
+The active Project source set is intentionally small and is governed by `CAREZ_PROJECT_SOURCE_GUIDE.md` in the ChatGPT Project.
+
+For software-development work, only use the active Project source manifest unless the user explicitly requests historical/archive material.
+
+If retrieval surfaces a deleted Project file, old File Library upload, obsolete handoff, historical accounting record, or other archived material, do not treat it as current development authority.
+
 ## Concrete technical questions
-Use ChatGPT Project technical sources such as ACI, formwork, concrete manuals, project drawings/specifications, and other attached references. Preserve source terminology and distinguish source-derived facts from inference.
+Use the active Project technical sources, currently focused on the ACI 302 slab excerpt and the Formwork Guide. Preserve source terminology and distinguish source-derived facts from inference.
+
+Technical references inform concrete-domain reasoning; they do not define Carez product architecture and do not override project drawings/specifications, current codes, manufacturer requirements, or engineered temporary-works requirements.
 
 ## Estimating methodology / production references
-Use Project estimating references, then Carez module/assembly contracts. External references inform method; they do not override approved Carez architecture.
+Use approved Carez module/assembly contracts first, then the active Project estimating references for terminology, workflow, benchmarks, and sanity checks.
+
+Generic productivity values, national cost-book prices, waste factors, and example markups are benchmarks only. They do not become Carez defaults without explicit approval.
 
 ## Regulatory / payroll / company compliance
-Use current company/regulatory source files or live authoritative agency data when requested. Do not treat software architecture docs as regulatory authority.
+Use the active Washington WAC/L&I/ESD references or live authoritative agency data when current applicability matters.
+
+Rates and classifications are jurisdiction-specific and effective-date-sensitive. They must be modeled as configurable/effective-dated values, not permanent constants.
 
 ## Company financial/history questions
-Use company-specific Project records, accounting exports, and connected systems. Do not promote private company records into repository docs unless they are intentionally generalized into a product requirement.
+Historical company financial/payroll records are not part of the active software-development source set. Use such records only when they are explicitly introduced for a scoped historical, finance-QA, or cost-history task.
+
+Do not promote private company records into repository docs unless they are intentionally generalized into a product requirement.
 
 ## Brand / UX
 Use approved Carez design-system docs, brand assets, and current mockup decisions. Screenshots are design evidence, not an excuse to replace canonical tokens with sampled values.
+
+Brand assets define identity, not product architecture or workflow behavior.
 
 ## Chat history
 Chat is exploratory working context. Use old chats only when canonical sources do not contain the needed decision or when the user explicitly asks to recover prior brainstorming. Once a decision is approved, promote it to GitHub documentation.

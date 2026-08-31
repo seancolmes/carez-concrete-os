@@ -44,7 +44,15 @@ Carez is concrete-native. Desktop is a professional workstation; mobile is field
 
 ## Project source files
 
-Use Project source files as evidence according to `KNOWLEDGE_SOURCE_ROUTING.md`: concrete technical references, estimating references, regulations, company records, brand assets, and historical evidence. Do not let those files silently override repository product architecture.
+Use active Project source files as supporting evidence according to `KNOWLEDGE_SOURCE_ROUTING.md` and the Project's `CAREZ_PROJECT_SOURCE_GUIDE.md`.
+
+For software-development work:
+- use only the active Project source manifest unless the user explicitly requests historical/archive material;
+- do not use deleted Project files, old File Library uploads, obsolete architecture/build-status PDFs, historical handoffs, payroll/accounting exports, or removed technical manuals as current authority;
+- if retrieval surfaces one of those sources anyway, ignore it for current development unless the user explicitly reintroduces it;
+- never let Project source files silently override repository product architecture or implementation evidence.
+
+Active Project references are intended for concrete technical research, estimating methodology, Washington labor/compliance research, and Carez brand assets. Reference values are not Carez defaults unless explicitly approved and promoted into canonical GitHub documentation/configuration.
 
 ## Implementation prompts
 
