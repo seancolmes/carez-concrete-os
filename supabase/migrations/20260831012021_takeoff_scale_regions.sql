@@ -296,7 +296,7 @@ select
     'scale_label',coalesce(nullif(s.calibration->>'scale_label',''),concat(coalesce(s.calibration->>'known_distance_ft','?'),' FT manual calibration'))
   ),
   true,null,
-  coalesce((s.calibration->>'calibrated_at')::timestamptz,now()),s.created_at,s.created_at,s.updated_at
+  coalesce((s.calibration->>'calibrated_at')::timestamptz,now()),s.created_at,s.updated_at
 from public.takeoff_sheets s
 where s.scale_status='calibrated'
   and s.calibration is not null
