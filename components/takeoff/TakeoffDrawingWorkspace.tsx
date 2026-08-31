@@ -8,25 +8,31 @@ import {
   Search,Trash2,Undo2,X
 } from 'lucide-react';
 import {
-  createDrawingMeasurement,deleteDrawingMeasurement,duplicateDrawingMeasurement,initializeTakeoffSheets,
-  saveSheetCalibration,updateDrawingMeasurementGeometry
+  createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,duplicateDrawingMeasurement,initializeTakeoffSheets,
+  saveTakeoffScaleRegion,updateDrawingMeasurementGeometry
 } from '@/app/takeoff/[setId]/actions';
 import {GeometryCommandHistory,type CommandHistorySnapshot,type GeometryCommandKind} from '@/lib/takeoff/commandHistory';
 import {measureDrawingGeometry,roundMeasurement,type DrawingGeometry,type DrawingMeasurement,type NormalizedPoint} from '@/lib/takeoff/geometry';
 import {linearFootprint,parseRenderConfig,resolveDisplayStyle} from '@/lib/takeoff/physicalGeometry';
 import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContext';
+import {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';
+import {boundsFromPoints,calibrationFromDetectedScale,calibrationFromManual,findScaleRegionForPoint,type ScaleCalibration,type ScaleCandidate,type TakeoffScaleRegion} from '@/lib/takeoff/scaleRegions';
 import {TakeoffAssemblyInputEditor} from './TakeoffAssemblyInputEditor';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
+import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
+import {TakeoffScalePanel} from './TakeoffScalePanel';
 import {TakeoffVertexEditor} from './TakeoffVertexEditor';
+import {usePdfScaleDetection} from './usePdfScaleDetection';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
-type Tool='select'|'pan'|'calibrate'|'draw'|'cutout'|'edit';
+type Tool='select'|'pan'|'calibrate'|'scaleRegion'|'draw'|'cutout'|'edit';
 type Props={
   takeoffSet:any;
   estimate:any;
   pdfUrl:string;
   sourceTitle:string;
   initialSheets:any[];
+  scaleRegions:any[];
   initialMeasurements:any[];
   measurementSummaries:any[];
   assemblies:any[];
@@ -60,12 +66,12 @@ function drawingGeometry(raw:any):DrawingGeometry|null{
 function geometryPath(geometry:DrawingGeometry,width:number,height:number){const ring=(points:NormalizedPoint[])=>points.length?`M ${points.map(point=>`${point.x*width} ${point.y*height}`).join(' L ')} Z`:'';return[ring(geometry.points),...(geometry.holes||[]).map(ring)].filter(Boolean).join(' ');}
 function copyGeometry(geometry:DrawingGeometry):DrawingGeometry{return{type:geometry.type,points:geometry.points.map(point=>({...point})),...(geometry.holes?.length?{holes:geometry.holes.map(hole=>hole.map(point=>({...point})))}:{})};}
 function shiftGeometry(geometry:DrawingGeometry,dx:number,dy:number):DrawingGeometry{const all=[...geometry.points,...(geometry.holes||[]).flat()];const minX=Math.min(...all.map(point=>point.x)),maxX=Math.max(...all.map(point=>point.x)),minY=Math.min(...all.map(point=>point.y)),maxY=Math.max(...all.map(point=>point.y));const safeDx=Math.max(-minX,Math.min(1-maxX,dx)),safeDy=Math.max(-minY,Math.min(1-maxY,dy));const shift=(point:NormalizedPoint)=>({x:point.x+safeDx,y:point.y+safeDy});return{type:geometry.type,points:geometry.points.map(shift),...(geometry.holes?.length?{holes:geometry.holes.map(hole=>hole.map(shift))}:{})};}
-function physicalFootprint(points:NormalizedPoint[],version:any,values:any,sheet:any,box:any,anchor:any='center',offset:any=0){const config=parseRenderConfig(version?.render_config);const scale=Number(sheet?.calibration?.ft_per_pdf_unit||sheet?.calibration?.known_distance_ft/sheet?.calibration?.pdf_distance);const width=Number(values?.[config?.widthVariable||'']);if(!config||config.mode!=='linear_buffer'||!(scale>0&&width>0))return[];return linearFootprint(points,box.pdfWidth,box.pdfHeight,scale,config.widthUnit==='FT'?width*12:width,anchor,Number(offset||0));}
+function physicalFootprint(points:NormalizedPoint[],version:any,values:any,calibration:any,box:any,anchor:any='center',offset:any=0){const config=parseRenderConfig(version?.render_config);const scale=Number(calibration?.ft_per_pdf_unit||calibration?.known_distance_ft/calibration?.pdf_distance);const width=Number(values?.[config?.widthVariable||'']);if(!config||config.mode!=='linear_buffer'||!(scale>0&&width>0))return[];return linearFootprint(points,box.pdfWidth,box.pdfHeight,scale,config.widthUnit==='FT'?width*12:width,anchor,Number(offset||0));}
 function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|null;return Boolean(el&&['INPUT','TEXTAREA','SELECT'].includes(el.tagName));}
 function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,value));}
 
 export function TakeoffDrawingWorkspace(props:Props){
-  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,locked}=props;
+  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,locked}=props;
   const router=useRouter();
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const viewportRef=useRef<HTMLDivElement|null>(null);
@@ -91,6 +97,10 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [hoverSnapped,setHoverSnapped]=useState(false);
   const [calibrationPoints,setCalibrationPoints]=useState<NormalizedPoint[]>([]);
   const [knownDistanceFt,setKnownDistanceFt]=useState('10');
+  const [draftScaleRegionId,setDraftScaleRegionId]=useState<string|null>(null);
+  const [scaleRegionPoints,setScaleRegionPoints]=useState<NormalizedPoint[]>([]);
+  const [pendingScaleCandidate,setPendingScaleCandidate]=useState<ScaleCandidate|null>(null);
+  const [pendingManualCalibration,setPendingManualCalibration]=useState<ScaleCalibration|null>(null);
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
   const [editGeometry,setEditGeometry]=useState<DrawingGeometry|null>(null);
   const [historySnapshot,setHistorySnapshot]=useState<CommandHistorySnapshot>(()=>historyRef.current.snapshot());
@@ -120,9 +130,17 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedVariables=useMemo(()=>selectedVersion?variables.filter((v:any)=>v.assembly_version_id===selectedVersion.id):[],[selectedVersion,variables]);
   const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);
   const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);
-  const currentScale=currentSheet?.scale_status==='calibrated';
+  const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);
+  const scaleRegionMap=useMemo(()=>new Map((scaleRegions as TakeoffScaleRegion[]).map(region=>[region.id,region])),[scaleRegions]);
+  const currentScale=currentScaleRegions.length>0||currentSheet?.scale_status==='calibrated';
+  const {candidates:scaleCandidates,status:scaleDetectionStatus}=usePdfScaleDetection(pdfRef,pdfReady,pageNumber);
+  const visibleScaleCandidates=useMemo(()=>scaleCandidates.filter(candidate=>!currentScaleRegions.some(region=>region.is_default&&region.source_type==='pdf_text'&&region.scale_label===candidate.label)),[scaleCandidates,currentScaleRegions]);
   const selectedMeasurement=initialMeasurements.find((m:any)=>m.id===selectedMeasurementId)||null;
   const selectedGeometry=useMemo(()=>selectedMeasurement?drawingGeometry(selectedMeasurement.geometry):null,[selectedMeasurement]);
+  const selectedScaleRegion=selectedMeasurement?scaleRegionMap.get(selectedMeasurement.scale_region_id):null;
+  const selectedCalibration=selectedScaleRegion?.calibration||currentSheet?.calibration||null;
+  const draftScaleRegion=draftScaleRegionId?scaleRegionMap.get(draftScaleRegionId):null;
+  const draftCalibration=draftScaleRegion?.calibration||null;
   const selectedCutoutCount=selectedGeometry?.holes?.length||0;
 
   const summaryMap=useMemo(()=>{
@@ -156,6 +174,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     setRiskClassCode(selectedVersion.default_risk_class_code||'');
     setObjectName('');
     setDraftPoints([]);
+    setDraftScaleRegionId(null);
     setHoverPoint(null);
   },[selectedVersion?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -266,31 +285,32 @@ export function TakeoffDrawingWorkspace(props:Props){
   const preview=useMemo<DrawingMeasurement|null>(()=>{
     if(!renderBox||!currentSheet)return null;
     if(tool==='cutout'&&selectedGeometry?.type==='polygon'&&draftPoints.length>=3){
-      try{const measured=measureDrawingGeometry({...selectedGeometry,holes:[...(selectedGeometry.holes||[]),draftPoints]},renderBox.pdfWidth,renderBox.pdfHeight,currentSheet.calibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return null;}
+      try{const measured=measureDrawingGeometry({...selectedGeometry,holes:[...(selectedGeometry.holes||[]),draftPoints]},renderBox.pdfWidth,renderBox.pdfHeight,selectedCalibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return null;}
     }
     if(tool!=='draw'||!selectedAssembly||!draftPoints.length)return null;
     const type=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
     const required=type==='polygon'?3:type==='polyline'?2:1;if(draftPoints.length<required)return null;
-    try{const measured=measureDrawingGeometry({type,points:draftPoints} as DrawingGeometry,renderBox.pdfWidth,renderBox.pdfHeight,currentSheet.calibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return type==='count'?{quantity:draftPoints.length,unit:'EA',perimeterLf:0}:null;}
-  },[draftPoints,renderBox,selectedAssembly,currentSheet,tool,selectedGeometry]);
+    if(type!=='count'&&!draftCalibration)return null;
+    try{const measured=measureDrawingGeometry({type,points:draftPoints} as DrawingGeometry,renderBox.pdfWidth,renderBox.pdfHeight,draftCalibration);return{...measured,quantity:roundMeasurement(measured.quantity),perimeterLf:roundMeasurement(measured.perimeterLf)};}catch{return type==='count'?{quantity:draftPoints.length,unit:'EA',perimeterLf:0}:null;}
+  },[draftPoints,renderBox,selectedAssembly,currentSheet,tool,selectedGeometry,selectedCalibration,draftCalibration]);
 
   const finishDraft=useCallback(async()=>{
     if(locked||busy||!selectedAssembly||!selectedVersion||!currentSheet||!renderBox)return;
     const geometryType:DrawingGeometry['type']=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
     const minimum=geometryType==='polygon'?3:geometryType==='polyline'?2:1;
     if(draftPoints.length<minimum){setMessage(`${selectedAssembly.primary_measurement} takeoff needs at least ${minimum} point${minimum===1?'':'s'}.`);return;}
-    if(geometryType!=='count'&&!currentScale){setMessage('Set the sheet scale before measuring length or area.');return;}
+    if(geometryType!=='count'&&!draftScaleRegionId){setMessage('Start the takeoff inside an accepted scale region.');return;}
     const sameAssemblyCount=currentMeasurements.filter((m:any)=>m.assembly_version_id===selectedVersion.id).length;
     const autoName=`${selectedAssembly.name}${location.trim()?` — ${location.trim()}`:''} ${sameAssemblyCount+1}`;
     const finalName=objectName.trim()||autoName;
     setBusy(true);
     try{
-      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
+      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,scaleRegionId:draftScaleRegionId,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
       const holdText=result.inputHolds?` · ${result.inputHolds} input hold${result.inputHolds===1?'':'s'}`:'';
-      setMessage(`Saved ${finalName} · ${qty(result.quantity)} ${result.unit}${result.perimeterLf?` · ${qty(result.perimeterLf)} LF perimeter`:''}${holdText}`);
-      setDraftPoints([]);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();
+      setMessage(`Saved ${finalName} · ${formatTakeoffMeasurement(result.quantity,result.unit)}${result.perimeterLf?` · ${formatArchitecturalLength(result.perimeterLf)} perimeter`:''}${holdText}`);
+      setDraftPoints([]);setDraftScaleRegionId(null);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not save drawing measurement.');}finally{setBusy(false);}
-  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,currentScale,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router]);
+  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router]);
 
   function beginEdit(){if(locked||!selectedMeasurement||!selectedGeometry)return;const copy=copyGeometry(selectedGeometry);editOriginalRef.current=copyGeometry(selectedGeometry);setEditGeometry(copy);setDraftPoints([]);setTool('edit');setMessage('Drag a vertex, then press Enter or Save Shape.');}
   function beginCutout(){if(locked||selectedGeometry?.type!=='polygon')return;setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('cutout');setMessage('Trace the opening inside the selected area, then press Enter.');}
@@ -300,14 +320,14 @@ export function TakeoffDrawingWorkspace(props:Props){
     try{
       const result=await updateDrawingMeasurementGeometry({measurementId,takeoffSetId:takeoffSet.id,geometry:after});
       historyRef.current.record({id:globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`,kind,measurementId,before:copyGeometry(before),after:copyGeometry(after),committedAt:new Date().toISOString()});
-      setHistorySnapshot(historyRef.current.snapshot());setMessage(`${success} · ${qty(result.quantity)} ${result.unit}`);setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('select');setSelectedMeasurementId(measurementId);router.refresh();return true;
+      setHistorySnapshot(historyRef.current.snapshot());setMessage(`${success} · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('select');setSelectedMeasurementId(measurementId);router.refresh();return true;
     }catch(error:any){setMessage(error?.message||'Could not update drawing geometry.');return false;}finally{setBusy(false);}
   }
 
   async function saveEdit(){if(!selectedMeasurementId||!editGeometry||!editOriginalRef.current)return;await commitGeometry('MoveVertexCommand',selectedMeasurementId,editOriginalRef.current,editGeometry,'Shape updated');}
   async function finishCutout(){if(!selectedMeasurementId||selectedGeometry?.type!=='polygon'||draftPoints.length<3){setMessage('A cutout needs at least three points.');return;}const after:DrawingGeometry={...copyGeometry(selectedGeometry),holes:[...(selectedGeometry.holes||[]).map(hole=>hole.map(point=>({...point}))),draftPoints.map(point=>({...point}))]};await commitGeometry('CreateCutoutCommand',selectedMeasurementId,selectedGeometry,after,'Cutout saved');}
   async function removeLastCutout(){if(!selectedMeasurementId||selectedGeometry?.type!=='polygon'||!selectedGeometry.holes?.length)return;const after=copyGeometry(selectedGeometry);after.holes=after.holes?.slice(0,-1);await commitGeometry('RemoveCutoutCommand',selectedMeasurementId,selectedGeometry,after,'Last cutout removed');}
-  async function duplicateSelected(){if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{const result=await duplicateDrawingMeasurement(selectedMeasurementId,takeoffSet.id);setMessage(`Duplicated takeoff · ${qty(result.quantity)} ${result.unit}`);setSelectedMeasurementId(result.id);router.refresh();}catch(error:any){setMessage(error?.message||'Could not duplicate takeoff.');}finally{setBusy(false);}}
+  async function duplicateSelected(){if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{const result=await duplicateDrawingMeasurement(selectedMeasurementId,takeoffSet.id);setMessage(`Duplicated takeoff · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);setSelectedMeasurementId(result.id);router.refresh();}catch(error:any){setMessage(error?.message||'Could not duplicate takeoff.');}finally{setBusy(false);}}
   async function nudgeSelected(dx:number,dy:number){if(!selectedMeasurementId||!selectedGeometry||locked||busy)return;const after=shiftGeometry(selectedGeometry,dx,dy);await commitGeometry('MoveMeasurementCommand',selectedMeasurementId,selectedGeometry,after,'Takeoff nudged');}
 
   async function undoCommitted(){const command=historyRef.current.undoCandidate();if(!command||locked||busy)return;setBusy(true);try{await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.before});historyRef.current.confirmUndo(command.id);setHistorySnapshot(historyRef.current.snapshot());setSelectedMeasurementId(command.measurementId);setMessage(`Undid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not undo the committed change.');}finally{setBusy(false);}}
@@ -317,18 +337,20 @@ export function TakeoffDrawingWorkspace(props:Props){
     const down=(event:KeyboardEvent)=>{
       if(isTypingTarget(event.target))return;
       if(event.code==='Space'){event.preventDefault();setSpaceHeld(true);return;}
-      if(event.key==='Escape'){setDraftPoints([]);setCalibrationPoints([]);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setTool('select');return;}
+      if(event.key==='Escape'){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setTool('select');return;}
       const commandKey=event.ctrlKey||event.metaKey;
       if(commandKey&&event.key.toLowerCase()==='z'){
         event.preventDefault();
         if(event.shiftKey){void redoCommitted();return;}
         if(draftPoints.length){setDraftPoints(points=>points.slice(0,-1));return;}
         if(calibrationPoints.length){setCalibrationPoints(points=>points.slice(0,-1));return;}
+        if(scaleRegionPoints.length){setScaleRegionPoints(points=>points.slice(0,-1));return;}
         void undoCommitted();return;
       }
-      if(event.key==='Backspace'&&(draftPoints.length||calibrationPoints.length)){event.preventDefault();if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else setCalibrationPoints(points=>points.slice(0,-1));return;}
+      if(event.key==='Backspace'&&(draftPoints.length||calibrationPoints.length||scaleRegionPoints.length)){event.preventDefault();if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else if(calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else setScaleRegionPoints(points=>points.slice(0,-1));return;}
       if((event.key==='Delete'||event.key==='Backspace')&&selectedMeasurementId&&!locked){event.preventDefault();void removeSelected();return;}
       if(event.key==='Enter'&&tool==='draw'){event.preventDefault();void finishDraft();return;}
+      if(event.key==='Enter'&&tool==='scaleRegion'){event.preventDefault();void savePendingScaleRegion();return;}
       if(event.key==='Enter'&&tool==='cutout'){event.preventDefault();void finishCutout();return;}
       if(event.key==='Enter'&&tool==='edit'){event.preventDefault();void saveEdit();return;}
       if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)&&selectedGeometry&&!locked){event.preventDefault();const step=(event.shiftKey?10:1);const dx=(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0)/Math.max(1,renderBox?.width||1000);const dy=(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0)/Math.max(1,renderBox?.height||1000);void nudgeSelected(dx,dy);return;}
@@ -350,39 +372,48 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     const up=(event:KeyboardEvent)=>{if(event.code==='Space')setSpaceHeld(false);};
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[draftPoints.length,calibrationPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
     if(tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
     if(locked&&tool!=='select')return;
     const raw=overlayPoint(event);if(!raw)return;
-    const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
+    const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
     if(tool==='calibrate'){setCalibrationPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
-    if(tool==='draw'){if(!selectedAssembly){setMessage('Choose a concrete assembly first.');return;}if(selectedAssembly.primary_measurement!=='EA'&&!currentScale){setMessage('Set the sheet scale before measuring LF or SF.');return;}setDraftPoints(points=>[...points,resolved.point]);return;}
+    if(tool==='scaleRegion'){setScaleRegionPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
+    if(tool==='draw'){if(!selectedAssembly){setMessage('Choose a concrete assembly first.');return;}if(selectedAssembly.primary_measurement!=='EA'){const region=findScaleRegionForPoint(currentScaleRegions,resolved.point);if(!region){setMessage('Confirm or create a scale region covering this point.');return;}if(draftScaleRegionId&&draftScaleRegionId!==region.id){setMessage('One takeoff cannot cross between different scale regions.');return;}setDraftScaleRegionId(region.id);}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='cutout'){if(selectedGeometry?.type!=='polygon'){setMessage('Select an area takeoff before adding a cutout.');setTool('select');return;}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='select'){setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;}
   }
   function handlePointerMove(event:React.PointerEvent<SVGSVGElement>){
     if(panRef.current&&panning){const viewport=viewportRef.current;if(!viewport)return;viewport.scrollLeft=panRef.current.left-(event.clientX-panRef.current.x);viewport.scrollTop=panRef.current.top-(event.clientY-panRef.current.y);return;}
-    if(tool==='draw'||tool==='calibrate'||tool==='cutout'){const raw=overlayPoint(event);if(!raw)return;const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);setHoverPoint(resolved.point);setHoverSnapped(resolved.snapped);}
+    if(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'){const raw=overlayPoint(event);if(!raw)return;const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);setHoverPoint(resolved.point);setHoverSnapped(resolved.snapped);}
   }
   function handlePointerUp(event:React.PointerEvent<SVGSVGElement>){if(panRef.current){panRef.current=null;setPanning(false);try{event.currentTarget.releasePointerCapture(event.pointerId);}catch{}}}
 
-  async function saveCalibration(){
-    if(locked||busy||!currentSheet||!renderBox)return;if(calibrationPoints.length!==2){setMessage('Pick two endpoints of a known dimension.');return;}const known=Number(knownDistanceFt);if(!(known>0)){setMessage('Enter the known distance in feet.');return;}
-    setBusy(true);try{await saveSheetCalibration({sheetId:currentSheet.id,pageWidth:renderBox.pdfWidth,pageHeight:renderBox.pdfHeight,points:calibrationPoints,knownDistanceFt:known});setCalibrationPoints([]);setHoverPoint(null);setTool('select');setMessage(`Scale saved from ${qty(known)} FT known dimension`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not save sheet scale.');}finally{setBusy(false);}
+  async function persistScaleRegion(candidate:ScaleCandidate|null,calibration:ScaleCalibration,regionBounds:any,isDefault:boolean){
+    if(locked||busy||!currentSheet)return;setBusy(true);
+    try{const result=await saveTakeoffScaleRegion({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,name:isDefault?`${currentSheet.sheet_number||`Page ${currentSheet.page_number}`} Scale`:`${currentSheet.sheet_number||`Page ${currentSheet.page_number}`} · ${candidate?.label||calibration.scale_label} Region ${currentScaleRegions.filter(region=>!region.is_default).length+1}`,regionBounds,scaleLabel:candidate?.label||calibration.scale_label,scaleKind:candidate?.scaleKind==='nts'?'manual':candidate?.scaleKind||'manual',sourceType:candidate?'pdf_text':'manual',sourceText:candidate?.sourceText||null,sourceBounds:candidate?.sourceBounds||null,confidence:candidate?.confidence||null,calibration,isDefault});setMessage(`Scale ${candidate?.label||calibration.scale_label} saved${result.recalculated?` · ${result.recalculated} takeoff recalculated`:''}`);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setDraftScaleRegionId(null);setHoverPoint(null);setTool('select');router.refresh();}catch(error:any){setMessage(error?.message||'Could not save drawing scale.');}finally{setBusy(false);}
   }
+  async function useDetectedScaleSheet(candidate:ScaleCandidate){try{await persistScaleRegion(candidate,calibrationFromDetectedScale(candidate),null,true);}catch(error:any){setMessage(error?.message||'Detected scale is invalid.');}}
+  function beginDetectedScaleRegion(candidate:ScaleCandidate){try{calibrationFromDetectedScale(candidate);setPendingScaleCandidate(candidate);setPendingManualCalibration(null);setScaleRegionPoints([]);setCalibrationPoints([]);setTool('scaleRegion');setMessage(`Pick two corners for ${candidate.label}.`);}catch(error:any){setMessage(error?.message||'Detected scale is invalid.');}}
+  function manualCalibration(){if(!currentSheet||!renderBox)throw new Error('Drawing sheet is not ready.');return calibrationFromManual(calibrationPoints,Number(knownDistanceFt),renderBox.pdfWidth,renderBox.pdfHeight);}
+  async function useManualScaleSheet(){try{await persistScaleRegion(null,manualCalibration(),null,true);}catch(error:any){setMessage(error?.message||'Manual calibration is invalid.');}}
+  function beginManualScaleRegion(){try{const calibration=manualCalibration();setPendingManualCalibration(calibration);setPendingScaleCandidate(null);setScaleRegionPoints([]);setTool('scaleRegion');setMessage('Pick two corners for the manually calibrated scale region.');}catch(error:any){setMessage(error?.message||'Manual calibration is invalid.');}}
+  async function savePendingScaleRegion(){const bounds=boundsFromPoints(scaleRegionPoints);if(!bounds){setMessage('Pick two opposite corners for the scale region.');return;}try{if(pendingScaleCandidate)await persistScaleRegion(pendingScaleCandidate,calibrationFromDetectedScale(pendingScaleCandidate),bounds,false);else if(pendingManualCalibration)await persistScaleRegion(null,pendingManualCalibration,bounds,false);else setMessage('Choose a detected or manual scale first.');}catch(error:any){setMessage(error?.message||'Could not save scale region.');}}
+  function cancelScaleRegion(){setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setHoverPoint(null);setTool('select');}
+  async function removeScaleRegion(region:TakeoffScaleRegion){if(locked||busy)return;setBusy(true);try{await deleteTakeoffScaleRegion(region.id,takeoffSet.id);setMessage(`Removed ${region.name}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not remove scale region.');}finally{setBusy(false);}}
   async function removeSelected(){
     if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{await deleteDrawingMeasurement(selectedMeasurementId,takeoffSet.id);historyRef.current.clear();setHistorySnapshot(historyRef.current.snapshot());setMessage('Takeoff object and generated estimate lines removed');setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;router.refresh();}catch(error:any){setMessage(error?.message||'Could not delete object.');}finally{setBusy(false);}
   }
-  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setCalibrationPoints([]);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setTool('select');setZoom(1);}
-  function cancelTool(){setDraftPoints([]);setCalibrationPoints([]);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setTool('select');}
+  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setTool('select');setZoom(1);}
+  function cancelTool(){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setTool('select');}
 
   const pageEntries=Array.from({length:pdfPageCount||initialSheets.length||1},(_,index)=>{const number=index+1;return initialSheets.find((s:any)=>Number(s.page_number)===number)||{id:`pending-${number}`,page_number:number,scale_status:'uncalibrated'};});
   const drawingTypeLabel=selectedAssembly?.primary_measurement==='SF'?'Area':selectedAssembly?.primary_measurement==='EA'?'Count':'Linear';
   const overlayClass=(tool==='pan'||spaceHeld)?(panning?styles.overlayPanning:styles.overlayPan):tool==='select'?styles.overlaySelect:'';
-  const workingPoints=tool==='draw'||tool==='cutout'?draftPoints:calibrationPoints;
-  const draftRenderPoints=hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='cutout')?[...workingPoints,hoverPoint]:workingPoints;
+  const workingPoints=tool==='draw'||tool==='cutout'?draftPoints:tool==='scaleRegion'?scaleRegionPoints:calibrationPoints;
+  const draftRenderPoints=hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')?[...workingPoints,hoverPoint]:workingPoints;
   const zoomPercent=Math.round(zoom*100);
   const qualityLimited=renderQuality<.98;
   const selectedVersionRecord:any=selectedMeasurement?versionMap.get(selectedMeasurement.assembly_version_id):null;
@@ -394,7 +425,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   <div className={`${styles.workspace} ${!sheetsOpen?styles.noSheets:''} ${!inspectorOpen?styles.noInspector:''}`}>
     {sheetsOpen&&<aside className={styles.sidebar}>
       <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Sheets</div><div className={styles.panelMeta}>{sourceTitle} · {pdfPageCount||'…'} pages</div></div><button type="button" className={styles.iconButton} title="Hide sheets" onClick={()=>setSheetsOpen(false)}><PanelLeftClose size={16}/></button></div>
-      <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.sheet_number||sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheet.title||`PDF Page ${sheet.page_number}`}</span><span className={`${styles.sheetStatus} ${sheet.scale_status==='calibrated'?styles.sheetStatusReady:styles.sheetStatusHold}`}>{sheet.scale_status==='calibrated'?'SCALE SET':'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
+      <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.sheet_number||sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheet.title||`PDF Page ${sheet.page_number}`}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
     </aside>}
 
     <section className={styles.center}>
@@ -404,7 +435,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
           <button type="button" title="Pan · H or hold Space" className={`${styles.toolButton} ${tool==='pan'?styles.toolButtonActive:''}`} onClick={()=>setTool('pan')}><Hand size={16}/><span>Pan</span></button>
           <button type="button" disabled={locked} title="Set drawing scale · C" className={`${styles.toolButton} ${tool==='calibrate'?styles.toolButtonActive:''}`} onClick={()=>{setCalibrationPoints([]);setTool('calibrate');}}><Ruler size={16}/><span>Scale</span></button>
-          <button type="button" disabled={locked||!selectedAssembly} title="Measure · M" className={`${styles.toolButton} ${tool==='draw'?styles.toolButtonActive:styles.measureButton}`} onClick={()=>{setDraftPoints([]);setTool('draw');}}><Crosshair size={16}/><span>{drawingTypeLabel}</span></button>
+          <button type="button" disabled={locked||!selectedAssembly} title="Measure · M" className={`${styles.toolButton} ${tool==='draw'?styles.toolButtonActive:styles.measureButton}`} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/><span>{drawingTypeLabel}</span></button>
           <button type="button" disabled={locked||!selectedGeometry} title="Edit selected shape · E" className={`${styles.toolButton} ${tool==='edit'?styles.toolButtonActive:''}`} onClick={beginEdit}><Pencil size={15}/><span>Edit</span></button>
           <button type="button" disabled={locked||selectedGeometry?.type!=='polygon'} title="Add area cutout · K" className={`${styles.toolButton} ${tool==='cutout'?styles.toolButtonActive:''}`} onClick={beginCutout}><Scissors size={15}/><span>Cutout</span></button>
         </div>
@@ -412,12 +443,13 @@ export function TakeoffDrawingWorkspace(props:Props){
         <div className={styles.toolGroup}>
           <button type="button" className={`${styles.toolButton} ${snapEnabled?styles.toggleActive:''}`} title="Snap to existing takeoff vertices · S" onClick={()=>setSnapEnabled(v=>!v)}><Magnet size={15}/><span>Snap</span></button>
           <button type="button" className={`${styles.toolButton} ${orthoEnabled?styles.toggleActive:''}`} title="Constrain horizontal/vertical · O" onClick={()=>setOrthoEnabled(v=>!v)}><MoveHorizontal size={15}/><span>Ortho</span></button>
-          <button type="button" disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!historySnapshot.canUndo)} className={styles.toolButton} title="Undo point or committed geometry · Ctrl/Cmd+Z" onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}><Undo2 size={15}/></button>
+          <button type="button" disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} className={styles.toolButton} title="Undo point or committed geometry · Ctrl/Cmd+Z" onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}><Undo2 size={15}/></button>
           <button type="button" disabled={busy||!historySnapshot.canRedo} className={styles.toolButton} title="Redo committed geometry · Ctrl/Cmd+Shift+Z" onClick={()=>void redoCommitted()}><Redo2 size={15}/></button>
+          {tool==='scaleRegion'&&<button type="button" disabled={busy||scaleRegionPoints.length!==2} className={`${styles.toolButton} ${styles.finishButton}`} title="Save scale region · Enter" onClick={()=>void savePendingScaleRegion()}><Check size={15}/><span>Save Region</span></button>}
           {tool==='draw'&&<button type="button" disabled={busy||!draftPoints.length} className={`${styles.toolButton} ${styles.finishButton}`} title="Finish measurement · Enter or right-click" onClick={()=>void finishDraft()}><Check size={15}/><span>Finish</span></button>}
           {tool==='cutout'&&<button type="button" disabled={busy||draftPoints.length<3} className={`${styles.toolButton} ${styles.finishButton}`} title="Save cutout · Enter or right-click" onClick={()=>void finishCutout()}><Check size={15}/><span>Subtract</span></button>}
           {tool==='edit'&&<button type="button" disabled={busy||!editGeometry} className={`${styles.toolButton} ${styles.finishButton}`} title="Save shape · Enter" onClick={()=>void saveEdit()}><Check size={15}/><span>Save</span></button>}
-          {(tool==='draw'||tool==='calibrate'||tool==='cutout'||tool==='edit')&&<button type="button" className={styles.toolButton} title="Cancel active tool · Escape" onClick={cancelTool}><X size={15}/></button>}
+          {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<button type="button" className={styles.toolButton} title="Cancel active tool · Escape" onClick={cancelTool}><X size={15}/></button>}
         </div>
 
         <div className={styles.toolbarSpacer}/>
@@ -437,13 +469,14 @@ export function TakeoffDrawingWorkspace(props:Props){
         <div ref={paperRef} className={styles.paper} style={renderBox?{width:renderBox.width,height:renderBox.height}:{width:1,height:1}}>
           <canvas ref={canvasRef} className={styles.pdfCanvas}/>
           {renderBox&&<svg className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
+            <TakeoffScaleOverlay regions={currentScaleRegions} pendingCandidate={pendingScaleCandidate} regionPoints={scaleRegionPoints} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight}/>
             {currentMeasurements.map((measurement:any)=>{
-              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const physical=physicalFootprint(points,version,measurement.variables,currentSheet,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const first=points[0];const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;}};
+              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const first=points[0];const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;}};
               return <g key={measurement.id} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
                 {geometry.type==='polygon'&&<path d={geometryPath(geometry,renderBox.pdfWidth,renderBox.pdfHeight)} fill={`${color}24`} fillRule="evenodd" stroke={color} strokeWidth={selected?3.2:2} vectorEffect="non-scaling-stroke"/>}
                 {physical.length>=3&&<polygon points={physicalCoords} fill={`${style.color}${Math.round(style.opacity*255).toString(16).padStart(2,'0')}`} stroke={style.borderColor} strokeWidth={selected?style.borderWidth+1:style.borderWidth} strokeDasharray={style.pattern==='dashed'?'6 4':undefined} vectorEffect="non-scaling-stroke"/>}{geometry.type==='polyline'&&<polyline points={coords} fill="none" stroke={color} strokeWidth={selected?4:2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
                 {geometry.type==='count'&&points.map((point,index)=><g key={index}><circle cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r={selected?6:5} fill={`${color}45`} stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth-5} y1={point.y*renderBox.pdfHeight} x2={point.x*renderBox.pdfWidth+5} y2={point.y*renderBox.pdfHeight} stroke={color} vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth} y1={point.y*renderBox.pdfHeight-5} x2={point.x*renderBox.pdfWidth} y2={point.y*renderBox.pdfHeight+5} stroke={color} vectorEffect="non-scaling-stroke"/></g>)}
-                {zoom<5&&<g transform={`translate(${first.x*renderBox.pdfWidth} ${first.y*renderBox.pdfHeight})`}><rect x="5" y="-18" width={Math.max(76,Math.min(205,measurement.name.length*6+64))} height="20" rx="4" fill="rgba(7,12,18,.9)" stroke={color} strokeWidth="1" vectorEffect="non-scaling-stroke"/><text x="10" y="-4" fill="#f5f7fa" fontSize="9" fontWeight="700">{measurement.name} · {qty(measurement.raw_quantity)} {measurement.raw_unit}</text></g>}
+                {zoom<5&&<g transform={`translate(${first.x*renderBox.pdfWidth} ${first.y*renderBox.pdfHeight})`}><rect x="5" y="-18" width={Math.max(76,Math.min(205,measurement.name.length*6+64))} height="20" rx="4" fill="rgba(7,12,18,.9)" stroke={color} strokeWidth="1" vectorEffect="non-scaling-stroke"/><text x="10" y="-4" fill="#f5f7fa" fontSize="9" fontWeight="700">{measurement.name} · {formatTakeoffMeasurement(measurement.raw_quantity,measurement.raw_unit)}</text></g>}
               </g>;
             })}
 
@@ -451,7 +484,7 @@ export function TakeoffDrawingWorkspace(props:Props){
 
             {tool==='draw'&&draftRenderPoints.length>0&&<g pointerEvents="none">
               {selectedAssembly?.primary_measurement==='SF'&&draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(105,143,237,.13)" stroke="#6f95ee" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
-              {selectedAssembly?.primary_measurement==='LF'&&draftRenderPoints.length>=2&&<><polygon points={physicalFootprint(draftRenderPoints,selectedVersion,variableValues,currentSheet,renderBox).map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(111,149,238,.22)" stroke="#6f95ee" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><polyline points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="none" stroke="#6f95ee" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/></>}
+              {selectedAssembly?.primary_measurement==='LF'&&draftRenderPoints.length>=2&&<><polygon points={physicalFootprint(draftRenderPoints,selectedVersion,variableValues,draftCalibration,renderBox).map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(111,149,238,.22)" stroke="#6f95ee" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><polyline points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="none" stroke="#6f95ee" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/></>}
               {draftPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="4" fill="#7fa0f3" stroke="#07101a" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
             </g>}
             {tool==='cutout'&&draftRenderPoints.length>0&&<g pointerEvents="none">
@@ -459,21 +492,39 @@ export function TakeoffDrawingWorkspace(props:Props){
               {draftPoints.map((point,index)=><circle key={index} cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r="4" fill="#e4b15d" stroke="#07101a" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
             </g>}
             {tool==='calibrate'&&draftRenderPoints.length>0&&<g pointerEvents="none">{draftRenderPoints.length>=2&&<line x1={draftRenderPoints[0].x*renderBox.pdfWidth} y1={draftRenderPoints[0].y*renderBox.pdfHeight} x2={draftRenderPoints[1].x*renderBox.pdfWidth} y2={draftRenderPoints[1].y*renderBox.pdfHeight} stroke="#e5b55e" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}{calibrationPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="5" fill="#e5b55e" stroke="#07101a" strokeWidth="2" vectorEffect="non-scaling-stroke"/>)}</g>}
-            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
+            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
           </svg>}
         </div>
-        {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{qty(preview.quantity)} {preview.unit}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{qty(preview.perimeterLf)} LF perimeter</span>}</div>}
+        {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}
       </div>
 
-      <div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>
+      <div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>
     </section>
 
     {inspectorOpen&&<aside className={styles.inspector}>
       <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Takeoff</div><div className={styles.panelMeta}>{currentSheet?`${currentSheet.sheet_number||`Page ${currentSheet.page_number}`} · ${currentMeasurements.length} takeoff${currentMeasurements.length===1?'':'s'}`:'Preparing sheet'}</div></div><button type="button" className={styles.iconButton} title="Hide inspector" onClick={()=>setInspectorOpen(false)}><PanelRightClose size={16}/></button></div>
       <div className={styles.inspectorBody}>
-        {!currentScale&&<div className={`${styles.group} ${styles.scaleGate}`}><div className={styles.groupHead}><div><div className={styles.groupTitle}>Set Sheet Scale</div><div className={styles.groupHelp}>Required before LF or SF takeoff.</div></div><Ruler size={17}/></div><label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><input value={knownDistanceFt} onChange={e=>setKnownDistanceFt(e.target.value)} inputMode="decimal"/><b>FT</b></div></label><div className={styles.buttonRow}><button type="button" className={styles.secondary} disabled={locked} onClick={()=>{setCalibrationPoints([]);setTool('calibrate');}}>Pick 2 points</button><button type="button" className={styles.primary} disabled={locked||calibrationPoints.length!==2||busy} onClick={()=>void saveCalibration()}>Save scale</button></div><div className={styles.groupHelp}>Use a printed dimension line. Carez stores scale independently for every sheet.</div></div>}
-
-        {currentScale&&<div className={styles.scaleReady}><span>Scale</span><strong>{qty(currentSheet?.calibration?.known_distance_ft)} FT calibration</strong><button type="button" disabled={locked} onClick={()=>{setCalibrationPoints([]);setTool('calibrate');}}>Recalibrate</button></div>}
+        <TakeoffScalePanel
+          regions={currentScaleRegions}
+          candidates={visibleScaleCandidates}
+          detectionStatus={scaleDetectionStatus}
+          locked={locked}
+          busy={busy}
+          knownDistanceFt={knownDistanceFt}
+          calibrationPointCount={calibrationPoints.length}
+          pendingCandidate={pendingScaleCandidate}
+          pendingManualLabel={pendingManualCalibration?.scale_label||null}
+          regionPointCount={scaleRegionPoints.length}
+          onKnownDistanceChange={setKnownDistanceFt}
+          onUseDetectedSheet={candidate=>void useDetectedScaleSheet(candidate)}
+          onAssignDetectedRegion={beginDetectedScaleRegion}
+          onPickManual={()=>{setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setTool('calibrate');}}
+          onUseManualSheet={()=>void useManualScaleSheet()}
+          onAssignManualRegion={beginManualScaleRegion}
+          onSaveRegion={()=>void savePendingScaleRegion()}
+          onCancelRegion={cancelScaleRegion}
+          onDeleteRegion={region=>void removeScaleRegion(region)}
+        />
 
         <div className={styles.group}>
           <div className={styles.groupHead}><div><div className={styles.groupTitle}>Concrete Assembly</div><div className={styles.groupHelp}>One measurement drives material, labor and production quantities.</div></div></div>
@@ -489,15 +540,15 @@ export function TakeoffDrawingWorkspace(props:Props){
           {selectedVariables.length>0&&<div className={styles.variableGrid}>{selectedVariables.filter((variable:any)=>!(variable.variable_key==='perimeter_lf'&&selectedAssembly.primary_measurement==='SF')&&isAssemblyVariableActive(variable,variableValues)).map((variable:any)=><label className={styles.field} key={variable.id}><span>{variable.label}{variable.required?' *':''}</span>{variable.value_type==='boolean'?<label className={styles.checkRow}><input type="checkbox" checked={variableValues[variable.variable_key]==='true'} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.checked?'true':'false'}))}/><span>Enabled</span></label>:variable.value_type==='enum'?<select value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}><option value="">Select…</option>{enumOptions(variable.options).map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:<div className={styles.inputUnit}><input type={['number','dimension','percentage'].includes(variable.value_type)?'number':'text'} step="any" min={variable.min_value??undefined} max={variable.max_value??undefined} value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}/>{variable.unit&&<b>{variable.unit}</b>}</div>}{variable.help_text&&<small>{variable.help_text}</small>}</label>)}</div>}
           <label className={styles.checkRow}><input type="checkbox" checked={repeatMode} onChange={e=>setRepeatMode(e.target.checked)}/><Repeat2 size={14}/><span>Keep this assembly active after saving</span></label>
           <details className={styles.advanced}><summary>Advanced job coding</summary><div className={styles.advancedBody}><label className={styles.field}><span>Estimate scope area</span><select value={sectionId} disabled={locked} onChange={e=>setSectionId(e.target.value)}><option value="">Automatic / unassigned</option>{sections.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label className={styles.field}><span>L&I phase</span><select value={riskClassCode} disabled={locked} onChange={e=>setRiskClassCode(e.target.value)}><option value="">Assembly default</option>{riskClasses.map((r:any)=><option key={`${r.code}-${r.tax_year}`} value={r.code}>{r.code} — {r.name}</option>)}</select></label><label className={styles.field}><span>Drawing reference</span><input value={drawingReference} disabled={locked} onChange={e=>setDrawingReference(e.target.value)} placeholder="Automatic from current sheet"/></label></div></details>
-          {!locked&&<button type="button" className={styles.measurePrimary} disabled={!selectedAssembly} onClick={()=>{setDraftPoints([]);setTool('draw');}}><Crosshair size={16}/> Start {drawingTypeLabel} Takeoff</button>}
-          {preview&&tool==='draw'&&<div className={styles.previewCard}><span>Live quantity</span><strong>{qty(preview.quantity)} {preview.unit}</strong>{preview.perimeterLf>0&&<small>{qty(preview.perimeterLf)} LF perimeter</small>}<button type="button" disabled={busy} onClick={()=>void finishDraft()}><Check size={15}/> Save takeoff</button></div>}
+          {!locked&&<button type="button" className={styles.measurePrimary} disabled={!selectedAssembly} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/> Start {drawingTypeLabel} Takeoff</button>}
+          {preview&&tool==='draw'&&<div className={styles.previewCard}><span>Live quantity</span><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{preview.perimeterLf>0&&<small>{formatArchitecturalLength(preview.perimeterLf)} perimeter</small>}<button type="button" disabled={busy} onClick={()=>void finishDraft()}><Check size={15}/> Save takeoff</button></div>}
         </div>}
 
-        <div className={styles.group}><div className={styles.groupTitle}>This Sheet</div>{currentMeasurements.length?<div className={styles.objectList}>{currentMeasurements.map((measurement:any)=>{const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const summary=summaryMap.get(measurement.id);const geometry=drawingGeometry(measurement.geometry);return <button type="button" key={measurement.id} className={`${styles.objectButton} ${selectedMeasurementId===measurement.id?styles.objectSelected:''}`} onClick={()=>{setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setTool('select');}}><span className={styles.objectColor} style={{background:hashColor(assembly?.code||measurement.id)}}/><span><strong>{measurement.name}</strong><small>{assembly?.name||'Assembly'} · {qty(measurement.raw_quantity)} {measurement.raw_unit}{geometry?.holes?.length?` · ${geometry.holes.length} cutout${geometry.holes.length===1?'':'s'}`:''}</small></span>{summary?.missing?<b className={styles.objectWarn}>!</b>:null}</button>;})}</div>:<div className={styles.emptySmall}>No takeoff on this sheet yet.</div>}</div>
+        <div className={styles.group}><div className={styles.groupTitle}>This Sheet</div>{currentMeasurements.length?<div className={styles.objectList}>{currentMeasurements.map((measurement:any)=>{const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const summary=summaryMap.get(measurement.id);const geometry=drawingGeometry(measurement.geometry);return <button type="button" key={measurement.id} className={`${styles.objectButton} ${selectedMeasurementId===measurement.id?styles.objectSelected:''}`} onClick={()=>{setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setTool('select');}}><span className={styles.objectColor} style={{background:hashColor(assembly?.code||measurement.id)}}/><span><strong>{measurement.name}</strong><small>{assembly?.name||'Assembly'} · {formatTakeoffMeasurement(measurement.raw_quantity,measurement.raw_unit)}{geometry?.holes?.length?` · ${geometry.holes.length} cutout${geometry.holes.length===1?'':'s'}`:''}</small></span>{summary?.missing?<b className={styles.objectWarn}>!</b>:null}</button>;})}</div>:<div className={styles.emptySmall}>No takeoff on this sheet yet.</div>}</div>
 
         {selectedMeasurement&&<div className={`${styles.group} ${styles.selectedGroup}`}>
-          <div className={styles.groupTitle}>Selected Takeoff</div><div className={styles.selectedTitle}>{selectedMeasurement.name}</div><div className={styles.selectedQty}>{qty(selectedMeasurement.raw_quantity)} {selectedMeasurement.raw_unit}</div>
-          {selectedGeometry?.type==='polygon'&&<div className={styles.cutoutSummary}><span><b>{selectedCutoutCount}</b> cutout{selectedCutoutCount===1?'':'s'}</span><span><b>{qty(selectedMeasurement.geometry?.cutout_quantity||0)}</b> SF excluded</span><span><b>{qty(selectedMeasurement.geometry?.perimeter_lf||0)}</b> LF edge</span></div>}
+          <div className={styles.groupTitle}>Selected Takeoff</div><div className={styles.selectedTitle}>{selectedMeasurement.name}</div><div className={styles.selectedQty}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</div>
+          {selectedGeometry?.type==='polygon'&&<div className={styles.cutoutSummary}><span><b>{selectedCutoutCount}</b> cutout{selectedCutoutCount===1?'':'s'}</span><span><b>{qty(selectedMeasurement.geometry?.cutout_quantity||0)}</b> SF excluded</span><span><b>{formatArchitecturalLength(selectedMeasurement.geometry?.perimeter_lf||0)}</b> edge</span></div>}
           {selectedSummary&&<div className={styles.selectedStats}><span><b>{qty(selectedSummary.mh)}</b> MH</span><span><b>{money(selectedSummary.cost)}</b> direct</span></div>}
           {selectedSummary?.inputHolds?<div className={styles.statusWarn}>{selectedSummary.inputHolds} generated line{selectedSummary.inputHolds===1?'':'s'} waiting on assembly input. Geometry and unaffected quantities are saved.</div>:null}
           {selectedSummary?.priceHolds?<div className={styles.statusWarn}>{selectedSummary.priceHolds} generated line{selectedSummary.priceHolds===1?'':'s'} still need pricing or a labor rate.</div>:null}

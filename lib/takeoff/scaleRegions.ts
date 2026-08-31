@@ -197,4 +197,110 @@ export function detectScaleCandidates(items: PdfTextItemLike[], pageWidth: numbe
     .map((item, index) => {
       const text = normalizeScaleText(item?.str);
       const bounds = textItemBounds(item, pageWidth, pageHeight);
-      return text && bounds ? { index, text, bounds, baseline: bounds.y + boun
+      return text && bounds ? { index, text, bounds, baseline: bounds.y + bounds.height } : null;
+    })
+    .filter(Boolean) as { index: number; text: string; bounds: ScaleRegionBounds; baseline: number }[];
+
+  const groups: typeof entries[] = [];
+  for (const entry of entries.sort((a, b) => a.baseline - b.baseline || a.bounds.x - b.bounds.x)) {
+    const tolerance = Math.max(entry.bounds.height * 0.9, 0.0035);
+    const group = groups.find(candidate => Math.abs(candidate[0].baseline - entry.baseline) <= tolerance);
+    if (group) group.push(entry);
+    else groups.push([entry]);
+  }
+
+  const sources = [
+    ...entries.map(entry => ({ text: entry.text, bounds: entry.bounds })),
+    ...groups.map(group => {
+      const ordered = [...group].sort((a, b) => a.bounds.x - b.bounds.x);
+      return { text: ordered.map(entry => entry.text).join(' '), bounds: unionBounds(ordered.map(entry => entry.bounds)) };
+    }),
+  ];
+
+  const candidates: ScaleCandidate[] = [];
+  for (const source of sources) {
+    const parsed = parseScaleNotation(source.text);
+    if (!parsed) continue;
+    const key = `${parsed.label}|${Math.round((source.bounds?.x || 0) * 1000)}|${Math.round((source.bounds?.y || 0) * 1000)}`;
+    if (candidates.some(candidate => `${candidate.label}|${Math.round((candidate.sourceBounds?.x || 0) * 1000)}|${Math.round((candidate.sourceBounds?.y || 0) * 1000)}` === key)) continue;
+    candidates.push({
+      ...parsed,
+      id: `scale-${pageNumber}-${candidates.length + 1}`,
+      sourceBounds: source.bounds,
+    });
+  }
+
+  return candidates.sort((a, b) => Number(b.usable) - Number(a.usable) || b.confidence - a.confidence);
+}
+
+export function boundsFromPoints(points: NormalizedPoint[]): ScaleRegionBounds | null {
+  if (!Array.isArray(points) || points.length !== 2) return null;
+  const x = Math.min(points[0].x, points[1].x);
+  const y = Math.min(points[0].y, points[1].y);
+  const width = Math.abs(points[1].x - points[0].x);
+  const height = Math.abs(points[1].y - points[0].y);
+  if (!(width > 0.002 && height > 0.002)) return null;
+  return { x: clamp01(x), y: clamp01(y), width: clamp01(width), height: clamp01(height) };
+}
+
+export function pointInScaleBounds(point: NormalizedPoint, bounds: ScaleRegionBounds | null | undefined, tolerance = 0.0005) {
+  if (!bounds) return true;
+  return point.x >= bounds.x - tolerance
+    && point.x <= bounds.x + bounds.width + tolerance
+    && point.y >= bounds.y - tolerance
+    && point.y <= bounds.y + bounds.height + tolerance;
+}
+
+export function geometryFitsScaleBounds(geometry: DrawingGeometry, bounds: ScaleRegionBounds | null | undefined) {
+  if (!bounds) return true;
+  const points = [...geometry.points, ...(geometry.holes || []).flat()];
+  return points.length > 0 && points.every(point => pointInScaleBounds(point, bounds));
+}
+
+const boundsArea = (bounds: ScaleRegionBounds | null | undefined) => bounds ? bounds.width * bounds.height : Number.POSITIVE_INFINITY;
+
+export function findScaleRegionForPoint(regions: TakeoffScaleRegion[], point: NormalizedPoint) {
+  const accepted = (regions || []).filter(region => Number(region?.calibration?.ft_per_pdf_unit) > 0);
+  const bounded = accepted.filter(region => region.region_bounds && pointInScaleBounds(point, region.region_bounds)).sort((a, b) => boundsArea(a.region_bounds) - boundsArea(b.region_bounds));
+  if (bounded.length) return bounded[0];
+  return accepted.find(region => region.is_default) || accepted.find(region => !region.region_bounds) || null;
+}
+
+export function findScaleRegionForGeometry(regions: TakeoffScaleRegion[], geometry: DrawingGeometry) {
+  const accepted = (regions || []).filter(region => Number(region?.calibration?.ft_per_pdf_unit) > 0);
+  const bounded = accepted.filter(region => region.region_bounds && geometryFitsScaleBounds(geometry, region.region_bounds)).sort((a, b) => boundsArea(a.region_bounds) - boundsArea(b.region_bounds));
+  if (bounded.length) return bounded[0];
+  const fallback = accepted.find(region => region.is_default) || accepted.find(region => !region.region_bounds) || null;
+  return fallback && geometryFitsScaleBounds(geometry, fallback.region_bounds) ? fallback : null;
+}
+
+export function calibrationFromDetectedScale(candidate: ScaleCandidate): ScaleCalibration {
+  if (!candidate.usable || !(Number(candidate.feetPerPdfUnit) > 0)) throw new Error('This detected label does not define a measurable scale.');
+  return {
+    ft_per_pdf_unit: Number(candidate.feetPerPdfUnit),
+    method: 'pdf_text',
+    scale_label: candidate.label,
+    source_text: candidate.sourceText,
+    source_bounds: candidate.sourceBounds,
+    confidence: candidate.confidence,
+    accepted_at: new Date().toISOString(),
+  };
+}
+
+export function calibrationFromManual(points: NormalizedPoint[], knownDistanceFt: number, pageWidth: number, pageHeight: number): ScaleCalibration {
+  if (!Array.isArray(points) || points.length !== 2) throw new Error('Manual calibration requires two points.');
+  if (!(knownDistanceFt > 0) || !(pageWidth > 0) || !(pageHeight > 0)) throw new Error('Manual calibration values are invalid.');
+  const dx = (points[1].x - points[0].x) * pageWidth;
+  const dy = (points[1].y - points[0].y) * pageHeight;
+  const distance = Math.hypot(dx, dy);
+  if (!(distance > 0)) throw new Error('Manual calibration points must be different.');
+  return {
+    ft_per_pdf_unit: knownDistanceFt / distance,
+    method: 'manual',
+    scale_label: `${knownDistanceFt.toLocaleString('en-US', { maximumFractionDigits: 4 })} FT manual calibration`,
+    known_distance_ft: knownDistanceFt,
+    pdf_distance: distance,
+    points,
+    accepted_at: new Date().toISOString(),
+  };
+}

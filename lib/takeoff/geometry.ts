@@ -321,6 +321,8 @@ export function takeoffPathPdfLength(path: TakeoffPath, pageWidth: number, pageH
 }
 
 export function calibrationScale(calibration: any) {
+  const directScale = Number(calibration?.ft_per_pdf_unit || 0);
+  if (directScale > 0) return directScale;
   const knownDistanceFt = Number(calibration?.known_distance_ft || 0);
   const pdfDistanceUnits = Number(calibration?.pdf_distance || 0);
   if (!(knownDistanceFt > 0) || !(pdfDistanceUnits > 0)) throw new Error('This drawing sheet is not calibrated.');

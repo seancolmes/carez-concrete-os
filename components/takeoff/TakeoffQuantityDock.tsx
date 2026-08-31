@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
+import { formatTakeoffQuantityValue } from '@/lib/takeoff/lengthFormat';
 import styles from './TakeoffQuantityDock.module.css';
 
 type Props = {
@@ -203,7 +204,7 @@ export function TakeoffQuantityDock({
               onClick={() => onOpenMeasurement(row.measurement)}
             >
               <span role="cell" className={styles.measurement}><strong>{row.measurement.name}</strong><small>{row.sheet}{row.measurement.location ? ` · ${row.measurement.location}` : ''}</small></span>
-              <span role="cell" className={styles.numeric}>{quantity(row.measurement.raw_quantity)}</span>
+              <span role="cell" className={styles.numeric} title={`${row.measurement.raw_quantity} ${row.measurement.raw_unit}`}>{formatTakeoffQuantityValue(row.measurement.raw_quantity, row.measurement.raw_unit)}</span>
               <span role="cell">{row.measurement.raw_unit}</span>
               <span role="cell">{row.assembly}</span>
               <span role="cell">{row.section}</span>
