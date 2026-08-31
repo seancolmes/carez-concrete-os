@@ -1,36 +1,51 @@
-# Carez Concrete OS — v0.3
+# Carez Concrete OS
 
-Private, mobile-first operating system designed specifically for Carez Concrete.
+Private concrete-contractor operating system covering preconstruction, plans, Takeoff, estimating, proposals, projects, work packages, scheduling, field/production, pour control, procurement, operational finance, documents, and AI assistance.
 
-## Current modules
+## Start here
 
-- Private owner login
-- Live Lead / Bid Pipeline
-- Projects
-- Crew
-- Dashboard
-- Supabase authentication and database
-- Per-company row-level security
-- Responsive PWA shell
+The repository documentation is the canonical product/architecture source of truth:
+
+- [`docs/README.md`](docs/README.md) — documentation control/index
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — stable architecture and product invariants
+- [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) — current implementation/blocker/validation state
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — modernization sequence
+- [`AGENTS.md`](AGENTS.md) — implementation/AI-agent rules
+- [`docs/modules/`](docs/modules/) — module specifications
+- [`docs/decisions/`](docs/decisions/) — architectural decision records
+
+Do not use the legacy v0.x sequence as the active roadmap. The canonical sequence is maintained in `docs/ROADMAP.md`.
+
+## Architecture stance
+
+- Concrete-native product and workflows.
+- Modular monolith.
+- PostgreSQL/Supabase source of truth.
+- Server-authoritative deterministic calculations.
+- RLS, tenant isolation, auditability, and safe migrations.
+- Immutable/versioned commercial lineage.
+- Desktop professional workstation; mobile field-first.
+
+## Development validation
+
+Branch CI runs:
+
+```text
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+UI work additionally requires browser verification of the exact rendered behavior being changed.
 
 ## Required environment variables
 
-Add these in the hosting provider:
+Configure secrets through the hosting/development environment. Never commit service-role keys, database passwords, bank tokens, or production secrets.
+
+Common application variables include:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `PLAID_CLIENT_ID`
 - `PLAID_SECRET`
-
-Never commit Supabase service-role keys, database passwords, Plaid secrets, or bank access tokens.
-
-## Build sequence
-
-1. v0.1 — Shell and core domain ✅
-2. v0.2 — Supabase database + private authentication ✅
-3. v0.3 — Real lead entry + bid pipeline ✅
-4. v0.4 — Projects + timecards + daily logs
-5. v0.5 — Job costing + cash exposure
-6. v0.6 — Estimating + proposals
-7. v0.7 — Pour planner + on-call labor bench
-8. v1.0 — Production release + accounting integration
