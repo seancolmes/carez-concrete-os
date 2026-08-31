@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
+import { Inter } from 'next/font/google';
 import { GeistMono } from 'geist/font/mono';
 import './polish.css';
 import './construction-ui.css';
@@ -28,6 +28,13 @@ import './b2-modules.css';
 import './b2-estimating-surfaces.css';
 import './b2-theme.css';
 import './b2-workstation-pass2.css';
+import './b2-design-system.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
@@ -41,8 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-    <body className={GeistSans.className}>
+  return <html lang="en" className={`${inter.variable} ${GeistMono.variable}`}>
+    <body className={inter.className}>
       {children}
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
