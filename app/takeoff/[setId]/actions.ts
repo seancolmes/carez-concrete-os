@@ -35,6 +35,7 @@ type DrawingInput = {
   sheetId: string;
   estimateSectionId?: string | null;
   assemblyVersionId: string;
+  methodProfileId?: string | null;
   scaleRegionId?: string | null;
   name: string;
   location?: string | null;
@@ -42,6 +43,14 @@ type DrawingInput = {
   riskClassCode?: string | null;
   variables?: Record<string, number | string | null | undefined>;
   geometry: DrawingGeometry;
+};
+
+type VerifyMethodProfileInput = {
+  takeoffSetId: string;
+  assemblyVersionId: string;
+  name: string;
+  methodInputs: Record<string, unknown>;
+  verificationNotes?: string | null;
 };
 type GeometryUpdateInput = { measurementId: string; takeoffSetId: string; geometry: DrawingGeometry };
 type AssemblyInputUpdate = {
@@ -370,6 +379,29 @@ export async function deleteTakeoffScaleRegion(regionId: string, setId: string) 
   refreshTakeoff(setId);
 }
 
+
+export async function verifyTakeoffMethodProfile(input: VerifyMethodProfileInput) {
+  if (!input?.takeoffSetId || !input.assemblyVersionId || !input.methodInputs) throw new Error('Build-method inputs are required.');
+  const { supabase, companyId } = await ctx();
+  await editableSet(supabase, companyId, input.takeoffSetId);
+  const { data: id, error } = await supabase.rpc('carez_create_verified_takeoff_method_profile', {
+    p_takeoff_set_id: input.takeoffSetId,
+    p_assembly_version_id: input.assemblyVersionId,
+    p_name: String(input.name || '').trim() || 'Verified Build Method',
+    p_method_inputs: input.methodInputs,
+    p_verification_notes: String(input.verificationNotes || '').trim() || null,
+  });
+  if (error) throw new Error(error.message);
+  const { data: profile, error: profileError } = await supabase.from('takeoff_method_profiles')
+    .select('id,revision_no')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (profileError || !profile) throw new Error(profileError?.message || 'Verified build method could not be loaded.');
+  refreshTakeoff(input.takeoffSetId);
+  return { id: profile.id as string, revisionNo: Number(profile.revision_no || 1) };
+}
+
 export async function createDrawingMeasurement(input: DrawingInput) {
   if (!input?.takeoffSetId || !input.sheetId || !input.assemblyVersionId || !String(input.name || '').trim()) throw new Error('Assembly and object name are required.');
   const { supabase, companyId } = await ctx();
@@ -421,6 +453,7 @@ export async function createDrawingMeasurement(input: DrawingInput) {
     p_geometry: geometry,
     p_outputs: engine.prepared,
     p_scale_region_id: context.scaleRegion?.id || null,
+    p_method_profile_id: input.methodProfileId || null,
   });
   if (error) throw new Error(error.message);
   refreshTakeoff(input.takeoffSetId);
@@ -483,7 +516,7 @@ export async function duplicateDrawingMeasurement(measurementId: string, setId: 
   const { supabase, companyId } = await ctx();
   await editableSet(supabase, companyId, setId);
   const { data: measurement } = await supabase.from('takeoff_measurements')
-    .select('id,takeoff_set_id,sheet_id,estimate_section_id,assembly_version_id,scale_region_id,name,location,drawing_reference,risk_class_code,variables,geometry')
+    .select('id,takeoff_set_id,sheet_id,estimate_section_id,assembly_version_id,method_profile_id,scale_region_id,name,location,drawing_reference,risk_class_code,variables,geometry')
     .eq('id', measurementId)
     .eq('takeoff_set_id', setId)
     .eq('company_id', companyId)
@@ -520,6 +553,7 @@ export async function duplicateDrawingMeasurement(measurementId: string, setId: 
     sheetId: measurement.sheet_id,
     estimateSectionId: measurement.estimate_section_id,
     assemblyVersionId: measurement.assembly_version_id,
+    methodProfileId: measurement.method_profile_id,
     scaleRegionId: measurement.scale_region_id,
     name: `${measurement.name} Copy`,
     location: measurement.location,

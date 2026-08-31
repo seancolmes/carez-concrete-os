@@ -18,6 +18,7 @@ import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContex
 import {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';
 import {boundsFromPoints,calibrationFromDetectedScale,calibrationFromManual,findScaleRegionForPoint,type ScaleCalibration,type ScaleCandidate,type TakeoffScaleRegion} from '@/lib/takeoff/scaleRegions';
 import {TakeoffAssemblyInputEditor} from './TakeoffAssemblyInputEditor';
+import {TakeoffBuildPlanPanel} from './TakeoffBuildPlanPanel';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
 import {TakeoffScalePanel} from './TakeoffScalePanel';
@@ -40,6 +41,7 @@ type Props={
   variables:any[];
   sections:any[];
   riskClasses:any[];
+  methodProfiles:any[];
   locked:boolean;
 };
 type RenderBox={width:number;height:number;pdfWidth:number;pdfHeight:number};
@@ -71,7 +73,7 @@ function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|
 function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,value));}
 
 export function TakeoffDrawingWorkspace(props:Props){
-  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,locked}=props;
+  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,methodProfiles,locked}=props;
   const router=useRouter();
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const viewportRef=useRef<HTMLDivElement|null>(null);
@@ -109,6 +111,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [objectName,setObjectName]=useState('');
   const [sectionId,setSectionId]=useState('');
   const [riskClassCode,setRiskClassCode]=useState('');
+  const [selectedMethodProfileId,setSelectedMethodProfileId]=useState<string|null>(null);
   const [location,setLocation]=useState('');
   const [drawingReference,setDrawingReference]=useState('');
   const [variableValues,setVariableValues]=useState<Record<string,string>>({});
@@ -128,6 +131,11 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedAssembly:any=assemblyMap.get(selectedAssemblyId);
   const selectedVersion:any=selectedAssembly?latestVersionByAssembly.get(selectedAssembly.id):null;
   const selectedVariables=useMemo(()=>selectedVersion?variables.filter((v:any)=>v.assembly_version_id===selectedVersion.id):[],[selectedVersion,variables]);
+  const selectedMethodProfile=useMemo(()=>methodProfiles.find((profile:any)=>profile.id===selectedMethodProfileId&&profile.assembly_version_id===selectedVersion?.id&&profile.status==='verified')||null,[methodProfiles,selectedMethodProfileId,selectedVersion?.id]);
+  const requiredMethodVariables=useMemo(()=>selectedVariables.filter((variable:any)=>variable.requires_verification&&['method_decision','production_assumption','commercial_assumption'].includes(variable.input_role)&&isAssemblyVariableActive(variable,variableValues)),[selectedVariables,variableValues]);
+  const buildPlanRequired=requiredMethodVariables.length>0;
+  const buildPlanReady=!buildPlanRequired||Boolean(selectedMethodProfile&&requiredMethodVariables.every((variable:any)=>String(selectedMethodProfile.method_inputs?.[variable.variable_key]??'')===String(variableValues[variable.variable_key]??'')));
+  const hasBuilderModel=selectedVariables.some((variable:any)=>!['legacy','derived'].includes(variable.input_role||'legacy'));
   const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);
   const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);
   const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);
@@ -170,7 +178,10 @@ export function TakeoffDrawingWorkspace(props:Props){
     if(!selectedVersion)return;
     const next:Record<string,string>={};
     for(const variable of selectedVariables){if(variable.variable_key==='perimeter_lf'&&selectedAssembly?.primary_measurement==='SF')continue;next[variable.variable_key]=variable.default_value===null||variable.default_value===undefined?'':String(variable.default_value);}
+    const profile=methodProfiles.find((entry:any)=>entry.assembly_version_id===selectedVersion.id&&entry.status==='verified')||null;
+    if(profile){for(const [key,value] of Object.entries(profile.method_inputs||{}))next[key]=value===null||value===undefined?'':String(value);}
     setVariableValues(next);
+    setSelectedMethodProfileId(profile?.id||null);
     setRiskClassCode(selectedVersion.default_risk_class_code||'');
     setObjectName('');
     setDraftPoints([]);
@@ -296,6 +307,7 @@ export function TakeoffDrawingWorkspace(props:Props){
 
   const finishDraft=useCallback(async()=>{
     if(locked||busy||!selectedAssembly||!selectedVersion||!currentSheet||!renderBox)return;
+    if(!buildPlanReady){setMessage('Verify the current build method before starting takeoff.');return;}
     const geometryType:DrawingGeometry['type']=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
     const minimum=geometryType==='polygon'?3:geometryType==='polyline'?2:1;
     if(draftPoints.length<minimum){setMessage(`${selectedAssembly.primary_measurement} takeoff needs at least ${minimum} point${minimum===1?'':'s'}.`);return;}
@@ -305,12 +317,12 @@ export function TakeoffDrawingWorkspace(props:Props){
     const finalName=objectName.trim()||autoName;
     setBusy(true);
     try{
-      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,scaleRegionId:draftScaleRegionId,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
+      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,methodProfileId:selectedMethodProfileId,scaleRegionId:draftScaleRegionId,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
       const holdText=result.inputHolds?` · ${result.inputHolds} input hold${result.inputHolds===1?'':'s'}`:'';
       setMessage(`Saved ${finalName} · ${formatTakeoffMeasurement(result.quantity,result.unit)}${result.perimeterLf?` · ${formatArchitecturalLength(result.perimeterLf)} perimeter`:''}${holdText}`);
       setDraftPoints([]);setDraftScaleRegionId(null);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);setTool(repeatMode?'draw':'select');router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not save drawing measurement.');}finally{setBusy(false);}
-  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router]);
+  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router,buildPlanReady,selectedMethodProfileId]);
 
   function beginEdit(){if(locked||!selectedMeasurement||!selectedGeometry)return;const copy=copyGeometry(selectedGeometry);editOriginalRef.current=copyGeometry(selectedGeometry);setEditGeometry(copy);setDraftPoints([]);setTool('edit');setMessage('Drag a vertex, then press Enter or Save Shape.');}
   function beginCutout(){if(locked||selectedGeometry?.type!=='polygon')return;setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('cutout');setMessage('Trace the opening inside the selected area, then press Enter.');}
@@ -361,7 +373,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       if(event.key.toLowerCase()==='v')setTool('select');
       if(event.key.toLowerCase()==='h')setTool('pan');
       if(event.key.toLowerCase()==='c'&&!locked){setCalibrationPoints([]);setTool('calibrate');}
-      if(event.key.toLowerCase()==='m'&&!locked)setTool('draw');
+      if(event.key.toLowerCase()==='m'&&!locked){if(buildPlanReady)setTool('draw');else setMessage('Verify the current build method before starting takeoff.');}
       if(event.key.toLowerCase()==='e'&&!locked&&selectedGeometry)beginEdit();
       if(event.key.toLowerCase()==='d'&&!locked&&selectedGeometry){event.preventDefault();void duplicateSelected();}
       if(event.key.toLowerCase()==='k'&&!locked&&selectedGeometry?.type==='polygon')beginCutout();
@@ -372,7 +384,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     const up=(event:KeyboardEvent)=>{if(event.code==='Space')setSpaceHeld(false);};
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
     if(tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
@@ -381,7 +393,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
     if(tool==='calibrate'){setCalibrationPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
     if(tool==='scaleRegion'){setScaleRegionPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
-    if(tool==='draw'){if(!selectedAssembly){setMessage('Choose a concrete assembly first.');return;}if(selectedAssembly.primary_measurement!=='EA'){const region=findScaleRegionForPoint(currentScaleRegions,resolved.point);if(!region){setMessage('Confirm or create a scale region covering this point.');return;}if(draftScaleRegionId&&draftScaleRegionId!==region.id){setMessage('One takeoff cannot cross between different scale regions.');return;}setDraftScaleRegionId(region.id);}setDraftPoints(points=>[...points,resolved.point]);return;}
+    if(tool==='draw'){if(!buildPlanReady){setMessage('Verify the current build method before starting takeoff.');return;}if(!selectedAssembly){setMessage('Choose a concrete assembly first.');return;}if(selectedAssembly.primary_measurement!=='EA'){const region=findScaleRegionForPoint(currentScaleRegions,resolved.point);if(!region){setMessage('Confirm or create a scale region covering this point.');return;}if(draftScaleRegionId&&draftScaleRegionId!==region.id){setMessage('One takeoff cannot cross between different scale regions.');return;}setDraftScaleRegionId(region.id);}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='cutout'){if(selectedGeometry?.type!=='polygon'){setMessage('Select an area takeoff before adding a cutout.');setTool('select');return;}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='select'){setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;}
   }
@@ -435,7 +447,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
           <button type="button" title="Pan · H or hold Space" className={`${styles.toolButton} ${tool==='pan'?styles.toolButtonActive:''}`} onClick={()=>setTool('pan')}><Hand size={16}/><span>Pan</span></button>
           <button type="button" disabled={locked} title="Set drawing scale · C" className={`${styles.toolButton} ${tool==='calibrate'?styles.toolButtonActive:''}`} onClick={()=>{setCalibrationPoints([]);setTool('calibrate');}}><Ruler size={16}/><span>Scale</span></button>
-          <button type="button" disabled={locked||!selectedAssembly} title="Measure · M" className={`${styles.toolButton} ${tool==='draw'?styles.toolButtonActive:styles.measureButton}`} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/><span>{drawingTypeLabel}</span></button>
+          <button type="button" disabled={locked||!selectedAssembly||!buildPlanReady} title={buildPlanReady?'Measure · M':'Verify build method before measuring'} className={`${styles.toolButton} ${tool==='draw'?styles.toolButtonActive:styles.measureButton}`} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/><span>{drawingTypeLabel}</span></button>
           <button type="button" disabled={locked||!selectedGeometry} title="Edit selected shape · E" className={`${styles.toolButton} ${tool==='edit'?styles.toolButtonActive:''}`} onClick={beginEdit}><Pencil size={15}/><span>Edit</span></button>
           <button type="button" disabled={locked||selectedGeometry?.type!=='polygon'} title="Add area cutout · K" className={`${styles.toolButton} ${tool==='cutout'?styles.toolButtonActive:''}`} onClick={beginCutout}><Scissors size={15}/><span>Cutout</span></button>
         </div>
@@ -533,14 +545,28 @@ export function TakeoffDrawingWorkspace(props:Props){
           {selectedVersion&&<div className={styles.assemblySource}>V{selectedVersion.version_no} · {selectedVersion.source_label||'Carez assembly'}{selectedVersion.source_reference&&<span>{selectedVersion.source_reference}</span>}</div>}
         </div>
 
+        {selectedAssembly&&selectedVersion&&<TakeoffBuildPlanPanel
+          takeoffSetId={takeoffSet.id}
+          assembly={selectedAssembly}
+          version={selectedVersion}
+          variables={variables}
+          profiles={methodProfiles}
+          values={variableValues}
+          selectedProfileId={selectedMethodProfileId}
+          locked={locked}
+          onValuesChange={setVariableValues}
+          onProfileChange={setSelectedMethodProfileId}
+          onMessage={setMessage}
+        />}
+
         {selectedAssembly&&<div className={styles.group}>
           <div className={styles.groupTitle}>Takeoff Details</div>
           <label className={styles.field}><span>Name <em>optional</em></span><input value={objectName} disabled={locked} onChange={e=>setObjectName(e.target.value)} placeholder={`Auto: ${selectedAssembly.name} 1`}/></label>
           <label className={styles.field}><span>Location / zone <em>optional</em></span><input value={location} disabled={locked} onChange={e=>setLocation(e.target.value)} placeholder="Garage · North wall · Area A"/></label>
-          {selectedVariables.length>0&&<div className={styles.variableGrid}>{selectedVariables.filter((variable:any)=>!(variable.variable_key==='perimeter_lf'&&selectedAssembly.primary_measurement==='SF')&&isAssemblyVariableActive(variable,variableValues)).map((variable:any)=><label className={styles.field} key={variable.id}><span>{variable.label}{variable.required?' *':''}</span>{variable.value_type==='boolean'?<label className={styles.checkRow}><input type="checkbox" checked={variableValues[variable.variable_key]==='true'} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.checked?'true':'false'}))}/><span>Enabled</span></label>:variable.value_type==='enum'?<select value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}><option value="">Select…</option>{enumOptions(variable.options).map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:<div className={styles.inputUnit}><input type={['number','dimension','percentage'].includes(variable.value_type)?'number':'text'} step="any" min={variable.min_value??undefined} max={variable.max_value??undefined} value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}/>{variable.unit&&<b>{variable.unit}</b>}</div>}{variable.help_text&&<small>{variable.help_text}</small>}</label>)}</div>}
+          {selectedVariables.length>0&&<div className={styles.variableGrid}>{selectedVariables.filter((variable:any)=>(!hasBuilderModel||(variable.input_role||'legacy')==='legacy')&&!(variable.variable_key==='perimeter_lf'&&selectedAssembly.primary_measurement==='SF')&&isAssemblyVariableActive(variable,variableValues)).map((variable:any)=><label className={styles.field} key={variable.id}><span>{variable.label}{variable.required?' *':''}</span>{variable.value_type==='boolean'?<label className={styles.checkRow}><input type="checkbox" checked={variableValues[variable.variable_key]==='true'} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.checked?'true':'false'}))}/><span>Enabled</span></label>:variable.value_type==='enum'?<select value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}><option value="">Select…</option>{enumOptions(variable.options).map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:<div className={styles.inputUnit}><input type={['number','dimension','percentage'].includes(variable.value_type)?'number':'text'} step="any" min={variable.min_value??undefined} max={variable.max_value??undefined} value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}/>{variable.unit&&<b>{variable.unit}</b>}</div>}{variable.help_text&&<small>{variable.help_text}</small>}</label>)}</div>}
           <label className={styles.checkRow}><input type="checkbox" checked={repeatMode} onChange={e=>setRepeatMode(e.target.checked)}/><Repeat2 size={14}/><span>Keep this assembly active after saving</span></label>
           <details className={styles.advanced}><summary>Advanced job coding</summary><div className={styles.advancedBody}><label className={styles.field}><span>Estimate scope area</span><select value={sectionId} disabled={locked} onChange={e=>setSectionId(e.target.value)}><option value="">Automatic / unassigned</option>{sections.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label className={styles.field}><span>L&I phase</span><select value={riskClassCode} disabled={locked} onChange={e=>setRiskClassCode(e.target.value)}><option value="">Assembly default</option>{riskClasses.map((r:any)=><option key={`${r.code}-${r.tax_year}`} value={r.code}>{r.code} — {r.name}</option>)}</select></label><label className={styles.field}><span>Drawing reference</span><input value={drawingReference} disabled={locked} onChange={e=>setDrawingReference(e.target.value)} placeholder="Automatic from current sheet"/></label></div></details>
-          {!locked&&<button type="button" className={styles.measurePrimary} disabled={!selectedAssembly} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/> Start {drawingTypeLabel} Takeoff</button>}
+          {!locked&&<button type="button" className={styles.measurePrimary} disabled={!selectedAssembly||!buildPlanReady} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/> {buildPlanReady?`Start ${drawingTypeLabel} Takeoff`:'Verify Method to Start'}</button>}
           {preview&&tool==='draw'&&<div className={styles.previewCard}><span>Live quantity</span><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{preview.perimeterLf>0&&<small>{formatArchitecturalLength(preview.perimeterLf)} perimeter</small>}<button type="button" disabled={busy} onClick={()=>void finishDraft()}><Check size={15}/> Save takeoff</button></div>}
         </div>}
 
