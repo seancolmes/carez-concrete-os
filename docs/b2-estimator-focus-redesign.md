@@ -2,9 +2,31 @@
 
 ## Visual contract
 
-B2 is a desktop-first professional estimating interface. The application shell uses a Dark Carbon system: near-black chrome, slightly raised charcoal panes, thin neutral dividers, compact controls, Carez blue for selection/primary actions, off-white primary text, muted gray secondary text, small radii, and tabular numeric presentation.
+B2 is a desktop-first professional estimating interface. The benchmark is professional CAD/estimating software rather than generic SaaS dashboards.
 
-The benchmark is professional CAD/estimating software rather than generic SaaS dashboards.
+### Canonical Dark Carbon palette
+
+These values are authoritative. Do not sample replacement colors from screenshots or rendered mockups.
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| Primary Blue | `#1E5BFF` | Active tools, buttons, selections, links and important totals |
+| Blue Gradient Start | `#1E5BFF` | Branded / selected-state gradients |
+| Blue Gradient End | `#0D2E6E` | Branded / subtle navigation gradients |
+| Carbon | `#0F1115` | Main application background |
+| Surface | `#161A20` | Panels, toolbars and worksheets |
+| Border | `#2A2F36` | Dividers, input borders and table grid |
+| Text Primary | `#E6E8EB` | Primary labels and values |
+| Text Secondary | `#A3A6B3` | Metadata, inactive labels and secondary text |
+| Success | `#22C55E` | Complete / verified / positive state |
+| Warning | `#F59E0B` | Verification required / caution |
+| Danger | `#EF4444` | Errors and destructive actions |
+
+The majority of the application remains neutral Carbon/Surface. Carez Blue is selective so drawing takeoff colors and estimating data remain visually dominant.
+
+### Brand mark
+
+The supplied Carez Concrete logo is the canonical application brand mark: blue geometric `C`, white concrete-pump line art, blue `CAREZ` wordmark and white `CONCRETE` subline. The application shell uses the dedicated `/brand/carez-wordmark.png` slot for this mark. Do not substitute a generic `C`, redraw the pump, or invent another logo treatment. The logo should be prominent enough to identify Carez while remaining compact enough not to consume estimator workspace.
 
 ## Workspace model
 
@@ -27,27 +49,25 @@ Carez presents three synchronized layers of the same estimate:
 
 Geometry remains authoritative in normalized/vector page coordinates. Assemblies expand geometry into physical resources, production and generated estimate lines. Financial lineage remains server-authoritative.
 
-## Build Plan
+## Inspector model
 
-Builder Methods remain part of P1. The right-side inspector should show a compact method status/summary during normal drawing. Advanced Build Plan editing is a larger application-workspace task rather than a permanently expanded narrow form.
+The Takeoff inspector uses three functional tabs:
 
-The existing P1 verification, immutable profile lineage and draw gate remain authoritative.
+- `Takeoffs`
+- `Properties`
+- `Build Plan`
 
-## First implementation pass
+There is no fake `Layers` module. `Build Plan` is a Carez-specific first-class concept.
 
-This branch introduces:
+The compact Build Plan inspector shows method status, revision, important assumptions and unresolved verification. Advanced editing uses the main application workspace rather than an oversized permanent sidebar form, browser popup or separate window.
 
-- B2 global rail/topbar and semantic Dark Carbon tokens,
-- B2 Takeoff project bar and workstation chrome,
-- dark sheet navigator, CAD toolbar, inspector and drawing status bar,
-- dark persistent Takeoff quantity worksheet,
-- B2 Build Plan styling,
-- B2 hierarchical Estimate worksheet styling,
-- whole-OS density and control refinements through a final semantic stylesheet.
+## Builder Methods
 
-## Deferred interaction refinement
+Builder Methods remain part of P1. The existing verification, immutable profile lineage, conditional activation and draw gate remain authoritative through the redesign.
 
-The next B2 pass should add the final inspector information architecture (`Takeoffs`, `Properties`, `Build Plan`) and move full Build Plan editing into the main workspace while preserving the compact drawing inspector. That interaction change must be browser-tested against authenticated Takeoff behavior before staging promotion.
+## Estimate hierarchy
+
+Takeoff measurement/assembly groups remain collapsible. Parent groups such as `Strip Footing — Garage 1` own their generated resource/cost children and measurement subtotal. The B2 redesign changes presentation, not lineage semantics.
 
 ## Release boundary
 
