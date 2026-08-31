@@ -1,3 +1,8 @@
+> **Document status:** RESEARCH CONTRACT  
+> **Canonical owner:** `docs/modules/estimating.md`, `docs/modules/takeoff.md`, `docs/ARCHITECTURE.md`  
+> **Use:** Source hierarchy and domain corrections that inform P1 means/methods design. It is not the primary implementation-status document.  
+> **Supersession:** Accepted research conclusions remain supporting evidence unless an approved canonical spec or ADR supersedes them.
+
 # Estimating P1 — Construction Method Research Contract
 
 ## Purpose

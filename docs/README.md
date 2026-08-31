@@ -22,6 +22,7 @@ When sources conflict, do not silently reconcile them. Prefer the higher authori
 - [Architecture](ARCHITECTURE.md)
 - [Current State](CURRENT_STATE.md)
 - [Roadmap](ROADMAP.md)
+- [Document Status Registry](DOCUMENT_STATUS.md)
 - [Knowledge Source Routing](KNOWLEDGE_SOURCE_ROUTING.md)
 - [ChatGPT Project Instructions](CHATGPT_PROJECT_INSTRUCTIONS.md)
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
@@ -45,6 +46,8 @@ See `docs/decisions/`.
 
 ADRs document why high-impact decisions exist. Module specs document how the product behaves. `CURRENT_STATE.md` documents what is actually implemented now.
 
-## Legacy documents
+## Supporting and legacy documents
 
-Existing root-level documents in `docs/` remain valuable evidence and detailed design records. They are not automatically canonical where they conflict with the governance documents above. Migrate durable decisions into the appropriate module spec or ADR rather than deleting useful historical material.
+Every retained root-level design/history document in `docs/` must have an explicit status header and registry entry in `DOCUMENT_STATUS.md`.
+
+Supporting documents may add detail but may not silently override canonical architecture, ADRs, module specifications, or current-state records. Durable approved changes are promoted through the approval → documentation workflow rather than left only in a supporting file or chat.

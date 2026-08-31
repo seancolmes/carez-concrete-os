@@ -1,3 +1,8 @@
+> **Document status:** HISTORICAL IMPLEMENTATION RECORD  
+> **Canonical owner:** `docs/CURRENT_STATE.md` for current implementation status  
+> **Use:** Evidence of the 2026-08-29 modernization checkpoint. Do not treat dates, branch state, blockers, or validation counts here as current.  
+> **Supersession:** Current state and roadmap documents supersede this file for present-tense status.
+
 # Carez Concrete OS Modernization Record
 
 Last updated: 2026-08-29

@@ -1,3 +1,8 @@
+> **Document status:** SUPERSEDED VISION RECORD  
+> **Canonical owner:** `docs/ARCHITECTURE.md` and current module/design specifications  
+> **Use:** Historical product-direction context. Later approved B2 and module-specific documents take precedence.  
+> **Supersession:** Do not use this file alone to make current UI or navigation decisions.
+
 # Carez Concrete OS — Product Polish Direction
 
 Target: professional, construction-native, low-friction software with the depth of a full estimating system and the speed of a modern browser takeoff tool.

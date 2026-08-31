@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED ACCEPTANCE CRITERIA  
+> **Canonical owner:** `docs/modules/estimating.md` and `docs/modules/takeoff.md`  
+> **Use:** Focused P1 acceptance rule for verified builder methods and resource separation.  
+> **Supersession:** Remains valid until replaced by newer approved acceptance criteria in the canonical module specs.
+
 # P1 Builder Method Acceptance
 
 P1 acceptance requires a verified build method before drawing when an assembly contains active method or production assumptions.
