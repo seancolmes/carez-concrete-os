@@ -1,0 +1,164 @@
+/* Canonical B2 Dark Carbon theme.
+   These tokens are authoritative. Component styles should consume these values
+   rather than sampling colors from visual mockups. */
+:root{
+  --b2-bg:#0F1115;
+  --b2-bg-deep:#0F1115;
+  --b2-rail:#0F1115;
+  --b2-panel:#161A20;
+  --b2-panel-2:#161A20;
+  --b2-panel-3:#161A20;
+  --b2-control:#161A20;
+  --b2-hover:#1D2229;
+  --b2-selected:rgba(30,91,255,.16);
+  --b2-border:#2A2F36;
+  --b2-border-strong:#3A414A;
+  --b2-text:#E6E8EB;
+  --b2-text-2:#A3A6B3;
+  --b2-muted:#A3A6B3;
+  --b2-blue:#1E5BFF;
+  --b2-blue-bright:#1E5BFF;
+  --b2-blue-soft:#0D2E6E;
+  --b2-blue-gradient-start:#1E5BFF;
+  --b2-blue-gradient-end:#0D2E6E;
+  --b2-success:#22C55E;
+  --b2-warning:#F59E0B;
+  --b2-danger:#EF4444;
+}
+
+html,body,.b2-shell,.b2-main,.b2-content,.b2-immersive,
+.takeoff-app-page,.contractor-page,.estimate-workstation,.estimating-workstation,.estimate-page{
+  background:var(--b2-bg)!important;
+  color:var(--b2-text)!important;
+}
+
+.b2-rail{
+  border-color:var(--b2-border)!important;
+  background:linear-gradient(180deg,var(--b2-bg) 0%,#0B0D11 100%)!important;
+}
+.b2-rail-brand{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-bg)!important;
+}
+.b2-rail-brand img{
+  width:62px!important;
+  max-height:66px!important;
+  object-fit:contain!important;
+  filter:none!important;
+}
+.b2-rail-nav a,.b2-rail-more{color:var(--b2-text-2)!important}
+.b2-rail-nav a:hover,.b2-rail-more:hover{background:var(--b2-panel)!important;color:var(--b2-text)!important}
+.b2-rail-nav a.active{
+  border-left-color:var(--b2-blue)!important;
+  background:linear-gradient(90deg,rgba(30,91,255,.18),rgba(13,46,110,.08))!important;
+  color:var(--b2-text)!important;
+}
+.b2-rail-nav a.active svg{color:var(--b2-blue)!important}
+
+.b2-topbar,.takeoff-app-header{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-bg)!important;
+}
+.b2-topbar-kicker{color:var(--b2-text-2)!important}
+.b2-topbar-identity strong,.takeoff-app-title strong{color:var(--b2-text)!important}
+.b2-project-nav a{color:var(--b2-text-2)!important}
+.b2-project-nav a:hover,.b2-project-nav a.active{background:var(--b2-panel)!important;color:var(--b2-text)!important}
+.b2-project-nav a.active:after{background:var(--b2-blue)!important}
+.b2-icon-action,.b2-search{color:var(--b2-text-2)!important}
+.b2-icon-action:hover,.b2-search:hover{border-color:var(--b2-border)!important;background:var(--b2-panel)!important;color:var(--b2-text)!important}
+.b2-search,.b2-user,.takeoff-app-back,.takeoff-app-link{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-panel)!important;
+  color:var(--b2-text)!important;
+}
+
+.b2-content .card,.b2-content .surface,.b2-content .project-card,.b2-content .metric-card,
+.b2-content .command-card,.b2-content .controls-disclosure,.b2-content .data-table-wrap,
+.surface,.card,.controls-disclosure,.history-disclosure,.data-table-wrap,
+.start-takeoff-card,.takeoff-bid-card,.takeoff-system-strip,.estimate-card-v3,
+.estimate-readiness-strip,.estimate-cost-table,.login-card{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-panel)!important;
+}
+
+.b2-content .surface-header,.b2-content .project-header,.b2-content .controls-disclosure>summary,
+.surface-header,.controls-disclosure>summary,.history-disclosure>summary,
+.takeoff-bid-head,.estimate-card-v3>header,.estimate-cost-head{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-panel)!important;
+}
+
+.b2-content input,.b2-content select,.b2-content textarea,
+.field input,.field select,.field textarea,.start-takeoff-form select,.price-entry,
+.scopeForm select,.priceForm input{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-bg)!important;
+  color:var(--b2-text)!important;
+}
+
+.b2-content .button,.scopeForm button,.priceForm button{
+  border-color:var(--b2-blue)!important;
+  background:var(--b2-blue)!important;
+  color:#fff!important;
+}
+.b2-content .button:hover,.scopeForm button:hover,.priceForm button:hover{
+  border-color:var(--b2-blue)!important;
+  background:linear-gradient(180deg,var(--b2-blue-gradient-start),var(--b2-blue-gradient-end))!important;
+}
+.b2-content .button.secondary{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-panel)!important;
+  color:var(--b2-text)!important;
+}
+
+.b2-content .data-table th,.estimate-cost-head,.grid{
+  border-color:var(--b2-border)!important;
+  background:var(--b2-panel)!important;
+  color:var(--b2-text)!important;
+}
+.b2-content .data-table td,.estimate-cost-row,.row,.subtotal{
+  border-color:var(--b2-border)!important;
+}
+.b2-content .data-table tbody tr:nth-child(even),.list>.row:nth-child(even){background:#13161B!important}
+.b2-content .data-table tbody tr:hover,.list>.row:hover{background:var(--b2-hover)!important}
+
+.b2-content .section-kicker,.contractor-page .section-kicker,.surface-header>a,
+.job-v3-number,.takeoff-bid-icon,.estimate-card-mark{color:var(--b2-blue)!important}
+
+.takeoff-flow-strip>span.active,.estimate-stage-nav a.active,.estimate-flow-tabs a.active{
+  border-color:var(--b2-blue)!important;
+  background:rgba(30,91,255,.13)!important;
+  color:var(--b2-text)!important;
+  box-shadow:inset 0 -2px var(--b2-blue)!important;
+}
+
+.status.good,.takeoff-bid-status.good,.priced{border-color:var(--b2-success)!important;color:var(--b2-success)!important}
+.status.watch,.takeoff-bid-status.watch,.required{border-color:var(--b2-warning)!important;color:var(--b2-warning)!important}
+.alert.danger,.status.bad{border-color:var(--b2-danger)!important;color:var(--b2-danger)!important}
+.override{border-color:var(--b2-blue)!important;color:var(--b2-blue)!important}
+
+.command-card.good{box-shadow:inset 0 2px var(--b2-success)!important}
+.command-card.watch{box-shadow:inset 0 2px var(--b2-warning)!important}
+.command-card.bad,.job-v3-card.hold{box-shadow:inset 2px 0 var(--b2-danger)!important}
+
+.command-hero h1,.owner-today-head h1,.surface-title,.row .title,.takeoff-bid-title strong,
+.estimate-card-v3 header strong,.estimate-scope-row strong,.login-card h1{
+  color:var(--b2-text)!important;
+}
+.command-hero p,.owner-today-head p,.surface-subtitle,.row .meta,.takeoff-bid-title span,
+.takeoff-bid-note,.estimate-card-v3 header span,.estimate-scope-row span,.login-card>p,
+.contractor-page .section-heading-meta,.contractor-page .meta{
+  color:var(--b2-text-2)!important;
+}
+
+.login{
+  background-color:var(--b2-bg)!important;
+  background-image:linear-gradient(rgba(42,47,54,.34) 1px,transparent 1px),linear-gradient(90deg,rgba(42,47,54,.34) 1px,transparent 1px)!important;
+}
+.login-card .brand{color:var(--b2-blue)!important}
+
+.carez-build-identity{
+  border-color:var(--b2-border)!important;
+  background:rgba(15,17,21,.96)!important;
+  color:var(--b2-text-2)!important;
+}
