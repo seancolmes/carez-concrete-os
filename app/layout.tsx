@@ -27,6 +27,7 @@ import './b2-estimator.css';
 import './b2-modules.css';
 import './b2-estimating-surfaces.css';
 import './b2-theme.css';
+import './b2-workstation-pass2.css';
 
 export const metadata: Metadata = {
   title: 'Carez Concrete OS',
