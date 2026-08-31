@@ -8,7 +8,7 @@ import {
   BarChart3,Briefcase,Calculator,CreditCard,FileText,Gauge,HardHat,Home,Inbox,KeyRound,
   Landmark,LibraryBig,ListChecks,Menu,PackageCheck,Receipt,ReceiptText,Ruler,Search,Settings,
   ShieldCheck,ShoppingCart,SlidersHorizontal,TrendingUp,Users,Wallet,Wrench,CalendarDays,
-  ClipboardCheck,ClipboardList,Banknote,Hammer,Boxes,HelpCircle,Bell
+  ClipboardCheck,ClipboardList,Banknote,Hammer,HelpCircle,Bell
 } from 'lucide-react';
 import {BankSyncPulse} from '@/components/PlaidBankControls';
 import {OutlookSyncPulse} from '@/components/OutlookSyncPulse';
@@ -102,11 +102,13 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     </aside>
 
     <main className="main b2-main">
-      <header className="b2-topbar">
-        <div className="b2-topbar-identity">
+      <header className={`b2-topbar ${workstation?'b2-topbar-workstation':''}`}>
+        {estimatingContext?<Link href="/" className="b2-topbar-logo" aria-label="Carez Concrete OS home">
+          <Image src="/brand/carez-wordmark.png" alt="Carez Concrete" width={150} height={82} priority sizes="150px"/>
+        </Link>:<div className="b2-topbar-identity">
           <span className="b2-topbar-kicker">CAREZ CONCRETE OS</span>
           <strong>{currentItem?.label||'Dashboard'}</strong>
-        </div>
+        </div>}
         {estimatingContext&&<nav className="b2-project-nav" aria-label="Estimating workflow">
           <Link href="/takeoff" className={pathname.startsWith('/takeoff')?'active':''}>Takeoff</Link>
           <Link href="/estimates" className={pathname.startsWith('/estimates')?'active':''}>Estimate</Link>
