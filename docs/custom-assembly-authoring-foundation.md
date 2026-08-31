@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Canonical owner:** `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
+> **Use:** Supporting immutable custom-assembly authoring/runtime contract.  
+> **Supersession:** Active until explicitly superseded; implementation status belongs in `docs/CURRENT_STATE.md`.
+
 # Carez Custom Assembly Authoring Foundation
 
 ## Purpose
