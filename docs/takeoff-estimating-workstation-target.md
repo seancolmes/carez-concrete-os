@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Canonical owner:** `docs/modules/takeoff.md`, `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
+> **Use:** Supporting integrated estimator-workstation product contract and implementation sequencing.  
+> **Supersession:** Active until explicitly superseded; present implementation status belongs in `docs/CURRENT_STATE.md`.
+
 # Carez Concrete OS — Integrated Takeoff + Estimating Workstation
 
 Status: target architecture for the modernization branch
