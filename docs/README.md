@@ -25,6 +25,8 @@ When sources conflict, do not silently reconcile them. Prefer the higher authori
 - [Document Status Registry](DOCUMENT_STATUS.md)
 - [Knowledge Source Routing](KNOWLEDGE_SOURCE_ROUTING.md)
 - [ChatGPT Project Instructions](CHATGPT_PROJECT_INSTRUCTIONS.md)
+- [Chat Workspace Map](CHAT_WORKSPACE_MAP.md)
+- [Chat Starter Pack](CHAT_STARTER_PACK.md)
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
 - [Development Workflow](workflow/DEVELOPMENT_WORKFLOW.md)
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
@@ -45,6 +47,10 @@ When sources conflict, do not silently reconcile them. Prefer the higher authori
 See `docs/decisions/`.
 
 ADRs document why high-impact decisions exist. Module specs document how the product behaves. `CURRENT_STATE.md` documents what is actually implemented now.
+
+## Chat workspace governance
+
+Use `CHAT_WORKSPACE_MAP.md` to route work into permanent domain chats and temporary implementation chats. Use `CHAT_STARTER_PACK.md` when creating a new governed Project chat. Chats remain working rooms; approved product truth must be promoted into canonical GitHub documentation.
 
 ## Supporting and legacy documents
 
