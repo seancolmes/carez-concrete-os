@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Canonical owner:** `docs/modules/ai-assistance.md`, `docs/modules/documents-knowledge.md`, `docs/ARCHITECTURE.md`  
+> **Use:** Supporting Plan Intelligence domain/schema contract. Canonical module and architecture documents govern if scope later changes.  
+> **Supersession:** Active design foundation; implementation status belongs in `docs/CURRENT_STATE.md`.
+
 # Carez Concrete Plan Intelligence Foundation
 
 ## Purpose
