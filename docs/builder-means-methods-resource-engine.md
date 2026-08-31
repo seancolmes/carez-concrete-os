@@ -1,3 +1,8 @@
+> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Canonical owner:** `docs/modules/takeoff.md`, `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
+> **Use:** Supporting P1 means/methods/resource architecture contract.  
+> **Supersession:** Active until explicitly superseded; current implementation progress belongs in `docs/CURRENT_STATE.md`.
+
 # Carez Builder Means, Methods & Resource Engine
 
 ## Purpose
