@@ -230,3 +230,48 @@
   .b2-topbar-logo{width:96px}.b2-topbar-logo img{width:94px!important}
   .takeoff-app-header{height:34px!important;min-height:34px!important;flex-basis:34px!important}
 }
+
+/* Issue #22: readable workstation typography at 100% browser zoom. */
+.b2-rail-nav a,
+.b2-project-nav a,
+.b2-user,
+.b2-search,
+.takeoff-app-back,
+.takeoff-app-link{font-size:13px!important}
+.takeoff-app-title strong{font-size:14px!important}
+.takeoff-app-title span{font-size:12px!important}
+
+[class*="TakeoffDrawingWorkspace_panelTitle__"],
+[class*="TakeoffDrawingWorkspace_sheetName__"],
+[class*="TakeoffDrawingWorkspace_toolButton__"],
+[class*="TakeoffDrawingWorkspace_currentAssembly__"] strong,
+[class*="TakeoffDrawingWorkspace_zoomLabel__"],
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"] button,
+[class*="TakeoffDrawingWorkspace_groupTitle__"],
+[class*="TakeoffDrawingWorkspace_field__"] span,
+[class*="TakeoffDrawingWorkspace_field__"] input,
+[class*="TakeoffDrawingWorkspace_field__"] select,
+[class*="TakeoffDrawingWorkspace_field__"] textarea,
+[class*="TakeoffDrawingWorkspace_searchField__"] input,
+[class*="TakeoffDrawingWorkspace_assemblyCard__"] strong,
+[class*="TakeoffDrawingWorkspace_objectButton__"] strong,
+[class*="TakeoffQuantityDock_header__"],
+[class*="TakeoffQuantityDock_gridHeader__"],
+[class*="TakeoffQuantityDock_dataRow__"]{font-size:13px!important}
+
+[class*="TakeoffDrawingWorkspace_panelMeta__"],
+[class*="TakeoffDrawingWorkspace_sheetStatus__"],
+[class*="TakeoffDrawingWorkspace_groupHelp__"],
+[class*="TakeoffDrawingWorkspace_field__"] small,
+[class*="TakeoffDrawingWorkspace_assemblyCard__"] small,
+[class*="TakeoffDrawingWorkspace_assemblySource__"],
+[class*="TakeoffDrawingWorkspace_emptySmall__"],
+[class*="TakeoffDrawingWorkspace_checkRow__"],
+[class*="TakeoffDrawingWorkspace_statusbar__"],
+[class*="TakeoffDrawingWorkspace_objectButton__"] small{font-size:12px!important}
+
+[class*="TakeoffDrawingWorkspace_field__"] input,
+[class*="TakeoffDrawingWorkspace_field__"] select{height:32px!important}
+[class*="TakeoffDrawingWorkspace_sheetButton__"]{min-height:42px!important;height:auto!important}
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"],
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"] button{min-height:36px!important;height:36px!important}
