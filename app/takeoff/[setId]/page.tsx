@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { TakeoffDrawingWorkspace } from '@/components/takeoff/TakeoffDrawingWorkspace';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
+import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
 
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
@@ -72,7 +73,8 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> :
+      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
+      <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
       <TakeoffDrawingWorkspace
         takeoffSet={set}
         estimate={estimate}
@@ -89,7 +91,8 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         riskClasses={riskClasses || []}
         methodProfiles={methodProfiles || []}
         locked={locked}
-      />}
+      />
+      </>}
     </div>
   </AppShell>;
 }
