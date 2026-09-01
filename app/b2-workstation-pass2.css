@@ -196,6 +196,29 @@
 /* Reduce visual competition from the preview build label. */
 .carez-build-identity{font-size:7px!important;padding:3px 6px!important;opacity:.82}
 
+/* Workstation shell is a fixed desktop viewport. Normal long-form app pages remain document-scrolling. */
+@media(min-width:981px){
+  .b2-shell:has(.b2-content-workstation){
+    height:100dvh!important;
+    max-height:100dvh!important;
+    min-height:0!important;
+    grid-template-rows:minmax(0,1fr)!important;
+    overflow:hidden!important;
+  }
+  .b2-shell:has(.b2-content-workstation) .b2-main{
+    height:100%!important;
+    max-height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .b2-shell:has(.b2-content-workstation) .b2-content-workstation{
+    height:auto!important;
+    min-height:0!important;
+    flex:1 1 0%!important;
+    overflow:hidden!important;
+  }
+}
+
 @media(max-width:1280px){
   :root{--b2-sheet-pane:198px;--b2-inspector-pane:290px}
   .b2-topbar-logo{width:110px}.b2-topbar-logo img{width:108px!important}
