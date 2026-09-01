@@ -50,10 +50,16 @@ This chat owns Carez-wide UX/design rules: desktop shell, permanent app rail, co
 
 ## 99 — QA, Release & Debugging
 
-This chat owns cross-module QA, staging acceptance, browser verification, regression analysis, release readiness, and production promotion coordination. Read `docs/CURRENT_STATE.md` and QA/release workflow docs first. Keep observed evidence, hypothesis, confirmed root cause, implemented fix, and verified result distinct. Do not use this chat to redesign modules during QA.
+This chat owns cross-module QA, staging acceptance, browser verification, regression analysis, release readiness, and production promotion coordination. Read `docs/CURRENT_STATE.md` and QA/release workflow docs first. Keep observed evidence, hypothesis, confirmed root cause, implemented fix, and verified result distinct. During QA, classify newly discovered items: defects against accepted behavior stay in `99`; small enhancement ideas are captured for their owning module without interrupting a coherent QA pass; major module-specific redesign ideas route to that module when ready; Carez-wide visual/system ideas route to `95`. A new preference is not automatically a failed test.
 
-## Temporary implementation chat starter
+## Temporary ChatGPT/Work starter
 
 Use this pattern after replacing the bracketed values:
 
-This is a temporary Carez implementation/debugging chat for `[DOMAIN] — [OBJECTIVE]`. Read `docs/README.md`, `docs/CURRENT_STATE.md`, the applicable module spec/ADRs, and inspect the existing implementation before editing. Reproduce the problem or establish the current behavior first. Do not redo completed work. Preserve architecture, RLS, tenant isolation, data lineage, commercial history, and server-authoritative calculations. Make the smallest coherent change, avoid unrelated work, run relevant tests/typecheck/build, and browser-verify UI changes. Report evidence, root cause, files changed, validation, remaining risks, and git status. Promote approved decisions and verified state back into canonical GitHub documentation before this chat is archived.
+This is a temporary Carez ChatGPT/Work thread for `[DOMAIN] — [OBJECTIVE]`. Read `docs/README.md`, `docs/CURRENT_STATE.md`, the applicable module spec/ADRs, and inspect existing evidence before execution. Do not redo completed work. Preserve architecture, RLS, tenant isolation, data lineage, commercial history, and server-authoritative calculations. Keep the objective narrow, avoid unrelated work, report evidence/results/remaining risks, and promote approved decisions or verified state into canonical GitHub documentation before this thread is archived.
+
+## Codex task starter
+
+Codex is separate from ChatGPT Project chats. Do not tell the user to switch an existing chat to Codex. Prepare the implementation prompt in the owning ChatGPT chat, then tell the user to open Codex separately and create a focused task such as `99A — Takeoff Vertical Pan`.
+
+A Codex implementation prompt should require: read `docs/README.md`, `docs/CURRENT_STATE.md`, applicable module specs/ADRs/workflow docs; inspect existing implementation; reproduce first; distinguish evidence/hypothesis/root cause; make the smallest coherent change; preserve architecture/RLS/tenant isolation/data/commercial lineage; avoid unrelated work; run relevant tests/typecheck/build; browser-verify UI changes; report files/root cause/validation/risks/git status; leave a clean checkpoint. When Codex finishes, return its result to the owning permanent ChatGPT chat for QA/reconciliation.
