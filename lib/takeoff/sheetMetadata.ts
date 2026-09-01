@@ -12,6 +12,11 @@ export type SheetMetadata = {
   confidence: number;
 };
 
+export type StoredSheetMetadata = {
+  sheet_number?: string | null;
+  title?: string | null;
+};
+
 const titleWords = /\b(PLAN|PLANS|FOUNDATION|FRAMING|FLOOR|ROOF|SITE|CIVIL|STRUCTURAL|DETAIL|DETAILS|SECTION|SECTIONS|ELEVATION|ELEVATIONS|NOTES|SCHEDULE|SCHEDULES|GENERAL|DEMOLITION|GRADING|UTILITY|UTILITIES|REFLECTED|CEILING|SLAB|WALL)\b/i;
 const noiseWords = /\b(PROJECT|PROJECT NO|ADDRESS|OWNER|ARCHITECT|ENGINEER|DRAWN|CHECKED|DATE|SCALE|REVISION|REVISIONS|ISSUE|SHEET OF|COPYRIGHT)\b/i;
 const numberPattern = /\b([A-Z]{1,3})\s*[- ]?\s*(\d{1,3}(?:\.\d{1,2})?)\b/i;
@@ -35,6 +40,7 @@ const titleScore = (text: string) => {
   if (value.length < 4 || value.length > 72) return -10;
   if (noiseWords.test(value)) return -8;
   if (/^\d+(?:\.\d+)*$/.test(value)) return -8;
+  if (/^\d+[/'-]\d+/.test(value)) return -8;
   let score = 0;
   if (titleWords.test(value)) score += 6;
   if (/^[A-Z0-9 &/.'()-]+$/.test(value)) score += 1;
@@ -43,25 +49,39 @@ const titleScore = (text: string) => {
   return score;
 };
 
+const inlineTitle = (text: string, match: RegExpMatchArray) => {
+  const start = (match.index || 0) + match[0].length;
+  const remainder = normalizeText(text.slice(start).replace(/^[\s:|—–-]+/, ''));
+  return titleScore(remainder) >= 6 ? remainder : null;
+};
+
 export function inferSheetMetadata(items: PositionedPdfText[]): SheetMetadata {
   const clean = items
     .map(item => ({ ...item, text: normalizeText(item.text) }))
     .filter(item => item.text);
 
-  let bestNumber: { value: string; item: PositionedPdfText; score: number } | null = null;
+  let bestNumber: { value: string; item: PositionedPdfText; score: number; inlineTitle: string | null } | null = null;
   for (const item of clean) {
     const match = item.text.match(numberPattern);
     if (!match) continue;
     const value = normalizeSheetNumber(match[1], match[2]);
     let score = locationScore(item);
-    if (item.text.trim().toUpperCase() === value) score += 3;
+    const compactSource = item.text.replace(/[\s-]+/g, '').toUpperCase();
+    if (compactSource === value) score += 3;
     if (/^[A-Z]{1,3}\d/.test(value)) score += 1;
-    if (!bestNumber || score > bestNumber.score) bestNumber = { value, item, score };
+    const candidateInlineTitle = inlineTitle(item.text, match);
+    if (candidateInlineTitle) score += 2;
+    if (!bestNumber || score > bestNumber.score) {
+      bestNumber = { value, item, score, inlineTitle: candidateInlineTitle };
+    }
   }
 
   if (!bestNumber || bestNumber.score < 4) return { sheetNumber: null, title: null, confidence: 0 };
 
-  let bestTitle: { value: string; score: number } | null = null;
+  let bestTitle: { value: string; score: number } | null = bestNumber.inlineTitle
+    ? { value: bestNumber.inlineTitle, score: titleScore(bestNumber.inlineTitle) + locationScore(bestNumber.item) + 4 }
+    : null;
+
   for (const item of clean) {
     if (item === bestNumber.item) continue;
     const base = titleScore(item.text);
@@ -78,6 +98,15 @@ export function inferSheetMetadata(items: PositionedPdfText[]): SheetMetadata {
   const title = bestTitle && bestTitle.score >= 8 ? bestTitle.value : null;
   const confidence = Math.min(1, (bestNumber.score + (bestTitle?.score || 0)) / 24);
   return { sheetNumber: bestNumber.value, title, confidence };
+}
+
+export function mergeSheetMetadata(existing: StoredSheetMetadata | null | undefined, inferred: SheetMetadata) {
+  const existingNumber = normalizeText(String(existing?.sheet_number || '')) || null;
+  const existingTitle = normalizeText(String(existing?.title || '')) || null;
+  return {
+    sheet_number: existingNumber || inferred.sheetNumber,
+    title: existingTitle || inferred.title,
+  };
 }
 
 export function sheetDisplayLabel(sheet: { page_number?: number | null; sheet_number?: string | null; title?: string | null }) {
