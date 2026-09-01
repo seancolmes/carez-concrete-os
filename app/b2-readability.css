@@ -1,0 +1,104 @@
+/* Issue #22 — final B2 readability layer.
+   Keep workstation density through spacing and geometry, not microscopic operational text. */
+:root{
+  --b2-type-panel:13px;
+  --b2-type-section:13px;
+  --b2-type-ui:13px;
+  --b2-type-nav:12px;
+  --b2-type-toolbar:12px;
+  --b2-type-table-head:12px;
+  --b2-type-table:13px;
+  --b2-type-meta:12px;
+}
+
+/* Permanent navigation and context navigation. */
+.b2-rail-nav a,.b2-rail-more{font-size:12px!important}
+.b2-project-nav a{font-size:13px!important}
+.b2-user,.b2-search{font-size:12px!important}
+.b2-topbar-kicker,.takeoff-app-title span{font-size:12px!important}
+.b2-context-head>div>span,.b2-context-section-label{font-size:12px!important}
+.b2-context-head strong{font-size:14px!important}
+.b2-context-nav a strong{font-size:13px!important}
+.b2-context-nav a small{font-size:12px!important}
+.b2-context-footer button{font-size:12px!important}
+
+/* Takeoff sheet pane and workstation chrome. */
+[class*="TakeoffDrawingWorkspace_panelTitle__"]{font-size:13px!important}
+[class*="TakeoffDrawingWorkspace_panelMeta__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_pageBadge__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_sheetName__"]{font-size:13px!important;line-height:1.2!important}
+[class*="TakeoffDrawingWorkspace_sheetStatus__"]{font-size:12px!important;line-height:1.15!important}
+[class*="TakeoffDrawingWorkspace_sheetButton__"]{min-height:48px!important;height:auto!important;padding-top:5px!important;padding-bottom:5px!important}
+
+[class*="TakeoffDrawingWorkspace_toolButton__"],
+[class*="TakeoffDrawingWorkspace_currentAssembly__"] strong,
+[class*="TakeoffDrawingWorkspace_zoomLabel__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_currentAssembly__"] span{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_statusbar__"]{font-size:12px!important}
+
+/* Inspector and property controls. */
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"],
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"] button{min-height:36px!important;height:36px!important}
+[class*="TakeoffDrawingWorkspace_inspectorTabs__"] button{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_groupTitle__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_groupHelp__"]{font-size:12px!important;line-height:1.35!important}
+[class*="TakeoffDrawingWorkspace_field__"]>span,
+[class*="TakeoffDrawingWorkspace_field__"] label,
+[class*="TakeoffDrawingWorkspace_checkRow__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_field__"] input,
+[class*="TakeoffDrawingWorkspace_field__"] select,
+[class*="TakeoffDrawingWorkspace_field__"] textarea,
+[class*="TakeoffDrawingWorkspace_searchField__"] input{font-size:13px!important}
+[class*="TakeoffDrawingWorkspace_field__"] input,
+[class*="TakeoffDrawingWorkspace_field__"] select{height:32px!important}
+[class*="TakeoffDrawingWorkspace_field__"] small,
+[class*="TakeoffDrawingWorkspace_inputUnit__"] b{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_assemblyCard__"] strong,
+[class*="TakeoffDrawingWorkspace_objectButton__"] strong{font-size:13px!important}
+[class*="TakeoffDrawingWorkspace_assemblyCard__"] small,
+[class*="TakeoffDrawingWorkspace_objectButton__"] small,
+[class*="TakeoffDrawingWorkspace_assemblySource__"],
+[class*="TakeoffDrawingWorkspace_emptySmall__"],
+[class*="TakeoffDrawingWorkspace_statusWarn__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_assemblyUnit__"]{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_selectedTitle__"]{font-size:13px!important}
+
+/* Build Plan remains a technical property sheet. */
+[class*="TakeoffDrawingWorkspace_buildPlanCompactHead__"] span,
+[class*="TakeoffDrawingWorkspace_methodProfileSummary__"] span,
+[class*="TakeoffDrawingWorkspace_methodSummaryGrid__"] small{font-size:12px!important}
+[class*="TakeoffDrawingWorkspace_buildPlanCompactHead__"] strong,
+[class*="TakeoffDrawingWorkspace_methodProfileSummary__"] strong,
+[class*="TakeoffDrawingWorkspace_methodSummaryGrid__"] b{font-size:13px!important}
+[class*="TakeoffDrawingWorkspace_buildPlanWarning__"],
+[class*="TakeoffDrawingWorkspace_reviewBuildPlan__"]{font-size:12px!important}
+
+/* Quantity Worksheet / estimator grid. */
+[class*="TakeoffQuantityDock_title__"] strong{font-size:13px!important}
+[class*="TakeoffQuantityDock_title__"] span,
+[class*="TakeoffQuantityDock_scope__"] button,
+[class*="TakeoffQuantityDock_search__"] input,
+[class*="TakeoffQuantityDock_collapse__"],
+[class*="TakeoffQuantityDock_totals__"] span{font-size:12px!important}
+[class*="TakeoffQuantityDock_gridHeader__"] span{font-size:12px!important}
+[class*="TakeoffQuantityDock_dataRow__"] span{font-size:13px!important}
+[class*="TakeoffQuantityDock_measurement__"] strong{font-size:13px!important}
+[class*="TakeoffQuantityDock_measurement__"] small{font-size:12px!important}
+[class*="TakeoffQuantityDock_totals__"] b{font-size:13px!important}
+
+/* Shared B2 / estimating surfaces. */
+.b2-content input,.b2-content select,.b2-content textarea,.b2-content button{font-size:13px!important}
+.b2-content .surface-title,.b2-content .section-heading{font-size:13px!important}
+.b2-content .data-table th,.industrial-grid-table th{font-size:12px!important}
+.b2-content .data-table td,.industrial-grid-table td{font-size:13px!important}
+.contractor-page .command-hero p,
+.contractor-page .section-heading-meta,
+.contractor-page .section-kicker,
+.contractor-page .command-label,
+.contractor-page .command-help,
+.contractor-page .takeoff-flow-strip span,
+.contractor-page .assembly-library-summary span{font-size:12px!important}
+.contractor-page .section-title{font-size:14px!important}
+.contractor-page .assembly-library-card header strong{font-size:13px!important}
+.estimate-inspector{font-size:13px!important}
+.estimate-inspector>strong{font-size:14px!important}
