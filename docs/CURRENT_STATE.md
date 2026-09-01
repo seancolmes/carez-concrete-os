@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-08-31
+Last reconciled: 2026-09-01
 Canonical release line: `staging`
 Governance work branch: `carez-governance-foundation`
 
@@ -9,8 +9,8 @@ Governance work branch: `carez-governance-foundation`
 - Private repository: `seancolmes/carez-concrete-os`.
 - `staging` is the canonical modernization/release-candidate line.
 - Production `main` remains protected from unverified promotion.
-- Last browser-verified Takeoff workstation implementation commit: `ddd61edc088127202a1057d3b2ccb620cb53a4ac` (`fix(takeoff): prevent native wheel scroll during zoom`).
-- Current B2 shell/UI implementation is present on this line through the earlier accepted shell/B2 commits, including `60d10f383e74961db9d2ccaec024d0785ad17575` (`fix(shell): restore B2 rail context menus`) and `f9f81dbb8ccddee872d8d3154d42ae01e96ceccc` (`feat(ui): apply B2 estimator focus surfaces`).
+- Latest browser-accepted Takeoff P0 QA/UX implementation is PR #24 from `carez-takeoff-p0-qa-ux-hardening`, branch head `9e2d8b995b25ba883788209ba224a6897e65dbe0` before this reconciliation commit.
+- Current B2 shell/UI implementation remains on this line through the accepted shell/B2 commits, including `60d10f383e74961db9d2ccaec024d0785ad17575` (`fix(shell): restore B2 rail context menus`) and `f9f81dbb8ccddee872d8d3154d42ae01e96ceccc` (`feat(ui): apply B2 estimator focus surfaces`).
 - CI validates `main`, `staging`, and `carez-*` branches with frozen install, typecheck, domain tests, and build.
 
 ## Architecture already established
@@ -55,88 +55,83 @@ Confirmed final authenticated browser acceptance:
 
 The accepted root cause was workstation-shell height containment, not the Takeoff pan handler. The desktop workstation shell/main now receives a definite viewport-height boundary while normal long-form pages retain document scrolling.
 
-Takeoff Issue #16 — mouse-wheel zoom also scrolling the PDF vertically — is now **browser-verified PASS and closed** on canonical staging implementation commit `ddd61ed`.
+Takeoff Issue #16 — mouse-wheel zoom also scrolling the PDF vertically — is **browser-verified PASS and closed** on canonical staging implementation commit `ddd61ed`.
 
 Confirmed final authenticated browser acceptance:
 
 - wheel input performs anchored zoom without independent vertical PDF/document scrolling;
 - the existing `setZoomAt(...)` cursor/focal-point anchor behavior remains in use;
 - the React `onWheel` path was replaced by a native wheel listener on the actual drawing viewport registered with `{ passive:false }`;
-- existing two-axis panning remains accepted;
-- Vercel deployment for `ddd61ed` reports success;
-- Carez OS Branch Build run 525 passed typecheck, domain tests, and optimized build.
+- existing two-axis panning remains accepted.
 
-Authenticated scale/calibration persistence QA is also **PASS** on staging:
+Authenticated scale/calibration persistence QA is **PASS**:
 
-- an existing saved drawing scale remained present after switching sheets and returning;
-- the existing scale remained present after a hard browser refresh;
-- a controlled manual calibration using a printed 2'-6" dimension entered as `2.5 FT` was successfully assigned to a bounded scale region;
-- the new manual scale region remained present after sheet navigation and hard refresh;
-- the same controlled 2.5 FT calibration was then applied with **Use whole sheet**; the page reported `SCALE SET`, the whole-sheet scale remained present after sheet navigation, and it remained present after a hard refresh.
+- existing saved drawing scales persist after sheet navigation and hard refresh;
+- controlled manual calibration using a printed 2'-6" dimension entered as `2.5 FT` persists as both regional and whole-sheet/default calibration;
+- Page scale correctly reports `SCALE SET` when a whole-sheet calibration is saved.
 
-Controlled calibrated measurement QA is also **PASS with a whole-sheet/default scale present**:
+Controlled calibrated measurement QA is **PASS with a whole-sheet/default scale present**:
 
-- `QA - 2.5 FT calibration check` was measured across the same printed 2'-6" dimension using an LF assembly;
-- the saved raw result matched the known dimension at `2.50 LF` / 2'-6";
-- the measurement remained present after sheet navigation and hard refresh;
-- the saved geometry remained aligned to the same PDF endpoints.
+- `QA - 2.5 FT calibration check` measured the known 2'-6" dimension at `2.50 LF`;
+- saved geometry remained aligned to the PDF endpoints after navigation and hard refresh.
 
-Controlled geometry editing / committed history QA is also **PASS** on staging:
+Controlled geometry editing / committed history QA is **PASS**:
 
-- a saved LF measurement could be selected and entered into Edit mode;
-- moving an endpoint and saving updated the persisted geometry and displayed measurement quantity;
-- the Quantity Worksheet recalculated to the same edited quantity without creating a duplicate measurement;
-- committed undo restored the prior geometry and quantity;
-- committed redo restored the edited geometry and quantity;
-- the final redone geometry and quantity remained present after a hard refresh.
+- a saved LF measurement can be selected and edited;
+- moving an endpoint and saving updates geometry and displayed quantity;
+- Quantity Worksheet recalculates to the same edited quantity without duplication;
+- committed undo/redo restores the expected geometry and quantity;
+- the final state persists after hard refresh.
 
-Backend lineage inspection is **PARTIAL PASS / BLOCKED**:
+## Accepted Takeoff P0 QA/UX hardening — PR #24
 
-- the latest edited `FTG-STRIP` v7 measurement persists at `5.0105 LF` against the accepted Page 4 default scale;
-- its active ready-mix output recalculates to `0.3186 CY`;
-- the generated estimate item points back to the exact source Takeoff output, source measurement, and published assembly version;
-- however, required `formwork_method`, `placement_method`, and `reinforcement_method` values are unresolved, `method_profile_id` is null, and the dependent nested child outputs are silently inactive / `not_priced` at zero quantity instead of surfacing explicit missing-input holds.
+Issues #20–#23 are browser-accepted and closed.
 
-Four separate Takeoff QA discoveries remain open:
+- **Issue #20 — missing required method choices / nested output holds: PASS.** Geometry may save while unresolved required `formwork_method`, `placement_method`, and `reinforcement_method` decisions remain explicit `missing_input` holds. The persistence path no longer collapses unresolved inactive branches to `not_priced`. Supplying method choices clears the applicable hold and preserves exact Takeoff → assembly → estimate lineage.
+- **Issue #21 — hover-only measurement detail card: PASS.** The prior pinned measurement banner is removed. Saved LF/SF/EA geometry shows a compact estimator detail card only while directly hovered; selection/editing alone does not pin the card. Inspector and Quantity Worksheet remain the persistent-detail surfaces.
+- **Issue #22 — B2 typography/readability: PASS.** Shared B2 workstation typography now generally uses the ~13px operational / ~12px helper-meta hierarchy while preserving dense estimator-workstation layout and shell containment.
+- **Issue #23 — automatic PDF sheet naming/indexing: PASS.** Positioned PDF text/title-block inference populates `takeoff_sheets.sheet_number` and `title` when confidence is sufficient, preserves existing accepted metadata, keeps ambiguous sheets on `PDF Page N`, and does not change page identity/order, scale, geometry, or commercial lineage.
 
-- **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
-- **Issue #18 — Server Component render error appears during scale-region QA.** The error was observed once in authenticated Takeoff QA while calibration persistence still succeeded. The exact triggering action/request has not yet been reproduced or confirmed, so the issue remains open and should be investigated immediately if it reappears.
-- **Issue #19 — regional scale cannot start measurement until whole-sheet scale is set.** Authenticated QA showed that a bounded regional calibration alone did not accept LF/SF measurement clicks, while the same workflow worked after setting a whole-sheet/default scale. Current source is intended to accept geometry wholly inside a valid regional scale without requiring a default page scale, so this is an open interaction/scale-resolution defect rather than an intended requirement.
-- **Issue #20 — missing required method choices silently deactivate child outputs instead of creating holds.** Authenticated backend inspection confirmed that unresolved required footing method selectors can leave formwork / placement / reinforcement branches inactive without explicit `missing_input` holds, even though direct root output lineage remains correct. This blocks full Takeoff → assembly → estimate lineage acceptance.
+Automated validation for the accepted branch head `9e2d8b9` passed GitHub Actions typecheck, 46 focused/domain tests, and production build. The Issue #20 synchronization migration was also applied to the QA Supabase project and verified to preserve `missing_input` status.
+
+## Remaining open Takeoff QA discoveries
+
+- **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This remains a non-blocking Takeoff UX enhancement. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry.
+- **Issue #18 — Server Component render error appears during scale-region QA.** Observed once; exact triggering action/request remains unconfirmed. Investigate immediately if it reappears.
+- **Issue #19 — regional scale cannot start measurement until whole-sheet scale is set.** Regional-only measurement remains an open interaction/scale-resolution defect; whole-sheet scale is a workaround, not intended product behavior.
 
 ## Current priority
 
-1. Resolve and browser/domain-verify Issue #20 so unresolved required method choices cannot silently remove dependent assembly outputs from estimator review.
-2. Continue authenticated Takeoff P0 QA for Quantity Worksheet and exact lineage once method/output completeness is explicit.
-3. Reproduce and diagnose Issue #18 if the Server Component render error reappears during the next controlled QA action.
-4. Diagnose Issue #19 without blocking unrelated Takeoff QA that can proceed under a valid whole-sheet scale.
-5. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
-6. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-7. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+1. Diagnose and resolve Issue #19 so a valid bounded regional scale can independently authorize LF/SF measurement without requiring a whole-sheet/default scale.
+2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
+3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
+4. Continue authenticated Takeoff P0 QA for broader Quantity Worksheet behavior and exact nested lineage using the now-accepted explicit-hold foundation.
+5. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
+6. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
 
 ## Validation baseline
 
-- B2 desktop shell invariant: PASS on authenticated staging desktop QA.
-- Permanent rail retained through context drawer open/close on Dashboard and the Takeoff drawing workstation.
-- Takeoff workstation reflow preserves sheet pane, drawing canvas, inspector, and Quantity Worksheet containment.
-- Takeoff Issue #14 two-axis pan / vertical viewport containment: **PASS on deployed `7eeb26e`**; issue closed.
-- Takeoff Issue #16 wheel zoom/native scroll interaction: **PASS on deployed `ddd61ed`**; issue closed.
-- Existing drawing-scale persistence through sheet navigation and hard refresh: **PASS**.
-- Controlled manual calibration-region creation and persistence through sheet navigation and hard refresh: **PASS** using a printed 2'-6" dimension / `2.5 FT` calibration.
-- Controlled whole-sheet manual calibration and persistence: **PASS** using the same printed 2'-6" dimension / `2.5 FT` calibration.
-- Controlled LF measurement accuracy and persistence with a whole-sheet/default scale present: **PASS** at `2.50 LF` / 2'-6" with geometry remaining aligned after navigation and hard refresh.
-- Controlled saved-geometry edit / Quantity Worksheet recalculation / committed undo-redo / hard-refresh persistence: **PASS**.
-- Direct root Takeoff output → estimate-item provenance on the inspected `FTG-STRIP` v7 measurement: **PASS**; active ready-mix output and estimate item retain exact measurement/output/assembly-version lineage.
-- Full nested assembly-output completeness / missing-input behavior: **BLOCKED by Issue #20**.
-- `ddd61ed` Vercel staging deployment: success.
-- `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
-- Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
-- Takeoff Issue #18 intermittent Server Component render error during scale-region QA: OPEN; exact trigger not yet reproduced.
-- Takeoff Issue #19 regional-only scale measurement path: OPEN; whole-sheet scale is a current workaround, not the intended long-term requirement.
-- Takeoff Issue #20 unresolved required method selections / silent child-output deactivation: OPEN P0 lineage blocker.
-- Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
+- B2 desktop shell invariant: **PASS** on authenticated desktop QA.
+- Permanent rail retained through context drawer open/close on Dashboard and Takeoff.
+- Takeoff workstation containment: **PASS**.
+- Issue #14 two-axis pan / viewport containment: **PASS**, closed.
+- Issue #16 wheel zoom/native-scroll interaction: **PASS**, closed.
+- Drawing-scale persistence: **PASS**.
+- Regional calibration creation/persistence: **PASS**.
+- Whole-sheet calibration creation/persistence: **PASS**.
+- Controlled LF measurement accuracy/persistence: **PASS** at `2.50 LF` / 2'-6" with a whole-sheet/default scale present.
+- Saved-geometry edit / worksheet recalculation / committed undo-redo / refresh persistence: **PASS**.
+- Direct root Takeoff output → estimate-item provenance: **PASS**.
+- Nested required-input hold behavior / output completeness: **PASS** under Issue #20 acceptance.
+- Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
+- B2 typography/readability pass: **PASS** under Issue #22 acceptance.
+- Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
+- GitHub Actions branch validation for `9e2d8b9`: **PASS**, including typecheck, 46 tests, and optimized build.
+- Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
+- Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
+- Issue #19 regional-only scale measurement path: **OPEN**, whole-sheet scale remains the current workaround.
 
-Authenticated Takeoff P0 behavioral QA remains open; full downstream assembly-output completeness, exact nested lineage, broader worksheet behavior, regional-scale measurement resolution, and authenticated estimating workflows are not fully accepted yet.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted nested-output/UX foundation. Regional-only scale resolution, the intermittent Server Component error if reproduced, broader worksheet behavior, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
