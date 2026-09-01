@@ -66,13 +66,20 @@ Confirmed final authenticated browser acceptance:
 - Vercel deployment for `ddd61ed` reports success;
 - Carez OS Branch Build run 525 passed typecheck, domain tests, and optimized build.
 
+Authenticated scale/calibration persistence QA is also **PASS** on staging:
+
+- an existing saved drawing scale remained present after switching sheets and returning;
+- the existing scale remained present after a hard browser refresh;
+- a controlled manual calibration using a printed 2'-6" dimension entered as `2.5 FT` was successfully assigned to a bounded scale region;
+- the new manual scale region remained present after sheet navigation and hard refresh.
+
 One separate Takeoff QA discovery remains open:
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
 
 ## Current priority
 
-1. Resume authenticated Takeoff P0 QA against production-like records.
+1. Continue authenticated Takeoff P0 QA with controlled measurement accuracy, geometry persistence/editing, worksheet, and lineage checks against production-like records.
 2. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
 3. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
 4. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
@@ -84,12 +91,14 @@ One separate Takeoff QA discovery remains open:
 - Takeoff workstation reflow preserves sheet pane, drawing canvas, inspector, and Quantity Worksheet containment.
 - Takeoff Issue #14 two-axis pan / vertical viewport containment: **PASS on deployed `7eeb26e`**; issue closed.
 - Takeoff Issue #16 wheel zoom/native scroll interaction: **PASS on deployed `ddd61ed`**; issue closed.
+- Existing drawing-scale persistence through sheet navigation and hard refresh: **PASS**.
+- Controlled manual calibration-region creation and persistence through sheet navigation and hard refresh: **PASS** using a printed 2'-6" dimension / `2.5 FT` calibration.
 - `ddd61ed` Vercel staging deployment: success.
 - `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
 - Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
-Authenticated Takeoff P0 behavioral QA remains open; geometry editing, calibration, persistence, lineage, worksheet behavior, and authenticated estimating workflows are not fully accepted yet.
+Authenticated Takeoff P0 behavioral QA remains open; controlled measurement accuracy, geometry editing/persistence, lineage, worksheet behavior, and authenticated estimating workflows are not fully accepted yet.
 
 ## Known deferred work
 
