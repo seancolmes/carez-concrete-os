@@ -16,6 +16,14 @@ Plans → calibrate/verify scale → select assembly/method → measure/edit →
 - Geometry may save when downstream component assumptions are missing; dependent outputs become explicit holds.
 - Permanent resizable bottom quantity/estimate worksheet on desktop.
 
+## Drawing interaction contract
+- Saved Takeoff geometry remains the dominant visual element on the plan.
+- Floating measurement detail is transient and hover-driven: no persistent measurement banner is pinned to the drawing merely because a Takeoff is selected.
+- Hovering directly over saved LF, SF, or EA Takeoff geometry may show a compact estimator detail card with measurement name, quantity/unit, assembly, selected key physical properties, a small number of important derived outputs, and hold/status summary.
+- Moving the pointer off the geometry hides the hover card. Selection styling and Edit handles may remain without pinning the card.
+- Persistent selected-object detail belongs in the right Inspector and Quantity Worksheet rather than an oversized drawing overlay.
+- Hover/detail presentation must never mutate normalized page-coordinate geometry, calibration, persisted measurement data, or Takeoff → assembly → estimate lineage.
+
 ## Inputs
 Plans/sheets, calibration, measurement geometry, published assembly version, verified method profile, declared estimator inputs.
 
