@@ -16,6 +16,15 @@ Plans → calibrate/verify scale → select assembly/method → measure/edit →
 - Geometry may save when downstream component assumptions are missing; dependent outputs become explicit holds.
 - Permanent resizable bottom quantity/estimate worksheet on desktop.
 
+## Sheet naming and indexing
+- Imported PDF pages should be auto-named when reliable sheet metadata can be extracted from the page text/title block.
+- Persist the recognized sheet number and sheet title in `takeoff_sheets.sheet_number` and `takeoff_sheets.title`; the left sheet pane should prefer a professional label such as `S100.4 — Foundation Framing Plan` over generic `PDF Page 4` when metadata exists.
+- Automatic naming is low-risk clerical/indexing assistance. It must never change measurement geometry, scale/calibration, assembly selection, quantities, commercial records, or plan-document authority.
+- Prefer deterministic PDF text/title-block extraction before OCR/vision. A likely title-block region may be prioritized, with whole-page text as a fallback when needed.
+- Low-confidence or incomplete extraction must fall back safely to the existing page-number label rather than inventing metadata.
+- Existing non-empty user/accepted sheet metadata must not be silently overwritten by a later automatic naming pass. Re-running automatic naming may fill unresolved/generic pages but must preserve explicit user corrections.
+- The estimator must remain able to identify the underlying PDF page number even when a sheet number/title is shown.
+
 ## Drawing interaction contract
 - Saved Takeoff geometry remains the dominant visual element on the plan.
 - Floating measurement detail is transient and hover-driven: no persistent measurement banner is pinned to the drawing merely because a Takeoff is selected.
