@@ -74,25 +74,27 @@ Authenticated scale/calibration persistence QA is also **PASS** on staging:
 - the new manual scale region remained present after sheet navigation and hard refresh;
 - the same controlled 2.5 FT calibration was then applied with **Use whole sheet**; the page reported `SCALE SET`, the whole-sheet scale remained present after sheet navigation, and it remained present after a hard refresh.
 
-Controlled calibrated measurement QA is also **PASS**:
+Controlled calibrated measurement QA is also **PASS with a whole-sheet/default scale present**:
 
 - `QA - 2.5 FT calibration check` was measured across the same printed 2'-6" dimension using an LF assembly;
 - the saved raw result matched the known dimension at `2.50 LF` / 2'-6";
 - the measurement remained present after sheet navigation and hard refresh;
 - the saved geometry remained aligned to the same PDF endpoints.
 
-Two separate Takeoff QA discoveries remain open:
+Three separate Takeoff QA discoveries remain open:
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
 - **Issue #18 — Server Component render error appears during scale-region QA.** The error was observed once in authenticated Takeoff QA while calibration persistence still succeeded. The exact triggering action/request has not yet been reproduced or confirmed, so the issue remains open and should be investigated immediately if it reappears.
+- **Issue #19 — regional scale cannot start measurement until whole-sheet scale is set.** Authenticated QA showed that a bounded regional calibration alone did not accept LF/SF measurement clicks, while the same workflow worked after setting a whole-sheet/default scale. Current source is intended to accept geometry wholly inside a valid regional scale without requiring a default page scale, so this is an open interaction/scale-resolution defect rather than an intended requirement.
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA with controlled geometry editing/persistence, committed undo/redo, recalculation, worksheet, and lineage checks against production-like records.
+1. Continue authenticated Takeoff P0 QA with controlled geometry editing/persistence, committed undo/redo, recalculation, worksheet, and lineage checks against production-like records using the accepted whole-sheet scale path.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during the next controlled QA action.
-3. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
-4. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-5. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+3. Diagnose Issue #19 without blocking unrelated Takeoff QA that can proceed under a valid whole-sheet scale.
+4. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
+5. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
+6. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -104,14 +106,15 @@ Two separate Takeoff QA discoveries remain open:
 - Existing drawing-scale persistence through sheet navigation and hard refresh: **PASS**.
 - Controlled manual calibration-region creation and persistence through sheet navigation and hard refresh: **PASS** using a printed 2'-6" dimension / `2.5 FT` calibration.
 - Controlled whole-sheet manual calibration and persistence: **PASS** using the same printed 2'-6" dimension / `2.5 FT` calibration.
-- Controlled LF measurement accuracy and persistence: **PASS** at `2.50 LF` / 2'-6" with geometry remaining aligned after navigation and hard refresh.
+- Controlled LF measurement accuracy and persistence with a whole-sheet/default scale present: **PASS** at `2.50 LF` / 2'-6" with geometry remaining aligned after navigation and hard refresh.
 - `ddd61ed` Vercel staging deployment: success.
 - `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
 - Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
 - Takeoff Issue #18 intermittent Server Component render error during scale-region QA: OPEN; exact trigger not yet reproduced.
+- Takeoff Issue #19 regional-only scale measurement path: OPEN; whole-sheet scale is a current workaround, not the intended long-term requirement.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
-Authenticated Takeoff P0 behavioral QA remains open; geometry editing/undo/redo, recalculation, lineage, worksheet behavior, and authenticated estimating workflows are not fully accepted yet.
+Authenticated Takeoff P0 behavioral QA remains open; geometry editing/undo/redo, recalculation, lineage, worksheet behavior, regional-scale measurement resolution, and authenticated estimating workflows are not fully accepted yet.
 
 ## Known deferred work
 
