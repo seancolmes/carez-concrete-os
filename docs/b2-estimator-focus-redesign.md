@@ -29,6 +29,18 @@ These values are authoritative. Do not sample replacement colors from screenshot
 
 The majority of the application remains neutral Carbon/Surface. Carez Blue is selective so drawing takeoff colors and estimating data remain visually dominant.
 
+### Typography and readability
+
+B2 remains dense, but density must not depend on undersized operational text.
+
+- Important estimator labels, values, inputs, selects, worksheet rows, statuses and navigation text must be comfortably readable at 100% desktop browser zoom.
+- Use shared typography rules/tokens where practical instead of page-by-page font-size patches.
+- Operational text should generally live around the 13px class and secondary/helper/meta text around the 12px class unless a component has a justified exception.
+- Preserve hierarchy with weight, contrast, spacing and alignment rather than shrinking meaningful text.
+- Do not introduce oversized SaaS typography, excessive row height or unnecessary whitespace.
+- Inspector content, Quantity Worksheet/estimate tables, context/sheet panes and toolbars are the highest-priority readability surfaces.
+- Typography changes must be browser-verified for clipping, overflow, control truncation, worksheet density and workstation containment.
+
 ### Brand mark
 
 The supplied Carez Concrete logo is the canonical application brand mark: blue geometric `C`, white concrete-pump line art, blue `CAREZ` wordmark and white `CONCRETE` subline. The application shell uses the dedicated `/brand/carez-wordmark.png` slot for this mark. Do not substitute a generic `C`, redraw the pump, or invent another logo treatment. The logo should be prominent enough to identify Carez while remaining compact enough not to consume estimator workspace.
@@ -65,6 +77,17 @@ The Takeoff inspector uses three functional tabs:
 There is no fake `Layers` module. `Build Plan` is a Carez-specific first-class concept.
 
 The compact Build Plan inspector shows method status, revision, important assumptions and unresolved verification. Advanced editing uses the main application workspace rather than an oversized permanent sidebar form, browser popup or separate window.
+
+## Takeoff drawing detail behavior
+
+The drawing canvas must remain visually primary.
+
+- A saved Takeoff does not keep a large floating label/banner pinned over the plan simply because it is selected.
+- Compact measurement detail appears only while the pointer is directly hovering saved Takeoff geometry and disappears when the pointer leaves it.
+- The transient card may show the measurement name, quantity/unit, assembly, a few important physical properties/derived outputs and status/hold summary.
+- Selection styling and Edit handles can remain independently of the hover card.
+- Persistent detail stays in the Inspector and Quantity Worksheet.
+- The hover card must avoid clipping against viewport edges and must not obscure the measured geometry more than necessary.
 
 ## Builder Methods
 
