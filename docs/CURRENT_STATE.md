@@ -71,18 +71,28 @@ Authenticated scale/calibration persistence QA is also **PASS** on staging:
 - an existing saved drawing scale remained present after switching sheets and returning;
 - the existing scale remained present after a hard browser refresh;
 - a controlled manual calibration using a printed 2'-6" dimension entered as `2.5 FT` was successfully assigned to a bounded scale region;
-- the new manual scale region remained present after sheet navigation and hard refresh.
+- the new manual scale region remained present after sheet navigation and hard refresh;
+- the same controlled 2.5 FT calibration was then applied with **Use whole sheet**; the page reported `SCALE SET`, the whole-sheet scale remained present after sheet navigation, and it remained present after a hard refresh.
 
-One separate Takeoff QA discovery remains open:
+Controlled calibrated measurement QA is also **PASS**:
+
+- `QA - 2.5 FT calibration check` was measured across the same printed 2'-6" dimension using an LF assembly;
+- the saved raw result matched the known dimension at `2.50 LF` / 2'-6";
+- the measurement remained present after sheet navigation and hard refresh;
+- the saved geometry remained aligned to the same PDF endpoints.
+
+Two separate Takeoff QA discoveries remain open:
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
+- **Issue #18 — Server Component render error appears during scale-region QA.** The error was observed once in authenticated Takeoff QA while calibration persistence still succeeded. The exact triggering action/request has not yet been reproduced or confirmed, so the issue remains open and should be investigated immediately if it reappears.
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA with controlled measurement accuracy, geometry persistence/editing, worksheet, and lineage checks against production-like records.
-2. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
-3. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-4. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+1. Continue authenticated Takeoff P0 QA with controlled geometry editing/persistence, committed undo/redo, recalculation, worksheet, and lineage checks against production-like records.
+2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during the next controlled QA action.
+3. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
+4. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
+5. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -93,12 +103,15 @@ One separate Takeoff QA discovery remains open:
 - Takeoff Issue #16 wheel zoom/native scroll interaction: **PASS on deployed `ddd61ed`**; issue closed.
 - Existing drawing-scale persistence through sheet navigation and hard refresh: **PASS**.
 - Controlled manual calibration-region creation and persistence through sheet navigation and hard refresh: **PASS** using a printed 2'-6" dimension / `2.5 FT` calibration.
+- Controlled whole-sheet manual calibration and persistence: **PASS** using the same printed 2'-6" dimension / `2.5 FT` calibration.
+- Controlled LF measurement accuracy and persistence: **PASS** at `2.50 LF` / 2'-6" with geometry remaining aligned after navigation and hard refresh.
 - `ddd61ed` Vercel staging deployment: success.
 - `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
 - Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
+- Takeoff Issue #18 intermittent Server Component render error during scale-region QA: OPEN; exact trigger not yet reproduced.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
-Authenticated Takeoff P0 behavioral QA remains open; controlled measurement accuracy, geometry editing/persistence, lineage, worksheet behavior, and authenticated estimating workflows are not fully accepted yet.
+Authenticated Takeoff P0 behavioral QA remains open; geometry editing/undo/redo, recalculation, lineage, worksheet behavior, and authenticated estimating workflows are not fully accepted yet.
 
 ## Known deferred work
 
