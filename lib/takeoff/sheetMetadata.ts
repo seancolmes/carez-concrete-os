@@ -65,11 +65,15 @@ export function inferSheetMetadata(items: PositionedPdfText[]): SheetMetadata {
     const match = item.text.match(numberPattern);
     if (!match) continue;
     const value = normalizeSheetNumber(match[1], match[2]);
-    let score = locationScore(item);
+    const position = locationScore(item);
+    const candidateInlineTitle = inlineTitle(item.text, match);
+    const shortBodyReference = match[2].replace(/\./g, '').length <= 1 && position === 0 && !candidateInlineTitle;
+    if (shortBodyReference) continue;
+
+    let score = position;
     const compactSource = item.text.replace(/[\s-]+/g, '').toUpperCase();
     if (compactSource === value) score += 3;
     if (/^[A-Z]{1,3}\d/.test(value)) score += 1;
-    const candidateInlineTitle = inlineTitle(item.text, match);
     if (candidateInlineTitle) score += 2;
     if (!bestNumber || score > bestNumber.score) {
       bestNumber = { value, item, score, inlineTitle: candidateInlineTitle };
