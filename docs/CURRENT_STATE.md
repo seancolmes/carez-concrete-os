@@ -9,7 +9,7 @@ Governance work branch: `carez-governance-foundation`
 - Private repository: `seancolmes/carez-concrete-os`.
 - `staging` is the canonical modernization/release-candidate line.
 - Production `main` remains protected from unverified promotion.
-- Last browser-verified Takeoff workstation implementation commit: `7eeb26e700634b9b964e86916aa62a9db7ff508c` (`fix(shell): constrain desktop workstation to viewport`).
+- Last browser-verified Takeoff workstation implementation commit: `ddd61edc088127202a1057d3b2ccb620cb53a4ac` (`fix(takeoff): prevent native wheel scroll during zoom`).
 - Current B2 shell/UI implementation is present on this line through the earlier accepted shell/B2 commits, including `60d10f383e74961db9d2ccaec024d0785ad17575` (`fix(shell): restore B2 rail context menus`) and `f9f81dbb8ccddee872d8d3154d42ae01e96ceccc` (`feat(ui): apply B2 estimator focus surfaces`).
 - CI validates `main`, `staging`, and `carez-*` branches with frozen install, typecheck, domain tests, and build.
 
@@ -42,7 +42,7 @@ OPEN:   [ app rail ][ context drawer ][ workspace ]
 CLOSED: [ app rail ][ workspace ]
 ```
 
-Takeoff Issue #14 — drawing viewport vertical containment / two-axis panning — is now **browser-verified PASS and closed** on canonical staging implementation commit `7eeb26e`.
+Takeoff Issue #14 — drawing viewport vertical containment / two-axis panning — is **browser-verified PASS and closed** on canonical staging implementation commit `7eeb26e`.
 
 Confirmed final authenticated browser acceptance:
 
@@ -55,18 +55,27 @@ Confirmed final authenticated browser acceptance:
 
 The accepted root cause was workstation-shell height containment, not the Takeoff pan handler. The desktop workstation shell/main now receives a definite viewport-height boundary while normal long-form pages retain document scrolling.
 
-Two separate Takeoff QA discoveries remain open:
+Takeoff Issue #16 — mouse-wheel zoom also scrolling the PDF vertically — is now **browser-verified PASS and closed** on canonical staging implementation commit `ddd61ed`.
 
-- **Issue #16 — mouse-wheel zoom also scrolls the PDF vertically.** This is a P0.1 interaction defect. Browser console evidence shows the zoom path attempts `preventDefault()` from a passive wheel listener, so native wheel scrolling occurs while Carez also performs anchored zoom.
+Confirmed final authenticated browser acceptance:
+
+- wheel input performs anchored zoom without independent vertical PDF/document scrolling;
+- the existing `setZoomAt(...)` cursor/focal-point anchor behavior remains in use;
+- the React `onWheel` path was replaced by a native wheel listener on the actual drawing viewport registered with `{ passive:false }`;
+- existing two-axis panning remains accepted;
+- Vercel deployment for `ddd61ed` reports success;
+- Carez OS Branch Build run 525 passed typecheck, domain tests, and optimized build.
+
+One separate Takeoff QA discovery remains open:
+
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
 
 ## Current priority
 
-1. Resolve and browser-verify Takeoff Issue #16 so mouse-wheel zoom does not also scroll the PDF.
-2. Resume authenticated Takeoff P0 QA against production-like records.
-3. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
-4. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-5. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+1. Resume authenticated Takeoff P0 QA against production-like records.
+2. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
+3. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
+4. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -74,9 +83,9 @@ Two separate Takeoff QA discoveries remain open:
 - Permanent rail retained through context drawer open/close on Dashboard and the Takeoff drawing workstation.
 - Takeoff workstation reflow preserves sheet pane, drawing canvas, inspector, and Quantity Worksheet containment.
 - Takeoff Issue #14 two-axis pan / vertical viewport containment: **PASS on deployed `7eeb26e`**; issue closed.
-- `7eeb26e` Vercel staging deployment: READY.
-- `7eeb26e` Carez OS Branch Build run 519: PASS, including typecheck, domain tests, and optimized build.
-- Takeoff Issue #16 wheel zoom/native scroll interaction: OPEN.
+- Takeoff Issue #16 wheel zoom/native scroll interaction: **PASS on deployed `ddd61ed`**; issue closed.
+- `ddd61ed` Vercel staging deployment: success.
+- `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
 - Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
