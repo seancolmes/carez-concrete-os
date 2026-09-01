@@ -267,6 +267,16 @@ export function TakeoffDrawingWorkspace(props:Props){
     setZoom(clampZoom(Number(next.toFixed(3))));
   },[]);
 
+  useEffect(()=>{
+    const viewport=viewportRef.current;if(!viewport)return;
+    const handleWheel=(event:WheelEvent)=>{
+      event.preventDefault();
+      setZoomAt(zoom*(event.deltaY<0?1.16:1/1.16),event.clientX,event.clientY);
+    };
+    viewport.addEventListener('wheel',handleWheel,{passive:false});
+    return()=>viewport.removeEventListener('wheel',handleWheel);
+  },[zoom,setZoomAt,buildPlanWorkbenchOpen]);
+
   const fitPage=useCallback(()=>{
     if(!renderBox||!viewportRef.current)return;
     const viewport=viewportRef.current;const baseWidth=renderBox.width/zoom;const baseHeight=renderBox.height/zoom;
@@ -507,7 +517,7 @@ export function TakeoffDrawingWorkspace(props:Props){
         </div>
       </div>
 
-      <div ref={viewportRef} className={styles.canvasViewport} onWheel={event=>{event.preventDefault();setZoomAt(zoom*(event.deltaY<0?1.16:1/1.16),event.clientX,event.clientY);}}>
+      <div ref={viewportRef} className={styles.canvasViewport}>
         {!renderBox&&<div className={styles.loading}>{message}</div>}
         <div ref={paperRef} className={styles.paper} style={renderBox?{width:renderBox.width,height:renderBox.height}:{width:1,height:1}}>
           <canvas ref={canvasRef} className={styles.pdfCanvas}/>
