@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { inferSheetMetadata, sheetDisplayLabel, type PositionedPdfText } from '../lib/takeoff/sheetMetadata.ts';
+import { inferSheetMetadata, mergeSheetMetadata, sheetDisplayLabel, type PositionedPdfText } from '../lib/takeoff/sheetMetadata.ts';
 
 const pageWidth = 1000;
 const pageHeight = 700;
@@ -15,14 +15,20 @@ test('recognizes structural sheet number and nearby title', () => {
 });
 
 test('recognizes common architectural, general, and civil sheet numbers', () => {
-  assert.deepEqual(infer(item('A101', 850, 50), item('FIRST FLOOR PLAN', 760, 85)).sheetNumber, 'A101');
-  assert.deepEqual(infer(item('G001', 850, 50), item('GENERAL NOTES', 760, 85)).sheetNumber, 'G001');
-  assert.deepEqual(infer(item('C1.0', 850, 50), item('CIVIL SITE PLAN', 760, 85)).sheetNumber, 'C1.0');
+  assert.equal(infer(item('A101', 850, 50), item('FIRST FLOOR PLAN', 760, 85)).sheetNumber, 'A101');
+  assert.equal(infer(item('G001', 850, 50), item('GENERAL NOTES', 760, 85)).sheetNumber, 'G001');
+  assert.equal(infer(item('C1.0', 850, 50), item('CIVIL SITE PLAN', 760, 85)).sheetNumber, 'C1.0');
 });
 
-test('normalizes spaced sheet number formatting', () => {
-  const result = infer(item('S 100.4', 850, 50), item('FOUNDATION PLAN', 760, 85));
+test('normalizes spaced and hyphenated sheet number formatting', () => {
+  assert.equal(infer(item('S 100.4', 850, 50), item('FOUNDATION PLAN', 760, 85)).sheetNumber, 'S100.4');
+  assert.equal(infer(item('S-100.4', 850, 50), item('FOUNDATION PLAN', 760, 85)).sheetNumber, 'S100.4');
+});
+
+test('extracts title when vector PDF combines number and title in one text item', () => {
+  const result = infer(item('S100.4 — FOUNDATION FRAMING PLAN', 760, 60));
   assert.equal(result.sheetNumber, 'S100.4');
+  assert.equal(result.title, 'FOUNDATION FRAMING PLAN');
 });
 
 test('title block candidate outranks distracting body references', () => {
@@ -55,7 +61,23 @@ test('display hierarchy handles partial metadata', () => {
   assert.equal(sheetDisplayLabel({ page_number: 3, sheet_number: null, title: null }), 'PDF Page 3');
 });
 
-test('inference is deterministic for the same positioned text', () => {
+test('existing accepted metadata is never overwritten by automatic inference', () => {
+  const inferred = infer(item('S100.4', 860, 55), item('FOUNDATION FRAMING PLAN', 760, 90));
+  assert.deepEqual(
+    mergeSheetMetadata({ sheet_number: 'S100.4A', title: 'Estimator Corrected Foundation Plan' }, inferred),
+    { sheet_number: 'S100.4A', title: 'Estimator Corrected Foundation Plan' },
+  );
+  assert.deepEqual(
+    mergeSheetMetadata({ sheet_number: null, title: null }, inferred),
+    { sheet_number: 'S100.4', title: 'FOUNDATION FRAMING PLAN' },
+  );
+});
+
+test('inference and metadata merge are deterministic and idempotent', () => {
   const input = [item('A101', 850, 50), item('FIRST FLOOR PLAN', 760, 85), item('PROJECT 26-001', 760, 30)];
-  assert.deepEqual(inferSheetMetadata(input), inferSheetMetadata(input));
+  const first = inferSheetMetadata(input);
+  const second = inferSheetMetadata(input);
+  assert.deepEqual(first, second);
+  const stored = mergeSheetMetadata(null, first);
+  assert.deepEqual(mergeSheetMetadata(stored, second), stored);
 });
