@@ -16,9 +16,11 @@ import {measureDrawingGeometry,roundMeasurement,type DrawingGeometry,type Drawin
 import {linearFootprint,parseRenderConfig,resolveDisplayStyle} from '@/lib/takeoff/physicalGeometry';
 import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContext';
 import {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';
+import {sheetDisplayLabel} from '@/lib/takeoff/sheetMetadata';
 import {boundsFromPoints,calibrationFromDetectedScale,calibrationFromManual,findScaleRegionForPoint,type ScaleCalibration,type ScaleCandidate,type TakeoffScaleRegion} from '@/lib/takeoff/scaleRegions';
 import {TakeoffAssemblyInputEditor} from './TakeoffAssemblyInputEditor';
 import {TakeoffBuildPlanPanel} from './TakeoffBuildPlanPanel';
+import {TakeoffMeasurementHoverOverlay} from './TakeoffMeasurementHoverOverlay';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
 import {TakeoffScalePanel} from './TakeoffScalePanel';
@@ -336,7 +338,12 @@ export function TakeoffDrawingWorkspace(props:Props){
     }catch(error:any){setMessage(error?.message||'Could not save drawing measurement.');}finally{setBusy(false);}
   },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router,buildPlanReady,selectedMethodProfileId]);
 
-  function beginEdit(){if(locked||!selectedMeasurement||!selectedGeometry)return;const copy=copyGeometry(selectedGeometry);editOriginalRef.current=copyGeometry(selectedGeometry);setEditGeometry(copy);setDraftPoints([]);setTool('edit');setMessage('Drag a vertex, then press Enter or Save Shape.');}
+  function beginEditMeasurement(measurement:any){
+    if(locked)return;
+    const geometry=drawingGeometry(measurement?.geometry);if(!geometry)return;
+    const copy=copyGeometry(geometry);setSelectedMeasurementId(measurement.id);editOriginalRef.current=copyGeometry(geometry);setEditGeometry(copy);setDraftPoints([]);setInspectorOpen(true);setInspectorTab('properties');setTool('edit');setMessage('Drag a vertex, then press Enter or Save Shape.');
+  }
+  function beginEdit(){if(!selectedMeasurement)return;beginEditMeasurement(selectedMeasurement);}
   function beginCutout(){if(locked||selectedGeometry?.type!=='polygon')return;setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('cutout');setMessage('Trace the opening inside the selected area, then press Enter.');}
 
   async function commitGeometry(kind:GeometryCommandKind,measurementId:string,before:DrawingGeometry,after:DrawingGeometry,success:string){
@@ -449,7 +456,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   <div className={`${styles.workspace} ${!sheetsOpen?styles.noSheets:''} ${!inspectorOpen?styles.noInspector:''}`}>
     {sheetsOpen&&<aside className={styles.sidebar}>
       <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Sheets</div><div className={styles.panelMeta}>{sourceTitle} · {pdfPageCount||'…'} pages</div></div><button type="button" className={styles.iconButton} title="Hide sheets" onClick={()=>setSheetsOpen(false)}><PanelLeftClose size={16}/></button></div>
-      <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.sheet_number||sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheet.title||`PDF Page ${sheet.page_number}`}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
+      <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheetDisplayLabel(sheet)}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
     </aside>}
 
     {buildPlanWorkbenchOpen&&selectedAssembly&&selectedVersion?<section className={styles.buildPlanWorkspace}>
@@ -524,14 +531,28 @@ export function TakeoffDrawingWorkspace(props:Props){
           {renderBox&&<svg className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
             <TakeoffScaleOverlay regions={currentScaleRegions} pendingCandidate={pendingScaleCandidate} regionPoints={scaleRegionPoints} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight}/>
             {currentMeasurements.map((measurement:any)=>{
-              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const first=points[0];const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
+              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
               return <g key={measurement.id} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
                 {geometry.type==='polygon'&&<path d={geometryPath(geometry,renderBox.pdfWidth,renderBox.pdfHeight)} fill={`${color}24`} fillRule="evenodd" stroke={color} strokeWidth={selected?3.2:2} vectorEffect="non-scaling-stroke"/>}
                 {physical.length>=3&&<polygon points={physicalCoords} fill={`${style.color}${Math.round(style.opacity*255).toString(16).padStart(2,'0')}`} stroke={style.borderColor} strokeWidth={selected?style.borderWidth+1:style.borderWidth} strokeDasharray={style.pattern==='dashed'?'6 4':undefined} vectorEffect="non-scaling-stroke"/>}{geometry.type==='polyline'&&<polyline points={coords} fill="none" stroke={color} strokeWidth={selected?4:2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
                 {geometry.type==='count'&&points.map((point,index)=><g key={index}><circle cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r={selected?6:5} fill={`${color}45`} stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth-5} y1={point.y*renderBox.pdfHeight} x2={point.x*renderBox.pdfWidth+5} y2={point.y*renderBox.pdfHeight} stroke={color} vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth} y1={point.y*renderBox.pdfHeight-5} x2={point.x*renderBox.pdfWidth} y2={point.y*renderBox.pdfHeight+5} stroke={color} vectorEffect="non-scaling-stroke"/></g>)}
-                {zoom<5&&<g transform={`translate(${first.x*renderBox.pdfWidth} ${first.y*renderBox.pdfHeight})`}><rect x="5" y="-18" width={Math.max(76,Math.min(205,measurement.name.length*6+64))} height="20" rx="4" fill="rgba(7,12,18,.9)" stroke={color} strokeWidth="1" vectorEffect="non-scaling-stroke"/><text x="10" y="-4" fill="#f5f7fa" fontSize="9" fontWeight="700">{measurement.name} · {formatTakeoffMeasurement(measurement.raw_quantity,measurement.raw_unit)}</text></g>}
               </g>;
             })}
+
+            <TakeoffMeasurementHoverOverlay
+              measurements={currentMeasurements}
+              outputs={measurementSummaries}
+              assemblies={assemblies}
+              versions={versions}
+              pageWidth={renderBox.pdfWidth}
+              pageHeight={renderBox.pdfHeight}
+              tool={tool}
+              panning={panning}
+              spaceHeld={spaceHeld}
+              viewportRef={viewportRef}
+              onSelectMeasurement={measurement=>{setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorOpen(true);setInspectorTab('properties');}}
+              onEditMeasurement={beginEditMeasurement}
+            />
 
             {tool==='edit'&&editGeometry&&selectedMeasurement&&<TakeoffVertexEditor geometry={editGeometry} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight} color={selectedColor} onChange={setEditGeometry}/>}
 
@@ -555,7 +576,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     </section>}
 
     {inspectorOpen&&<aside className={styles.inspector}>
-      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Inspector</div><div className={styles.panelMeta}>{currentSheet?`${currentSheet.sheet_number||`Page ${currentSheet.page_number}`} · ${currentMeasurements.length} takeoff${currentMeasurements.length===1?'':'s'}`:'Preparing sheet'}</div></div><button type="button" className={styles.iconButton} title="Hide inspector" onClick={()=>setInspectorOpen(false)}><PanelRightClose size={16}/></button></div>
+      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Inspector</div><div className={styles.panelMeta}>{currentSheet?`${sheetDisplayLabel(currentSheet)} · ${currentMeasurements.length} takeoff${currentMeasurements.length===1?'':'s'}`:'Preparing sheet'}</div></div><button type="button" className={styles.iconButton} title="Hide inspector" onClick={()=>setInspectorOpen(false)}><PanelRightClose size={16}/></button></div>
       <div className={styles.inspectorTabs} role="tablist" aria-label="Takeoff inspector">
         <button type="button" role="tab" aria-selected={inspectorTab==='takeoffs'} className={inspectorTab==='takeoffs'?styles.inspectorTabActive:''} onClick={()=>setInspectorTab('takeoffs')}>Takeoffs</button>
         <button type="button" role="tab" aria-selected={inspectorTab==='properties'} className={inspectorTab==='properties'?styles.inspectorTabActive:''} onClick={()=>setInspectorTab('properties')}>Properties</button>
