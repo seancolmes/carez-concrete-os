@@ -1,5 +1,5 @@
 .workstation{display:flex;flex:1;min-height:0;min-width:0;flex-direction:column;background:#080d12;overflow:hidden}
-.workspace{position:relative;display:grid;grid-template-columns:242px minmax(0,1fr) 326px;flex:1;min-height:0;background:#080d12;border-top:1px solid #26313d;overflow:hidden;color:#dfe7ef}
+.workspace{position:relative;display:grid;grid-template-columns:242px minmax(0,1fr) 326px;grid-template-rows:minmax(0,1fr);flex:1;min-height:0;background:#080d12;border-top:1px solid #26313d;overflow:hidden;color:#dfe7ef}
 .noSheets{grid-template-columns:minmax(0,1fr) 326px}.noInspector{grid-template-columns:242px minmax(0,1fr)}.noSheets.noInspector{grid-template-columns:minmax(0,1fr)}
 .sidebar,.inspector{min-width:0;min-height:0;overflow:auto;background:#0d141b;scrollbar-width:thin;scrollbar-color:#3c4a58 #0a0f15}
 .sidebar{border-right:1px solid #26313d}.inspector{border-left:1px solid #26313d}
