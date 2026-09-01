@@ -90,20 +90,29 @@ Controlled geometry editing / committed history QA is also **PASS** on staging:
 - committed redo restored the edited geometry and quantity;
 - the final redone geometry and quantity remained present after a hard refresh.
 
-Three separate Takeoff QA discoveries remain open:
+Backend lineage inspection is **PARTIAL PASS / BLOCKED**:
+
+- the latest edited `FTG-STRIP` v7 measurement persists at `5.0105 LF` against the accepted Page 4 default scale;
+- its active ready-mix output recalculates to `0.3186 CY`;
+- the generated estimate item points back to the exact source Takeoff output, source measurement, and published assembly version;
+- however, required `formwork_method`, `placement_method`, and `reinforcement_method` values are unresolved, `method_profile_id` is null, and the dependent nested child outputs are silently inactive / `not_priced` at zero quantity instead of surfacing explicit missing-input holds.
+
+Four separate Takeoff QA discoveries remain open:
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This is a Takeoff UX enhancement caused by the current scroll-container pan model having no scroll range when the paper is smaller than the viewport. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry. It does not by itself reopen Issue #14.
 - **Issue #18 — Server Component render error appears during scale-region QA.** The error was observed once in authenticated Takeoff QA while calibration persistence still succeeded. The exact triggering action/request has not yet been reproduced or confirmed, so the issue remains open and should be investigated immediately if it reappears.
 - **Issue #19 — regional scale cannot start measurement until whole-sheet scale is set.** Authenticated QA showed that a bounded regional calibration alone did not accept LF/SF measurement clicks, while the same workflow worked after setting a whole-sheet/default scale. Current source is intended to accept geometry wholly inside a valid regional scale without requiring a default page scale, so this is an open interaction/scale-resolution defect rather than an intended requirement.
+- **Issue #20 — missing required method choices silently deactivate child outputs instead of creating holds.** Authenticated backend inspection confirmed that unresolved required footing method selectors can leave formwork / placement / reinforcement branches inactive without explicit `missing_input` holds, even though direct root output lineage remains correct. This blocks full Takeoff → assembly → estimate lineage acceptance.
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA with controlled Quantity Worksheet behavior, downstream assembly-output recalculation, and exact Takeoff → assembly → estimate lineage checks against production-like records using the accepted whole-sheet scale path.
-2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during the next controlled QA action.
-3. Diagnose Issue #19 without blocking unrelated Takeoff QA that can proceed under a valid whole-sheet scale.
-4. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
-5. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
-6. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
+1. Resolve and browser/domain-verify Issue #20 so unresolved required method choices cannot silently remove dependent assembly outputs from estimator review.
+2. Continue authenticated Takeoff P0 QA for Quantity Worksheet and exact lineage once method/output completeness is explicit.
+3. Reproduce and diagnose Issue #18 if the Server Component render error reappears during the next controlled QA action.
+4. Diagnose Issue #19 without blocking unrelated Takeoff QA that can proceed under a valid whole-sheet scale.
+5. Evaluate/schedule Issue #17 as a Takeoff workstation UX enhancement without blocking unrelated P0 acceptance unless testing shows it prevents representative estimator workflows.
+6. Reconcile active Takeoff/Estimating foundation documents into the canonical module specs.
+7. Continue Estimating/P1 implementation only from the accepted lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -117,14 +126,17 @@ Three separate Takeoff QA discoveries remain open:
 - Controlled whole-sheet manual calibration and persistence: **PASS** using the same printed 2'-6" dimension / `2.5 FT` calibration.
 - Controlled LF measurement accuracy and persistence with a whole-sheet/default scale present: **PASS** at `2.50 LF` / 2'-6" with geometry remaining aligned after navigation and hard refresh.
 - Controlled saved-geometry edit / Quantity Worksheet recalculation / committed undo-redo / hard-refresh persistence: **PASS**.
+- Direct root Takeoff output → estimate-item provenance on the inspected `FTG-STRIP` v7 measurement: **PASS**; active ready-mix output and estimate item retain exact measurement/output/assembly-version lineage.
+- Full nested assembly-output completeness / missing-input behavior: **BLOCKED by Issue #20**.
 - `ddd61ed` Vercel staging deployment: success.
 - `ddd61ed` Carez OS Branch Build run 525: PASS, including typecheck, domain tests, and optimized build.
 - Takeoff Issue #17 free pan below fit-size: OPEN UX enhancement.
 - Takeoff Issue #18 intermittent Server Component render error during scale-region QA: OPEN; exact trigger not yet reproduced.
 - Takeoff Issue #19 regional-only scale measurement path: OPEN; whole-sheet scale is a current workaround, not the intended long-term requirement.
+- Takeoff Issue #20 unresolved required method selections / silent child-output deactivation: OPEN P0 lineage blocker.
 - Public desktop/mobile browser QA: PASS for the then-current public-entry surfaces.
 
-Authenticated Takeoff P0 behavioral QA remains open; downstream assembly-output recalculation, exact lineage, broader worksheet behavior, regional-scale measurement resolution, and authenticated estimating workflows are not fully accepted yet.
+Authenticated Takeoff P0 behavioral QA remains open; full downstream assembly-output completeness, exact nested lineage, broader worksheet behavior, regional-scale measurement resolution, and authenticated estimating workflows are not fully accepted yet.
 
 ## Known deferred work
 
