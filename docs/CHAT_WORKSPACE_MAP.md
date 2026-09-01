@@ -6,7 +6,7 @@ Status: Canonical workflow document
 
 ChatGPT chats are working rooms, not permanent product memory. Approved Carez truth belongs in canonical GitHub documentation.
 
-Use a small set of permanent domain chats for exploration and coordination. Create temporary implementation chats only for focused build/debugging/research work. Do not create a new permanent chat for every page, feature, or PR.
+Use a small set of permanent domain chats for exploration and coordination. Create temporary ChatGPT threads only for focused implementation/debugging/research work that benefits from isolated context. Codex tasks are separate execution threads, not ChatGPT chats.
 
 ## Permanent chats
 
@@ -25,40 +25,90 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 | `95 — UX & Design System` | global shell, navigation, typography, color, iconography, density, shared components, responsive rules | architecture/design-system rules and accepted B2 design documents |
 | `99 — QA, Release & Debugging` | cross-module acceptance, browser QA, staging verification, release/promotion defects | `docs/CURRENT_STATE.md`, QA/release workflow docs |
 
-## Mode routing
+## Mode and execution routing
 
-Regular Chat is the default mode for permanent domain chats. Use it for brainstorming, product/architecture decisions, GitHub inspection, screenshots, scoped research, planning, QA reasoning, and creating implementation prompts.
+### Regular Chat
+
+Regular Chat is the default for permanent domain chats. Use it for brainstorming, product/architecture decisions, GitHub inspection, screenshots, scoped research, planning, QA reasoning, and preparing execution prompts.
+
+If the work remains discussion/analysis, stay in the owning permanent chat. Do not create a temporary thread merely because a new idea appears.
+
+### Work
 
 Use Work selectively for a bounded objective that is large/multi-step, research-heavy, document/file-heavy, artifact-heavy, or benefits from persistent agentic execution. Work is not the default home for permanent domain conversations.
 
+When Work is appropriate, start a separate focused Work thread inside the Carez Project, give it a governed temporary name such as `60A — Field Workflow Research — Work`, complete the objective, reconcile the result into GitHub, then return to the owning permanent chat.
+
+### Codex
+
+Codex is a separate code-execution surface. It is **not a mode that an existing ChatGPT Project chat can be switched into**.
+
 Use Codex when actual repository coding is required and the objective involves substantial implementation, difficult cross-file debugging, migrations, complex domain logic, or browser automation. Routine GitHub/docs inspection and simple localized work should be handled directly when possible.
 
-Every substantive Carez response must tell the user the recommended CHAT, MODE, whether a TEMP CHAT is needed, WHY, the exact NEXT ACTION, and where to RETURN afterward. The user should not need to memorize this document.
+When Codex is appropriate:
+1. Keep the owning permanent ChatGPT chat as the product/QA coordination room.
+2. Prepare one self-contained implementation/debugging prompt in that chat.
+3. Open Codex separately.
+4. Create a focused Codex task/thread with a governed name, for example `99A — Takeoff Vertical Pan`.
+5. Paste/run the supplied implementation prompt in Codex.
+6. When Codex finishes, return to the owning permanent ChatGPT chat with the result/checkpoint for review, QA, reconciliation, and next routing.
+
+Never tell the user to “switch this chat to Codex.” Say exactly: “Open Codex separately, create the named Codex task, and paste the supplied prompt.”
+
+## Mandatory routing footer
+
+Every substantive Carez response must tell the user exactly where and how to continue. Use:
+
+CAREZ ROUTING
+CHAT: exact owning permanent chat name or `Stay in this chat`
+MODE: `Regular Chat`, `Work`, or `Codex`
+TEMP CHAT: `No` or exact temporary ChatGPT/Work thread name
+CODEX TASK: `No` or exact Codex task name
+WHY: one short sentence
+NEXT ACTION: exact action the user should take next
+RETURN TO: owning permanent chat after temporary Work/Codex activity, or `N/A`
+
+Routing semantics:
+- Regular Chat: normally `TEMP CHAT: No`, `CODEX TASK: No`.
+- Work: normally name the focused Work thread under `TEMP CHAT`; `CODEX TASK: No`.
+- Codex: normally `TEMP CHAT: No`; give the exact separate Codex task under `CODEX TASK`.
+- Never make the user infer whether to stay, create a Work thread, or open Codex separately.
 
 ## Routing rules
 
 1. Every idea gets one primary owning chat. Do not duplicate the same brainstorm across multiple chats.
 2. Cross-module consequences are recorded in all affected canonical GitHub docs after approval; the conversation stays in the primary owning chat.
 3. Global visual/system patterns belong in `95`; module-specific screen/workflow decisions remain in that module's chat.
-4. Banking, payroll, AP, AR, POs, vendor bills, changes, and similar finance features begin under `70` unless their scope later justifies a focused temporary chat.
+4. Banking, payroll, AP, AR, POs, vendor bills, changes, and similar finance features begin under `70` unless their scope later justifies focused execution.
 5. New ideas with unclear ownership begin in `00`; route them before substantial design work.
 6. Current implementation priority is never inferred from chat order. Read `CURRENT_STATE.md` and `ROADMAP.md`.
 
-## Temporary chats
+## QA discovery funnel
 
-Create a temporary chat only when a coherent implementation/debugging/research objective benefits from isolated context.
+`99 — QA, Release & Debugging` is allowed to discover bugs and new ideas while testing without forcing constant chat switching.
+
+When something is noticed during QA, classify it before routing:
+- **Defect/regression against accepted behavior:** keep investigating in `99`.
+- **Small improvement/new idea:** capture its owning module and continue the active QA session unless the user wants to explore it immediately.
+- **Major module-specific product/UX idea:** route design discussion to the owning module chat when appropriate.
+- **Carez-wide visual/system idea:** route design discussion to `95`.
+
+A new preference discovered during QA is not automatically a failed test. Preserve the distinction between accepted-behavior defects and new product ideas. Do not interrupt a coherent QA pass merely to move every enhancement idea into another chat.
+
+## Temporary ChatGPT/Work threads
+
+Create a temporary ChatGPT/Work thread only when a coherent implementation/debugging/research objective benefits from isolated conversational context. Do not call a Codex task a temporary ChatGPT chat.
 
 Naming:
-- `<domain number><letter> — <objective> — Implementation` for focused build/debug work.
-- `<domain number><letter> — <objective> — Work` for focused Work-mode research/artifact execution.
+- `<domain number><letter> — <objective> — Implementation` for a focused ChatGPT implementation/debugging thread when one is actually useful.
+- `<domain number><letter> — <objective> — Work` for focused Work execution.
 
 Examples:
 - `20A — Assembly Creator — Implementation`
-- `30A — Pricing Review — Implementation`
-- `60A — Mobile Timeclock — Implementation`
+- `60A — Field Workflow Research — Work`
 - `95A — Design System Audit — Work`
 
-Temporary chats are narrow and disposable. They do not become sources of product truth. Before execution, read canonical docs and inspect existing evidence. At completion, reconcile decisions/issues/PRs/verification into GitHub, return to the owning permanent chat, and archive the temporary chat when safe.
+Temporary threads are narrow and disposable. They do not become sources of product truth. At completion, reconcile decisions/issues/PRs/verification into GitHub, return to the owning permanent chat, and archive the temporary thread when safe.
 
 ## Continuation rule
 
@@ -70,8 +120,8 @@ Bootstrap from current GitHub truth: `docs/README.md`, `docs/CURRENT_STATE.md`, 
 
 Idea → brainstorm/research → proposed → approved → canonical GitHub docs updated → issue/implementation → tests/browser QA → verified → `CURRENT_STATE.md` updated when appropriate.
 
-Before archiving a temporary chat, confirm approved decisions are canonical, implementation is represented in GitHub, UI claims have browser evidence, remaining work is captured, and current-state documentation reflects only verified changes.
+Before closing temporary Work/Codex execution, confirm approved decisions are canonical, implementation is represented in GitHub, UI claims have browser evidence, remaining work is captured, and current-state documentation reflects only verified changes.
 
 ## Chat lifecycle
 
-Permanent domain chats may remain for long-term exploration. Temporary implementation/Work chats should be archived after reconciliation. Old chats whose approved truth is already canonical may remain historical but should not be used as current authority.
+Permanent domain chats may remain for long-term exploration. Temporary ChatGPT/Work threads should be archived after reconciliation. Codex tasks may remain as execution history but are not canonical product memory. Old chats whose approved truth is already canonical may remain historical but should not be used as current authority.
