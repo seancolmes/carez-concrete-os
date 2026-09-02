@@ -29,10 +29,10 @@ This registry classifies non-canonical supporting documents so developers and AI
 | Document | Classification | Canonical owner / interpretation |
 | --- | --- | --- |
 | `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | B2 visual/interaction contract supporting Architecture + Takeoff/Estimating module specs |
-| `builder-means-methods-resource-engine.md` | ACCEPTED DETAILED DESIGN | P1 means/methods/resource contract supporting Takeoff + Estimating |
+| `builder-means-methods-resource-engine.md` | ACCEPTED DETAILED DESIGN | P1 means/methods/resource contract supporting Assembly & Resource Engine + Takeoff + Estimating |
 | `carez-modernization.md` | HISTORICAL IMPLEMENTATION RECORD | 2026-08-29 evidence snapshot; `CURRENT_STATE.md` controls present status |
 | `concrete-plan-intelligence-foundation.md` | ACCEPTED DETAILED DESIGN | Plan Intelligence domain/schema foundation supporting AI + Documents/Knowledge |
-| `custom-assembly-authoring-foundation.md` | ACCEPTED DETAILED DESIGN | Immutable assembly authoring/runtime contract supporting Estimating |
+| `custom-assembly-authoring-foundation.md` | ACCEPTED DETAILED DESIGN | Immutable assembly authoring/runtime contract supporting Assembly & Resource Engine + Estimating |
 | `p1-builder-method-acceptance.md` | ACCEPTED ACCEPTANCE CRITERIA | Focused P1 verification/resource acceptance rules |
 | `p1-method-research-contract.md` | RESEARCH CONTRACT | Source hierarchy and domain corrections for P1 means/methods |
 | `product-polish-vision.md` | SUPERSEDED VISION RECORD | Earlier product polish direction; later B2/module specs govern current UI decisions |
