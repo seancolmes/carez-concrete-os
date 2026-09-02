@@ -6,7 +6,7 @@ Status: active flagship workstation
 Convert plan geometry into authoritative physical measurements with exact lineage into estimating.
 
 ## Core workflow
-Plans → calibrate/verify scale → select assembly/method → measure/edit → resolve holds → worksheet review → estimate outputs.
+Plans → calibrate/verify scale → select published company assembly/method → measure/edit → resolve holds → worksheet review → estimate outputs.
 
 ## Invariants
 - PDF is visual reference; stable page-coordinate vector geometry is authoritative.
@@ -15,10 +15,20 @@ Plans → calibrate/verify scale → select assembly/method → measure/edit →
 - Cutouts/holes, arcs, editing, duplication, calibration, and quantity worksheet preserve lineage.
 - Geometry may save when downstream component assumptions are missing; dependent outputs become explicit holds.
 - Permanent resizable bottom quantity/estimate worksheet on desktop.
+- Takeoff consumes published company-owned assemblies; it does not own the primary assembly-authoring experience.
+- The Takeoff Inspector remains focused on the selected measurement, job-specific method/profile inputs, holds, and review. It must not become a long-form assembly builder.
+- Authorized users may open the selected assembly in the dedicated Assembly Studio, but authoring occurs outside the plan workspace.
+
+## Assembly selection boundary
+
+- No hard-coded Carez production assembly is required for new Takeoff work.
+- Only published company-owned assemblies are selectable for production Takeoff.
+- System templates are not selectable directly; they must first be copied into a company draft and published through Assembly Studio.
+- Historical measurements continue to reference the exact immutable assembly version they were created with, even if that version is later retired/hidden from new selection.
 
 ## Sheet naming and indexing
 - Imported PDF pages should be auto-named when reliable sheet metadata can be extracted from the page text/title block.
-- Persist the recognized sheet number and sheet title in `takeoff_sheets.sheet_number` and `takeoff_sheets.title`; the left sheet pane should prefer a professional label such as `S100.4 — Foundation Framing Plan` over generic `PDF Page 4` when metadata exists.
+- Persist the recognized sheet number and sheet title in `takeoff_sheets.sheet_number` and `title`; the left sheet pane should prefer a professional label such as `S100.4 — Foundation Framing Plan` over generic `PDF Page 4` when metadata exists.
 - Automatic naming is low-risk clerical/indexing assistance. It must never change measurement geometry, scale/calibration, assembly selection, quantities, commercial records, or plan-document authority.
 - Prefer deterministic PDF text/title-block extraction before OCR/vision. A likely title-block region may be prioritized, with whole-page text as a fallback when needed.
 - Low-confidence or incomplete extraction must fall back safely to the existing page-number label rather than inventing metadata.
@@ -34,10 +44,10 @@ Plans → calibrate/verify scale → select assembly/method → measure/edit →
 - Hover/detail presentation must never mutate normalized page-coordinate geometry, calibration, persisted measurement data, or Takeoff → assembly → estimate lineage.
 
 ## Inputs
-Plans/sheets, calibration, measurement geometry, published assembly version, verified method profile, declared estimator inputs.
+Plans/sheets, calibration, measurement geometry, published company assembly version, verified method profile, declared estimator inputs.
 
 ## Outputs
-Measurements, derived quantities, assembly outputs, holds, estimate-item lineage.
+Measurements, derived quantities, assembly/resource outputs, holds, estimate-item lineage.
 
 ## Current foundation
 P0 geometry/editor/atomic recalculation foundation is implemented. Additional B2 workstation work exists. Fresh authenticated/browser acceptance remains required for current staging behavior.
