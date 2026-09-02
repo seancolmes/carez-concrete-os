@@ -16,8 +16,9 @@ Opportunity / ITB
 → Frozen Budget
 → Work Package
 → Operation
-→ Schedule
-→ Crew / Time
+→ Production Work Unit
+→ Schedule / Readiness
+→ Crew / Time / Actual Work Context
 → Production
 → Actual Cost
 → Forecast / Variance
@@ -51,7 +52,8 @@ The architecture must reduce re-entry and preserve exact lineage between physica
 - Geometry and calibration must remain deterministic across zoom/render changes.
 - Editing, cutouts, arcs, duplicate, persistent undo/redo, and worksheet lineage operate on persisted geometry/domain state.
 - The permanent resizable bottom quantity/estimate worksheet is a flagship workstation element.
-- Takeoff selects and applies published company-owned assemblies but does not become the primary assembly-authoring surface.
+- Takeoff selects and applies published company-owned assemblies.
+- Assembly authoring remains integrated with the Takeoff workstation so the live plan can remain visible, but it must use a dedicated resizable builder/composer surface rather than turning the permanent Inspector into a long-form editor.
 
 ## Assemblies and resource engine
 
@@ -61,7 +63,7 @@ The architecture must reduce re-entry and preserve exact lineage between physica
 - Optional system templates live in a separate read-only Template Catalog and become company-owned only through an explicit copy-to-draft action.
 - Published assembly versions are immutable.
 - Historical referenced versions may be retired/hidden but remain preserved for lineage until safe retention rules permit deletion.
-- Assembly Studio is a dedicated full-page authoring environment using structured drag-and-drop recipe blocks rather than a long Takeoff Inspector form or unrestricted node graph.
+- Assembly authoring is an interactive, structured drag-and-drop builder integrated into the Takeoff workstation with the plan still visible; it is not an unrestricted node graph, separate disconnected estimating app, or long Inspector form.
 - Assemblies convert Takeoff measurements plus declared plan facts, estimator method decisions, production assumptions, and property bindings into deterministic resource and labor outputs.
 - Resources are first-class and independently priceable; assemblies determine resource demand rather than embedding current price as quantity logic.
 - Installed/theoretical quantity, procurement quantity, and reusable inventory demand are distinct concepts.
@@ -84,22 +86,39 @@ After award:
 Project
 → Work Package
 → Operation
-→ Schedule
-→ Crew / Field
+→ Production Work Unit
+→ Committed / Lookahead / Daily Schedule
+→ Readiness
+→ Crew / Actual Work Context
 → Production
 → Cost / Forecast
 ```
 
-Work packages are concrete execution units containing scope, budget, drawings, operations, readiness, crew, production, material needs, pour linkage, notes, and photos.
+Work packages are concrete execution units containing scope, budget, drawings, operations, measurable production work units, readiness, crew, production, material needs, pour linkage, notes, photos, and cost/forecast lineage.
+
+Where practical, measurable awarded Takeoff scope should become assignable production work units so scheduling, crew time, completion, production learning, blockers, and actual cost all reference the same physical scope.
+
+Scheduling distinguishes:
+- committed/baseline milestones;
+- rolling lookahead planning;
+- daily executable READY work.
+
+Field variance may alter the working/lookahead plan and actual work context without erasing the failed plan, silently changing committed milestones, or mutating the frozen commercial baseline.
 
 ## Field and pour control
 
 Role-specific workflows keep field interaction simpler than office authoring.
 
-- Employees: clock/time and assigned work.
-- Foremen: crew, operation, quantity, issues, production.
-- Superintendents: readiness, coordination, pours.
+- Employees: clock/time plus a low-friction actual work context; scheduled work is offered first, with one-tap switch/blocked behavior when field conditions differ.
+- Foremen: execution leadership, crew awareness, readiness, blockers, sequence, ahead/behind status, and crew reassignment. Foremen are not routine daily production-quantity data-entry workers.
+- Superintendents: readiness, coordination, lookahead risk, inspections, pours, and cross-crew/project constraints.
 - Pour Control: readiness, mix, supplier, pump, linked scope, deliveries, placed/returned quantities, inspections, and variance.
+
+Production learning should derive from attributable employee/crew time plus trustworthy completion of measurable work units and other high-quality evidence such as pour tickets. Waiting, blocked, rework, setup, and ambiguous time must remain distinguishable so paid time is not automatically treated as productive labor.
+
+Production evidence is confidence-rated. High-confidence evidence can inform future estimating history; ambiguous evidence is reviewed or excluded. Field actuals and historical production may inform estimator decisions but never automatically rewrite published assemblies, production assumptions, budgets, or accepted estimates.
+
+Blockers are first-class records tied to the affected work unit/operation and downstream schedule impact. Carez should help authorized field leaders redirect crews to alternate READY work and suggest resequencing, but humans approve material schedule changes.
 
 ## Finance and procurement
 
@@ -130,7 +149,10 @@ AI may assist:
 - retrieval;
 - summarization;
 - QA;
-- clerical preparation.
+- clerical preparation;
+- schedule/readiness risk detection;
+- alternate READY-work suggestions;
+- production-evidence classification and learning recommendations.
 
 Humans remain authoritative for:
 
@@ -142,6 +164,7 @@ Humans remain authoritative for:
 - pricing;
 - margin;
 - budgets;
+- schedule commitments and material resequencing decisions;
 - approvals;
 - final commercial decisions.
 
