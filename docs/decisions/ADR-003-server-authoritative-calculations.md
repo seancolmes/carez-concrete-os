@@ -11,4 +11,4 @@ Takeoff, estimating, and finance require deterministic results, tenant enforceme
 ## Consequences
 - UI previews must use the same deterministic logic or a server preview path.
 - Do not create divergent client-side calculation engines.
-- Geometry/assembly recalculation preserves validated component sets and commercial override rules.
+- Geometry/Condition-module recalculation preserves validated output sets, holds, and commercial override rules.
