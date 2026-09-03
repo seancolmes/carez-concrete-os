@@ -6,33 +6,37 @@ create or replace function public.carez_create_assembly_revision(
 )
 returns uuid
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 declare
-  v_user uuid := auth.uid();
-  v_company uuid;
+  v_company uuid := public.get_my_company_id();
   v_source public.concrete_assembly_versions%rowtype;
+  v_assembly public.concrete_assemblies%rowtype;
   v_next integer;
   v_new uuid;
 begin
-  if v_user is null then raise exception 'Not authenticated'; end if;
-
-  select p.company_id into v_company
-  from public.profiles p
-  where p.id = v_user;
-
-  if v_company is null then raise exception 'No company profile'; end if;
+  if v_company is null or public.get_my_role() = 'employee' then
+    raise exception 'Owner access required.';
+  end if;
 
   select * into v_source
   from public.concrete_assembly_versions
   where id = p_assembly_version_id
     and company_id = v_company;
 
-  if v_source.id is null then raise exception 'Assembly version not found'; end if;
-  if v_source.status not in ('published', 'retired') then
-    raise exception 'Only published or retired assembly versions can be revised';
+  if not found then raise exception 'Assembly version not found.'; end if;
+  if v_source.status = 'draft' then
+    raise exception 'Continue editing the existing draft instead of creating a revision from it.';
   end if;
+
+  select * into v_assembly
+  from public.concrete_assemblies
+  where id = v_source.assembly_id
+    and company_id = v_company
+  for update;
+
+  if not found then raise exception 'Assembly not found.'; end if;
 
   if exists (
     select 1
@@ -41,7 +45,7 @@ begin
       and assembly_id = v_source.assembly_id
       and status = 'draft'
   ) then
-    raise exception 'This assembly already has an active draft revision';
+    raise exception 'This assembly already has a draft revision.';
   end if;
 
   select coalesce(max(version_no), 0) + 1 into v_next
@@ -56,6 +60,7 @@ begin
     status,
     source_type,
     source_label,
+    source_year,
     source_reference,
     notes,
     default_risk_class_code,
@@ -65,26 +70,25 @@ begin
     primary_measurement_snapshot,
     description_snapshot,
     render_config,
-    created_by,
-    updated_by
+    created_by
   ) values (
     v_company,
     v_source.assembly_id,
     v_next,
     'draft',
-    'historical',
-    'Revision of published company assembly',
-    v_source.id::text,
-    'Draft revision created from immutable assembly version ' || v_source.version_no,
+    v_source.source_type,
+    v_source.source_label,
+    v_source.source_year,
+    v_source.source_reference,
+    v_source.notes,
     v_source.default_risk_class_code,
-    v_source.assembly_code_snapshot,
-    v_source.assembly_name_snapshot,
-    v_source.category_snapshot,
-    v_source.primary_measurement_snapshot,
-    v_source.description_snapshot,
+    v_assembly.code,
+    v_assembly.name,
+    v_assembly.category,
+    v_assembly.primary_measurement,
+    v_assembly.description,
     v_source.render_config,
-    v_user,
-    v_user
+    auth.uid()
   )
   returning id into v_new;
 
@@ -190,7 +194,8 @@ begin
     label,
     quantity_formula,
     variable_bindings,
-    sort_order
+    sort_order,
+    activation_rule
   )
   select
     v_company,
@@ -200,7 +205,8 @@ begin
     label,
     quantity_formula,
     variable_bindings,
-    sort_order
+    sort_order,
+    activation_rule
   from public.concrete_assembly_children
   where company_id = v_company
     and assembly_version_id = v_source.id;
@@ -238,4 +244,5 @@ begin
 end;
 $$;
 
-grant execute on function public.carez_create_assembly_revision(uuid) to authenticated;
+revoke all on function public.carez_create_assembly_revision(uuid) from public,anon;
+grant execute on function public.carez_create_assembly_revision(uuid) to authenticated,service_role;
