@@ -147,22 +147,24 @@ Issues #20–#23 are browser-accepted and closed.
 
 Automated validation for the accepted branch head `9e2d8b9` passed GitHub Actions typecheck, 46 focused/domain tests, and production build. The Issue #20 synchronization migration was also applied to the QA Supabase project and verified to preserve `missing_input` status.
 
-## Remaining open Takeoff QA discoveries
+## Remaining open Takeoff / release QA discoveries
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This remains a non-blocking Takeoff UX enhancement. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry.
 - **Issue #18 — Server Component render error appears during scale-region QA.** Observed once; exact triggering action/request remains unconfirmed. Investigate immediately if it reappears.
 - **Issue #29 — expose active outputs beyond Concrete / Reinforcing / Formwork in persistent Takeoff review.** SF finish/cure/sawcut outputs calculate and retain exact lineage, but the current Quantity Worksheet row does not expose those quantities individually. Preserve the dense summary columns and add a bounded selected-measurement output detail treatment rather than an ever-growing fixed-column table.
+- **Issue #30 — verify staging Supabase environment binding before further mutation-heavy QA.** Read-only inspection after the SF test found the newly created staging-browser QA records in Supabase project `snbnwgetfuvkjkhfxmmz` (`Carez Concrete OS`) and not in the dedicated `tkcirsdfvvahwrcratkn` (`Carez Concrete OS QA`) project. This is observed evidence only; the Vercel environment-variable/configuration root cause remains unconfirmed until bindings are inspected.
 
 Issue #19 is now closed as browser-verified PASS; no code change was required because the current staging behavior already satisfies the regional-scale contract.
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA with representative **EA count behavior**, including Quantity Worksheet recalculation, persistence, multi-count editing, and exact downstream lineage.
-2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
-3. Keep Issue #29 captured as a Takeoff output-review UX gap while continuing QA; address it in the owning Takeoff workstation workflow without blocking verified SF calculation/lineage behavior.
-4. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
-5. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
-6. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
+1. Verify **Issue #30** environment binding before additional mutation-heavy browser QA: identify which Supabase project Vercel `staging` and production/main are intentionally configured to use, and verify required migrations on the intended staging database.
+2. Continue authenticated Takeoff P0 QA with representative **EA count behavior**, including Quantity Worksheet recalculation, persistence, multi-count editing, and exact downstream lineage, once the staging database authority is confirmed.
+3. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
+4. Keep Issue #29 captured as a Takeoff output-review UX gap while continuing QA; address it in the owning Takeoff workstation workflow without blocking verified SF calculation/lineage behavior.
+5. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
+6. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
+7. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -186,15 +188,16 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Cross-sheet `This Sheet` / `All Sheets` worksheet scoping, row-selection sheet context, refresh persistence, independent scale-region ownership, and exact cross-sheet output/estimate-item lineage: **PASS**.
 - SF polygon/cutout gross/net geometry, cutout perimeter contribution, derived-output recalculation, refresh persistence, exact generated estimate-item lineage, duplicate prevention, and LF-measurement isolation: **PASS**.
 - SF finish/cure/sawcut backend calculation and lineage: **PASS**; persistent worksheet quantity visibility for these non-summary outputs: **OPEN**, Issue #29.
+- Staging Supabase binding: **OPEN INVESTIGATION**, Issue #30; staging-browser QA records are observed in `Carez Concrete OS` rather than `Carez Concrete OS QA`, configuration intent/root cause not yet confirmed.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
 - GitHub Actions branch validation for `9e2d8b9`: **PASS**, including typecheck, 46 tests, and optimized build.
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
-- EA count behavior / lineage: **OPEN**, next controlled P0 QA gate.
+- EA count behavior / lineage: **OPEN**, next controlled Takeoff P0 gate after Issue #30 environment verification.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, SF polygon/cutout calculation, and exact-lineage foundation. EA count behavior, Issue #29 output-review visibility, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, SF polygon/cutout calculation, and exact-lineage foundation. Confirm staging database authority under Issue #30 before more mutation-heavy QA, then continue EA count behavior; Issue #29 output-review visibility and the intermittent Server Component error remain open work.
 
 ## Known deferred work
 
