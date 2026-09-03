@@ -1,8 +1,9 @@
 import type { FormulaValue } from './formula';
 
-type Token = { type: 'number' | 'identifier' | 'operator' | 'paren'; value: string };
+type Token = { type: 'number' | 'identifier' | 'operator' | 'paren' | 'comma'; value: string };
 
 const identifierPattern = /^[A-Za-z_][A-Za-z0-9_.]*$/;
+const functionNames = new Set(['ceil', 'floor', 'round', 'min', 'max']);
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -12,6 +13,7 @@ function tokenize(source: string): Token[] {
     if (/\s/.test(char)) { index += 1; continue; }
     if ('+-*/'.includes(char)) { tokens.push({ type: 'operator', value: char }); index += 1; continue; }
     if ('()'.includes(char)) { tokens.push({ type: 'paren', value: char }); index += 1; continue; }
+    if (char === ',') { tokens.push({ type: 'comma', value: char }); index += 1; continue; }
     if (/\d|\./.test(char)) {
       let end = index + 1;
       while (end < source.length && /[\d.]/.test(source[end])) end += 1;
@@ -49,7 +51,30 @@ export function compileFormulaExpression(source: string): FormulaValue {
     const token = take();
     if (!token) throw new Error('Formula ended unexpectedly.');
     if (token.type === 'number') return { const: Number(token.value) } as FormulaValue;
-    if (token.type === 'identifier') return { var: token.value } as FormulaValue;
+    if (token.type === 'identifier') {
+      if (peek()?.type === 'paren' && peek().value === '(') {
+        if (!functionNames.has(token.value.toLowerCase())) throw new Error(`Unsupported formula function: ${token.value}`);
+        take();
+        const args: FormulaValue[] = [];
+        if (!(peek()?.type === 'paren' && peek().value === ')')) {
+          args.push(expression());
+          while (peek()?.type === 'comma') {
+            take();
+            args.push(expression());
+          }
+        }
+        const closing = take();
+        if (!closing || closing.type !== 'paren' || closing.value !== ')') throw new Error(`Missing closing parenthesis for ${token.value}.`);
+        const fn = token.value.toLowerCase();
+        if (['ceil', 'floor', 'round'].includes(fn)) {
+          if (args.length !== 1) throw new Error(`${fn}() requires exactly one value.`);
+          return { op: fn, value: args[0] } as FormulaValue;
+        }
+        if (args.length < 1) throw new Error(`${fn}() requires at least one value.`);
+        return { op: fn, args } as FormulaValue;
+      }
+      return { var: token.value } as FormulaValue;
+    }
     if (token.type === 'operator' && token.value === '-') {
       return { op: 'mul', args: [{ const: -1 }, primary()] } as FormulaValue;
     }
@@ -110,5 +135,5 @@ export function formatFormulaExpression(expr: FormulaValue, parentPrecedence = 0
 }
 
 export function formulaVariableTokens(source: string): string[] {
-  return [...new Set(tokenize(source).filter(token => token.type === 'identifier').map(token => token.value))];
+  return [...new Set(tokenize(source).filter(token => token.type === 'identifier' && !functionNames.has(token.value.toLowerCase())).map(token => token.value))];
 }
