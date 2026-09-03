@@ -174,3 +174,14 @@ CLOSED: [ permanent app rail ][ workspace ]
 The primary desktop rail never disappears merely because the context drawer closes.
 
 Visual direction: professional, industrial, calm, precise, dense, premium, concrete-native. Avoid generic SaaS styling, excessive whitespace, giant rounded cards, glassmorphism, and decorative UI that competes with plans or estimating data.
+
+### Dashboard / Today
+
+The authenticated desktop home surface is the **Today** operating dashboard. It is an operations command surface rather than a generic analytics dashboard.
+
+- Preserve the permanent dark navy Carez app rail while the main dashboard uses the approved light workstation system.
+- The primary hierarchy is current operating position → management attention → scheduled production → active jobs, with estimating pipeline and cash attention as secondary operating context.
+- Existing dashboard metrics and domain meaning remain intact: Ready to Move, Hard Holds, Field Active, Customers Owe, 7-Day Cash, management attention, scheduled production, active jobs, bid pipeline, and operational cash attention.
+- Management exceptions gain stronger hierarchy when present; healthy/zero states remain visually quiet.
+- Use icons, semantic color, typography, spacing, and table/list structure to improve scan speed without turning the page into a card-heavy SaaS dashboard.
+- The approved light-system Dashboard concept is the reference presentation target for this route; implementation must preserve existing data sources, links, permissions, Job Spine meaning, and operational semantics.
