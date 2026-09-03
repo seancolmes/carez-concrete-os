@@ -131,10 +131,12 @@ export function useTakeoffPaneResize() {
 
       const workspaceRect = workspace.getBoundingClientRect();
       const paneRect = pane.getBoundingClientRect();
-      const boundary = (kind === 'sheets' ? paneRect.right : paneRect.left) - workspaceRect.left;
+      const boundary = kind === 'sheets' ? paneRect.right : paneRect.left;
 
       handle.style.display = 'block';
       handle.style.left = `${Math.round(boundary - HANDLE_WIDTH / 2)}px`;
+      handle.style.top = `${Math.round(workspaceRect.top)}px`;
+      handle.style.height = `${Math.max(0, Math.round(workspaceRect.height))}px`;
       handle.setAttribute('aria-valuemin', String(minimumFor(kind)));
       handle.setAttribute('aria-valuemax', String(Math.round(maxFor(kind))));
       handle.setAttribute('aria-valuenow', String(Math.round(loadWidth(kind, pane))));
@@ -230,11 +232,9 @@ export function useTakeoffPaneResize() {
       handle.tabIndex = 0;
       handle.title = `Drag to resize ${kind}`;
       Object.assign(handle.style, {
-        position: 'absolute',
-        top: '0',
-        bottom: '0',
+        position: 'fixed',
         width: `${HANDLE_WIDTH}px`,
-        zIndex: '120',
+        zIndex: '2147483000',
         cursor: 'col-resize',
         background: 'transparent',
         touchAction: 'none',
@@ -310,7 +310,7 @@ export function useTakeoffPaneResize() {
       handle.addEventListener('blur', blur);
       handle.addEventListener('keydown', keyDown);
       handle.addEventListener('dblclick', doubleClick);
-      workspace.appendChild(handle);
+      document.body.appendChild(handle);
       handles[kind] = handle;
       handleLines[kind] = line;
 
@@ -333,10 +333,17 @@ export function useTakeoffPaneResize() {
     const resizeObserver = new ResizeObserver(applyLayout);
     resizeObserver.observe(workspace);
 
+    const reposition = () => {
+      const { sheets, inspector } = getPanes();
+      positionHandle('sheets', sheets);
+      positionHandle('inspector', inspector);
+    };
+
     window.addEventListener('mousemove', moveDrag, { passive: false });
     window.addEventListener('mouseup', endDrag);
     window.addEventListener('blur', endDrag);
     window.addEventListener('resize', applyLayout);
+    window.addEventListener('scroll', reposition, true);
     applyLayout();
 
     return () => {
@@ -346,6 +353,7 @@ export function useTakeoffPaneResize() {
       window.removeEventListener('mouseup', endDrag);
       window.removeEventListener('blur', endDrag);
       window.removeEventListener('resize', applyLayout);
+      window.removeEventListener('scroll', reposition, true);
       removeSheetHandle();
       removeInspectorHandle();
       workspace.style.display = originalWorkspaceDisplay;
