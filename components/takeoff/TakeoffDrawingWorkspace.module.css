@@ -78,3 +78,25 @@
 .buildPlanCompactHead span,.methodProfileSummary span{font-size:12px}.buildPlanCompactHead strong,.methodProfileSummary strong{font-size:13px}.buildPlanCompactHead>b{font-size:11px}.methodSummaryGrid small{font-size:11px}.methodSummaryGrid b{font-size:12px}.buildPlanWarning{font-size:12px}.reviewBuildPlan{font-size:13px}
 .selectedTitle{font-size:13px}.selectedStats span,.statusWarn,.cutoutSummary span{font-size:12px}.selectedStats b,.cutoutSummary b{font-size:13px}
 .primary,.secondary,.danger,.measurePrimary{font-size:12px}
+
+/* QA correction: sheet pane is a clean document navigator; pane resizing uses explicit edge handles. */
+@media(min-width:901px){
+  .workspace{grid-template-columns:auto minmax(420px,1fr) auto}
+  .noSheets{grid-template-columns:minmax(420px,1fr) auto}
+  .noInspector{grid-template-columns:auto minmax(420px,1fr)}
+  .sidebar,.inspector{resize:none!important;direction:ltr!important}
+  .sidebar{min-width:190px;max-width:min(44vw,620px)}
+  .inspector{min-width:300px;max-width:min(48vw,680px)}
+}
+.sidebar{background:#0c1117;border-right-color:#252b33}
+.sidebar .panelHeader{min-height:46px;padding:7px 10px;background:#0e141b;border-bottom-color:#252b33}
+.sidebar .panelTitle{font-size:13px;font-weight:700;letter-spacing:0;color:#eceff3}
+.sidebar .panelMeta{margin-top:2px;font-size:11px;color:#747d88}
+.sheetList{gap:0;padding:5px 7px 10px}
+.sheetButton{grid-template-columns:34px minmax(0,1fr);gap:8px;min-height:45px;padding:6px 7px;border:0;border-bottom:1px solid #1e252d;border-radius:0;background:transparent;color:#b8c0c9;box-shadow:none}
+.sheetButton:hover{background:#111922;color:#edf2f7}
+.sheetButtonActive{background:#101d2d;color:#f2f6fb;box-shadow:inset 2px 0 #1e5bff}
+.pageBadge{width:30px;height:30px;border:0;border-radius:3px;background:#121820;color:#8d98a5;font-size:11px;font-weight:700;box-shadow:none}
+.sheetButtonActive .pageBadge{border:0;background:#14243a;color:#79a9ff}
+.sheetName{font-size:12px;line-height:1.28;font-weight:650;color:inherit}
+.sheetStatus,.sheetStatusReady,.sheetStatusHold{display:none!important;border:0!important;outline:0!important;box-shadow:none!important}
