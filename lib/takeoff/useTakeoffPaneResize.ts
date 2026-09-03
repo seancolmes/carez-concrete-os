@@ -7,7 +7,6 @@ type DragState = {
   kind: PaneKind;
   startX: number;
   startWidth: number;
-  pointerId: number;
 } | null;
 
 const SHEETS_MIN = 190;
@@ -17,8 +16,12 @@ const INSPECTOR_MIN = 300;
 const INSPECTOR_DEFAULT = 326;
 const INSPECTOR_MAX = 680;
 const CENTER_MIN = 420;
-const HANDLE_WIDTH = 10;
+const HANDLE_WIDTH = 16;
 const KEYBOARD_STEP = 16;
+const STORAGE_KEYS: Record<PaneKind, string> = {
+  sheets: 'carez.takeoff.sheetsWidth',
+  inspector: 'carez.takeoff.inspectorWidth',
+};
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -43,14 +46,17 @@ function defaultFor(kind: PaneKind) {
 export function useTakeoffPaneResize() {
   useEffect(() => {
     const dock = document.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');
-    const workstation = dock?.parentElement;
     const workspace = dock?.previousElementSibling as HTMLElement | null;
-    if (!workstation || !workspace) return;
+    if (!workspace) return;
+
+    const originalWorkspaceDisplay = workspace.style.display;
+    const originalWorkspaceFlexDirection = workspace.style.flexDirection;
+    const originalWorkspaceGridTemplateColumns = workspace.style.gridTemplateColumns;
 
     let drag: DragState = null;
-    let frame = 0;
     let hiddenInspectorMeta: HTMLElement | null = null;
-    const remembered: Partial<Record<PaneKind, number>> = {};
+    let centerElement: HTMLElement | null = null;
+    const widths: Partial<Record<PaneKind, number>> = {};
     const handles: Partial<Record<PaneKind, HTMLDivElement>> = {};
     const handleLines: Partial<Record<PaneKind, HTMLDivElement>> = {};
 
@@ -63,24 +69,41 @@ export function useTakeoffPaneResize() {
       }, { sheets: null, inspector: null });
     };
 
-    const currentWidth = (pane: HTMLElement | null, kind: PaneKind) => {
-      if (!pane) return 0;
-      if (remembered[kind] !== undefined) return remembered[kind] as number;
-      const measured = pane.getBoundingClientRect().width;
-      return measured > 0 ? measured : defaultFor(kind);
+    const getCenter = () => workspace.querySelector<HTMLElement>(':scope > section');
+
+    const loadWidth = (kind: PaneKind, pane: HTMLElement | null) => {
+      const remembered = widths[kind];
+      if (remembered !== undefined) return remembered;
+
+      let stored = Number.NaN;
+      try {
+        stored = Number(window.localStorage.getItem(STORAGE_KEYS[kind]));
+      } catch {
+        // Local storage can be unavailable in restricted browser contexts.
+      }
+
+      const measured = pane?.getBoundingClientRect().width || defaultFor(kind);
+      const initial = Number.isFinite(stored) && stored > 0 ? stored : measured;
+      widths[kind] = clamp(initial, minimumFor(kind), maximumFor(kind));
+      return widths[kind] as number;
     };
 
     const maxFor = (kind: PaneKind) => {
       const { sheets, inspector } = getPanes();
       const otherWidth = kind === 'sheets'
-        ? currentWidth(inspector, 'inspector')
-        : currentWidth(sheets, 'sheets');
+        ? (inspector ? loadWidth('inspector', inspector) : 0)
+        : (sheets ? loadWidth('sheets', sheets) : 0);
       const available = workspace.clientWidth - otherWidth - CENTER_MIN;
       return Math.max(minimumFor(kind), Math.min(maximumFor(kind), available));
     };
 
-    const setRememberedWidth = (kind: PaneKind, width: number) => {
-      remembered[kind] = clamp(width, minimumFor(kind), maxFor(kind));
+    const saveWidth = (kind: PaneKind, value: number) => {
+      widths[kind] = clamp(value, minimumFor(kind), maxFor(kind));
+      try {
+        window.localStorage.setItem(STORAGE_KEYS[kind], String(Math.round(widths[kind] as number)));
+      } catch {
+        // Width persistence is optional; resizing must still work without it.
+      }
     };
 
     const hideInspectorSheetMeta = () => {
@@ -108,61 +131,67 @@ export function useTakeoffPaneResize() {
 
       const workspaceRect = workspace.getBoundingClientRect();
       const paneRect = pane.getBoundingClientRect();
-      const boundary = kind === 'sheets' ? paneRect.right : paneRect.left;
+      const boundary = (kind === 'sheets' ? paneRect.right : paneRect.left) - workspaceRect.left;
 
       handle.style.display = 'block';
       handle.style.left = `${Math.round(boundary - HANDLE_WIDTH / 2)}px`;
-      handle.style.top = `${Math.round(workspaceRect.top)}px`;
-      handle.style.height = `${Math.max(0, Math.round(workspaceRect.height))}px`;
       handle.setAttribute('aria-valuemin', String(minimumFor(kind)));
-      handle.setAttribute('aria-valuemax', String(maxFor(kind)));
-      handle.setAttribute('aria-valuenow', String(Math.round(currentWidth(pane, kind))));
+      handle.setAttribute('aria-valuemax', String(Math.round(maxFor(kind))));
+      handle.setAttribute('aria-valuenow', String(Math.round(loadWidth(kind, pane))));
     };
 
-    const updateHandles = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const panes = getPanes();
-        positionHandle('sheets', panes.sheets);
-        positionHandle('inspector', panes.inspector);
-      });
+    const clearPaneInlineLayout = (pane: HTMLElement | null) => {
+      if (!pane) return;
+      pane.style.removeProperty('flex');
+      pane.style.removeProperty('width');
     };
 
-    const applyGrid = () => {
+    const applyLayout = () => {
       hideInspectorSheetMeta();
+      const { sheets, inspector } = getPanes();
+      const center = getCenter();
+      centerElement = center;
 
       if (window.innerWidth <= 900) {
-        workspace.style.removeProperty('grid-template-columns');
+        workspace.style.display = originalWorkspaceDisplay;
+        workspace.style.flexDirection = originalWorkspaceFlexDirection;
+        workspace.style.gridTemplateColumns = originalWorkspaceGridTemplateColumns;
+        clearPaneInlineLayout(sheets);
+        clearPaneInlineLayout(inspector);
+        if (center) {
+          center.style.removeProperty('flex');
+          center.style.removeProperty('min-width');
+        }
         positionHandle('sheets', null);
         positionHandle('inspector', null);
         return;
       }
 
-      const { sheets, inspector } = getPanes();
-      if (sheets && remembered.sheets === undefined) {
-        remembered.sheets = clamp(sheets.getBoundingClientRect().width || SHEETS_DEFAULT, SHEETS_MIN, SHEETS_MAX);
-      }
-      if (inspector && remembered.inspector === undefined) {
-        remembered.inspector = clamp(inspector.getBoundingClientRect().width || INSPECTOR_DEFAULT, INSPECTOR_MIN, INSPECTOR_MAX);
-      }
+      workspace.style.display = 'flex';
+      workspace.style.flexDirection = 'row';
+      workspace.style.gridTemplateColumns = 'none';
 
-      if (sheets) remembered.sheets = clamp(currentWidth(sheets, 'sheets'), SHEETS_MIN, maxFor('sheets'));
-      if (inspector) remembered.inspector = clamp(currentWidth(inspector, 'inspector'), INSPECTOR_MIN, maxFor('inspector'));
-
-      const sheetWidth = sheets ? currentWidth(sheets, 'sheets') : 0;
-      const inspectorWidth = inspector ? currentWidth(inspector, 'inspector') : 0;
-
-      if (sheets && inspector) {
-        workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px, 1fr) ${inspectorWidth}px`;
-      } else if (sheets) {
-        workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px, 1fr)`;
-      } else if (inspector) {
-        workspace.style.gridTemplateColumns = `minmax(${CENTER_MIN}px, 1fr) ${inspectorWidth}px`;
-      } else {
-        workspace.style.removeProperty('grid-template-columns');
+      if (sheets) {
+        const width = clamp(loadWidth('sheets', sheets), SHEETS_MIN, maxFor('sheets'));
+        widths.sheets = width;
+        sheets.style.flex = `0 0 ${width}px`;
+        sheets.style.width = `${width}px`;
       }
 
-      updateHandles();
+      if (inspector) {
+        const width = clamp(loadWidth('inspector', inspector), INSPECTOR_MIN, maxFor('inspector'));
+        widths.inspector = width;
+        inspector.style.flex = `0 0 ${width}px`;
+        inspector.style.width = `${width}px`;
+      }
+
+      if (center) {
+        center.style.flex = '1 1 0';
+        center.style.minWidth = `${CENTER_MIN}px`;
+      }
+
+      positionHandle('sheets', sheets);
+      positionHandle('inspector', inspector);
     };
 
     const endDrag = () => {
@@ -175,44 +204,19 @@ export function useTakeoffPaneResize() {
       document.body.style.userSelect = '';
     };
 
-    const beginDrag = (kind: PaneKind, event: PointerEvent) => {
-      if (window.innerWidth <= 900 || event.button !== 0) return;
-      const { sheets, inspector } = getPanes();
-      const pane = kind === 'sheets' ? sheets : inspector;
-      if (!pane) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      drag = {
-        kind,
-        startX: event.clientX,
-        startWidth: currentWidth(pane, kind),
-        pointerId: event.pointerId,
-      };
-      const line = handleLines[kind];
-      if (line) line.style.opacity = '1';
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    };
-
-    const moveDrag = (event: PointerEvent) => {
-      if (!drag || event.pointerId !== drag.pointerId) return;
+    const moveDrag = (event: MouseEvent) => {
+      if (!drag) return;
+      if (event.buttons === 0) {
+        endDrag();
+        return;
+      }
       if (event.cancelable) event.preventDefault();
       const delta = event.clientX - drag.startX;
       const rawWidth = drag.kind === 'sheets'
         ? drag.startWidth + delta
         : drag.startWidth - delta;
-      setRememberedWidth(drag.kind, rawWidth);
-      applyGrid();
-    };
-
-    const adjustByKeyboard = (kind: PaneKind, boundaryDelta: number) => {
-      const { sheets, inspector } = getPanes();
-      const pane = kind === 'sheets' ? sheets : inspector;
-      if (!pane) return;
-      const widthDelta = kind === 'sheets' ? boundaryDelta : -boundaryDelta;
-      setRememberedWidth(kind, currentWidth(pane, kind) + widthDelta);
-      applyGrid();
+      saveWidth(drag.kind, rawWidth);
+      applyLayout();
     };
 
     const createHandle = (kind: PaneKind) => {
@@ -226,9 +230,11 @@ export function useTakeoffPaneResize() {
       handle.tabIndex = 0;
       handle.title = `Drag to resize ${kind}`;
       Object.assign(handle.style, {
-        position: 'fixed',
+        position: 'absolute',
+        top: '0',
+        bottom: '0',
         width: `${HANDLE_WIDTH}px`,
-        zIndex: '2147483000',
+        zIndex: '120',
         cursor: 'col-resize',
         background: 'transparent',
         touchAction: 'none',
@@ -247,48 +253,71 @@ export function useTakeoffPaneResize() {
       });
       handle.appendChild(line);
 
-      const pointerDown = (event: PointerEvent) => beginDrag(kind, event);
-      const pointerEnter = () => { line.style.opacity = '1'; };
-      const pointerLeave = () => { if (!drag || drag.kind !== kind) line.style.opacity = '0'; };
+      const mouseDown = (event: MouseEvent) => {
+        if (window.innerWidth <= 900 || event.button !== 0) return;
+        const { sheets, inspector } = getPanes();
+        const pane = kind === 'sheets' ? sheets : inspector;
+        if (!pane) return;
+        event.preventDefault();
+        event.stopPropagation();
+        drag = {
+          kind,
+          startX: event.clientX,
+          startWidth: loadWidth(kind, pane),
+        };
+        line.style.opacity = '1';
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      };
+
+      const mouseEnter = () => { line.style.opacity = '1'; };
+      const mouseLeave = () => { if (!drag || drag.kind !== kind) line.style.opacity = '0'; };
       const focus = () => { line.style.opacity = '1'; };
       const blur = () => { if (!drag || drag.kind !== kind) line.style.opacity = '0'; };
       const keyDown = (event: KeyboardEvent) => {
+        const { sheets, inspector } = getPanes();
+        const pane = kind === 'sheets' ? sheets : inspector;
+        if (!pane) return;
+        const current = loadWidth(kind, pane);
+
         if (event.key === 'ArrowLeft') {
           event.preventDefault();
-          adjustByKeyboard(kind, -KEYBOARD_STEP);
+          saveWidth(kind, current + (kind === 'sheets' ? -KEYBOARD_STEP : KEYBOARD_STEP));
+          applyLayout();
         } else if (event.key === 'ArrowRight') {
           event.preventDefault();
-          adjustByKeyboard(kind, KEYBOARD_STEP);
+          saveWidth(kind, current + (kind === 'sheets' ? KEYBOARD_STEP : -KEYBOARD_STEP));
+          applyLayout();
         } else if (event.key === 'Home') {
           event.preventDefault();
-          remembered[kind] = minimumFor(kind);
-          applyGrid();
+          saveWidth(kind, minimumFor(kind));
+          applyLayout();
         } else if (event.key === 'End') {
           event.preventDefault();
-          remembered[kind] = maxFor(kind);
-          applyGrid();
+          saveWidth(kind, maxFor(kind));
+          applyLayout();
         }
       };
       const doubleClick = () => {
-        setRememberedWidth(kind, defaultFor(kind));
-        applyGrid();
+        saveWidth(kind, defaultFor(kind));
+        applyLayout();
       };
 
-      handle.addEventListener('pointerdown', pointerDown);
-      handle.addEventListener('pointerenter', pointerEnter);
-      handle.addEventListener('pointerleave', pointerLeave);
+      handle.addEventListener('mousedown', mouseDown);
+      handle.addEventListener('mouseenter', mouseEnter);
+      handle.addEventListener('mouseleave', mouseLeave);
       handle.addEventListener('focus', focus);
       handle.addEventListener('blur', blur);
       handle.addEventListener('keydown', keyDown);
       handle.addEventListener('dblclick', doubleClick);
-      document.body.appendChild(handle);
+      workspace.appendChild(handle);
       handles[kind] = handle;
       handleLines[kind] = line;
 
       return () => {
-        handle.removeEventListener('pointerdown', pointerDown);
-        handle.removeEventListener('pointerenter', pointerEnter);
-        handle.removeEventListener('pointerleave', pointerLeave);
+        handle.removeEventListener('mousedown', mouseDown);
+        handle.removeEventListener('mouseenter', mouseEnter);
+        handle.removeEventListener('mouseleave', mouseLeave);
         handle.removeEventListener('focus', focus);
         handle.removeEventListener('blur', blur);
         handle.removeEventListener('keydown', keyDown);
@@ -299,36 +328,36 @@ export function useTakeoffPaneResize() {
 
     const removeSheetHandle = createHandle('sheets');
     const removeInspectorHandle = createHandle('inspector');
-    const mutationObserver = new MutationObserver(applyGrid);
+    const mutationObserver = new MutationObserver(applyLayout);
     mutationObserver.observe(workspace, { childList: true });
-    const resizeObserver = new ResizeObserver(applyGrid);
+    const resizeObserver = new ResizeObserver(applyLayout);
     resizeObserver.observe(workspace);
 
-    const pointerUp = (event: PointerEvent) => {
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      endDrag();
-    };
-    const reposition = () => updateHandles();
-
-    window.addEventListener('pointermove', moveDrag, { passive: false });
-    window.addEventListener('pointerup', pointerUp);
-    window.addEventListener('pointercancel', pointerUp);
-    window.addEventListener('resize', applyGrid);
-    window.addEventListener('scroll', reposition, true);
-    applyGrid();
+    window.addEventListener('mousemove', moveDrag, { passive: false });
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('blur', endDrag);
+    window.addEventListener('resize', applyLayout);
+    applyLayout();
 
     return () => {
-      cancelAnimationFrame(frame);
       mutationObserver.disconnect();
       resizeObserver.disconnect();
-      window.removeEventListener('pointermove', moveDrag);
-      window.removeEventListener('pointerup', pointerUp);
-      window.removeEventListener('pointercancel', pointerUp);
-      window.removeEventListener('resize', applyGrid);
-      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('mousemove', moveDrag);
+      window.removeEventListener('mouseup', endDrag);
+      window.removeEventListener('blur', endDrag);
+      window.removeEventListener('resize', applyLayout);
       removeSheetHandle();
       removeInspectorHandle();
-      workspace.style.removeProperty('grid-template-columns');
+      workspace.style.display = originalWorkspaceDisplay;
+      workspace.style.flexDirection = originalWorkspaceFlexDirection;
+      workspace.style.gridTemplateColumns = originalWorkspaceGridTemplateColumns;
+      const { sheets, inspector } = getPanes();
+      clearPaneInlineLayout(sheets);
+      clearPaneInlineLayout(inspector);
+      if (centerElement) {
+        centerElement.style.removeProperty('flex');
+        centerElement.style.removeProperty('min-width');
+      }
       hiddenInspectorMeta?.style.removeProperty('display');
       endDrag();
     };
