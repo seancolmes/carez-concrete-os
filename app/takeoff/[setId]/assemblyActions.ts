@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { ASSEMBLY_TEMPLATES, assemblyTemplateById } from '@/lib/takeoff/assemblyTemplates';
 import { compileFormulaExpression } from '@/lib/takeoff/formulaExpression';
+import { analyzeFormulaComposer, type FormulaComposerStep } from '@/lib/takeoff/formulaComposer';
 
 async function ctx() {
   const supabase = await createClient();
@@ -39,6 +40,25 @@ const normalizedKey = (value: string, label: string) => {
 const refresh = (setId: string) => {
   revalidatePath(`/takeoff/${setId}`);
   revalidatePath('/takeoff/assemblies');
+};
+
+const composerSteps = (value: unknown): FormulaComposerStep[] => Array.isArray(value) ? value.map((row, index) => {
+  const source = row && typeof row === 'object' ? row as Record<string, unknown> : {};
+  return {
+    id: String(source.id || `step-${index + 1}`),
+    key: String(source.key || ''),
+    label: String(source.label || `Calculation ${index + 1}`),
+    expression: String(source.expression || ''),
+  };
+}) : [];
+
+const composerSection = (config: Record<string, unknown>, key: 'quantity' | 'labor', fallbackExpression: string) => {
+  const source = config[key] && typeof config[key] === 'object' ? config[key] as Record<string, unknown> : {};
+  return {
+    mode: source.mode === 'advanced' ? 'advanced' as const : 'easy' as const,
+    expression: String(source.expression || fallbackExpression || ''),
+    steps: composerSteps(source.steps),
+  };
 };
 
 export async function createAssemblyDraft(setId: string, input: { code: string; name: string; category: string; primaryMeasurement: 'LF' | 'SF' | 'EA' | 'CY'; description?: string }) {
@@ -111,6 +131,10 @@ export async function createAssemblyFromTemplate(setId: string, input: { templat
       baseline_source: component.itemType === 'labor' ? 'Template structure only · estimator/company production assumption required' : null,
       sort_order: (index + 1) * 10,
       notes: template.sourceNote,
+      authoring_config: {
+        quantity: { mode: 'easy', expression: component.formula, steps: [] },
+        ...(component.laborRateFormula ? { labor: { mode: 'easy', expression: component.laborRateFormula, steps: [] } } : {}),
+      },
     })));
     if (error) throw new Error(error.message);
   }
@@ -272,17 +296,53 @@ export async function saveAssemblyComponent(setId: string, input: {
   defaultUnitCost?: number | null;
   catalogItemId?: string | null;
   activationRule?: Record<string, unknown> | null;
+  authoringConfig?: Record<string, unknown> | null;
   estimateVisible?: boolean;
   notes?: string | null;
 }) {
   const { supabase, companyId } = await ctx();
   await editableSet(supabase, companyId, setId);
-  await draftVersion(supabase, companyId, input.versionId);
+  const version = await draftVersion(supabase, companyId, input.versionId);
+  const { data: recipeProperties, error: propertyError } = await supabase.from('concrete_assembly_variables')
+    .select('variable_key,label,value_type,unit,options')
+    .eq('company_id', companyId)
+    .eq('assembly_version_id', input.versionId);
+  if (propertyError) throw new Error(propertyError.message);
 
   let catalogItemId: string | null = String(input.catalogItemId || '').trim() || null;
   if (catalogItemId) {
     const { data: catalog } = await supabase.from('cost_catalog_items').select('id').eq('id', catalogItemId).eq('company_id', companyId).eq('active', true).maybeSingle();
     if (!catalog) throw new Error('Selected catalog resource was not found for this company.');
+  }
+
+  const outputUnit = String(input.outputUnit || '').trim().toUpperCase();
+  if (!String(input.label || '').trim() || !outputUnit) throw new Error('Resource label and output unit are required.');
+  const rawAuthoring = input.authoringConfig && typeof input.authoringConfig === 'object' ? input.authoringConfig : {};
+  const quantityAuthoring = composerSection(rawAuthoring, 'quantity', input.formula);
+  const quantityAnalysis = analyzeFormulaComposer({
+    expression: quantityAuthoring.expression,
+    steps: quantityAuthoring.steps,
+    properties: recipeProperties || [],
+    primaryUnit: String(version.primary_measurement_snapshot || 'EA'),
+    outputUnit,
+    perimeterAvailable: version.primary_measurement_snapshot === 'SF',
+  });
+  if (!quantityAnalysis.ast || quantityAnalysis.issues.length) throw new Error(`Quantity calculation: ${quantityAnalysis.issues.map(issue => issue.message).join(' ') || 'Formula is invalid.'}`);
+
+  let laborAuthoring = null;
+  let laborAst = null;
+  if (input.itemType === 'labor' && input.laborRateFormula) {
+    laborAuthoring = composerSection(rawAuthoring, 'labor', input.laborRateFormula);
+    const laborAnalysis = analyzeFormulaComposer({
+      expression: laborAuthoring.expression,
+      steps: laborAuthoring.steps,
+      properties: recipeProperties || [],
+      primaryUnit: String(version.primary_measurement_snapshot || 'EA'),
+      outputUnit: `MH/${outputUnit}`,
+      perimeterAvailable: version.primary_measurement_snapshot === 'SF',
+    });
+    if (!laborAnalysis.ast || laborAnalysis.issues.length) throw new Error(`Labor production calculation: ${laborAnalysis.issues.map(issue => issue.message).join(' ') || 'Formula is invalid.'}`);
+    laborAst = laborAnalysis.ast;
   }
 
   const payload = {
@@ -292,18 +352,21 @@ export async function saveAssemblyComponent(setId: string, input: {
     label: String(input.label || '').trim(),
     estimate_item_type: input.itemType,
     resource_behavior: input.resourceBehavior,
-    output_unit: String(input.outputUnit || '').trim().toUpperCase(),
-    quantity_formula: compileFormulaExpression(input.formula),
-    labor_rate_formula: input.itemType === 'labor' && input.laborRateFormula ? compileFormulaExpression(input.laborRateFormula) : null,
+    output_unit: outputUnit,
+    quantity_formula: quantityAnalysis.ast,
+    labor_rate_formula: laborAst,
     pricing_strategy: input.pricingStrategy || 'current_cost',
     default_unit_cost: Number.isFinite(Number(input.defaultUnitCost)) && Number(input.defaultUnitCost) > 0 ? Number(input.defaultUnitCost) : null,
     catalog_item_id: catalogItemId,
     activation_rule: input.activationRule || null,
+    authoring_config: {
+      quantity: quantityAuthoring,
+      ...(laborAuthoring ? { labor: laborAuthoring } : {}),
+    },
     estimate_visible: input.estimateVisible !== false,
     baseline_source: input.itemType === 'labor' ? 'Estimator/company production assumption' : null,
     notes: String(input.notes || '').trim() || null,
   };
-  if (!payload.label || !payload.output_unit) throw new Error('Resource label and output unit are required.');
   if (input.id) {
     const { error } = await supabase.from('concrete_assembly_components').update(payload).eq('id', input.id).eq('company_id', companyId).eq('assembly_version_id', input.versionId);
     if (error) throw new Error(error.message);
