@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-02
+Last reconciled: 2026-09-03
 Canonical release line: `staging`
 Governance work branch: `carez-governance-foundation`
 
@@ -136,6 +136,16 @@ Controlled SF polygon / cutout calculation and lineage QA is **PASS**, with an o
 - existing LF Measurement A remains `5.0105 LF` with all measurement/output/estimate-item timestamps still `2026-09-03 00:11:04.509192+00`; Measurement C remains `1.4381 LF` with all timestamps still `2026-09-03 01:48:37.869776+00`, proving creation/edit/cutout work for D did not mutate either LF measurement;
 - finish/cure quantities were not independently browser-verifiable because the current Quantity Worksheet has fixed summary columns for Concrete, Reinforcing, and Formwork rather than an individual active-output detail surface. Supabase confirms those outputs are calculated and lined correctly; this UI review gap is tracked as **Issue #29** and is not treated as an SF calculation/lineage failure.
 
+Staging database authority / Issue #30 is **PASS and closed**:
+
+- production/main remains bound to `Carez Concrete OS` (`snbnwgetfuvkjkhfxmmz`);
+- Vercel Preview branch `staging` now has branch-specific `NEXT_PUBLIC_SUPABASE_URL` and publishable/anon-key overrides targeting `Carez Concrete OS QA` (`tkcirsdfvvahwrcratkn`);
+- staging commit `378a0997e057072c13e278eddb1a393c78484630` was redeployed without build cache as deployment `dpl_42mabxbjPK4Wcdtr8zkE3dCh9gGr` and reached READY on the normal staging alias;
+- the rendered staging UI identifies itself as `STAGING · staging · 378a099`;
+- authenticated browser verification shows QA identity `Nik Carez QA` plus QA-only estimates `QA Browser Takeoff Persistence` and `QA Takeoff Persistence`;
+- read-only Supabase verification confirms those QA estimate identities exist in `tkcirsdfvvahwrcratkn` and are absent from `snbnwgetfuvkjkhfxmmz`;
+- mutation-heavy staging QA may resume against the isolated QA database authority.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -152,19 +162,17 @@ Automated validation for the accepted branch head `9e2d8b9` passed GitHub Action
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This remains a non-blocking Takeoff UX enhancement. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry.
 - **Issue #18 — Server Component render error appears during scale-region QA.** Observed once; exact triggering action/request remains unconfirmed. Investigate immediately if it reappears.
 - **Issue #29 — expose active outputs beyond Concrete / Reinforcing / Formwork in persistent Takeoff review.** SF finish/cure/sawcut outputs calculate and retain exact lineage, but the current Quantity Worksheet row does not expose those quantities individually. Preserve the dense summary columns and add a bounded selected-measurement output detail treatment rather than an ever-growing fixed-column table.
-- **Issue #30 — staging Preview is bound to production Supabase and must be moved to QA before more mutation-heavy QA.** Confirmed evidence shows production/main uses `snbnwgetfuvkjkhfxmmz` (`Carez Concrete OS`) and the Vercel `staging` Preview currently builds with that same public Supabase binding. The dedicated `tkcirsdfvvahwrcratkn` (`Carez Concrete OS QA`) project is healthy, has authenticated QA data, and contains the accepted `takeoff_nested_activation_missing_input` migration that the main project does not. Required remediation is a branch-specific Vercel Preview override for Git branch `staging` using the QA project's `NEXT_PUBLIC_SUPABASE_URL` and active publishable/anon key, followed by redeploy and browser verification. Issue #30 remains open until that correction is verified.
 
-Issue #19 is now closed as browser-verified PASS; no code change was required because the current staging behavior already satisfies the regional-scale contract.
+Issue #19 is closed as browser-verified PASS; no code change was required because the current staging behavior already satisfies the regional-scale contract. Issue #30 is closed after branch-specific staging-to-QA Supabase isolation was redeployed and authenticated-browser verified.
 
 ## Current priority
 
-1. Correct **Issue #30**: bind Vercel Preview branch `staging` to `Carez Concrete OS QA` (`tkcirsdfvvahwrcratkn`), redeploy, and browser-verify the staging login/data authority before any further mutation-heavy browser QA.
-2. Continue authenticated Takeoff P0 QA with representative **EA count behavior**, including Quantity Worksheet recalculation, persistence, multi-count editing, and exact downstream lineage, only after Issue #30 is verified.
-3. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
-4. Keep Issue #29 captured as a Takeoff output-review UX gap while continuing QA; address it in the owning Takeoff workstation workflow without blocking verified SF calculation/lineage behavior.
-5. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
-6. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
-7. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
+1. Continue authenticated Takeoff P0 QA with representative **EA count behavior**, including Quantity Worksheet recalculation, persistence, multi-count editing, and exact downstream lineage. The QA company currently has no published `EA` company assembly, so first create and publish one through the normal Assembly Builder; do not seed or copy production database records directly.
+2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
+3. Keep Issue #29 captured as a Takeoff output-review UX gap while continuing QA; address it in the owning Takeoff workstation workflow without blocking verified SF calculation/lineage behavior.
+4. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
+5. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
+6. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -189,16 +197,16 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - SF polygon/cutout gross/net geometry, cutout perimeter contribution, derived-output recalculation, refresh persistence, exact generated estimate-item lineage, duplicate prevention, and LF-measurement isolation: **PASS**.
 - SF finish/cure/sawcut backend calculation and lineage: **PASS**; persistent worksheet quantity visibility for these non-summary outputs: **OPEN**, Issue #29.
 - Production/main Supabase binding: **CONFIRMED** to `Carez Concrete OS` (`snbnwgetfuvkjkhfxmmz`).
-- Staging Supabase binding: **CONFIRMED MISCONFIGURATION**, Issue #30; Vercel `staging` Preview currently uses the same production/main Supabase binding and must be moved to `Carez Concrete OS QA` before further mutation-heavy QA.
+- Staging Supabase binding: **PASS / ISOLATED**, Issue #30 closed; Vercel `staging` Preview is authenticated-browser verified against `Carez Concrete OS QA` (`tkcirsdfvvahwrcratkn`) while production/main remains on the main project.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
 - GitHub Actions branch validation for `9e2d8b9`: **PASS**, including typecheck, 46 tests, and optimized build.
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
-- EA count behavior / lineage: **OPEN**, next controlled Takeoff P0 gate after Issue #30 environment correction and verification.
+- EA count behavior / lineage: **OPEN**, next controlled Takeoff P0 gate after publishing a company-owned EA assembly in the isolated QA environment.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, SF polygon/cutout calculation, and exact-lineage foundation. Correct and verify the staging database authority under Issue #30 before more mutation-heavy QA; then continue EA count behavior. Issue #29 output-review visibility and the intermittent Server Component error remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, SF polygon/cutout calculation, exact-lineage foundation, and verified staging-to-QA database isolation. Continue with EA count behavior after publishing a company-owned EA assembly in QA. Issue #29 output-review visibility and the intermittent Server Component error remain open work.
 
 ## Known deferred work
 
