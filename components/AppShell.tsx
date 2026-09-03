@@ -175,6 +175,11 @@ function railKeyForPath(pathname:string):RailKey{
   return 'dashboard';
 }
 
+function isTakeoffWorkstation(pathname:string){
+  const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];
+  return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment));
+}
+
 export function AppShell({children,userName,immersive=false}:{children:React.ReactNode;userName:string;immersive?:boolean}){
   const pathname=usePathname();
   const [menuOpen,setMenuOpen]=useState(false);
@@ -182,7 +187,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
   const currentItem=useMemo(()=>[...allItems].sort((a,b)=>b.href.length-a.href.length).find(item=>matchesPath(pathname,item.href))||railItems[0],[pathname]);
   const currentRailKey=useMemo(()=>railKeyForPath(pathname),[pathname]);
   const active=(href:string)=>currentItem?.href===href;
-  const workstation=pathname.startsWith('/takeoff/')||pathname.startsWith('/estimates/');
+  const workstation=isTakeoffWorkstation(pathname)||pathname.startsWith('/estimates/');
   const estimatingContext=pathname.startsWith('/takeoff')||pathname.startsWith('/estimates')||pathname.startsWith('/proposals');
   const contextRail=contextKey?railItems.find(item=>item.key===contextKey):null;
 
