@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
 import { formatTakeoffQuantityValue } from '@/lib/takeoff/lengthFormat';
+import { useTakeoffPaneResize } from '@/lib/takeoff/useTakeoffPaneResize';
 import styles from './TakeoffQuantityDock.module.css';
 
 type Props = {
@@ -67,6 +68,7 @@ const outputWarnings = (output: any): string[] => {
 export function TakeoffQuantityDock({
   measurements, outputs, assemblies, versions, sections, sheets, currentSheetId, selectedMeasurementId, onOpenMeasurement,
 }: Props) {
+  useTakeoffPaneResize();
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ y: number; height: number } | null>(null);
   const [height, setHeight] = useState(228);
