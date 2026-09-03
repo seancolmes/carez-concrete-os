@@ -6,10 +6,23 @@ This repository is the canonical product and implementation source of truth for 
 
 1. Read `docs/README.md`.
 2. Read `docs/CURRENT_STATE.md`.
-3. Read the applicable file under `docs/modules/`.
-4. Read relevant ADRs under `docs/decisions/`.
-5. Inspect the existing implementation and migrations.
-6. Reproduce the problem before changing code.
+3. Read `docs/BRANCH_AND_RELEASE_MODEL.md`.
+4. Read the applicable file under `docs/modules/`.
+5. Read relevant ADRs under `docs/decisions/`.
+6. Inspect the existing implementation and migrations.
+7. Reproduce the problem before changing code.
+
+## Branch / test discipline
+
+Permanent branches are only `staging` and `main`.
+
+- `staging` is the single development/integration/QA/user-acceptance line.
+- `main` is production only.
+- Nik tests only the stable staging Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
+- Never ask Nik to choose among feature branches, PR previews, commit-specific links, or alternate Vercel deployments.
+- Do not create long-lived module/feature/QA/archive/governance branches.
+- A temporary branch is allowed only when technically necessary; it must start from current staging, remain internal, merge into staging, and be deleted before user browser QA.
+- Git history, issues, PRs, ADRs, module specs, tags, and releases preserve history; stale branches are not archives.
 
 ## Architecture invariants
 
@@ -36,15 +49,13 @@ This repository is the canonical product and implementation source of truth for 
 - Do not create a second client-side calculation engine that diverges from server/domain logic.
 - Do not introduce microservices, Kubernetes, Kafka, or event sourcing without a demonstrated requirement.
 
-## UI verification
+## UI / writing rules
 
 Rendered behavior is authoritative for UI acceptance.
 
-For UI work:
-1. reproduce in a browser;
-2. implement the smallest fix;
-3. run relevant tests/typecheck/build;
-4. browser-verify the exact acceptance behavior.
+For UI work: reproduce in browser, implement the smallest fix, run relevant tests/typecheck/build, then browser-verify on the stable staging URL.
+
+Carez uses normal sentence/title case for ordinary UI headings, statuses, actions, and helper text. Do not default to ALL CAPS. Uppercase is reserved for true codes/acronyms or source-document text where it materially belongs.
 
 Do not claim a browser defect is fixed from source inspection or build success alone.
 
@@ -59,17 +70,8 @@ Only the context drawer may be transient.
 
 ## Required implementation report
 
-For implementation/debugging work report:
-- observed evidence;
-- confirmed root cause;
-- files changed;
-- implemented fix;
-- tests/typecheck/build performed;
-- browser verification performed for UI changes;
-- remaining risks;
-- git status / resumable checkpoint.
+Report observed evidence, confirmed root cause, files changed, implemented fix, tests/typecheck/build, browser verification, remaining risks, and the staging checkpoint.
 
 ## Documentation rule
 
 Chats and experiments are not canonical architecture. When a product, UX, domain, or architecture decision is approved, update the applicable canonical document in the same workstream. Follow `docs/workflow/APPROVAL_TO_DOCUMENTATION.md`.
-

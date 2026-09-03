@@ -6,22 +6,23 @@ Start here before product, architecture, implementation, QA, or AI-agent work.
 
 1. `supabase/` schema and migrations — persisted database truth.
 2. Repository source code — implemented application behavior.
-3. `docs/ARCHITECTURE.md` and ADRs — approved architecture and irreversible/important decisions.
+3. `docs/ARCHITECTURE.md` and ADRs — approved architecture and important decisions.
 4. `docs/modules/` — approved module behavior and product contracts.
-5. `docs/CURRENT_STATE.md` — current implementation status, active blocker, validation state.
+5. `docs/CURRENT_STATE.md` — current implementation and verification state.
 6. `docs/ROADMAP.md` — prioritized modernization sequence.
 7. GitHub issues / PRs — proposed and active work.
 8. Browser/Vercel evidence — rendered UI acceptance evidence.
-9. ChatGPT Project files — concrete, estimating, regulatory, brand, and company evidence/reference.
-10. Chat conversations — exploration and brainstorming only until promoted into canonical docs.
+9. ChatGPT Project files — concrete, estimating, regulatory, brand, and company reference evidence.
+10. Chat conversations — exploration until promoted into canonical docs.
 
-When sources conflict, do not silently reconcile them. Prefer the higher authority and record the conflict if it affects implementation.
+When sources conflict, prefer the higher authority and record the conflict if it affects implementation.
 
 ## Core documents
 
 - [Architecture](ARCHITECTURE.md)
 - [Current State](CURRENT_STATE.md)
 - [Roadmap](ROADMAP.md)
+- [Branch and Release Model](BRANCH_AND_RELEASE_MODEL.md)
 - [Document Status Registry](DOCUMENT_STATUS.md)
 - [Knowledge Source Routing](KNOWLEDGE_SOURCE_ROUTING.md)
 - [ChatGPT Project Instructions](CHATGPT_PROJECT_INSTRUCTIONS.md)
@@ -30,6 +31,12 @@ When sources conflict, do not silently reconcile them. Prefer the higher authori
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
 - [Development Workflow](workflow/DEVELOPMENT_WORKFLOW.md)
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
+
+## Branch / user-test rule
+
+Permanent branches are only `staging` and `main`.
+
+Nik tests Carez only on the single stable staging QA URL defined in `BRANCH_AND_RELEASE_MODEL.md`. Do not route user acceptance through feature-branch or PR preview links.
 
 ## Module specifications
 
@@ -50,10 +57,10 @@ ADRs document why high-impact decisions exist. Module specs document how the pro
 
 ## Chat workspace governance
 
-Use `CHAT_WORKSPACE_MAP.md` to route work into permanent domain chats and temporary implementation chats. Use `CHAT_STARTER_PACK.md` when creating a new governed Project chat. Chats remain working rooms; approved product truth must be promoted into canonical GitHub documentation.
+Use `CHAT_WORKSPACE_MAP.md` to route work into permanent domain chats and temporary execution threads when needed. Chats remain working rooms; approved product truth must be promoted into canonical GitHub documentation.
 
-## Supporting and legacy documents
+## Supporting / historical documents
 
-Every retained root-level design/history document in `docs/` must have an explicit status header and registry entry in `DOCUMENT_STATUS.md`.
+Supporting documents may add detail but may not override canonical architecture, ADRs, module specifications, Current State, or the branch/release model.
 
-Supporting documents may add detail but may not silently override canonical architecture, ADRs, module specifications, or current-state records. Durable approved changes are promoted through the approval → documentation workflow rather than left only in a supporting file or chat.
+Historical implementation evidence belongs in Git history, closed PRs/issues, archived snapshots, tags/releases, or explicitly historical documents — not in a forest of permanent branches.
