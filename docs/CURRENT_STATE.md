@@ -14,7 +14,7 @@ Carez now uses a two-branch permanent model:
 
 Nik must not be asked to select among feature branches, PR previews, or commit-specific Vercel URLs. Temporary implementation branches are exceptional/internal and must be merged/deleted before user QA.
 
-Historical branch-based development evidence remains available through Git history, merged/closed PRs, issues, ADRs, module specs, tags/releases, and the archived prior Current State snapshot.
+Historical development evidence remains available through Git history, merged/closed PRs, issues, ADRs, module specs, tags, and releases rather than stale archive branches/files.
 
 ## Architecture already established
 
@@ -62,7 +62,7 @@ The following representative Takeoff behavior has already been browser-verified 
 - B2 workstation readability baseline;
 - automatic PDF sheet naming/indexing.
 
-See Git history/issues for the detailed acceptance evidence that previously lived in the long Current State record.
+See Git history/issues for detailed acceptance evidence from earlier checkpoints.
 
 ## Current Takeoff UX work
 
