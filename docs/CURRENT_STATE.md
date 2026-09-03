@@ -123,6 +123,19 @@ Controlled cross-sheet / All Sheets Quantity Worksheet QA is **PASS**:
 - duplicate checks report zero duplicate output-component groups and zero duplicate estimate-item source-output groups, and A/C share zero output ids and zero generated estimate-item ids;
 - Measurement A, all of its output rows, and all of its estimate items retain the earlier `2026-09-03 00:11:04.509192+00` timestamp while C and its downstream lineage were created at `2026-09-03 01:48:37.869776+00`, confirming creation and sheet switching for C did not recalculate or mutate A.
 
+Controlled SF polygon / cutout calculation and lineage QA is **PASS**, with an output-review UI limitation captured separately:
+
+- authenticated browser QA created `QA SF Polygon D` on A5 using published `SLAB-REINF — Reinforced Slab / Flatwork`, added one internal cutout, verified the visible area/formwork/concrete/reinforcing behavior, sheet isolation, and refresh persistence;
+- Measurement D is id `302fd271-b2fe-4757-af80-894cdc78d7e1`, persisted as `28.5496 SF` on A5 / Page 5 with exact published assembly version `289e58f5-d1be-472b-9888-23da2f83cd7c`;
+- persisted authoritative geometry contains one four-vertex outer polygon and one four-vertex cutout: gross `32.5592 SF`, cutout `4.0096 SF`, net `28.5496 SF`, total formed perimeter `31.1113 LF`, and cutout perimeter `8.0137 LF`;
+- persisted assembly inputs remain `4 in` thickness, `1.10` reinforcement factor, `3%` concrete waste, `0 LF` sawcut, with geometry-derived `31.111 LF` formed perimeter;
+- all ten published assembly outputs are active/estimate-visible and each owns one generated estimate item: concrete `0.363 CY`, edge form material/labor `31.111 LF`, reinforcement material/labor `31.4046 SF`, finish production `28.5496 SF`, cure material/labor production `28.5496 SF`, placement `0.363 CY`, and sawcut `0 LF`;
+- formula cross-checks match persisted output quantities exactly for reinforcing, concrete, finish/cure, and formwork;
+- there are ten distinct output ids, ten distinct component keys, ten distinct generated estimate-item ids, zero duplicate output-component groups, zero duplicate estimate-item source-output groups, zero ownership/lineage mismatches, and zero active outputs missing generated-item pointers;
+- every generated estimate item retains exact `source_takeoff_output_id`, `source_takeoff_measurement_id`, and published `source_assembly_version_id` for D;
+- existing LF Measurement A remains `5.0105 LF` with all measurement/output/estimate-item timestamps still `2026-09-03 00:11:04.509192+00`; Measurement C remains `1.4381 LF` with all timestamps still `2026-09-03 01:48:37.869776+00`, proving creation/edit/cutout work for D did not mutate either LF measurement;
+- finish/cure quantities were not independently browser-verifiable because the current Quantity Worksheet has fixed summary columns for Concrete, Reinforcing, and Formwork rather than an individual active-output detail surface. Supabase confirms those outputs are calculated and lined correctly; this UI review gap is tracked as **Issue #29** and is not treated as an SF calculation/lineage failure.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -138,16 +151,18 @@ Automated validation for the accepted branch head `9e2d8b9` passed GitHub Action
 
 - **Issue #17 — allow free pan when the rendered PDF is smaller than the viewport.** This remains a non-blocking Takeoff UX enhancement. It must remain a visual viewport transform only and must not mutate stable page-coordinate geometry.
 - **Issue #18 — Server Component render error appears during scale-region QA.** Observed once; exact triggering action/request remains unconfirmed. Investigate immediately if it reappears.
+- **Issue #29 — expose active outputs beyond Concrete / Reinforcing / Formwork in persistent Takeoff review.** SF finish/cure/sawcut outputs calculate and retain exact lineage, but the current Quantity Worksheet row does not expose those quantities individually. Preserve the dense summary columns and add a bounded selected-measurement output detail treatment rather than an ever-growing fixed-column table.
 
 Issue #19 is now closed as browser-verified PASS; no code change was required because the current staging behavior already satisfies the regional-scale contract.
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA across the other primary measurement modes: representative SF polygon/cutout behavior and EA count behavior, including Quantity Worksheet recalculation and exact downstream lineage.
+1. Continue authenticated Takeoff P0 QA with representative **EA count behavior**, including Quantity Worksheet recalculation, persistence, multi-count editing, and exact downstream lineage.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
-3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
-4. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
-5. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
+3. Keep Issue #29 captured as a Takeoff output-review UX gap while continuing QA; address it in the owning Takeoff workstation workflow without blocking verified SF calculation/lineage behavior.
+4. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
+5. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
+6. Continue Estimating/P1 implementation only from the accepted Takeoff lineage and builder-method foundation.
 
 ## Validation baseline
 
@@ -164,19 +179,22 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Saved-geometry edit / worksheet recalculation / committed undo-redo / refresh persistence: **PASS**.
 - Direct root Takeoff output → estimate-item provenance: **PASS**.
 - Nested required-input hold behavior / output completeness: **PASS** under Issue #20 acceptance.
-- Fully resolved child-output Quantity Worksheet completeness: **PASS**.
+- Fully resolved child-output Quantity Worksheet completeness: **PASS** for currently exposed summary families.
 - Resolved nested Takeoff output → estimate-item lineage: **PASS**, including exact source output/measurement/published-assembly identifiers and no duplicate active estimate rows in the controlled case.
 - Multi-measurement Quantity Worksheet aggregation, edit isolation, undo/redo isolation, refresh persistence, independent child-output ownership, and exact generated estimate-item lineage: **PASS**.
 - Measurement deletion cleanup, downstream output/estimate-item cascade cleanup, orphan prevention, and unaffected-measurement isolation: **PASS**.
 - Cross-sheet `This Sheet` / `All Sheets` worksheet scoping, row-selection sheet context, refresh persistence, independent scale-region ownership, and exact cross-sheet output/estimate-item lineage: **PASS**.
+- SF polygon/cutout gross/net geometry, cutout perimeter contribution, derived-output recalculation, refresh persistence, exact generated estimate-item lineage, duplicate prevention, and LF-measurement isolation: **PASS**.
+- SF finish/cure/sawcut backend calculation and lineage: **PASS**; persistent worksheet quantity visibility for these non-summary outputs: **OPEN**, Issue #29.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
 - GitHub Actions branch validation for `9e2d8b9`: **PASS**, including typecheck, 46 tests, and optimized build.
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
+- EA count behavior / lineage: **OPEN**, next controlled P0 QA gate.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, and exact-lineage foundation. Representative SF polygon/cutout behavior, EA count behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, SF polygon/cutout calculation, and exact-lineage foundation. EA count behavior, Issue #29 output-review visibility, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
