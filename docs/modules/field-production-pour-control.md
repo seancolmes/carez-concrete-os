@@ -113,7 +113,7 @@ Relevant time/context classifications include:
 
 Each Production Evidence observation links the authorized Scope Allocation version, relevant Completion Evidence, attributable Actual Work Context segments, physical quantity, method/crew/project context, exception contamination, derivation version, and confidence factors.
 
-Carez should calculate production-rate evidence from attributable productive context + trustworthy completed measurable scope + method/project context. It may surface trends and recommended ranges to estimators, but it must never automatically rewrite published assemblies, Accepted Scope Snapshots, frozen budgets, or estimator-approved production assumptions.
+Carez should calculate production-rate evidence from attributable productive context + trustworthy completed measurable scope + method/project context. It may surface trends and recommended ranges to estimators, but it must never automatically rewrite published Company Condition Templates, Project Condition assumptions, referenced legacy assemblies, Accepted Scope Snapshots, frozen budgets, or estimator-approved production assumptions.
 
 Confidence remains explainable through component quality for:
 - quantity authority;
