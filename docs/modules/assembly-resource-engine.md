@@ -135,6 +135,45 @@ Carez hard-codes reliable calculation primitives/helpers, not a closed catalog o
 
 The engine should become unit-aware across common concrete units including IN, FT, LF, SF, CF, CY, EA, LB, TON, HR, MH, GAL, and package/purchase units.
 
+## Formula Composer UX contract
+
+The default estimator-facing formula experience is a **Concrete Formula Composer**, not a raw formula textarea. It combines the following approved interaction model:
+
+1. **Sentence-style calculation building.** The estimator reads and assembles human-labeled tokens such as `Measured length × Sides formed × Form height × Form labor rate`. Internal namespaces remain hidden in normal use.
+2. **Concrete calculation blocks.** The composer offers reusable calculation primitives such as measured quantity, continuous runs, spaced locations, stock-length/lap math, coverage, form contact area, volume, labor production, rounding, and custom math. These are helpers, not job assumptions.
+3. **Visual conditions.** Optional/conditional outputs are authored as visible `When / And / Then` conditions rather than forcing nested textual `if()` syntax. Multiple conditions may be combined where supported by the canonical rule engine.
+4. **Context-aware measurement browser.** Only authoritative geometry available for the Takeoff context is offered. The UI uses labels such as `Measured length`, `Measured area`, `Measured count`, `Measured volume`, and `Measured perimeter` when that geometry is actually available.
+5. **Named intermediate calculations.** Complex math may be broken into estimator-named steps such as `Splices per run`, `Added lap`, `Bar length`, and `Total steel`. Named steps are authoring metadata that compile/inline into the final canonical AST; they do not create a second runtime engine.
+6. **Unit-aware guidance and validation.** The composer tracks known unit families, flags incompatible addition/subtraction and incompatible final result dimensions, and makes common conversions explicit. Unit guidance must never silently change physical meaning.
+7. **Easy + Advanced modes.** Easy mode is the default visual/sentence composer. Advanced mode exposes the synchronized human-readable expression for experienced estimators. Both compile to the same canonical AST; Advanced mode is not a separate calculation engine.
+
+### Formula Composer behavior
+
+- Existing formulas remain editable and can be opened in Advanced mode even when no authoring metadata exists.
+- Easy mode may reconstruct a readable calculation from the canonical AST when possible and otherwise fall back to an explicit `Advanced calculation` state without losing the formula.
+- Formula tokens reference stable variable keys internally but display estimator-facing labels.
+- Unknown variable references are rejected before save and again before publish.
+- Named calculation steps must reject duplicate names, unresolved references, and dependency cycles.
+- Formula conditions reuse the canonical rule/activation engine rather than embedding business logic in UI-only state.
+- The final persisted `quantity_formula` / `labor_rate_formula` AST remains sufficient for authoritative calculation even if authoring metadata is unavailable.
+- Authoring metadata may preserve Easy-mode step labels/layout, but it cannot override or replace the canonical AST.
+- Formula preview/Test Bench and production calculation must evaluate the same AST and resolved property context.
+- Published recipe formulas and their authoring metadata are immutable; edits require a new draft revision.
+- Publish is blocked by invalid AST, unresolved variables, invalid/cyclic named steps, or deterministic unit-validation errors that make the result dimensionally incompatible.
+
+### Example reading model
+
+A complex reinforcing calculation should be understandable without reading programming syntax:
+
+`WHEN Bars in run > 0 AND Stock length > 0`
+
+- `Splices per run = max(0, round up(Measured length ÷ Stock length) - 1)`
+- `Added lap = Splices per run × Lap length`
+- `Bar length = Measured length + Added lap`
+- `Total steel = Bar length × Bars in run`
+
+The estimator may inspect/edit the synchronized Advanced expression, but the normal workflow remains the readable calculation sequence above.
+
 ## Quantity separation
 
 Keep distinct:
@@ -255,7 +294,12 @@ Representative acceptance includes:
 - typed variables can be created/edited;
 - System Blocks can be inserted repeatedly;
 - slab/footing examples can represent no reinforcing, WWF, continuous bars, spaced bars, one/two mats, vapor yes/no, and multiple reinforcing sets;
-- guided formulas do not require internal namespace typing;
+- Formula Composer Easy mode can build nontrivial concrete math without internal namespace typing;
+- context measurement browser only offers available authoritative geometry;
+- visual multi-condition rules can activate/deactivate outputs;
+- named intermediate calculation steps persist as authoring metadata, reject cycles/unresolved references, and compile to the canonical AST;
+- unit-aware guidance catches dimensionally invalid calculations before publish;
+- Advanced mode remains synchronized with the same deterministic formula authority;
 - sample/live Takeoff Test Bench uses the production engine;
 - Project Scope Variants such as S1/F1 can be saved, selected, revised, and bound to measurements;
 - published recipe versions remain immutable;
