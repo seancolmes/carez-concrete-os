@@ -39,6 +39,5 @@ export function formatTakeoffQuantityValue(value: unknown, unit: unknown, digits
 
 export function formatTakeoffMeasurement(value: unknown, unit: unknown, digits = 2) {
   const normalizedUnit = String(unit || '').toUpperCase();
-  if (normalizedUnit === 'LF') return formatArchitecturalLength(value);
   return `${formatTakeoffQuantityValue(value, normalizedUnit, digits)} ${normalizedUnit}`.trim();
 }
