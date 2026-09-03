@@ -1,6 +1,6 @@
-import type { FormulaValue } from './formula';
-import { enumOptions } from './assemblyContext';
-import { compileFormulaExpression, formulaVariableTokens } from './formulaExpression';
+import type { FormulaValue } from './formula.ts';
+import { enumOptions } from './assemblyContext.ts';
+import { compileFormulaExpression, formulaVariableTokens } from './formulaExpression.ts';
 
 export type FormulaComposerStep = {
   id: string;
@@ -205,7 +205,6 @@ export function analyzeFormulaComposer(input: {
   }
 
   const measurements = allowedMeasurements(input.primaryUnit, Boolean(input.perimeterAvailable));
-  const propertyKeys = new Set(input.properties.map(property => property.variable_key));
   for (const token of formulaVariableTokens(expanded.expression)) {
     if (measurements.has(token)) continue;
     if (token.startsWith('Properties.')) {
