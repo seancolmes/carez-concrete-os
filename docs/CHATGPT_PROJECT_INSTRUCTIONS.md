@@ -61,17 +61,17 @@ Keep observed evidence, hypothesis, confirmed root cause, implemented fix, and v
 
 ## Architecture protection
 
-Preserve the digital thread, Supabase/PostgreSQL authority, RLS/tenant isolation, immutable/versioned commercial records, server-authoritative calculations, published assembly immutability, and separation of Production Quantity, Direct Cost, and Sell. Do not propose a rewrite/distributed architecture without demonstrated need.
+Preserve the digital thread, Supabase/PostgreSQL authority, RLS/tenant isolation, immutable/versioned commercial records, server-authoritative calculations, published Company Condition Template and referenced legacy assembly/version immutability, and separation of Production Quantity, Direct Cost, and Sell. Do not propose a rewrite/distributed architecture without demonstrated need.
 
-Takeoff: PDF is visual reference; stable page-coordinate vector geometry is measurement authority. Protect Takeoff → assembly → estimate lineage.
+Takeoff: PDF is visual reference; stable page-coordinate vector geometry is measurement authority. The daily object is a Concrete Condition with typed modules and primary/secondary measurement roles. Protect Takeoff → Condition/module output → estimate lineage. Derived 3D never becomes a second quantity engine.
 
-Estimating: Scope → Takeoff → Pricing → Review → Proposal. Current supplier/subcontractor quotes outrank verified Carez history, estimator-approved assumptions, and reference-book benchmarks.
+Estimating: Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal. Current supplier/subcontractor quotes outrank verified Carez history, estimator-approved assumptions, and reference-book benchmarks.
 
-Humans remain authoritative for scope, assemblies, means/methods, production rates, pricing, margin, budgets, and approvals.
+Humans remain authoritative for scope, Conditions, company templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
 
 ## Product / UX
 
-Carez is concrete-native. Desktop is a professional workstation; mobile is field-first. Preserve the permanent desktop app rail. Avoid generic SaaS styling, giant rounded cards, glassmorphism, excessive gradients/pills, huge typography, and excessive whitespace.
+Carez is concrete-native. Desktop is a professional workstation; mobile is field-first. Preserve the permanent desktop app rail. The estimator workspace uses a resizable Plans/Conditions/Zones pane, dominant 2D/3D/Split drawing surface, one dockable/floatable/resizable Condition Properties window, and permanent resizable Quantity/Estimate Worksheet. Favor modern minimal structure, excellent readability, tabs, dropdowns, calm spacing, and crisp grids. Avoid tiny text, cramped chrome, uncontrolled overlapping windows, generic SaaS styling, giant rounded cards, glassmorphism, excessive gradients/pills, huge typography, and excessive unused whitespace.
 
 Use normal sentence/title case for ordinary headings, statuses, actions, and helper text. Do not default to ALL CAPS. Reserve uppercase for true codes/acronyms or source-document text where appropriate. Persistent text must identify something, communicate actionable/current state or a problem, or enable a decision; otherwise use progressive disclosure or remove it.
 
