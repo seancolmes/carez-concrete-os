@@ -42,9 +42,7 @@ const DEFAULT_COLUMN_WIDTHS = [220, 96, 64, 200, 160, 120, 120, 120, 96, 112, 18
 const MIN_COLUMN_WIDTHS = [150, 72, 50, 120, 105, 90, 90, 90, 78, 88, 110];
 const MAX_COLUMN_WIDTH = 520;
 
-const money = (value: number) => new Intl.NumberFormat('en-US', {
-  style: 'currency', currency: 'USD', maximumFractionDigits: 0,
-}).format(value);
+const money = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 const quantity = (value: unknown, digits = 2) => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: digits });
 const textKey = (output: any) => `${output.component_key || ''} ${output.label || ''}`.toLowerCase();
 const displayableOutput = (output: any) => output.is_active !== false || output.pricing_status === 'missing_input';
@@ -72,9 +70,7 @@ const outputWarnings = (output: any): string[] => {
   return [];
 };
 
-export function TakeoffQuantityDock({
-  measurements, outputs, assemblies, versions, sections, sheets, currentSheetId, selectedMeasurementId, onOpenMeasurement,
-}: Props) {
+export function TakeoffQuantityDock({ measurements, outputs, assemblies, versions, sections, sheets, currentSheetId, selectedMeasurementId, onOpenMeasurement }: Props) {
   useTakeoffPaneResize();
   const builder = useAssemblyBuilderContext();
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -127,8 +123,7 @@ export function TakeoffQuantityDock({
     const needle = query.trim().toLowerCase();
     return rows.filter(row => {
       if (scope === 'sheet' && row.measurement.sheet_id !== currentSheetId) return false;
-      return !needle || [row.measurement.name, row.assembly, row.section, row.sheet, row.measurement.location]
-        .some(value => String(value || '').toLowerCase().includes(needle));
+      return !needle || [row.measurement.name, row.assembly, row.section, row.sheet, row.measurement.location].some(value => String(value || '').toLowerCase().includes(needle));
     });
   }, [rows, scope, currentSheetId, query]);
 
@@ -139,10 +134,7 @@ export function TakeoffQuantityDock({
   }), { manHours: 0, cost: 0, warnings: 0 }), [filteredRows]);
 
   const gridWidth = columnWidths.reduce((total, width) => total + width, 0);
-  const gridStyle = useMemo<CSSProperties>(() => ({
-    gridTemplateColumns: columnWidths.map(width => `${width}px`).join(' '),
-    minWidth: `${gridWidth}px`,
-  }), [columnWidths, gridWidth]);
+  const gridStyle = useMemo<CSSProperties>(() => ({ gridTemplateColumns: columnWidths.map(width => `${width}px`).join(' '), minWidth: `${gridWidth}px` }), [columnWidths, gridWidth]);
 
   useEffect(() => {
     try {
@@ -152,9 +144,7 @@ export function TakeoffQuantityDock({
       if (!Array.isArray(stored) || stored.length !== DEFAULT_COLUMN_WIDTHS.length) return;
       const safe = stored.map((value, index) => Math.max(MIN_COLUMN_WIDTHS[index], Math.min(MAX_COLUMN_WIDTH, Number(value) || DEFAULT_COLUMN_WIDTHS[index])));
       setColumnWidths(safe);
-    } catch {
-      // Ignore malformed local preferences and keep defaults.
-    }
+    } catch { /* Keep defaults. */ }
   }, []);
 
   useEffect(() => {
@@ -174,9 +164,7 @@ export function TakeoffQuantityDock({
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      if (heightDragRef.current) {
-        setHeight(Math.max(150, Math.min(480, heightDragRef.current.height + heightDragRef.current.y - event.clientY)));
-      }
+      if (heightDragRef.current) setHeight(Math.max(150, Math.min(480, heightDragRef.current.height + heightDragRef.current.y - event.clientY)));
       if (columnDragRef.current) {
         const { index, x, width } = columnDragRef.current;
         const nextWidth = Math.max(MIN_COLUMN_WIDTHS[index], Math.min(MAX_COLUMN_WIDTH, width + event.clientX - x));
@@ -209,28 +197,17 @@ export function TakeoffQuantityDock({
   const count = Math.ceil(viewportHeight / ROW_HEIGHT) + overscan * 2;
   const visibleRows = filteredRows.slice(start, start + count);
 
-  if (builder.open) return null;
-
-  return <section
-    className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`}
-    style={{ height: collapsed ? 38 : height }}
-    aria-label="Takeoff quantity worksheet"
-  >
-    {!collapsed && <button
-      type="button"
-      className={styles.resizeHandle}
-      aria-label="Resize quantity worksheet"
-      onPointerDown={event => {
-        heightDragRef.current = { y: event.clientY, height };
-        document.body.style.cursor = 'ns-resize';
-        document.body.style.userSelect = 'none';
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-    ><GripHorizontal size={15} /></button>}
+  return <section className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`} style={{ height: collapsed ? 38 : height }} aria-label="Takeoff quantity worksheet">
+    {!collapsed && <button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" onPointerDown={event => {
+      heightDragRef.current = { y: event.clientY, height };
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }}><GripHorizontal size={15} /></button>}
     <header className={styles.header}>
       <div className={styles.title}><Table2 size={15} /><strong>Quantity Worksheet</strong><span>{filteredRows.length} measurement{filteredRows.length === 1 ? '' : 's'}</span></div>
       {!collapsed && <>
-        <button type="button" className={styles.builderButton} onClick={builder.openLibrary}><Boxes size={13} /><span>Assembly Builder</span></button>
+        <button type="button" className={styles.builderButton} onClick={builder.openLibrary}><Boxes size={13} /><span>{builder.open ? 'Recipes' : 'Scope Recipes'}</span></button>
         <div className={styles.scope} aria-label="Worksheet scope">
           <button type="button" className={scope === 'sheet' ? styles.active : ''} onClick={() => setScope('sheet')}>This Sheet</button>
           <button type="button" className={scope === 'all' ? styles.active : ''} onClick={() => setScope('all')}>All Sheets</button>
@@ -243,38 +220,21 @@ export function TakeoffQuantityDock({
 
     {!collapsed && <div className={styles.grid} role="table" aria-rowcount={filteredRows.length}>
       <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={gridStyle}>
-        {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<button
-          type="button"
-          className={styles.columnResizeHandle}
-          aria-label={`Resize ${label} column`}
-          title="Drag to resize · double-click to reset"
-          onDoubleClick={event => {
-            event.preventDefault();
-            event.stopPropagation();
-            setColumnWidths(current => current.map((width, currentIndex) => currentIndex === index ? DEFAULT_COLUMN_WIDTHS[index] : width));
-          }}
-          onPointerDown={event => {
-            event.preventDefault();
-            event.stopPropagation();
-            columnDragRef.current = { index, x: event.clientX, width: columnWidths[index] };
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-        /></span>)}
+        {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<button type="button" className={styles.columnResizeHandle} aria-label={`Resize ${label} column`} title="Drag to resize · double-click to reset" onDoubleClick={event => {
+          event.preventDefault(); event.stopPropagation();
+          setColumnWidths(current => current.map((width, currentIndex) => currentIndex === index ? DEFAULT_COLUMN_WIDTHS[index] : width));
+        }} onPointerDown={event => {
+          event.preventDefault(); event.stopPropagation();
+          columnDragRef.current = { index, x: event.clientX, width: columnWidths[index] };
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }} /></span>)}
       </div>
       <div ref={bodyRef} className={styles.body} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
         {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT, minWidth: gridWidth }}>
           <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
-            {visibleRows.map((row, index) => <button
-              type="button"
-              role="row"
-              aria-rowindex={start + index + 2}
-              key={row.measurement.id}
-              className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`}
-              style={gridStyle}
-              onClick={() => onOpenMeasurement(row.measurement)}
-            >
+            {visibleRows.map((row, index) => <button type="button" role="row" aria-rowindex={start + index + 2} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>
               <span role="cell" className={styles.measurement}><strong>{row.measurement.name}</strong><small>{row.sheet}{row.measurement.location ? ` · ${row.measurement.location}` : ''}</small></span>
               <span role="cell" className={styles.numeric} title={`${row.measurement.raw_quantity} ${row.measurement.raw_unit}`}>{formatTakeoffQuantityValue(row.measurement.raw_quantity, row.measurement.raw_unit)}</span>
               <span role="cell">{row.measurement.raw_unit}</span>
