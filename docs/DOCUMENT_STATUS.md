@@ -7,9 +7,9 @@ This registry classifies non-canonical supporting documents so developers and AI
 - **CANONICAL** — current source of approved product/architecture truth for its subject.
 - **ACCEPTED DETAILED DESIGN** — approved supporting design beneath canonical architecture/module docs.
 - **ACCEPTED ACCEPTANCE CRITERIA** — approved focused acceptance rule.
-- **RESEARCH CONTRACT** — approved research basis and source hierarchy used to inform canonical design.
-- **HISTORICAL IMPLEMENTATION RECORD** — evidence of a past implementation checkpoint; not current status.
-- **SUPERSEDED VISION RECORD** — useful historical direction that has been overtaken by later approved design.
+- **RESEARCH CONTRACT** — approved research basis/source hierarchy used to inform canonical design.
+
+Historical implementation and superseded vision documents are removed from the active documentation set. Git history/closed PRs/issues preserve that evidence without competing with current product truth.
 
 ## Canonical governance documents
 
@@ -17,35 +17,28 @@ This registry classifies non-canonical supporting documents so developers and AI
 | --- | --- | --- |
 | `docs/README.md` | CANONICAL | Documentation control and hierarchy |
 | `docs/ARCHITECTURE.md` | CANONICAL | Stable system architecture |
-| `docs/CURRENT_STATE.md` | CANONICAL | Present implementation/build status |
+| `docs/CURRENT_STATE.md` | CANONICAL | Present implementation/verification state |
 | `docs/ROADMAP.md` | CANONICAL | Priority sequence |
+| `docs/BRANCH_AND_RELEASE_MODEL.md` | CANONICAL | Permanent branches, single QA build, production promotion |
 | `docs/modules/*` | CANONICAL | Module behavior/product contracts |
-| `docs/decisions/*` | CANONICAL | Accepted architectural decisions and rationale |
-| `docs/KNOWLEDGE_SOURCE_ROUTING.md` | CANONICAL | Which evidence source answers which question |
-| `docs/workflow/*` | CANONICAL | Development, QA, and approval/documentation workflow |
+| `docs/decisions/*` | CANONICAL | Accepted architectural decisions/rationale |
+| `docs/KNOWLEDGE_SOURCE_ROUTING.md` | CANONICAL | Evidence-source routing |
+| `docs/workflow/*` | CANONICAL | Development, QA, approval/documentation workflow |
 
-## Supporting and legacy documents
+## Accepted supporting documents
 
 | Document | Classification | Canonical owner / interpretation |
 | --- | --- | --- |
-| `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | B2 visual/interaction contract supporting Architecture + Takeoff/Estimating module specs |
-| `builder-means-methods-resource-engine.md` | ACCEPTED DETAILED DESIGN | P1 means/methods/resource contract supporting Assembly & Resource Engine + Takeoff + Estimating |
-| `carez-modernization.md` | HISTORICAL IMPLEMENTATION RECORD | 2026-08-29 evidence snapshot; `CURRENT_STATE.md` controls present status |
+| `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | B2 visual/interaction contract supporting Architecture + Takeoff/Estimating specs |
+| `builder-means-methods-resource-engine.md` | ACCEPTED DETAILED DESIGN | Means/methods/resource contract supporting Assembly & Resource Engine + Takeoff + Estimating |
 | `concrete-plan-intelligence-foundation.md` | ACCEPTED DETAILED DESIGN | Plan Intelligence domain/schema foundation supporting AI + Documents/Knowledge |
 | `custom-assembly-authoring-foundation.md` | ACCEPTED DETAILED DESIGN | Immutable assembly authoring/runtime contract supporting Assembly & Resource Engine + Estimating |
 | `p1-builder-method-acceptance.md` | ACCEPTED ACCEPTANCE CRITERIA | Focused P1 verification/resource acceptance rules |
-| `p1-method-research-contract.md` | RESEARCH CONTRACT | Source hierarchy and domain corrections for P1 means/methods |
-| `product-polish-vision.md` | SUPERSEDED VISION RECORD | Earlier product polish direction; later B2/module specs govern current UI decisions |
+| `p1-method-research-contract.md` | RESEARCH CONTRACT | Source hierarchy/domain research contract for P1 means/methods |
 | `takeoff-estimating-workstation-target.md` | ACCEPTED DETAILED DESIGN | Integrated estimator workstation contract supporting Takeoff + Estimating |
 
 ## Conflict rule
 
-A supporting document may add detail, but it may not override a canonical architecture document, ADR, module specification, or `CURRENT_STATE.md`.
+A supporting document may add detail but may not override canonical architecture, ADRs, module specifications, `CURRENT_STATE.md`, or `BRANCH_AND_RELEASE_MODEL.md`.
 
-If a conflict is discovered:
-
-1. Do not silently choose or blend both versions.
-2. Identify the conflict explicitly.
-3. Determine whether the supporting document should be promoted into the canonical owner or marked superseded.
-4. Update the canonical document through the approval workflow.
-5. Update this registry and the supporting document status header if its classification changes.
+If a conflict is discovered, identify it explicitly and promote the approved resolution into the canonical owner rather than creating another competing document/branch.
