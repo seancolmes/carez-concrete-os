@@ -102,6 +102,16 @@ Controlled multi-measurement Quantity Worksheet / lineage QA is **PASS** on stag
 - derived quantities remain independent and proportional to each geometry: A carries `0.334 CY` concrete, `8.3508 SFCA` formwork, `0.1844 HR` direct-placement labor, and `7.2296 LB` reinforcing; B carries `0.1893 CY`, `4.732 SFCA`, `0.1045 HR`, and `4.0966 LB` respectively;
 - existing missing-price statuses remain attached to the correct material outputs independently; the multi-measurement pass does not imply missing prices were resolved.
 
+Controlled measurement deletion / cleanup isolation QA is **PASS**:
+
+- authenticated browser QA deleted only Measurement B `Strip Footing 1 Copy` through the normal Takeoff delete path and confirmed Measurement A remained after hard refresh;
+- post-delete Supabase inspection reports zero Measurement B rows, zero Measurement B output rows, and zero estimate items with Measurement B as their Takeoff source;
+- all eight previously recorded Measurement B output ids are absent and all six previously generated Measurement B estimate-item ids are absent;
+- orphan checks report zero estimate items still referencing a deleted Measurement B output and zero output rows still pointing to a deleted Measurement B generated estimate item;
+- Measurement A remains exactly one measurement at `5.0105 LF` on published assembly version `dbeed58c-0b1a-4df7-b153-9b8c9d8e576e`, with eight child-output rows, six active/estimate-visible outputs, and six generated estimate items;
+- Measurement A still has eight distinct component keys, six distinct source-output estimate-item links, zero duplicate output-component groups, zero duplicate estimate-item source groups, and zero ownership/lineage mismatches;
+- Measurement A, all eight of its output rows, and all six generated estimate items retain the pre-delete `2026-09-03 00:11:04.509192+00` update timestamp, confirming deletion of B did not recalculate or mutate A.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -122,7 +132,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA for measurement deletion/cleanup isolation and cross-sheet/all-sheets worksheet behavior now that multi-measurement aggregation/edit isolation and exact lineage pass.
+1. Continue authenticated Takeoff P0 QA for cross-sheet / All Sheets Quantity Worksheet behavior and sheet-switch isolation now that multi-measurement aggregation and deletion cleanup pass.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
 3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
 4. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
@@ -146,6 +156,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Fully resolved child-output Quantity Worksheet completeness: **PASS**.
 - Resolved nested Takeoff output → estimate-item lineage: **PASS**, including exact source output/measurement/published-assembly identifiers and no duplicate active estimate rows in the controlled case.
 - Multi-measurement Quantity Worksheet aggregation, edit isolation, undo/redo isolation, refresh persistence, independent child-output ownership, and exact generated estimate-item lineage: **PASS**.
+- Measurement deletion cleanup, downstream output/estimate-item cascade cleanup, orphan prevention, and unaffected-measurement isolation: **PASS**.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
@@ -153,7 +164,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, and exact-lineage foundation. Measurement deletion/cleanup isolation, cross-sheet worksheet behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, and exact-lineage foundation. Cross-sheet worksheet behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
