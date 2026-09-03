@@ -1,7 +1,7 @@
-> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Document status:** SUPERSEDED — HISTORICAL REFERENCE  
 > **Canonical owner:** `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
-> **Use:** Supporting immutable custom-assembly authoring/runtime contract.  
-> **Supersession:** Active until explicitly superseded; implementation status belongs in `docs/CURRENT_STATE.md`.
+> **Use:** Historical record of the existing assembly/AST runtime and authoring contract. Do not use as the active product model.  
+> **Supersession:** Superseded for new product/domain work by `docs/concrete-condition-3d-workstation-target.md` and ADR-012. Existing immutable versions, deterministic AST behavior, RLS, and referenced lineage remain compatibility requirements during migration.
 
 # Carez Custom Assembly Authoring Foundation
 
