@@ -89,6 +89,19 @@ Resolved-method Quantity Worksheet / nested lineage QA is **PASS**:
 - every generated estimate item retains the exact `source_takeoff_output_id`, `source_takeoff_measurement_id`, and published `source_assembly_version_id` for the controlled measurement;
 - no duplicate generated estimate items were observed for the active output branches.
 
+Controlled multi-measurement Quantity Worksheet / lineage QA is **PASS** on staging `0e786de`:
+
+- browser QA verified two independent strip-footing measurements appear exactly once each in the Quantity Worksheet, editing only the second measurement recalculates only that measurement, undo/redo remains isolated, and hard refresh preserves both rows without duplication;
+- Measurement A `Strip Footing 1` is `5.0105 LF` with id `c2883636-bc1b-44d8-87c1-bcabf469e0f7`; Measurement B `Strip Footing 1 Copy` is `2.8392 LF` with id `33dd153b-6a4d-4c1c-86f3-842b4070f986`;
+- both measurements retain published assembly version `dbeed58c-0b1a-4df7-b153-9b8c9d8e576e` and the same resolved method choices while keeping independent measurement identity;
+- each measurement owns eight distinct child-output rows with eight distinct component keys and output ids; six are active/estimate-visible under the selected direct-chute branch and two line-pump outputs remain legitimately inactive;
+- each measurement owns six distinct generated estimate items, exactly one per active estimate-visible output; all generated pointers resolve back to the same output, measurement, and published assembly version with zero lineage mismatches;
+- duplicate checks report zero duplicate output-component groups and zero duplicate estimate-item source-output groups for both measurements;
+- the two measurements share zero output ids and zero generated estimate-item ids;
+- Measurement A and all of its child outputs/estimate items retain their earlier `2026-09-03 00:11:04.509192+00` update timestamp while Measurement B and its lineage were recalculated at `2026-09-03 01:15:53.461903+00`, confirming the B edit did not mutate A;
+- derived quantities remain independent and proportional to each geometry: A carries `0.334 CY` concrete, `8.3508 SFCA` formwork, `0.1844 HR` direct-placement labor, and `7.2296 LB` reinforcing; B carries `0.1893 CY`, `4.732 SFCA`, `0.1045 HR`, and `4.0966 LB` respectively;
+- existing missing-price statuses remain attached to the correct material outputs independently; the multi-measurement pass does not imply missing prices were resolved.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -109,7 +122,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA for multi-measurement Quantity Worksheet aggregation, editing/recalculation across several measurements, and exact estimate lineage under those changes.
+1. Continue authenticated Takeoff P0 QA for measurement deletion/cleanup isolation and cross-sheet/all-sheets worksheet behavior now that multi-measurement aggregation/edit isolation and exact lineage pass.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
 3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
 4. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
@@ -132,6 +145,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Nested required-input hold behavior / output completeness: **PASS** under Issue #20 acceptance.
 - Fully resolved child-output Quantity Worksheet completeness: **PASS**.
 - Resolved nested Takeoff output → estimate-item lineage: **PASS**, including exact source output/measurement/published-assembly identifiers and no duplicate active estimate rows in the controlled case.
+- Multi-measurement Quantity Worksheet aggregation, edit isolation, undo/redo isolation, refresh persistence, independent child-output ownership, and exact generated estimate-item lineage: **PASS**.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
@@ -139,7 +153,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, and exact-lineage foundation. Multi-measurement worksheet aggregation, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, and exact-lineage foundation. Measurement deletion/cleanup isolation, cross-sheet worksheet behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
