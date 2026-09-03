@@ -40,7 +40,7 @@ The architecture must reduce re-entry and preserve exact lineage between physica
 - Source-controlled migrations.
 - Server-authoritative deterministic domain engines.
 - Async/background work only where needed for document processing, indexing, integrations, or other long-running tasks.
-- No microservices/Kubernetes/Kafka/event sourcing without a demonstrated requirement.
+- No distributed rewrite without demonstrated need.
 
 ## Data and security
 
@@ -56,46 +56,44 @@ The architecture must reduce re-entry and preserve exact lineage between physica
 Every bid-to-closeout lifecycle is anchored by one persistent company-scoped **Job Spine** identity.
 
 - Opportunity, Estimate, Proposal, Award Decision, Accepted Scope Snapshot, Project, and later Change Event records are phase-specific entities linked to the same Job Spine.
-- An Opportunity never changes its entity type or mutates into a Project. Award creates a distinct Project record on the existing Job Spine.
-- Preconstruction records remain historically available after award, loss, rebid, or revision.
-- Multiple estimate and proposal revisions may coexist beneath one Job Spine without changing the identity of the underlying job.
-- Customer, location, document, scope, quantity, pricing, and approval data should flow through links and immutable snapshots rather than manual re-entry.
-- Shared records such as documents may link at the Job Spine level and, when useful, to the exact phase-specific record they support.
+- An Opportunity never changes entity type into a Project; award creates a distinct Project on the same Job Spine.
+- Preconstruction history remains after award, loss, rebid, or revision.
+- Multiple estimate/proposal revisions may coexist beneath one Job Spine.
+- Customer, location, document, scope, quantity, pricing, and approval data flow through links and immutable snapshots rather than re-entry.
 
 ## Takeoff
 
-- PDF is the visual reference.
-- Stable normalized/vector page coordinates are authoritative geometry.
-- Geometry and calibration must remain deterministic across zoom/render changes.
-- Editing, cutouts, arcs, duplicate, persistent undo/redo, and worksheet lineage operate on persisted geometry/domain state.
-- The permanent resizable bottom quantity/estimate worksheet is a flagship workstation element.
-- Takeoff selects and applies published company-owned assemblies.
-- Assembly authoring remains integrated with the Takeoff workstation so the live plan can remain visible, but it must use a dedicated resizable builder/composer surface rather than turning the permanent Inspector into a long-form editor.
+- PDF is visual reference; stable normalized/vector page coordinates are authoritative geometry.
+- Geometry and calibration remain deterministic across zoom/render changes.
+- Editing, cutouts, arcs, duplication, undo/redo, and worksheet lineage operate on persisted domain state.
+- The permanent resizable bottom Quantity Worksheet is a flagship workstation element and remains available during normal recipe authoring.
+- Takeoff selects and applies published company-owned Concrete Scope Recipes plus verified Project Scope Variants/job inputs.
+- Recipe authoring stays on the same Takeoff route through a movable/resizable popup Recipe Editor over the live plan. It is not a separate page/browser window and does not turn the permanent Inspector into a long form.
+- Focus Builder maximizes/restores that same editor while preserving sheet, viewport, zoom/pan, calibration, selection, and draft state.
 
-## Assemblies and resource engine
+## Assembly and resource engine
 
 - Carez does not use a hard-coded production assembly catalog for new work.
-- New companies begin with an empty company Assembly Library.
-- Assemblies are company-owned, user-authored concrete recipes.
-- Optional system templates live in a separate read-only Template Catalog and become company-owned only through an explicit copy-to-draft action.
-- Published assembly versions are immutable.
-- Historical referenced versions may be retired/hidden but remain preserved for lineage until safe retention rules permit deletion.
-- Assembly authoring is an interactive, structured drag-and-drop builder integrated into the Takeoff workstation with the plan still visible; it is not an unrestricted node graph, separate disconnected estimating app, or long Inspector form.
-- Assemblies convert Takeoff measurements plus declared plan facts, estimator method decisions, production assumptions, and property bindings into deterministic resource and labor outputs.
-- Resources are first-class and independently priceable; assemblies determine resource demand rather than embedding current price as quantity logic.
-- Installed/theoretical quantity, procurement quantity, and reusable inventory demand are distinct concepts.
-- Formula authoring is visual/estimator-friendly but compiles to one deterministic server-authoritative formula engine with unit validation, dependency/cycle checks, conditional logic, and traceability.
-- Takeoff → published assembly version → child/component/resource output → estimate item lineage remains exact.
-- Production Quantity, Direct Cost, and Sell are distinct concepts.
-- Missing inputs or missing prices are explicit holds, not fabricated zeros.
-- Plan facts, Carez method decisions, production assumptions, and commercial assumptions remain distinguishable.
-- Pricing and production assumptions retain provenance.
+- New companies may begin with an empty company recipe library.
+- The persisted company assembly/version model is presented as **Concrete Scope Recipes**: reusable user-authored logic for Slabs, Footings, Walls, Grade Beams, Pads, Flatwork, and other concrete scope.
+- Optional system templates live separately and become company-owned only through explicit copy-to-draft.
+- Published Scope Recipe versions are immutable; referenced historical versions remain preserved for lineage.
+- A **Project Scope Variant** is a takeoff-set/job-specific versioned configuration of one published Scope Recipe. It resolves exact plan facts plus estimator-approved method, production, and commercial inputs without forcing a new global recipe for every drawing condition.
+- Existing verified method-profile storage may be extended compatibly to persist Scope Variants; historical profiles remain valid.
+- Recipes support repeatable **System Blocks** for concrete volume, continuous reinforcing, spaced/transverse reinforcing, rebar grids/mats, WWF/WWR, dowels/starters, fiber, vapor barrier, formwork, labor, placement/pump/equipment, and custom items.
+- System Blocks are calculation primitives, not hidden project assumptions. Multiple reinforcing/system instances may coexist in one recipe.
+- Recipes convert authoritative Takeoff measurements plus resolved variables into deterministic resource/labor outputs.
+- Resources are first-class and independently priceable; recipes determine physical demand rather than embedding current price into quantity math.
+- Installed/theoretical quantity, procurement quantity, reusable inventory demand, Direct Cost, and Sell are distinct.
+- Formula authoring is estimator-friendly but compiles to one deterministic server-authoritative engine with validation, dependency/cycle protection, conditional logic, and traceability.
+- Normal users are not required to type internal calculation namespaces.
+- Takeoff → published Scope Recipe version → Project Scope Variant → child/component/resource output → estimate item lineage remains exact.
+- Missing inputs or prices are explicit holds, not fabricated zeros.
+- Plan facts, method decisions, production assumptions, and commercial assumptions remain distinguishable and retain provenance.
 
 ## Commercial lineage
 
-An award decision identifies what the customer accepted; it does not make the mutable estimating draft the execution baseline.
-
-The required boundary is:
+An award decision identifies what the customer accepted; it does not make a mutable estimate draft the execution baseline.
 
 ```text
 Issued Proposal Revision
@@ -105,13 +103,11 @@ Issued Proposal Revision
 → Project Execution
 ```
 
-The immutable Accepted Scope Snapshot explicitly preserves the awarded interpretation, including the accepted proposal and estimate revisions; accepted/rejected alternates; accepted scope hierarchy and quantities; exact Takeoff measurement/output and published assembly-version lineage; inclusions; exclusions; clarifications; allowances; unit-price terms; Production Quantity, Direct Cost, and Sell facts; production assumptions; and pricing provenance.
+The immutable Accepted Scope Snapshot preserves accepted proposal/estimate revisions; accepted/rejected alternates; scope hierarchy/quantities; exact Takeoff measurement/output and recipe-version/variant lineage; inclusions; exclusions; clarifications; allowances; unit-price terms; Production Quantity, Direct Cost, Sell; production assumptions; and pricing provenance.
 
-The frozen commercial baseline is created from the Accepted Scope Snapshot, not inferred later from the current state of an estimate. Partial awards, negotiated scope, and accepted alternates must be represented explicitly.
+The frozen commercial baseline is created from the Accepted Scope Snapshot. Later execution, changes, billing, and forecast append transactions/authorized deltas/superseding versions and never mutate the original accepted snapshot/baseline.
 
-Later project execution, changes, billing, and forecast behavior append transactions, authorized deltas, or superseding versions. They must not mutate the Accepted Scope Snapshot or original frozen commercial baseline.
-
-Carez keeps **commercial baseline**, **schedule baseline**, and **production-assumption baseline** as separate named concepts. A change to one never silently changes either of the others.
+Commercial baseline, schedule baseline, and production-assumption baseline remain separate named concepts.
 
 ## Project operating model
 
@@ -133,108 +129,48 @@ Project
 
 Work packages are concrete execution units containing scope, budget, drawings, operations, measurable production work units, readiness, crew, production, material needs, pour linkage, notes, photos, and cost/forecast lineage.
 
-Where practical, measurable awarded Takeoff scope should become assignable production work units so scheduling, crew time, completion, production learning, blockers, and actual cost all reference the same physical scope.
+Where practical, measurable awarded Takeoff scope becomes assignable production work units so scheduling, crew time, completion, production learning, blockers, and actual cost reference the same physical scope.
 
-A Production Work Unit does not have to consume an entire Takeoff measurement. It owns one or more versioned **Scope Allocations** that partition authorized physical scope from an Accepted Scope Snapshot item or later approved change-scope item.
+A Production Work Unit may consume one or more versioned **Scope Allocations** partitioning authorized scope from an Accepted Scope Snapshot item or approved change item. Allocations preserve source measurement/output version, allocation basis, quantity/unit, authorization source, and supersession lineage and may not silently overlap/double-count the same authorized source/basis.
 
-Each allocation preserves the exact source measurement/output version, operation/allocation basis, allocated quantity and unit, authorization source, and supersession lineage. Allocation sets may leave authorized scope unallocated, but may not silently overlap or double-count quantity within the same authorized source and operation/allocation basis. Split/merge/resequence actions preserve prior allocations and field evidence. A later RFI, drawing revision, or change records the original baseline quantity, current authorized quantity, delta, and source; it never edits the original quantity in place.
+Scheduling distinguishes committed/baseline milestones, rolling lookahead, and daily executable READY work. Actual execution history remains separate from planning layers.
 
-Scheduling distinguishes:
-- committed/baseline milestones;
-- rolling lookahead planning;
-- daily executable READY work.
-
-Actual execution history is retained separately from all three planning layers.
-
-A **Constraint** is a prospective readiness requirement or condition that may prevent work from becoming READY. A **Blocker Event** records realized execution impact after work is attempted or underway. A constraint may be cleared without ever becoming a blocker; a blocker may link to the constraint that caused it.
-
-Field variance may alter the working/lookahead plan and actual work context without erasing the failed plan, silently changing committed milestones, or mutating the frozen commercial baseline.
+A **Constraint** is a prospective readiness condition. A **Blocker Event** records realized execution impact. Field variance may alter lookahead/actual work context without erasing failed plans, silently moving committed milestones, or mutating the frozen baseline.
 
 ## Field and pour control
 
-Role-specific workflows keep field interaction simpler than office authoring.
-
-- Employees: payroll time plus a low-friction actual work context; scheduled work is offered first, with one-tap switch/blocked behavior when field conditions differ.
-- Foremen: execution leadership, crew awareness, readiness, blockers, sequence, ahead/behind status, and crew reassignment. Foremen are not routine daily production-quantity data-entry workers.
-- Superintendents: readiness, coordination, lookahead risk, inspections, pours, and cross-crew/project constraints.
+- Employees: payroll time plus low-friction actual work context; scheduled work offered first with quick switch/blocked behavior.
+- Foremen: execution leadership, crew awareness, readiness, blockers, sequence, ahead/behind status, and reassignment; not routine daily production-entry workers.
+- Superintendents: readiness, coordination, lookahead risk, inspections, pours, and constraints.
 - Pour Control: readiness, mix, supplier, pump, linked scope, deliveries, placed/returned quantities, inspections, and variance.
 
-Field truth uses separate, linked records with separate authority:
+Field truth separates Timecard, Actual Work Context, Constraint, Blocker Event, Completion Evidence, and Production Evidence. Correcting work context never rewrites payroll time. Waiting, blocked, rework, setup, and ambiguous time remain distinguishable from productive labor.
 
-- **Timecard** — payroll/workforce clock truth and paid-time intervals.
-- **Actual Work Context** — auditable allocation of timecard segments to the Job Spine, Project, Work Package, Operation, Production Work Unit, governing Scope Allocation version, and activity classification.
-- **Constraint** — prospective requirement affecting readiness.
-- **Blocker Event** — realized interruption, delay, or failed-start impact with crew/time and schedule context.
-- **Completion Evidence** — timestamped evidence of partial or complete physical scope, source, verifier, quantity scope, and verification state.
-- **Production Evidence** — derived observation combining an authorized Scope Allocation version, attributable productive labor, method/context, completion evidence, exception context, and confidence.
-
-Correcting Actual Work Context never rewrites the underlying Timecard. Work-context allocations reconcile to paid time and expose unresolved or overlapping periods. Waiting, blocked, rework, setup, and ambiguous time remain distinguishable so paid time is not automatically treated as productive labor.
-
-Production learning should derive from attributable employee/crew work context plus trustworthy completion of measurable work units and other high-quality evidence such as pour tickets. Completion is supported by evidence rather than a bare checkbox.
-
-Production Evidence is an append-only/versioned observation, not an assembly mutation. Confidence preserves explainable component quality for quantity, time attribution, completion, method context, and exception contamination; simple HIGH / MEDIUM / LOW / EXCLUDED categories may be derived for presentation. High-confidence evidence can inform future estimating history; ambiguous evidence is reviewed or excluded. Field actuals and historical production may inform estimator decisions but never automatically rewrite published assemblies, production assumptions, budgets, Accepted Scope Snapshots, or accepted estimates.
-
-Blocker Events are first-class records tied to the affected work unit/operation, actual work context, and downstream schedule impact. Carez should help authorized field leaders redirect crews to alternate READY work and suggest resequencing, but humans approve material schedule changes.
+Production Evidence is append-only/versioned and may inform future estimating but never automatically rewrites published recipes, assumptions, budgets, Accepted Scope Snapshots, or accepted estimates.
 
 ## Finance and procurement
 
-Carez owns operational financial intelligence, not the statutory general ledger.
-
-Keep distinct and traceable:
-
-- Budget
-- Committed
-- Actual
-- Forecast
-
-Procurement originates from project need derived from the Accepted Scope Snapshot, authorized scope changes, and approved execution planning. Vendor bills and purchases preserve source lineage. Changes and billing retain original commercial baselines.
+Carez owns operational financial intelligence, not the statutory general ledger. Keep Budget, Committed, Actual, and Forecast distinct and traceable. Procurement originates from authorized project need and preserves source lineage. Changes/billing retain original commercial baselines.
 
 ## Documents and knowledge
 
-One document architecture should allow files to link to the Job Spine and multiple phase-specific entities. Drawings separate logical sheet identity from exact revision. Search spans project and commercial records. AI-derived facts retain page/region evidence and never overwrite source documents.
+One document architecture links files to the Job Spine and phase-specific entities. Drawings separate logical sheet identity from exact revision. Search spans project/commercial records. AI-derived facts retain source evidence and never overwrite source documents.
 
 ## AI boundary
 
-AI may assist:
+AI may assist setup, recognition, extraction, repetition, comparison, retrieval, summarization, QA, clerical preparation, schedule/readiness risk detection, alternate READY-work suggestions, and production-evidence classification.
 
-- setup;
-- recognition;
-- extraction;
-- repetition;
-- comparison;
-- retrieval;
-- summarization;
-- QA;
-- clerical preparation;
-- schedule/readiness risk detection;
-- alternate READY-work suggestions;
-- production-evidence classification and learning recommendations.
-
-Humans remain authoritative for:
-
-- scope;
-- assumptions;
-- assemblies;
-- means and methods;
-- production rates;
-- pricing;
-- margin;
-- budgets;
-- schedule commitments and material resequencing decisions;
-- approvals;
-- final commercial decisions.
+Humans remain authoritative for scope, assumptions, recipes, means/methods, production rates, pricing, margin, budgets, schedule commitments/material resequencing, approvals, and final commercial decisions.
 
 ## Experience architecture
 
 Desktop is a professional workstation. Mobile is field-first.
-
-Desktop shell invariant:
 
 ```text
 OPEN:   [ permanent app rail ][ context drawer ][ workspace ]
 CLOSED: [ permanent app rail ][ workspace ]
 ```
 
-The primary app rail never disappears at desktop width merely because the context drawer closes.
+The primary desktop rail never disappears merely because the context drawer closes.
 
-The visual direction is professional, industrial, calm, precise, dense, premium, and concrete-native. Avoid generic AI/SaaS dashboards, excessive whitespace, giant rounded cards, glassmorphism, and decorative UI that competes with plans or estimating data.
+Visual direction: professional, industrial, calm, precise, dense, premium, concrete-native. Avoid generic SaaS styling, excessive whitespace, giant rounded cards, glassmorphism, and decorative UI that competes with plans or estimating data.
