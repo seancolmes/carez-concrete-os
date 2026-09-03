@@ -149,7 +149,8 @@ const numberText = (value: unknown, digits = 2) => Number(value || 0).toLocaleSt
 const friendly = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 const normalizeKey = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
 const sorted = (rows: any[]) => [...rows].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.label || '').localeCompare(String(b.label || '')));
-const primaryToken = (unit: string) => unit === 'LF' ? 'Takeoff.Length' : unit === 'SF' ? 'Takeoff.Area' : unit === 'EA' ? 'Takeoff.Count' : unit === 'CY' ? 'Takeoff.Volume' : 'Takeoff.Quantity';
+const primaryToken = (unit: string) => unit === 'LF' ? 'Length' : unit === 'SF' ? 'Area' : unit === 'EA' ? 'Count' : unit === 'CY' ? 'Volume' : 'Quantity';
+const measuredLabel = (unit: string) => unit === 'LF' ? 'Measured length' : unit === 'SF' ? 'Measured area' : unit === 'EA' ? 'Measured count' : unit === 'CY' ? 'Measured volume' : 'Measured quantity';
 const expressionText = (formula: any) => formatFormulaExpression(formula).replaceAll(' × ', ' * ').replaceAll(' ÷ ', ' / ');
 const seedString = (seed: Record<string, unknown>, key: string, fallback = '') => typeof seed[key] === 'string' ? String(seed[key]) : fallback;
 
@@ -408,9 +409,9 @@ export function AssemblyBuilderComposer({ setId, versionId, builderData, focus, 
         <label className={styles.paletteSearch}><Search size={12} /><input value={paletteQuery} onChange={event => setPaletteQuery(event.target.value)} placeholder="Find a block" /></label>
         <div className={styles.paletteScroll}>
           {paletteTab === 'blocks' ? <>
-            <PaletteGroup title="Inputs & properties">{propertyPalette.filter(item => item.label.toLowerCase().includes(paletteQuery.toLowerCase())).map(item => <PaletteItem key={item.label} label={item.label} icon={item.icon} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'property', seed: item.seed })} onClick={() => !readOnly && setEditor({ kind: 'property', seed: item.seed })} />)}</PaletteGroup>
-            <PaletteGroup title="Resource outputs">{resourcePalette.filter(item => item.label.toLowerCase().includes(paletteQuery.toLowerCase())).map(item => <PaletteItem key={item.label} label={item.label} icon={item.icon} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'component', seed: item.seed })} onClick={() => !readOnly && setEditor({ kind: 'component', seed: item.seed })} />)}</PaletteGroup>
-            <PaletteGroup title="Logic"><PaletteItem label="Conditional output" icon={Braces} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'component', seed: { itemType: 'material', resourceBehavior: 'consumed_material', outputUnit: 'EA', pricingStrategy: 'current_cost' } })} onClick={() => !readOnly && setEditor({ kind: 'component', seed: { itemType: 'material', resourceBehavior: 'consumed_material', outputUnit: 'EA', pricingStrategy: 'current_cost' } })} /></PaletteGroup>
+            <PaletteGroup title="Job inputs">{propertyPalette.filter(item => item.label.toLowerCase().includes(paletteQuery.toLowerCase())).map(item => <PaletteItem key={item.label} label={item.label} icon={item.icon} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'property', seed: item.seed })} onClick={() => !readOnly && setEditor({ kind: 'property', seed: item.seed })} />)}</PaletteGroup>
+            <PaletteGroup title="Materials, labor & equipment">{resourcePalette.filter(item => item.label.toLowerCase().includes(paletteQuery.toLowerCase())).map(item => <PaletteItem key={item.label} label={item.label} icon={item.icon} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'component', seed: item.seed })} onClick={() => !readOnly && setEditor({ kind: 'component', seed: item.seed })} />)}</PaletteGroup>
+            <PaletteGroup title="Advanced"><PaletteItem label="Conditional item" icon={Braces} disabled={readOnly} onDragStart={event => dragStart(event, { mode: 'new', kind: 'component', seed: { itemType: 'material', resourceBehavior: 'consumed_material', outputUnit: 'EA', pricingStrategy: 'current_cost' } })} onClick={() => !readOnly && setEditor({ kind: 'component', seed: { itemType: 'material', resourceBehavior: 'consumed_material', outputUnit: 'EA', pricingStrategy: 'current_cost' } })} /></PaletteGroup>
           </> : <PaletteGroup title="Published company recipes">
             {childOptions.filter(row => `${row.assembly.code} ${row.assembly.name}`.toLowerCase().includes(paletteQuery.toLowerCase())).map(row => <PaletteItem key={row.id} label={row.assembly.name} meta={`${row.assembly.code} · v${row.version_no}`} icon={CopyPlus} disabled={readOnly || row.assembly_id === assembly.id} onDragStart={event => dragStart(event, { mode: 'new', kind: 'childVersion', versionId: row.id })} onClick={() => !readOnly && row.assembly_id !== assembly.id && setEditor({ kind: 'child', seed: { childVersionId: row.id, label: row.assembly.name, key: normalizeKey(row.assembly.code), quantityFormula: primaryToken(primaryUnit) } })} />)}
             {!childOptions.length && <div className={styles.paletteEmpty}>Publish a reusable company assembly to nest it here.</div>}
@@ -424,15 +425,15 @@ export function AssemblyBuilderComposer({ setId, versionId, builderData, focus, 
           <div className={styles.recipeStats}><span><b>{properties.length}</b> properties</span><span><b>{components.length}</b> outputs</span><span><b>{children.length}</b> children</span></div>
         </div>
 
-        <RecipeLane title="Inputs & properties" subtitle="Plan facts, method decisions, and production assumptions." icon={Variable} empty="Drag a property block here" onDrop={event => dropLane(event, 'property')}>
+        <RecipeLane title="Inputs" subtitle="Dimensions, spacing, waste, and method choices." icon={Variable} empty="Drag an input here" onDrop={event => dropLane(event, 'property')}>
           {properties.map(property => <PropertyBlock key={property.id} row={property} binding={bindingMap.get(property.id)} readOnly={readOnly} onEdit={() => setEditor({ kind: 'property', id: property.id })} onDelete={() => run(() => deleteAssemblyProperty(setId, versionId, property.id), 'Property removed')} onDragStart={event => dragStart(event, { mode: 'existing', kind: 'property', id: property.id })} onDrop={event => dropBefore(event, 'property', property)} />)}
         </RecipeLane>
 
-        <RecipeLane title="Logic & child assemblies" subtitle="Compose reusable concrete systems without duplicating recipes." icon={Layers3} empty="Drag a published child assembly here" onDrop={event => dropLane(event, 'child')}>
+        <RecipeLane title="Sub-assemblies" subtitle="Optional reusable company recipes." icon={Layers3} empty="Drag a published assembly here" onDrop={event => dropLane(event, 'child')}>
           {children.map(child => <ChildBlock key={child.id} row={child} data={builderData} readOnly={readOnly} onEdit={() => setEditor({ kind: 'child', id: child.id })} onDelete={() => run(() => deleteAssemblyChild(setId, versionId, child.id), 'Child removed')} onDragStart={event => dragStart(event, { mode: 'existing', kind: 'child', id: child.id })} onDrop={event => dropBefore(event, 'child', child)} />)}
         </RecipeLane>
 
-        <RecipeLane title="Resource outputs & production" subtitle="Materials, labor, equipment, rentals, inventory, and subcontract scope." icon={Package} empty="Drag a resource block here" onDrop={event => dropLane(event, 'component')}>
+        <RecipeLane title="Materials & labor" subtitle="What this takeoff creates." icon={Package} empty="Drag a material, labor, or equipment block here" onDrop={event => dropLane(event, 'component')}>
           {components.map(component => <ComponentBlock key={component.id} row={component} properties={properties} readOnly={readOnly} onEdit={() => setEditor({ kind: 'component', id: component.id })} onDelete={() => run(() => deleteAssemblyComponent(setId, versionId, component.id), 'Resource removed')} onDragStart={event => dragStart(event, { mode: 'existing', kind: 'component', id: component.id })} onDrop={event => dropBefore(event, 'component', component)} />)}
         </RecipeLane>
       </main>
@@ -444,20 +445,20 @@ export function AssemblyBuilderComposer({ setId, versionId, builderData, focus, 
           {!selectedMeasurement && <label><span>Quantity</span><div className={styles.unitInput}><input value={testQuantity} onChange={event => setTestQuantity(event.target.value)} inputMode="decimal" /><b>{primaryUnit}</b></div></label>}
         </div>
         <div className={styles.testInputs}>
-          <div className={styles.testSectionTitle}><span>Properties</span><small>{test.required.length ? `${test.required.length} required` : 'resolved'}</small></div>
+          <div className={styles.testSectionTitle}><span>Inputs</span><small>{test.required.length ? `${test.required.length} required` : 'resolved'}</small></div>
           {properties.filter(property => property.input_role !== 'derived').map(property => <TestInput key={property.id} property={property} value={testInputs[property.variable_key] || ''} onChange={value => setTestInputs(current => ({ ...current, [property.variable_key]: value }))} />)}
-          {!properties.length && <div className={styles.testEmpty}>Add properties to test job inputs.</div>}
+          {!properties.length && <div className={styles.testEmpty}>Add inputs to test the recipe.</div>}
         </div>
         <div className={styles.testResults}>
-          <div className={styles.testSectionTitle}><span>Live outputs</span><small className={holds ? styles.warningText : styles.goodText}>{holds ? `${holds} hold${holds === 1 ? '' : 's'}` : 'valid'}</small></div>
+          <div className={styles.testSectionTitle}><span>Results</span><small className={holds ? styles.warningText : styles.goodText}>{holds ? `${holds} hold${holds === 1 ? '' : 's'}` : 'valid'}</small></div>
           {test.rows.map(row => <div key={`${row.type}-${row.id}`} className={`${styles.testRow} ${row.status === 'ready' ? styles.testReady : row.status === 'hold' ? styles.testHold : styles.testInactive}`}>
             <div><strong>{row.label}</strong><span>{friendly(row.type)}</span></div>
             <div className={styles.testQty}>{row.quantity === null ? 'HOLD' : `${numberText(row.quantity, 3)} ${row.unit}`}{row.hours !== null && row.hours !== undefined && <small>{numberText(row.hours)} MH</small>}</div>
             {row.detail && <p>{row.detail}</p>}
           </div>)}
-          {!test.rows.length && <div className={styles.testEmpty}>Add a resource or child assembly to calculate outputs.</div>}
+          {!test.rows.length && <div className={styles.testEmpty}>Add a material, labor item, or sub-assembly to calculate results.</div>}
         </div>
-        <div className={styles.validationStrip}><span className={publishReady ? styles.validDot : styles.holdDot} /><div><strong>{publishReady ? 'Recipe can be published' : 'Recipe needs work'}</strong><small>{components.length + children.length ? `${components.length + children.length} output block${components.length + children.length === 1 ? '' : 's'} · deterministic formula preview` : 'At least one output or child assembly is required.'}</small></div></div>
+        <div className={styles.validationStrip}><span className={publishReady ? styles.validDot : styles.holdDot} /><div><strong>{publishReady ? 'Ready to publish' : 'Recipe needs work'}</strong><small>{components.length + children.length ? `${components.length + children.length} output item${components.length + children.length === 1 ? '' : 's'}` : 'Add at least one material, labor item, or sub-assembly.'}</small></div></div>
       </aside>}
     </div>
 
@@ -523,19 +524,19 @@ function BlockActions({ readOnly, onEdit, onDelete }: Pick<BlockProps, 'readOnly
 }
 
 function PropertyBlock({ row, binding, ...props }: BlockProps & { binding: any }) {
-  const source = binding ? `${friendly(binding.source_namespace)} · ${binding.source_key}` : row.default_value !== null && row.default_value !== undefined ? 'Default value' : 'Estimator / project input';
-  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${styles.propertyIcon}`}><Variable size={14} /></div><div className={styles.blockMain}><span>{friendly(row.input_role || 'property')}</span><strong>{row.label}</strong><small>{source}</small></div><div className={styles.blockMeta}>{row.unit && <b>{row.unit}</b>}<span>{friendly(row.value_type)}</span></div><BlockActions {...props} /></article>;
+  const source = binding ? `${friendly(binding.source_namespace)} · ${binding.source_key}` : row.default_value !== null && row.default_value !== undefined ? 'Default value' : 'Estimator input';
+  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${styles.propertyIcon}`}><Variable size={14} /></div><div className={styles.blockMain}><span>Input</span><strong>{row.label}</strong><small>{source}</small></div><div className={styles.blockMeta}>{row.unit && <b>{row.unit}</b>}<span>{friendly(row.value_type)}</span></div><BlockActions {...props} /></article>;
 }
 
 function ComponentBlock({ row, properties, ...props }: BlockProps & { properties: any[] }) {
   const condition = conditionFromRule(row.activation_rule);
-  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${row.estimate_item_type === 'labor' ? styles.laborIcon : styles.resourceIcon}`}>{row.estimate_item_type === 'labor' ? <Hammer size={14} /> : <Package size={14} />}</div><div className={styles.blockMain}><span>{friendly(row.resource_behavior || row.estimate_item_type)}</span><strong>{row.label}</strong><small>{formatFormulaExpression(row.quantity_formula)}</small></div>{condition.property && <div className={styles.conditionChip}><Braces size={11} />If {properties.find(property => property.variable_key === condition.property)?.label || condition.property}</div>}<div className={styles.blockMeta}><b>{row.output_unit}</b><span>{row.estimate_item_type === 'labor' && row.labor_rate_formula ? `${formatFormulaExpression(row.labor_rate_formula)} MH/unit` : friendly(row.pricing_strategy || 'current_cost')}</span></div><BlockActions {...props} /></article>;
+  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${row.estimate_item_type === 'labor' ? styles.laborIcon : styles.resourceIcon}`}>{row.estimate_item_type === 'labor' ? <Hammer size={14} /> : <Package size={14} />}</div><div className={styles.blockMain}><span>{friendly(row.estimate_item_type)}</span><strong>{row.label}</strong><small>{formatFormulaExpression(row.quantity_formula)}</small></div>{condition.property && <div className={styles.conditionChip}><Braces size={11} />If {properties.find(property => property.variable_key === condition.property)?.label || condition.property}</div>}<div className={styles.blockMeta}><b>{row.output_unit}</b><span>{row.estimate_item_type === 'labor' && row.labor_rate_formula ? `${formatFormulaExpression(row.labor_rate_formula)} MH/unit` : friendly(row.pricing_strategy || 'current_cost')}</span></div><BlockActions {...props} /></article>;
 }
 
 function ChildBlock({ row, data, ...props }: BlockProps & { data: BuilderData }) {
   const version = data.versions.find(item => item.id === row.child_assembly_version_id);
   const assembly = version ? data.assemblies.find(item => item.id === version.assembly_id) : null;
-  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${styles.childIcon}`}><Layers3 size={14} /></div><div className={styles.blockMain}><span>Child assembly · published v{version?.version_no || '—'}</span><strong>{row.label}</strong><small>{assembly ? `${assembly.code} · ${assembly.name}` : 'Nested recipe'} · {formatFormulaExpression(row.quantity_formula)}</small></div><div className={styles.blockMeta}><b>{assembly?.primary_measurement || '×'}</b><span>{Object.keys(row.variable_bindings || {}).length} bindings</span></div><BlockActions {...props} /></article>;
+  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${styles.childIcon}`}><Layers3 size={14} /></div><div className={styles.blockMain}><span>Sub-assembly</span><strong>{row.label}</strong><small>{assembly ? `${assembly.code} · ${assembly.name}` : 'Nested recipe'} · {formatFormulaExpression(row.quantity_formula)}</small></div><div className={styles.blockMeta}><b>{assembly?.primary_measurement || '×'}</b><span>{Object.keys(row.variable_bindings || {}).length} mapped inputs</span></div><BlockActions {...props} /></article>;
 }
 
 function TestInput({ property, value, onChange }: { property: any; value: string; onChange: (value: string) => void }) {
@@ -689,19 +690,19 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
   };
 
   const title = editor.kind === 'property'
-    ? existingProperty ? 'Edit property' : 'Add property'
+    ? existingProperty ? 'Edit input' : 'Add input'
     : editor.kind === 'component'
-      ? existingComponent ? 'Edit resource output' : 'Add resource output'
-      : existingChild ? 'Edit child assembly' : 'Add child assembly';
+      ? existingComponent ? 'Edit material / labor item' : 'Add material / labor item'
+      : existingChild ? 'Edit sub-assembly' : 'Add sub-assembly';
 
   return <div className={styles.editorBackdrop} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
     <section className={styles.editorSheet} role="dialog" aria-modal="true" aria-label={title}>
-      <header><div><span>Assembly block</span><strong>{title}</strong></div><button type="button" onClick={onCancel}><X size={15} /></button></header>
+      <header><div><span>Recipe item</span><strong>{title}</strong></div><button type="button" onClick={onCancel}><X size={15} /></button></header>
       <div className={styles.editorBody}>
         {editor.kind === 'property' && <>
           <div className={styles.editorGrid}>
             <Field label="Label" wide><input value={property.label} onChange={event => setProperty(value => ({ ...value, label: event.target.value, key: existingProperty ? value.key : normalizeKey(event.target.value) }))} /></Field>
-            <Field label="Property key"><input value={property.key} onChange={event => setProperty(value => ({ ...value, key: event.target.value }))} /></Field>
+            <Field label="Key"><input value={property.key} onChange={event => setProperty(value => ({ ...value, key: event.target.value }))} /></Field>
             <Field label="Type"><select value={property.valueType} onChange={event => setProperty(value => ({ ...value, valueType: event.target.value }))}>{propertyTypes.map(type => <option key={type} value={type}>{friendly(type)}</option>)}</select></Field>
             <Field label="Unit"><input list="carez-builder-units" value={property.unit} onChange={event => setProperty(value => ({ ...value, unit: event.target.value.toUpperCase() }))} /></Field>
             <Field label="Input role"><select value={property.inputRole} onChange={event => setProperty(value => ({ ...value, inputRole: event.target.value }))}>{inputRoles.map(role => <option key={role} value={role}>{friendly(role)}</option>)}</select></Field>
@@ -709,37 +710,37 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
             <Field label="Default · optional">{property.valueType === 'boolean' ? <select value={property.defaultValue} onChange={event => setProperty(value => ({ ...value, defaultValue: event.target.value }))}><option value="">No default</option><option value="true">Yes</option><option value="false">No</option></select> : <input value={property.defaultValue} onChange={event => setProperty(value => ({ ...value, defaultValue: event.target.value }))} placeholder="No company default" />}</Field>
             {property.valueType === 'enum' && <Field label="Choices · value:label, comma separated" wide><input value={property.options} onChange={event => setProperty(value => ({ ...value, options: event.target.value }))} /></Field>}
           </div>
-          <div className={styles.editorSection}><div><strong>Source binding</strong><span>Optional authoritative source for this property.</span></div><div className={styles.bindingRow}><select value={property.sourceNamespace} onChange={event => setProperty(value => ({ ...value, sourceNamespace: event.target.value }))}><option value="">Estimator / project input</option><option value="takeoff">Takeoff</option><option value="plan_fact">Plan fact</option><option value="project">Project</option><option value="parent">Parent</option><option value="property">Sibling property</option></select><input value={property.sourceKey} onChange={event => setProperty(value => ({ ...value, sourceKey: event.target.value }))} placeholder="Takeoff.Perimeter or width_in" /></div></div>
-          <div className={styles.checkRow}><label><input type="checkbox" checked={property.required} onChange={event => setProperty(value => ({ ...value, required: event.target.checked }))} />Required</label><label><input type="checkbox" checked={property.exposeInTakeoff} onChange={event => setProperty(value => ({ ...value, exposeInTakeoff: event.target.checked }))} />Expose in Takeoff</label><label><input type="checkbox" checked={property.allowOverride} onChange={event => setProperty(value => ({ ...value, allowOverride: event.target.checked }))} />Estimator may override</label></div>
+          <div className={styles.editorSection}><div><strong>Auto-fill from another source</strong><span>Optional. Most inputs can stay as estimator inputs.</span></div><div className={styles.bindingRow}><select value={property.sourceNamespace} onChange={event => setProperty(value => ({ ...value, sourceNamespace: event.target.value }))}><option value="">Estimator input</option><option value="takeoff">Takeoff</option><option value="plan_fact">Plan fact</option><option value="project">Project</option><option value="parent">Parent assembly</option><option value="property">Another input</option></select><input value={property.sourceKey} onChange={event => setProperty(value => ({ ...value, sourceKey: event.target.value }))} placeholder="Perimeter or width_in" /></div></div>
+          <div className={styles.checkRow}><label><input type="checkbox" checked={property.required} onChange={event => setProperty(value => ({ ...value, required: event.target.checked }))} />Required</label><label><input type="checkbox" checked={property.exposeInTakeoff} onChange={event => setProperty(value => ({ ...value, exposeInTakeoff: event.target.checked }))} />Show in Takeoff</label><label><input type="checkbox" checked={property.allowOverride} onChange={event => setProperty(value => ({ ...value, allowOverride: event.target.checked }))} />Estimator may override</label></div>
         </>}
 
         {editor.kind === 'component' && <>
           <div className={styles.editorGrid}>
-            <Field label="Resource / operation label" wide><input value={component.label} onChange={event => setComponent(value => ({ ...value, label: event.target.value, key: existingComponent ? value.key : normalizeKey(event.target.value) }))} /></Field>
-            <Field label="Resource key"><input value={component.key} onChange={event => setComponent(value => ({ ...value, key: event.target.value }))} /></Field>
-            <Field label="Estimate type"><select value={component.itemType} onChange={event => setComponent(value => ({ ...value, itemType: event.target.value, resourceBehavior: event.target.value === 'labor' ? 'labor' : value.resourceBehavior }))}><option value="material">Material</option><option value="labor">Labor</option><option value="equipment">Equipment</option><option value="subcontractor">Subcontractor</option><option value="other">Other</option></select></Field>
-            <Field label="Resource behavior"><select value={component.resourceBehavior} onChange={event => setComponent(value => ({ ...value, resourceBehavior: event.target.value }))}><option value="consumed_material">Consumed material</option><option value="reusable_inventory">Reusable inventory</option><option value="labor">Labor</option><option value="owned_equipment">Owned equipment</option><option value="rental">Rental</option><option value="subcontractor">Subcontractor</option><option value="readiness_resource">Readiness resource</option><option value="legacy_other">Other</option></select></Field>
+            <Field label="Item name" wide><input value={component.label} onChange={event => setComponent(value => ({ ...value, label: event.target.value, key: existingComponent ? value.key : normalizeKey(event.target.value) }))} /></Field>
+            <Field label="Key"><input value={component.key} onChange={event => setComponent(value => ({ ...value, key: event.target.value }))} /></Field>
+            <Field label="Type"><select value={component.itemType} onChange={event => setComponent(value => ({ ...value, itemType: event.target.value, resourceBehavior: event.target.value === 'labor' ? 'labor' : value.resourceBehavior }))}><option value="material">Material</option><option value="labor">Labor</option><option value="equipment">Equipment</option><option value="subcontractor">Subcontractor</option><option value="other">Other</option></select></Field>
+            <Field label="Behavior"><select value={component.resourceBehavior} onChange={event => setComponent(value => ({ ...value, resourceBehavior: event.target.value }))}><option value="consumed_material">Used up on job</option><option value="reusable_inventory">Reusable forms / inventory</option><option value="labor">Labor</option><option value="owned_equipment">Owned equipment</option><option value="rental">Rental</option><option value="subcontractor">Subcontractor</option><option value="readiness_resource">Readiness item</option><option value="legacy_other">Other</option></select></Field>
             <Field label="Output unit"><input list="carez-builder-units" value={component.outputUnit} onChange={event => setComponent(value => ({ ...value, outputUnit: event.target.value.toUpperCase() }))} /></Field>
           </div>
-          <FormulaField title="Quantity formula" value={component.formula} onChange={value => setComponent(current => ({ ...current, formula: value }))} primaryUnit={primaryUnit} properties={properties} />
-          {component.itemType === 'labor' && <FormulaField title="Production rate · MH per output unit" value={component.laborRateFormula} onChange={value => setComponent(current => ({ ...current, laborRateFormula: value }))} primaryUnit={primaryUnit} properties={properties} compact />}
-          <div className={styles.editorSection}><div><strong>Conditional activation</strong><span>Turn this resource branch on only when a method/property decision matches.</span></div><div className={styles.conditionBuilder}><select value={component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionProperty: event.target.value }))}><option value="">Always active</option>{properties.map(row => <option key={row.id} value={row.variable_key}>{row.label}</option>)}</select><select value={component.conditionOperator} disabled={!component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionOperator: event.target.value }))}><option value="eq">is</option><option value="neq">is not</option><option value="gt">greater than</option><option value="gte">at least</option><option value="lt">less than</option><option value="lte">at most</option></select><ConditionInput property={properties.find(row => row.variable_key === component.conditionProperty)} value={component.conditionValue} onChange={value => setComponent(current => ({ ...current, conditionValue: value }))} /></div></div>
-          <div className={styles.editorGrid}><Field label="Pricing source"><select value={component.pricingStrategy} onChange={event => setComponent(value => ({ ...value, pricingStrategy: event.target.value }))}><option value="current_cost">Current company cost</option><option value="catalog">Catalog</option><option value="manual">Estimator/manual</option><option value="none">Not priced</option></select></Field><Field label="Draft unit cost · optional"><input value={component.defaultUnitCost} onChange={event => setComponent(value => ({ ...value, defaultUnitCost: event.target.value }))} inputMode="decimal" /></Field></div>
+          <FormulaField title="Quantity math" value={component.formula} onChange={value => setComponent(current => ({ ...current, formula: value }))} primaryUnit={primaryUnit} properties={properties} />
+          {component.itemType === 'labor' && <FormulaField title="Labor hours per output unit" value={component.laborRateFormula} onChange={value => setComponent(current => ({ ...current, laborRateFormula: value }))} primaryUnit={primaryUnit} properties={properties} compact />}
+          <div className={styles.editorSection}><div><strong>Use only when</strong><span>Optional. Example: add vapor barrier only when Vapor barrier = Yes.</span></div><div className={styles.conditionBuilder}><select value={component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionProperty: event.target.value }))}><option value="">Always use</option>{properties.map(row => <option key={row.id} value={row.variable_key}>{row.label}</option>)}</select><select value={component.conditionOperator} disabled={!component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionOperator: event.target.value }))}><option value="eq">is</option><option value="neq">is not</option><option value="gt">greater than</option><option value="gte">at least</option><option value="lt">less than</option><option value="lte">at most</option></select><ConditionInput property={properties.find(row => row.variable_key === component.conditionProperty)} value={component.conditionValue} onChange={value => setComponent(current => ({ ...current, conditionValue: value }))} /></div></div>
+          <div className={styles.editorGrid}><Field label="Pricing"><select value={component.pricingStrategy} onChange={event => setComponent(value => ({ ...value, pricingStrategy: event.target.value }))}><option value="current_cost">Current company cost</option><option value="catalog">Catalog</option><option value="manual">Estimator/manual</option><option value="none">Not priced</option></select></Field><Field label="Draft unit cost · optional"><input value={component.defaultUnitCost} onChange={event => setComponent(value => ({ ...value, defaultUnitCost: event.target.value }))} inputMode="decimal" /></Field></div>
         </>}
 
         {editor.kind === 'child' && <>
           <div className={styles.editorGrid}>
-            <Field label="Published child assembly" wide><select value={child.childVersionId} onChange={event => { const selected = childOptions.find(row => row.id === event.target.value); setChild(value => ({ ...value, childVersionId: event.target.value, label: selected?.assembly?.name || value.label, key: normalizeKey(selected?.assembly?.code || value.key) })); }}><option value="">Select published assembly…</option>{childOptions.map(row => <option key={row.id} value={row.id}>{row.assembly.code} · {row.assembly.name} · v{row.version_no}</option>)}</select></Field>
-            <Field label="Child key"><input value={child.key} onChange={event => setChild(value => ({ ...value, key: event.target.value }))} /></Field>
+            <Field label="Published sub-assembly" wide><select value={child.childVersionId} onChange={event => { const selected = childOptions.find(row => row.id === event.target.value); setChild(value => ({ ...value, childVersionId: event.target.value, label: selected?.assembly?.name || value.label, key: normalizeKey(selected?.assembly?.code || value.key) })); }}><option value="">Select published assembly…</option>{childOptions.map(row => <option key={row.id} value={row.id}>{row.assembly.code} · {row.assembly.name} · v{row.version_no}</option>)}</select></Field>
+            <Field label="Key"><input value={child.key} onChange={event => setChild(value => ({ ...value, key: event.target.value }))} /></Field>
             <Field label="Label in this recipe" wide><input value={child.label} onChange={event => setChild(value => ({ ...value, label: event.target.value }))} /></Field>
           </div>
-          <FormulaField title="Child quantity formula" value={child.quantityFormula} onChange={value => setChild(current => ({ ...current, quantityFormula: value }))} primaryUnit={primaryUnit} properties={properties} />
-          <div className={styles.editorSection}><div><strong>Explicit child property bindings</strong><span>One per line: child_property = Properties.parent_property</span></div><textarea className={styles.bindingArea} value={child.bindings} onChange={event => setChild(value => ({ ...value, bindings: event.target.value }))} rows={5} placeholder={'width_in = Properties.width_in\nplacement_method = Properties.placement_method'} /></div>
+          <FormulaField title="How many / how much" value={child.quantityFormula} onChange={value => setChild(current => ({ ...current, quantityFormula: value }))} primaryUnit={primaryUnit} properties={properties} />
+          <div className={styles.editorSection}><div><strong>Map parent inputs to child inputs</strong><span>Optional. One per line: child_input = parent_input</span></div><textarea className={styles.bindingArea} value={child.bindings} onChange={event => setChild(value => ({ ...value, bindings: event.target.value }))} rows={5} placeholder={'width_in = wall_width_in\nplacement_method = placement_method'} /></div>
         </>}
 
         {error && <div className={styles.editorError}><AlertTriangle size={14} />{error}</div>}
       </div>
-      <footer><span>Draft changes remain company-owned until publish.</span><div><button type="button" onClick={onCancel}>Cancel</button><button type="button" className={styles.saveButton} disabled={isPending} onClick={save}><Check size={14} />Save block</button></div></footer>
+      <footer><span>Draft changes are not used in Takeoff until published.</span><div><button type="button" onClick={onCancel}>Cancel</button><button type="button" className={styles.saveButton} disabled={isPending} onClick={save}><Check size={14} />Save item</button></div></footer>
       <datalist id="carez-builder-units">{commonUnits.map(unit => <option key={unit} value={unit} />)}</datalist>
     </section>
   </div>;
@@ -750,12 +751,34 @@ function Field({ label, wide = false, children }: { label: string; wide?: boolea
 }
 
 function FormulaField({ title, value, onChange, primaryUnit, properties, compact = false }: { title: string; value: string; onChange: (value: string) => void; primaryUnit: string; properties: any[]; compact?: boolean }) {
-  let status = 'Deterministic AST';
+  const [constant, setConstant] = useState('');
+  let status = 'Formula valid';
   let preview = '';
   try { preview = formatFormulaExpression(compileFormulaExpression(value || '0')); }
   catch (error: any) { status = error.message; }
-  const append = (token: string) => onChange(`${value}${value ? ' ' : ''}${token}`);
-  return <div className={`${styles.formulaEditor} ${compact ? styles.formulaCompact : ''}`}><div className={styles.formulaHead}><div><Sigma size={14} /><strong>{title}</strong></div><span className={status === 'Deterministic AST' ? styles.formulaGood : styles.formulaBad}>{status}</span></div><textarea value={value} onChange={event => onChange(event.target.value)} rows={compact ? 2 : 3} spellCheck={false} /><div className={styles.tokenTray}><button type="button" onClick={() => append(primaryToken(primaryUnit))}>{primaryToken(primaryUnit)}</button>{primaryUnit === 'SF' && <button type="button" onClick={() => append('Takeoff.Perimeter')}>Takeoff.Perimeter</button>}{properties.slice(0, 8).map(property => <button type="button" key={property.id} onClick={() => append(`Properties.${property.variable_key}`)}>+ {property.label}</button>)}</div>{preview && status === 'Deterministic AST' && <div className={styles.formulaPreview}><span>Preview</span><code>{preview}</code></div>}</div>;
+  const append = (token: string) => onChange(`${value}${value && !value.endsWith(' ') ? ' ' : ''}${token}`);
+  const wrap = (fn: string) => onChange(`${fn}(${value || primaryToken(primaryUnit)})`);
+  const addConstant = () => {
+    const number = Number(constant);
+    if (!Number.isFinite(number)) return;
+    append(String(number));
+    setConstant('');
+  };
+  return <div className={`${styles.formulaEditor} ${compact ? styles.formulaCompact : ''}`}>
+    <div className={styles.formulaHead}><div><Sigma size={14} /><strong>{title}</strong></div><span className={status === 'Formula valid' ? styles.formulaGood : styles.formulaBad}>{status}</span></div>
+    <textarea value={value} onChange={event => onChange(event.target.value)} rows={compact ? 2 : 3} spellCheck={false} placeholder={`${measuredLabel(primaryUnit)} × input ÷ number`} />
+    <div className={styles.tokenTray}>
+      <button type="button" onClick={() => append(primaryToken(primaryUnit))}>{measuredLabel(primaryUnit)}</button>
+      {primaryUnit === 'SF' && <button type="button" onClick={() => append('Perimeter')}>Measured perimeter</button>}
+      {properties.map(property => <button type="button" key={property.id} onClick={() => append(property.variable_key)}>+ {property.label}</button>)}
+    </div>
+    <div className={styles.formulaTools}>
+      <div className={styles.operatorTray}><span>Math</span>{['+', '-', '*', '/', '(', ')'].map(operator => <button type="button" key={operator} onClick={() => append(operator)}>{operator === '*' ? '×' : operator === '/' ? '÷' : operator}</button>)}</div>
+      <div className={styles.numberTray}><input value={constant} onChange={event => setConstant(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addConstant(); } }} inputMode="decimal" placeholder="Number" /><button type="button" onClick={addConstant}>Add</button></div>
+      <div className={styles.shortcutTray}><button type="button" onClick={() => append('/ 12')}>in → ft</button><button type="button" onClick={() => append('/ 27')}>CF → CY</button><button type="button" onClick={() => wrap('ceil')}>Round up</button><button type="button" onClick={() => wrap('round')}>Round</button><button type="button" onClick={() => onChange('')}>Clear</button></div>
+    </div>
+    {preview && status === 'Formula valid' && <div className={styles.formulaPreview}><span>Reads as</span><code>{preview}</code></div>}
+  </div>;
 }
 
 function ConditionInput({ property, value, onChange }: { property: any; value: string; onChange: (value: string) => void }) {
