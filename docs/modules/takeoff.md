@@ -1,129 +1,138 @@
 # Module Spec — Takeoff
 
-Status: active flagship workstation
+Status: active flagship workstation; Concrete Condition migration approved, not yet implementation-verified
 
 ## Purpose
-Convert plan geometry into authoritative physical measurements with exact lineage into estimating.
+
+Convert plan geometry into authoritative physical measurements, concrete-specific Condition outputs, and exact estimating lineage from one readable workstation.
 
 ## Core workflow
-Plans → calibrate/verify scale → select published company Scope Recipe + Project Scope Variant → measure/edit → resolve holds → worksheet review → estimate outputs.
+
+Plans → calibrate/verify scale → select or create Project Concrete Condition → measure primary/secondary roles → resolve module holds → verify in 2D/3D → worksheet review → estimate outputs.
 
 ## Invariants
+
 - PDF is visual reference; stable page-coordinate vector geometry is authoritative.
 - Deterministic calculations and persisted geometry.
 - Persistent undo/redo.
-- Cutouts/holes, arcs, editing, duplication, calibration, and quantity worksheet preserve lineage.
-- Geometry may save when downstream assumptions are missing; dependent outputs become explicit holds.
-- Permanent resizable bottom Quantity Worksheet on desktop.
-- Quantity Worksheet column boundaries are independently horizontally resizable; useful widths may persist locally.
-- Takeoff consumes published company-owned Scope Recipes; recipe draft/version/resource/formula authority remains owned by the Assembly & Resource Engine.
-- The Takeoff Inspector remains focused on selected measurement, Project Scope Variant/job inputs, holds, key outputs, and recipe commands. It is not the full recipe editor.
-- Primary recipe authoring remains on the same Takeoff route through a movable/resizable popup Recipe Editor over the live plan.
-- The popup does not replace the permanent Quantity Worksheet during normal authoring.
-- Focus Builder maximizes the same Recipe Editor; Restore returns to its prior position/size and drawing context.
-- Accepted Scope Snapshots preserve the exact Takeoff measurement/output versions used by the awarded Proposal revision; later edits never mutate accepted scope.
+- Cutouts/holes, arcs, editing, duplication, calibration, and worksheet operations preserve lineage.
+- Valid geometry may save when downstream inputs are missing; only dependent outputs become explicit holds.
+- Permanent resizable Quantity/Estimate Worksheet on desktop.
+- Worksheet column boundaries are independently resizable; useful widths may persist locally.
+- The primary daily estimating object is a Concrete Condition, not a formula or generic recipe.
+- Standard Condition use does not require a user to see or write a formula.
+- Published Company Condition Template versions and accepted historical references remain immutable.
+- The Inspector/Condition Properties surface remains contextual; advanced company logic does not turn it into a programming screen.
+- 2D geometry is authoritative. 3D is a deterministic, synchronized verification projection of the same records.
+- Accepted Scope Snapshots preserve the exact Takeoff measurement, role, Condition/template/archetype versions, outputs, and commercial sources used by the awarded Proposal revision.
 
-## Scope Recipe selection and authoring boundary
+## Concrete Condition workflow
 
-- No hard-coded Carez production recipe is required for new Takeoff work.
-- Only published company-owned Scope Recipe versions are selectable for production Takeoff.
-- System Templates are not directly selectable; they must be copied into a company draft and published first.
-- Historical measurements continue to reference the exact immutable recipe version they were created with even if retired from new work.
-- The Inspector may expose actions such as Create Recipe, Start From Template, Edit Draft, Create Revision, Open Recipe Editor, and Return to Recipe Editor.
-- Creating a new recipe may use a small movable setup dialog for identity and primary measurement type.
-- Editing a published recipe creates a new draft revision.
-- The Recipe Editor can be moved/resized so an estimator can uncover drawing details without leaving Takeoff.
-- Focus Builder may occupy most of the workspace but remains the same editor state and route.
+### Condition selection
 
-## Project Scope Variants
+The estimator chooses a concrete family/template or an existing Project Concrete Condition. The Conditions pane supports:
 
-A **Project Scope Variant** is a takeoff-set-specific configuration of one published Scope Recipe. It exists for plan conditions such as `S1`, `S2`, `F1`, `F2`, or any estimator-defined variant.
+- search, type/code/name, grouping, visibility, color, status, and quick duplicate;
+- clear separation of company template and project instance;
+- recent/favorite/company-standard filters when supported;
+- create/edit without leaving the Takeoff route.
 
-A variant can resolve:
+Initial families are Pad/Column Footing, Strip/Wall Footing, and Slab on Grade. Later families include walls, grade beams, mats, piers/columns, sidewalks/curbs, and other company-priority work.
 
-- plan facts such as thickness, width, depth, bar size/count/spacing, mats/layers, vapor requirement, finish, or detail-specific options;
-- means/method decisions;
-- production assumptions;
-- commercial/waste assumptions where applicable.
+### Condition Properties boundary
 
-Takeoff measurements may reference the exact verified variant record used when they were created. Changing governed variant values creates a new verified variant revision rather than silently changing historical measurements.
+The primary property window can dock right, float, drag, resize, maximize/focus, restore, and remember a safe local layout.
 
-Legacy verified Build Method profiles remain traceable during transition and may continue under the compatibility model.
+Recommended tabs are General, Rebar, Forms, Excavation, Labor, Drawing, and More. A family may hide irrelevant tabs. Common inputs appear first and advanced detail stays behind disclosures.
 
-## Recipe Editor / plan state contract
+The property window exposes typed inputs, toggles, dropdowns, governed overrides, source/provenance, holds, and immediate output summaries. It does not expose Formula Composer during normal Takeoff.
 
-Opening, moving, resizing, maximizing, restoring, or closing the Recipe Editor must not mutate geometry or discard drawing context.
+Advanced custom logic is administered outside the normal Takeoff workflow by authorized company users and uses the same server-authoritative calculation engine.
 
-Where valid, preserve current Takeoff set, active sheet/page, scale/calibration, viewport/zoom/pan, selected measurement, selected recipe/variant, and unsaved recipe draft state.
+## Measurement roles
 
-An eligible selected/current Takeoff measurement may be used as Test Bench input without retyping authoritative physical quantity.
+Every Project Concrete Condition declares one primary measurement role and may have multiple named secondary roles.
 
-## Measurement variables available to recipes
+Examples:
 
-The geometry engine should expose deterministic measurement facts appropriate to Takeoff type rather than forcing manual recreation.
+- Slab: primary area; secondary edge form, thickened edge, joints, blockouts, penetrations.
+- Strip footing: primary centerline/run; secondary steps, end forms, keyway, dowels, embeds.
+- Wall: primary wall run; secondary openings, pilasters, construction joints, waterstop.
+- Pad/pier: primary count/locations; secondary pedestals, anchor groups, varying-dimension instances.
+
+Each role is a persisted measurement record with its own geometry, unit, sheet/revision, and stable Condition link. Secondary measurements are not hidden manual values.
 
 ### Area / polygon
-- net area;
-- gross area before cutouts;
-- cutout area;
-- perimeter;
-- cutout perimeter when available;
-- deterministic segment/section counts when supported.
+
+Available deterministic facts include gross area, cutout area, net area, gross perimeter, outer perimeter, cutout perimeter, point/section counts, and governed volume facts when required dimensions are resolved.
 
 ### Linear / polyline
-- measured length;
-- segment count.
 
-### Count
-- point/count quantity.
+Available facts include total length, segment lengths, segment count, open/closed state, and governed section/profile facts. Stepped runs may carry segment elevation/profile overrides.
 
-These are geometry-derived inputs, not separately entered commercial quantities.
+### Count / locations
 
-## Sheet naming and indexing
-- Imported PDF pages should be auto-named when reliable sheet metadata can be extracted from page text/title block.
-- Persist recognized sheet number/title and prefer professional sheet labels over generic page numbers when reliable.
-- Automatic naming never changes geometry, scale, recipe selection, quantities, commercial records, or plan-document authority.
-- Prefer deterministic PDF text/title-block extraction before OCR/vision.
-- Low-confidence extraction falls back safely.
-- Existing explicit user metadata is not silently overwritten.
-- Underlying PDF page number remains discoverable.
+Available facts include count, location, supported shape/profile, per-instance dimensions/overrides, grouping, and rotation/orientation when relevant.
 
 ## Drawing interaction contract
-- Saved Takeoff geometry remains the dominant visual element.
-- Floating measurement detail is transient/hover-driven; no persistent oversized measurement banner.
-- Hovering saved geometry may show measurement name, quantity/unit, recipe/variant, selected key physical properties, bounded important outputs, and hold/status summary.
-- Moving off geometry hides the hover card.
-- Persistent selected-object detail belongs in the Inspector/Quantity Worksheet.
-- Hover/detail presentation never mutates geometry, calibration, or lineage.
 
-## Workstation information hierarchy and declutter contract
-- Visual priority is `Plan / geometry → active takeoff decision → quantity / hold state`.
-- Persistent text must identify an object, communicate actionable/current state/problem, or enable a decision.
-- Recipe provenance remains persisted but belongs in contextual audit/detail surfaces, not permanent narration.
-- Avoid duplicate selected-recipe cards/helper explanations.
-- Sheet pane remains a quiet resizable document navigator.
-- Scale state/actions stay in drawing status/toolbar and Properties scale controls.
-- The Quantity Worksheet remains a dense estimator grid with user-resizable columns.
-- Do not duplicate Snap/Ortho/tool state across chrome.
-- Minimize stacked horizontal chrome above the drawing.
-- Declutter/popup presentation changes do not change geometry authority, calibration, published recipe semantics, formulas, quantity outputs, pricing, RLS, tenant isolation, or Takeoff → estimate lineage.
+- Count, linear, area, cutout/hole, and governed secondary-role tools.
+- Arc geometry, vertex editing, whole-object movement, duplication, clipboard, snapping/ortho, and persistent undo/redo as implementation slices mature.
+- Selection synchronizes among plan, 3D, Conditions pane, Properties, worksheet, and estimate rows.
+- Right-click/context actions may open properties, duplicate, convert compatible role/type, hide/isolate, or navigate lineage.
+- Keyboard focus and shortcuts are predictable and do not conflict with text/dimension inputs.
+- Sheet, viewport, zoom/pan, calibration, selection, active tool, and safe window state survive normal docking/view changes.
+
+## 2D / 3D / Split contract
+
+- **2D** is the authoritative drawing/editing view.
+- **3D** is a derived concrete verification view.
+- **Split** presents synchronized views of the same selected records.
+- Condition color, visibility, zone, group, review status, and selection are shared.
+- 3D-capable Conditions require governed profile/dimensions plus elevation value and top/bottom/centerline reference.
+- Missing 3D inputs create a visible hold; no dimension is invented.
+- Initial 3D interaction is read-only verification with orbit/pan/zoom, isolate/hide, filters, issue list, and click-through to Properties.
+- Direct 3D geometry editing is deferred until the same command, validation, persistence, collaboration, undo/redo, and lineage path has parity with 2D.
+- The renderer does not calculate or persist an independent quantity total.
+- If 3D rendering is unavailable, 2D Takeoff and all quantities continue to work.
+
+## Workstation information hierarchy
+
+- Visual priority is plan/geometry → active Condition decision → quantity/hold state.
+- The permanent dark navy rail remains visible at desktop width.
+- The resizable context pane uses Plans, Conditions, and Zones tabs.
+- The drawing surface owns the largest area.
+- Condition Properties is the one governed dockable/floatable work window; Carez does not create a pile of overlapping dialogs.
+- The bottom worksheet remains a readable estimator grid with resizable columns and saved views.
+- Persistent text must identify an object, communicate actionable state/problem, or enable a decision.
+- Provenance remains stored but appears through drill-down instead of permanent narration.
+- Minimize stacked horizontal chrome and duplicate status/tool state.
 
 ## Inputs
-Plans/sheets, calibration, measurement geometry, published Scope Recipe version, verified Project Scope Variant/legacy method profile, declared estimator inputs.
+
+Plans/sheets/revisions, calibration, measurement geometry/roles, published Company Condition Template version, Platform Condition Archetype version, Project Concrete Condition inputs, confirmed plan facts, estimator-approved method/production/commercial overrides, and drawing presentation settings.
 
 ## Outputs
-Measurements, derived geometry facts, recipe/resource outputs, holds, estimate-item lineage.
+
+Measurements, role-linked geometry facts, Condition module outputs, 3D projection facts, holds/review issues, and exact estimate-item lineage.
 
 ## Award and execution lineage
+
 - Takeoff remains physical measurement authority; it does not infer what Proposal scope was accepted.
 - Awarded physical scope enters execution through an immutable Accepted Scope Snapshot item or approved change-scope item.
 - Production Work Units may partition authorized scope through versioned Scope Allocations rather than assuming one whole measurement equals one field work unit.
-- Each allocation retains exact accepted measurement/output version, quantity, unit, and authorization source.
+- Each allocation retains exact accepted measurement/output/Condition version, quantity, unit, and authorization source.
+
+## Legacy migration
+
+The old Scope Recipe, Project Scope Variant, System Block, Formula Composer, and Recipe Editor vocabulary is retired from the primary workflow through the gated migration in ADR-012.
+
+Existing published recipes/assemblies, formula ASTs, outputs, method profiles, estimate links, and accepted references remain readable and immutable. They may back compatibility adapters until supported records are reconciled to Conditions. Legacy screens become read-only before removal; no referenced history is deleted.
 
 ## Current foundation
-P0 geometry/editor/atomic recalculation foundation is implemented. Additional B2 workstation and Assembly/Resource Engine UX is under staging acceptance.
 
-The existing Build Plan Inspector/workbench is a job-specific verification surface. It is not the complete Scope Recipe editor. Its verified-profile persistence may be evolved compatibly into Project Scope Variants.
+P0 geometry/editor/atomic recalculation is implemented. The approved Concrete Condition and 3D contracts describe the next architecture target and are not current implementation claims. Current verified state remains exclusively in docs/CURRENT_STATE.md.
 
 ## Deferred/next
-Multi-select, whole-object pointer movement, clipboard, layers, snapping, revision overlay/migration, thumbnails/batch sheet operations, assisted plan intelligence.
+
+Multi-select, whole-object pointer movement, clipboard, layers, snapping, revision overlay/migration, thumbnails/batch sheet operations, controlled 3D property editing, optional 3D geometry editing, rebar visualization, and assisted plan intelligence.
