@@ -15,6 +15,7 @@ Plans → calibrate/verify scale → select published company assembly/method �
 - Cutouts/holes, arcs, editing, duplication, calibration, and quantity worksheet preserve lineage.
 - Geometry may save when downstream component assumptions are missing; dependent outputs become explicit holds.
 - Permanent resizable bottom quantity/estimate worksheet on desktop.
+- Quantity Worksheet column boundaries are independently horizontally resizable so estimator-facing fields can be widened/narrowed without changing data; useful widths persist locally for the workstation.
 - Takeoff consumes published company-owned assemblies; assembly draft/version/resource/formula authority remains owned by the Assembly & Resource Engine.
 - The Takeoff Inspector remains focused on the selected measurement, job-specific method/profile inputs, holds, key outputs, and assembly commands. It must not become a long-form assembly builder.
 - Primary assembly authoring remains inside the Takeoff workstation through a dedicated resizable Assembly Builder composer, normally expanding from the permanent bottom worksheet/workstation region so the live plan remains in context.
@@ -74,6 +75,7 @@ An eligible selected/current Takeoff measurement may be used as Test Bench input
 - The Takeoffs tab should present one compact assembly-selection surface, search, and the current-sheet measurement list. Do not repeat the selected assembly again in a separate persistent `Active Assembly` card when selection state is already clear.
 - Helper copy such as explanations of what a concrete assembly is should be omitted from the normal dense workstation. Use progressive disclosure/tooltips only when needed.
 - The desktop sheet pane is a quiet, resizable document navigator. Each row should present the page/sheet identity only; do not repeat scale state, scale-region counts, `0 TAKEOFFS`, takeoff counts, warning boxes, or red status borders in sheet rows. Scale state and scale actions belong in the drawing status/toolbar and Properties scale controls where they are actionable. Resizing uses the sheet/Inspector vertical boundaries and must preserve a usable minimum drawing workspace.
+- The Quantity Worksheet is a dense estimator grid. Column widths are user-resizable left/right from the header boundaries and should persist locally; resizing is presentation-only and must not alter quantities or lineage.
 - Persistent status/chrome must not duplicate the same Snap/Ortho/tool state in multiple locations. Keyboard help belongs in contextual help/shortcuts rather than a long always-visible instruction string.
 - The Takeoff page should minimize stacked horizontal chrome above the drawing. Project/module identity, takeoff-set identity, and drawing tools remain necessary, but redundant header bands should be consolidated where possible without removing the permanent app rail or project/module navigation contract.
 - Declutter work is presentation-only unless separately approved. It must not change geometry authority, calibration, published assembly selection semantics, deterministic formulas, quantity outputs, pricing, RLS, tenant isolation, or Takeoff → estimate lineage.
