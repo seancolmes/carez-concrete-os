@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AlertTriangle, Boxes, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
 import { formatTakeoffQuantityValue } from '@/lib/takeoff/lengthFormat';
 import { useTakeoffPaneResize } from '@/lib/takeoff/useTakeoffPaneResize';
@@ -36,6 +36,12 @@ const ROW_HEIGHT = 32;
 const CONCRETE_OUTPUT = /concrete|ready.?mix/;
 const REINFORCING_OUTPUT = /rebar|reinforc|mesh/;
 const FORMWORK_OUTPUT = /form|shor|brace/;
+const COLUMN_STORAGE_KEY = 'carez.takeoff.quantityWorksheet.columns.v1';
+const COLUMN_LABELS = ['Measurement', 'Quantity', 'Unit', 'Assembly', 'Section', 'Concrete', 'Reinforcing', 'Formwork', 'Man-hours', 'Direct cost', 'Status'] as const;
+const DEFAULT_COLUMN_WIDTHS = [220, 96, 64, 200, 160, 120, 120, 120, 96, 112, 180];
+const MIN_COLUMN_WIDTHS = [150, 72, 50, 120, 105, 90, 90, 90, 78, 88, 110];
+const MAX_COLUMN_WIDTH = 520;
+
 const money = (value: number) => new Intl.NumberFormat('en-US', {
   style: 'currency', currency: 'USD', maximumFractionDigits: 0,
 }).format(value);
@@ -72,13 +78,15 @@ export function TakeoffQuantityDock({
   useTakeoffPaneResize();
   const builder = useAssemblyBuilderContext();
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<{ y: number; height: number } | null>(null);
+  const heightDragRef = useRef<{ y: number; height: number } | null>(null);
+  const columnDragRef = useRef<{ index: number; x: number; width: number } | null>(null);
   const [height, setHeight] = useState(228);
   const [collapsed, setCollapsed] = useState(false);
   const [scope, setScope] = useState<'sheet' | 'all'>('sheet');
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(150);
+  const [columnWidths, setColumnWidths] = useState<number[]>(DEFAULT_COLUMN_WIDTHS);
 
   const versionMap = useMemo(() => new Map(versions.map((version: any) => [version.id, version])), [versions]);
   const assemblyMap = useMemo(() => new Map(assemblies.map((assembly: any) => [assembly.id, assembly])), [assemblies]);
@@ -130,6 +138,30 @@ export function TakeoffQuantityDock({
     warnings: total.warnings + row.warnings.length,
   }), { manHours: 0, cost: 0, warnings: 0 }), [filteredRows]);
 
+  const gridWidth = columnWidths.reduce((total, width) => total + width, 0);
+  const gridStyle = useMemo<CSSProperties>(() => ({
+    gridTemplateColumns: columnWidths.map(width => `${width}px`).join(' '),
+    minWidth: `${gridWidth}px`,
+  }), [columnWidths, gridWidth]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(COLUMN_STORAGE_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw);
+      if (!Array.isArray(stored) || stored.length !== DEFAULT_COLUMN_WIDTHS.length) return;
+      const safe = stored.map((value, index) => Math.max(MIN_COLUMN_WIDTHS[index], Math.min(MAX_COLUMN_WIDTH, Number(value) || DEFAULT_COLUMN_WIDTHS[index])));
+      setColumnWidths(safe);
+    } catch {
+      // Ignore malformed local preferences and keep defaults.
+    }
+  }, []);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnWidths)); }
+    catch { /* Browser storage is optional. */ }
+  }, [columnWidths]);
+
   useEffect(() => {
     const body = bodyRef.current;
     if (!body) return;
@@ -142,16 +174,28 @@ export function TakeoffQuantityDock({
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      if (!dragRef.current) return;
-      setHeight(Math.max(150, Math.min(480, dragRef.current.height + dragRef.current.y - event.clientY)));
+      if (heightDragRef.current) {
+        setHeight(Math.max(150, Math.min(480, heightDragRef.current.height + heightDragRef.current.y - event.clientY)));
+      }
+      if (columnDragRef.current) {
+        const { index, x, width } = columnDragRef.current;
+        const nextWidth = Math.max(MIN_COLUMN_WIDTHS[index], Math.min(MAX_COLUMN_WIDTH, width + event.clientX - x));
+        setColumnWidths(current => current.map((currentWidth, currentIndex) => currentIndex === index ? nextWidth : currentWidth));
+      }
     };
-    const end = () => { dragRef.current = null; document.body.style.cursor = ''; };
+    const end = () => {
+      heightDragRef.current = null;
+      columnDragRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
       document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
   }, []);
 
@@ -177,8 +221,9 @@ export function TakeoffQuantityDock({
       className={styles.resizeHandle}
       aria-label="Resize quantity worksheet"
       onPointerDown={event => {
-        dragRef.current = { y: event.clientY, height };
+        heightDragRef.current = { y: event.clientY, height };
         document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
         event.currentTarget.setPointerCapture(event.pointerId);
       }}
     ><GripHorizontal size={15} /></button>}
@@ -197,11 +242,29 @@ export function TakeoffQuantityDock({
     </header>
 
     {!collapsed && <div className={styles.grid} role="table" aria-rowcount={filteredRows.length}>
-      <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row">
-        <span role="columnheader">Measurement</span><span role="columnheader">Quantity</span><span role="columnheader">Unit</span><span role="columnheader">Assembly</span><span role="columnheader">Section</span><span role="columnheader">Concrete</span><span role="columnheader">Reinforcing</span><span role="columnheader">Formwork</span><span role="columnheader">Man-hours</span><span role="columnheader">Direct cost</span><span role="columnheader">Status</span>
+      <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={gridStyle}>
+        {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<button
+          type="button"
+          className={styles.columnResizeHandle}
+          aria-label={`Resize ${label} column`}
+          title="Drag to resize · double-click to reset"
+          onDoubleClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            setColumnWidths(current => current.map((width, currentIndex) => currentIndex === index ? DEFAULT_COLUMN_WIDTHS[index] : width));
+          }}
+          onPointerDown={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            columnDragRef.current = { index, x: event.clientX, width: columnWidths[index] };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+        /></span>)}
       </div>
       <div ref={bodyRef} className={styles.body} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
-        {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT }}>
+        {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT, minWidth: gridWidth }}>
           <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
             {visibleRows.map((row, index) => <button
               type="button"
@@ -209,6 +272,7 @@ export function TakeoffQuantityDock({
               aria-rowindex={start + index + 2}
               key={row.measurement.id}
               className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`}
+              style={gridStyle}
               onClick={() => onOpenMeasurement(row.measurement)}
             >
               <span role="cell" className={styles.measurement}><strong>{row.measurement.name}</strong><small>{row.sheet}{row.measurement.location ? ` · ${row.measurement.location}` : ''}</small></span>
