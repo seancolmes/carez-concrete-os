@@ -4,6 +4,27 @@ type Token = { type: 'number' | 'identifier' | 'operator' | 'paren' | 'comma'; v
 
 const identifierPattern = /^[A-Za-z_][A-Za-z0-9_.]*$/;
 const functionNames = new Set(['ceil', 'floor', 'round', 'min', 'max']);
+const takeoffAliases: Record<string, string> = {
+  Quantity: 'Takeoff.Quantity',
+  Length: 'Takeoff.Length',
+  Area: 'Takeoff.Area',
+  Count: 'Takeoff.Count',
+  Volume: 'Takeoff.Volume',
+  Perimeter: 'Takeoff.Perimeter',
+};
+const takeoffDisplay = Object.fromEntries(Object.entries(takeoffAliases).map(([label, token]) => [token, label]));
+
+function canonicalIdentifier(value: string) {
+  if (takeoffAliases[value]) return takeoffAliases[value];
+  if (value === 'quantity' || value.includes('.')) return value;
+  return `Properties.${value}`;
+}
+
+function displayIdentifier(value: string) {
+  if (takeoffDisplay[value]) return takeoffDisplay[value];
+  if (value.startsWith('Properties.')) return value.slice('Properties.'.length);
+  return value;
+}
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -73,7 +94,7 @@ export function compileFormulaExpression(source: string): FormulaValue {
         if (args.length < 1) throw new Error(`${fn}() requires at least one value.`);
         return { op: fn, args } as FormulaValue;
       }
-      return { var: token.value } as FormulaValue;
+      return { var: canonicalIdentifier(token.value) } as FormulaValue;
     }
     if (token.type === 'operator' && token.value === '-') {
       return { op: 'mul', args: [{ const: -1 }, primary()] } as FormulaValue;
@@ -118,7 +139,7 @@ export function formatFormulaExpression(expr: FormulaValue, parentPrecedence = 0
   if (typeof expr === 'number') return String(expr);
   if (!expr || typeof expr !== 'object') return '';
   if ('const' in expr) return String(expr.const);
-  if ('var' in expr) return String(expr.var || '');
+  if ('var' in expr) return displayIdentifier(String(expr.var || ''));
   const op = String(expr.op || '');
   const args = Array.isArray(expr.args) ? expr.args : [];
   if (['add', 'sub', 'mul', 'div'].includes(op) && args.length >= 2) {
@@ -135,5 +156,7 @@ export function formatFormulaExpression(expr: FormulaValue, parentPrecedence = 0
 }
 
 export function formulaVariableTokens(source: string): string[] {
-  return [...new Set(tokenize(source).filter(token => token.type === 'identifier' && !functionNames.has(token.value.toLowerCase())).map(token => token.value))];
+  return [...new Set(tokenize(source)
+    .filter(token => token.type === 'identifier' && !functionNames.has(token.value.toLowerCase()))
+    .map(token => canonicalIdentifier(token.value)))];
 }
