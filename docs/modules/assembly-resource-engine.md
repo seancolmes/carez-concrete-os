@@ -10,7 +10,7 @@ Carez must not ship or seed hard-coded selectable production assemblies into a c
 
 Canonical lineage:
 
-`Takeoff Geometry -> Published Company Assembly Version -> Deterministic Resource Outputs -> Estimate Items -> Proposal -> Frozen Budget`
+`Job Spine -> Takeoff Geometry -> Published Company Assembly Version -> Deterministic Resource Outputs -> Estimate Items -> Proposal Revision -> Accepted Scope Snapshot -> Frozen Commercial Baseline / Budget`
 
 ## Product invariants
 
@@ -18,7 +18,7 @@ Canonical lineage:
 - Hard-coded assembly seed/initialization behavior is removed from the product runtime and migrations going forward.
 - System templates are not live assemblies and cannot be selected for Takeoff until copied into a company-owned draft and published.
 - Published company assembly versions are immutable.
-- Existing published assembly versions already referenced by historical Takeoff, estimate, proposal, or budget records must retain lineage. They may be retired and hidden from new work but must not be destructively deleted while referenced.
+- Existing published assembly versions already referenced by historical Takeoff, estimate, proposal, Accepted Scope Snapshot, or budget records must retain lineage. They may be retired and hidden from new work but must not be destructively deleted while referenced.
 - Plan facts, estimator method decisions, production assumptions, and commercial assumptions remain distinguishable.
 - Missing required inputs, production assumptions, resource prices, or labor rates become explicit holds rather than fabricated zeros.
 - Production Quantity, Direct Cost, and Sell remain separate.
@@ -269,6 +269,8 @@ The Assembly & Resource Engine converts that geometry plus declared properties/m
 
 Estimating consumes those outputs, pricing provenance, labor build-up, and holds for commercial review. Estimating does not own a second assembly or formula engine.
 
+At award, the Accepted Scope Snapshot preserves the exact published assembly versions and deterministic outputs accepted for execution. Later assembly revisions or production-history recommendations do not alter that snapshot, the frozen commercial baseline, or existing production-scope allocations.
+
 ## Acceptance
 
 The module is acceptable when an estimator can:
@@ -287,3 +289,4 @@ The module is acceptable when an estimator can:
 - trace every resource/labor output to the exact measurement, property source, child component, formula, version, and pricing/production source;
 - revise by creating a new draft version without changing prior jobs;
 - work without any hard-coded Carez assembly being required or silently inserted into the company library.
+

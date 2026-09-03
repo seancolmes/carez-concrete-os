@@ -14,7 +14,9 @@ This repository is the canonical product and implementation source of truth for 
 ## Architecture invariants
 
 - Concrete-specific operating system, not generic construction SaaS.
-- Preserve the digital thread: Takeoff → Estimate → Proposal → Award → Frozen Budget → Work Package → Operation → Schedule → Crew/Time → Production → Cost/Forecast.
+- Preserve the digital thread: Job Spine → Opportunity/ITB → Takeoff → Estimate Revision → Proposal Revision → Award Decision → Accepted Scope Snapshot → Frozen Commercial Baseline/Budget → Project → Work Package → Operation → Production Work Unit → Versioned Scope Allocation → Schedule/Readiness → Assignment → Timecard + Actual Work Context → Completion/Production Evidence → Cost/Forecast.
+- Opportunity and Project remain distinct phase records linked by the persistent Job Spine; award never mutates one entity into the other.
+- Constraint, Blocker Event, Timecard, Actual Work Context, Completion Evidence, and Production Evidence remain separate, linked records.
 - PostgreSQL/Supabase is the source of truth.
 - Prefer a modular monolith.
 - Server-authoritative calculations for quantities, costs, pricing lineage, and financial values.
@@ -70,3 +72,4 @@ For implementation/debugging work report:
 ## Documentation rule
 
 Chats and experiments are not canonical architecture. When a product, UX, domain, or architecture decision is approved, update the applicable canonical document in the same workstream. Follow `docs/workflow/APPROVAL_TO_DOCUMENTATION.md`.
+
