@@ -4,396 +4,260 @@ Status: approved P1 foundation
 
 ## Purpose
 
-Provide a concrete-native engine in which each company builds and owns its own assemblies, properties, formulas, resources, production assumptions, and published recipes.
-
-Carez must not ship or seed hard-coded selectable production assemblies into a company's working library. System-provided examples belong in a separate template catalog and become company-owned assemblies only when an estimator explicitly creates a draft from a template.
+Provide a concrete-native engine in which each company owns reusable **Concrete Scope Recipes**, resolves project-specific **Scope Variants**, composes repeatable concrete **System Blocks**, and produces deterministic material/labor/equipment outputs from Takeoff geometry.
 
 Canonical lineage:
 
-`Job Spine -> Takeoff Geometry -> Published Company Assembly Version -> Deterministic Resource Outputs -> Estimate Items -> Proposal Revision -> Accepted Scope Snapshot -> Frozen Commercial Baseline / Budget`
+`Job Spine -> Takeoff Geometry -> Published Scope Recipe Version -> Project Scope Variant -> Deterministic Resource Outputs -> Estimate Items -> Proposal Revision -> Accepted Scope Snapshot -> Frozen Commercial Baseline / Budget`
 
 ## Product invariants
 
-- No hard-coded Carez production assemblies are created for new companies.
-- Hard-coded assembly seed/initialization behavior is removed from the product runtime and migrations going forward.
-- System templates are not live assemblies and cannot be selected for Takeoff until copied into a company-owned draft and published.
-- Published company assembly versions are immutable.
-- Existing published assembly versions already referenced by historical Takeoff, estimate, proposal, Accepted Scope Snapshot, or budget records must retain lineage. They may be retired and hidden from new work but must not be destructively deleted while referenced.
+- No hard-coded Carez production recipes are silently created for new companies.
+- System templates are separate from company recipes and must be explicitly copied to a company draft before publication/use.
+- Published company recipe versions are immutable.
+- Historical referenced versions remain preserved for exact lineage even when retired from new work.
 - Plan facts, estimator method decisions, production assumptions, and commercial assumptions remain distinguishable.
-- Missing required inputs, production assumptions, resource prices, or labor rates become explicit holds rather than fabricated zeros.
+- Missing required inputs, rates, or prices become explicit holds rather than fabricated zeros.
+- Quantity and cost calculations remain deterministic and server-authoritative.
+- One formula engine governs preview, Takeoff calculation, estimating, and recalculation.
 - Production Quantity, Direct Cost, and Sell remain separate.
-- Quantity and cost calculations remain server-authoritative and deterministic.
-- One formula engine governs authoring preview, Takeoff calculation, estimating, and recalculation.
-- Resources remain independently priceable and traceable from the assemblies that consume or require them.
-- Humans remain authoritative for scope, means and methods, production rates, pricing, margin, and publication.
+- Humans remain authoritative for scope, plan interpretation, means/methods, production rates, pricing, margin, and publication.
 
-## Core entities
+## Product concepts
 
-### Company Assembly
+### Concrete Scope Recipe
 
-A user-owned concrete recipe identity organized in the company's Assembly Library.
+Product-facing name for the reusable company-owned assembly identity/version. Examples include Slab on Grade, Strip Footing, Foundation Wall, Grade Beam, Pad Footing, Sidewalk, Driveway, and other concrete scope.
 
-Each assembly has immutable published versions and may contain:
+A recipe may contain typed variables, direct scope items/resources, labor operations, equipment/subcontract outputs, child recipes, formula dependencies, conditions, and production assumptions.
 
-- typed properties;
-- property bindings;
-- direct resource outputs;
-- labor operations;
-- equipment/subcontract outputs;
-- nested published child assemblies;
-- formula dependencies;
-- method decisions and production assumptions;
-- provenance and notes.
+A recipe defines the **possible logic of the scope**, not one fixed job condition. A single Slab recipe can support different thickness, reinforcement, vapor, form, finish, placement, and production configurations through variables and repeatable systems.
 
-### Assembly Template
+### Project Scope Variant
 
-A read-only starting pattern supplied by Carez or another approved source.
+A takeoff-set/job-specific, versioned configuration of one published Scope Recipe. Typical names may follow the drawings: `S1`, `S2`, `F1`, `F2`, `W1`, etc.
 
-Templates are separate from company assemblies. They may contain example properties, block structure, formulas, resource-role placeholders, and source references, but do not become commercial truth automatically.
+A variant can preserve:
 
-Using a template performs an explicit copy operation:
+- plan facts/dimensions;
+- reinforcement configuration;
+- optional systems such as vapor barrier or insulation;
+- estimator-approved means/methods;
+- production assumptions;
+- commercial/waste assumptions where applicable;
+- exact published Scope Recipe version.
 
-`Template -> New Company Draft Assembly -> Estimator Review/Edit -> Publish`
+Project Scope Variants prevent global recipe proliferation. They are not new published company recipes and do not mutate the recipe version they configure.
 
-The copied draft belongs to the company and is independent of future template changes.
+Existing `takeoff_method_profiles` may provide the persistence foundation when extended compatibly with a profile kind/variant code. Historical verified method profiles remain valid.
 
-### Resource
+### Variable
 
-A reusable company resource that assemblies reference rather than duplicating price logic.
+A named typed input or derived value. Supported families include dimension, number/quantity, percentage/factor, boolean, enum/choice, spacing, resource reference, text/note, and derived numeric values.
 
-First-class resource behaviors:
+Variables may be classified as:
 
-- consumed material;
-- reusable inventory;
-- labor;
-- owned equipment;
-- rented equipment;
-- subcontractor;
-- other.
+- plan fact;
+- method decision;
+- production assumption;
+- commercial assumption;
+- derived.
 
-A resource may preserve purchasing/pricing metadata, unit conversions, supplier/catalog identity, effective dates, tax/delivery behavior, and provenance without embedding current price into the assembly formula.
+Canonical execution namespaces such as `Takeoff.*`, `Project.*`, `Parent.*`, `PlanFact.*`, and `Properties.*` remain internal calculation concepts. Ordinary estimator UI uses human labels.
 
-### Property
+### Scope Item / Resource Output
 
-A named typed input or derived value used by an assembly.
+A calculated material, labor, equipment, rental, subcontract, inventory, or other output produced by the recipe.
 
-Supported property families should include:
+Resources remain first-class and independently priceable. A Scope Item may bind to a company/catalog product with supplier/SKU/unit/provenance information, but current price is not embedded into physical quantity math.
 
-- dimension;
-- quantity;
-- percentage/factor;
-- boolean;
-- enum/choice;
-- spacing;
-- resource reference;
-- text/note;
-- derived numeric property.
+### System Block
 
-Properties may be grouped for estimator readability, exposed or hidden from Takeoff, marked required, marked as estimator-overridable, and classified by input role.
+A repeatable concrete-specific calculation primitive that accelerates recipe building without imposing a complete job assembly.
 
-### Property Binding
+Required System Block families:
 
-A deterministic source mapping into an assembly property.
+- concrete volume;
+- continuous reinforcing;
+- spaced/transverse reinforcing;
+- rebar grid/mat;
+- WWF/WWR;
+- dowels/starters;
+- fiber;
+- vapor barrier/retarder;
+- formwork/edge forms/wall forms;
+- labor operation;
+- pump/placement/equipment;
+- custom item.
 
-Canonical execution namespaces remain:
+System Blocks may create editable variables, scope items, and deterministic starter formulas. They do not silently approve dimensions, bar size/count/spacing, layers, production rates, waste, prices, products, or means/methods.
 
-- `Takeoff.*`;
-- `Project.*`;
-- `Parent.*`;
-- `PlanFact.*`;
-- `Properties.*`.
+Multiple instances are allowed. A footing can contain three continuous bars plus a transverse reinforcing set. A slab can contain one or two rebar mats, WWF, fiber, or no reinforcing. Unique component/property keys must be generated deterministically for repeated blocks.
 
-These are internal calculation namespaces, not normal estimator-facing labels. Child assemblies inherit only through explicit bindings. Cycles are invalid.
+## Reinforcement model
+
+Reinforcing must not be reduced to a single yes/no variable.
+
+Supported patterns should include:
+
+- **Continuous bars** — bar size + count along measured length;
+- **Spaced/transverse bars** — bar size + spacing + individual bar length/source geometry;
+- **Grid/mat** — bar size + spacing + directions + layers/mats;
+- **WWF/WWR** — area coverage plus overlap/waste/product;
+- **Dowels/starters** — spacing/count + bar length;
+- **Stirrups/ties** — count/spacing and piece length where appropriate;
+- **Fiber** — dosage per concrete quantity;
+- **Custom** — estimator-authored deterministic math.
+
+The UI should expose concrete language such as `#5 @ 18 in O.C. each way · 2 mats` while preserving exact underlying variables/formulas.
 
 ## Formula engine
 
-Carez retains a deterministic formula AST as the authoritative execution model. Arbitrary JavaScript, `eval`, SQL expression strings, and an independent math.js runtime are not commercial calculation authorities.
+Carez retains the deterministic formula AST as authoritative. No arbitrary JavaScript, `eval`, SQL expression strings, or independent math.js runtime may become commercial calculation authority.
 
-The Assembly Builder must make formula authoring concrete-estimator friendly while compiling to the same deterministic AST used by the server.
+Required capabilities include arithmetic; min/max; ceil/floor/round; comparisons; conditionals; enum-driven activation; piecewise/lookup rules; explicit conversions; dependency tracking; cycle rejection; tracing; and publish validation.
 
-Required engine capabilities:
-
-- arithmetic;
-- min/max;
-- ceil/floor/round;
-- comparisons;
-- if/then/else and conditional activation;
-- enum/choice-driven branches;
-- piecewise/lookup rules;
-- explicit unit conversions;
-- dependency tracking;
-- circular-reference detection;
-- formula tracing;
-- publish-time validation.
-
-The engine should become unit-aware so invalid dimensional operations are rejected before publication. Common concrete units include IN, FT, LF, SF, CF, CY, EA, LB, TON, HR, MH, GAL, and package/purchase units.
-
-### Estimator-facing formula authoring
-
-Normal users must not be required to understand or type internal tokens such as `Takeoff.Length` or `Properties.form_sides`.
-
-The builder should present human-scale formula inputs such as:
+Ordinary users must not need to type internal tokens such as `Takeoff.Length`. The guided composer should expose:
 
 - Measured length;
 - Measured area;
 - Measured count;
 - Measured volume;
 - Measured perimeter when available;
-- the assembly's named inputs such as Width, Thickness, Formed sides, Waste %, Rebar density, or Labor rate;
+- named recipe variables;
 - numeric constants;
-- +, -, ×, ÷, and parentheses;
-- explicit common conversions such as inches to feet and cubic feet to cubic yards;
-- rounding helpers such as Round and Round up;
-- advanced min/max/lookup/conditional capability when needed.
+- +, -, ×, ÷, parentheses;
+- common conversions such as inches-to-feet and cubic-feet-to-cubic-yards;
+- round/round-up/min/max;
+- advanced conditional/lookup controls when needed.
 
-Estimator-facing expressions may read like:
+Carez hard-codes reliable calculation primitives/helpers, not a closed catalog of job-specific formulas. Generated formulas remain visible/editable to the estimator before publication.
 
-`Length × depth_in ÷ 12 × formed_sides`
-
-or, through richer labels in the visual builder:
-
-`Measured length × Footing depth ÷ 12 × Formed sides`
-
-while the saved and executed expression remains the canonical deterministic AST with explicit namespaces.
-
-The preferred product direction is a guided formula composer rather than a giant hidden catalog of hard-coded concrete formulas. Templates may provide useful concrete recipe patterns, but estimators must be able to create and change the math themselves without developer code.
-
-Raw namespace syntax may remain available as an advanced compatibility/expert path, but it must not dominate ordinary authoring.
+The engine should become unit-aware across common concrete units including IN, FT, LF, SF, CF, CY, EA, LB, TON, HR, MH, GAL, and package/purchase units.
 
 ## Quantity separation
 
-Resource calculations must distinguish:
+Keep distinct:
 
-1. **Installed / theoretical quantity** — physical quantity required by geometry and method.
-2. **Procurement quantity** — purchase/rental quantity after package size, stock length, waste, minimum order, or rental-unit rounding.
-3. **Inventory demand** — reusable items required on site regardless of whether they are newly expensed.
+1. installed/theoretical quantity;
+2. procurement quantity after waste/package/stock/minimum-order/rental rounding;
+3. reusable inventory demand.
 
-These quantities share lineage but are not interchangeable.
-
-Examples:
-
-- slab vapor retarder: installed SF -> procurement rolls;
-- reinforcing: installed LB -> stock bars/bundles/tons;
-- concrete: theoretical CY -> order quantity -> later placed/returned quantity;
-- form hardware: inventory demand EA without pretending all owned hardware is consumed.
+Examples: slab vapor installed SF -> procurement rolls; rebar installed LF/LB -> stock bars/bundles/tons; concrete theoretical CY -> order quantity -> later placed/returned actuals; reusable form hardware -> required inventory without pretending every piece is consumed.
 
 ## Labor and production
 
-Labor is a resource/operation, not a magic dollar allowance embedded in an assembly.
+Labor is an operation/resource, not a generic allowance. Preserve physical production quantity/unit, baseline MH/unit/source, historical evidence when available, estimator-reviewed job MH/unit, resulting MH, loaded labor rate/provenance, and direct labor cost.
 
-Each labor output preserves:
+Changing productivity changes man-hours, not material quantity unless the method explicitly changes physical demand.
 
-- production task;
-- physical production quantity and unit;
-- baseline MH/unit and source;
-- company historical production evidence when available;
-- estimator-reviewed job MH/unit;
-- resulting man-hours;
-- loaded labor rate and provenance;
-- direct labor cost.
+## Recipe Editor UX contract
 
-Changing a production assumption changes man-hours; it does not change the physical resource quantity unless a method/property explicitly requires that relationship.
+Primary authoring is a **movable/resizable popup Recipe Editor inside the Takeoff workstation**.
 
-## Assembly Builder UX contract
+It must:
 
-Assembly creation is too complex for the Takeoff right Inspector and must not be implemented as a long stack of ordinary form fields inside that pane.
+- remain on the same Takeoff route;
+- leave the live plan visible behind it;
+- leave the permanent Quantity Worksheet as the normal bottom worksheet;
+- be draggable from its title bar;
+- be resizable horizontally and vertically within safe workstation bounds;
+- persist useful local size/position where practical;
+- support Focus/Maximize and Restore as the same editor/state;
+- preserve sheet, viewport, zoom/pan, calibration, selected measurement, and draft state;
+- never mutate geometry merely by opening/moving/resizing/focusing/closing;
+- avoid turning the permanent Inspector into the full authoring surface.
 
-The primary authoring experience is a dedicated **Assembly Builder composer integrated into the Takeoff workstation**. Normal authoring keeps the live plan visible and preserves the estimator's current drawing context.
+The Inspector remains contextual: selected recipe/version/variant, current inputs, holds, key outputs, and commands to create/edit/open the Recipe Editor.
 
-The preferred desktop model is:
+### Entry paths
 
-`Takeoff Plan + compact Inspector + resizable bottom workstation`
+Support:
 
-where the permanent Quantity Worksheet region can expand into Assembly Builder mode. The builder may reduce the visible plan height while active, but it must not navigate the estimator to a separate route, open a separate browser window, or replace the product with a disconnected Assembly Studio.
-
-### Inspector boundary
-
-The Takeoff Inspector remains contextual and lightweight. It may expose:
-
-- selected assembly and published/draft version;
-- selected job method/profile;
-- required job-specific properties;
-- holds and warnings;
-- a bounded set of key outputs;
-- commands such as Create Assembly, Edit Assembly, Create Revision, Open Builder, or Return to Builder.
-
-The Inspector is not the primary recipe-authoring canvas and must not contain the full property/resource/formula editor.
-
-### Builder entry and draft lifecycle
-
-Assembly Builder supports these entry paths:
-
-- Create Blank Assembly;
+- Create Blank Scope Recipe;
 - Start From Template;
-- Duplicate Company Assembly;
-- Create Revision from Published Version;
-- Edit Existing Draft.
+- Duplicate Company Recipe;
+- Edit Existing Draft;
+- Create Revision from Published Version.
 
-Creating a new assembly may use a small setup dialog for identity and measurement type. That dialog should be movable when it overlaps useful drawing context. After creation, the draft opens in the integrated builder.
+A small movable setup dialog may collect recipe name/code/category/primary measurement before opening the Recipe Editor.
 
-Published versions remain read-only. Editing published work requires `Create Revision`, producing a new mutable draft without changing any prior published version or historical Takeoff lineage.
+### Default recipe reading order
 
-### Interaction model
+Normal UI should use plain construction language:
 
-The builder should feel like assembling a concrete recipe rather than filling out a database form.
-
-Core interaction patterns:
-
-- drag blocks from a palette onto a structured builder canvas;
-- reorder blocks by drag-and-drop;
-- connect property/output dependencies with constrained visual links or explicit mapping chips;
-- add a child assembly by dragging it into the recipe;
-- drag resources into material/labor/equipment/subcontract sections;
-- configure a selected block inline, in a focused popover/sheet, or an expandable block rather than relying on a permanent overloaded right pane;
-- show inherited parent values as compact source chips;
-- show units and provenance directly on blocks;
-- show missing inputs and invalid formulas at the block that causes them;
-- provide draft undo/redo;
-- keep published versions read-only.
-
-The builder's left block palette and right Test Bench are horizontally resizable. The estimator must be able to widen the Test Bench when result labels or inputs are clipped and narrow it again when more recipe space is needed. Pane widths should persist locally for that workstation.
-
-The default recipe UI should favor plain concrete language:
-
-- **Inputs**;
-- **Sub-assemblies** when needed;
+- **Variables** / plan inputs;
+- **Systems**;
 - **Materials & labor**;
 - **Test Bench**.
 
-Advanced logic remains available but should not dominate the default reading order.
+Advanced dependencies, namespace details, and JSON remain progressive disclosure/expert territory.
+
+### System Block experience
+
+The Recipe Editor must provide a concrete-focused `+ Add system` experience with the required System Block families. Adding the same family multiple times must work. Each inserted block opens a focused configuration editor appropriate to that pattern.
+
+Examples:
+
+- `Continuous rebar` -> bar size, count, measured basis, allowance/product;
+- `Rebar grid/mat` -> bar size, spacing, directions, layers;
+- `WWF/WWR` -> area basis, overlap/waste, product;
+- `Vapor barrier` -> area basis, overlap/waste, product;
+- `Formwork` -> measured basis, height/depth, sides, reusable/consumed resources;
+- `Labor operation` -> production quantity/unit and MH/unit;
+- `Concrete volume` -> area/length geometry plus thickness/width/depth as applicable.
 
 ### Focus Builder
 
-Complex assemblies may require more workspace than the normal bottom composer provides.
-
-The integrated builder therefore supports **Focus Builder** mode.
-
-Focus Builder requirements:
-
-- remains on the same Takeoff route and within the permanent Carez desktop shell;
-- temporarily expands the Assembly Builder to occupy most of the available workspace;
-- may collapse or minimize nonessential Takeoff panes while focused;
-- uses the same draft state, formula engine, resources, undo/redo stack, Test Bench, and publish controls as normal builder mode;
-- does not create a second assembly-authoring implementation;
-- preserves current sheet, selected measurement, plan viewport, zoom/pan, calibration context, and relevant selection state;
-- `Exit Focus` returns to the prior Takeoff drawing state and normal builder size without reloading or losing draft edits;
-- does not mutate Takeoff geometry merely by entering or leaving focus mode.
-
-Focus Builder is an enlargement of the same integrated composer, not a separate Assembly Studio.
-
-### Live plan context
-
-When normal Assembly Builder mode is open, the plan should remain visible and usable enough to preserve measurement context. The estimator should be able to use a current or selected Takeoff measurement as Test Bench input without recreating its quantity.
-
-Builder entry/exit must preserve:
-
-- current Takeoff set;
-- active sheet;
-- current page position;
-- zoom/pan state;
-- selected measurement where valid;
-- selected assembly/method context;
-- unsaved assembly draft state.
+Focus Builder maximizes the same popup Recipe Editor to most of the Takeoff workspace. Restore returns to the prior position/size with all draft state retained. It is not a separate route or second authoring implementation.
 
 ### Test Bench
 
-A draft assembly must support sample testing before publication.
+A draft can test representative manual inputs or an eligible live/current Takeoff measurement and preview resolved variables, children, concrete, reinforcing, formwork, vapor/insulation, labor MH, equipment/subcontract, quantity separation, holds, trace, and provenance through the same production engine.
 
-The estimator may use either representative manual inputs or an eligible live/current Takeoff measurement and immediately inspect:
+## Project Scope Variant UX
 
-- resolved parent and child properties;
-- concrete CY;
-- reinforcing LB;
-- formwork SFCA/LF/EA;
-- vapor barrier/insulation/mesh quantities;
-- labor production quantities and MH;
-- equipment/subcontract quantities;
-- installed vs procurement vs inventory demand;
-- missing-input and missing-price holds;
-- calculation trace and source provenance.
+After a recipe is published and selected for a job, the estimator can save reusable project-specific variants such as `S1` or `F2`.
 
-Preview must use the same canonical formula/property engine as server calculation.
+Variant editing should present the active plan facts and estimator decisions in compact groups and save a versioned verified configuration. Selecting a Project Scope Variant applies its resolved inputs to new Takeoff measurements. If its governed values change, Carez requires a new verified variant revision rather than silently changing prior measurements.
 
-### Template experience
+Historical legacy build-method profiles remain selectable/traceable during transition.
 
-The integrated Assembly Builder should provide:
+## Template experience
 
-- Create Blank Assembly;
-- Start From Template;
-- Duplicate Company Assembly;
-- Create Revision from Published Version.
-
-Templates should be visually browsable by concrete scope such as foundations, walls, slabs/flatwork, reinforcement, formwork methods, placement, finishing, joints, curing, embeds, and specialty concrete.
-
-Template browsing may use a modal/library overlay because it is a selection task, but `Use Template` must return the estimator to the integrated Assembly Builder with a new company-owned draft.
-
-A template is a learning/acceleration device, not an imposed Carez estimating assumption.
+Templates are optional structural starting patterns organized by concrete scope. They may include example variables/formulas/resource roles and source notes but never silently become company pricing or production truth. `Use Template` creates an independent company draft.
 
 ## Concrete-native resource coverage
 
-The engine must support common Division 03 outputs without requiring hard-coded assemblies, including:
+Support ready-mix; reinforcing bars/mesh/fiber/dowels/chairs/tie wire; vapor materials; insulation; form panels/lumber/ties/brackets/walers/strongbacks/stakes/braces/release agents/reusable hardware; joints/fillers/sealants/dowel systems/sawcuts; embeds/anchors/inserts; curing; finishing; pumps/placement equipment; rentals; subcontractors; consumables; and other explicit resources.
 
-- ready-mix concrete;
-- reinforcing bars, mesh, fibers, dowels, chairs/supports, tie wire;
-- vapor barriers/retarders and seam/accessory materials;
-- insulation;
-- form facing, lumber, panels, ties, brackets, walers, strongbacks, stakes, braces, release agents and reusable hardware;
-- joints, fillers, sealants, dowel systems and sawcut operations;
-- embeds, anchor bolts and inserts;
-- curing materials;
-- finishing operations;
-- pumps and placement equipment;
-- owned/rented equipment;
-- specialty subcontractors;
-- consumables and other explicit resources.
-
-Reference values from books or manufacturer literature may be offered with provenance but never silently promoted to company defaults.
+Reference values from books/manufacturers may be shown with provenance but never silently promoted to company defaults.
 
 ## Removal of legacy hard-coded assemblies
 
-Implementation must remove the hard-coded assembly catalog as a product behavior.
+Stop creating seeded Carez production assemblies for companies; remove them from active new-work selectors; preserve referenced historical versions as hidden/retired lineage; remove unreferenced seed records only after dependency-safe verification; recreate useful examples as Templates rather than live company recipes.
 
-Required transition:
+## Integration boundaries
 
-1. Stop creating seeded Carez production assemblies for companies.
-2. Remove hard-coded assemblies from new-work selectors and active company libraries.
-3. Preserve referenced historical published versions as hidden/retired lineage records until safe retention rules permit deletion.
-4. Remove unreferenced seeded records when a migration can prove they are not required for lineage.
-5. Recreate any useful examples as separate, read-only Assembly Templates rather than live company assemblies.
-6. New companies begin with an empty company Assembly Library plus optional access to the Template Catalog.
+Takeoff owns authoritative physical geometry. The Assembly & Resource Engine converts that geometry plus resolved Scope Variant inputs into physical resource/labor outputs. Estimating consumes those outputs and owns pricing review/Sell; it does not create a second recipe/formula engine.
 
-## Integration with Takeoff and Estimating
-
-Takeoff owns authoritative physical geometry.
-
-The Assembly & Resource Engine converts that geometry plus declared properties/methods into deterministic resource outputs.
-
-The Assembly Builder is visually integrated into the Takeoff workstation, but assembly draft/version/resource/formula authority remains owned by the Assembly & Resource Engine. This prevents the Takeoff Inspector or drawing component from becoming a second assembly engine.
-
-Estimating consumes assembly outputs, pricing provenance, labor build-up, and holds for commercial review. Estimating does not own a second assembly or formula engine.
-
-At award, the Accepted Scope Snapshot preserves the exact published assembly versions and deterministic outputs accepted for execution. Later assembly revisions or production-history recommendations do not alter that snapshot, the frozen commercial baseline, or existing production-scope allocations.
+At award, the Accepted Scope Snapshot preserves exact recipe versions, variants/assumptions, Takeoff outputs, and pricing provenance used by the accepted commercial state.
 
 ## Acceptance
 
-The module is acceptable when an estimator can:
+Representative acceptance includes:
 
-- start with an empty company assembly library;
-- create an assembly from scratch without developer-written SQL/code;
-- create an assembly from a template without inheriting future template changes;
-- create a new revision from a published assembly without changing prior jobs;
-- author the assembly while remaining in the Takeoff workstation with the live plan in context;
-- move the small create/library dialog when it obscures useful context;
-- resize the builder's block palette and Test Bench horizontally and retain useful widths;
-- enter and exit Focus Builder without losing plan viewport/selection context or draft state;
-- add and configure typed parent properties;
-- drag resources and child assemblies into a recipe;
-- bind child properties to parent/Takeoff/project/plan-fact sources;
-- build ordinary concrete formulas from measured geometry, named inputs, math operators, numeric constants, conversions, and rounding without needing to type internal namespace tokens;
-- use advanced deterministic formula syntax when genuinely needed;
-- receive dimensional/formula validation before publication;
-- test sample or eligible live Takeoff quantities in the same calculation engine used in production;
-- publish an immutable version;
-- select the published version in Takeoff;
-- trace every resource/labor output to the exact measurement, property source, child component, formula, version, and pricing/production source;
-- work without any hard-coded Carez assembly being required or silently inserted into the company library.
+- empty company recipe library works;
+- create from blank/template/duplicate/revision without SQL/code;
+- popup Recipe Editor moves/resizes and retains useful state;
+- Focus/Restore preserves plan and draft context;
+- Quantity Worksheet remains available during normal authoring;
+- typed variables can be created/edited;
+- System Blocks can be inserted repeatedly;
+- slab/footing examples can represent no reinforcing, WWF, continuous bars, spaced bars, one/two mats, vapor yes/no, and multiple reinforcing sets;
+- guided formulas do not require internal namespace typing;
+- sample/live Takeoff Test Bench uses the production engine;
+- Project Scope Variants such as S1/F1 can be saved, selected, revised, and bound to measurements;
+- published recipe versions remain immutable;
+- exact recipe/variant/component/resource/estimate lineage remains traceable;
+- no hard-coded Carez production recipe is silently required or inserted.
