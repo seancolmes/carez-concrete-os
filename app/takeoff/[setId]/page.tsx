@@ -34,7 +34,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,options,min_value,max_value,required,help_text,sort_order,activation_rule,input_role,requires_verification,expose_in_takeoff').eq('company_id', companyId).order('sort_order'),
     supabase.from('estimate_sections').select('id,name,scope_type,sort_order').eq('estimate_id', set.estimate_id).eq('company_id', companyId).order('sort_order'),
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
-    supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
+    supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at,profile_kind,variant_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
   ]);
 
   const [
@@ -105,10 +105,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
           <strong className={pageStyles.title}>{set.name}</strong>
           <div className={pageStyles.meta}>
             <span className={pageStyles.estimate}>{estimateLabel}</span>
-            {set.revision_label && <>
-              <span className={pageStyles.separator} aria-hidden="true">•</span>
-              <span className={pageStyles.revision}>{set.revision_label}</span>
-            </>}
+            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
           </div>
         </div>
         {locked&&<span className={pageStyles.lock}>Read only</span>}
