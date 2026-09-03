@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TakeoffAssemblyBuilderShell } from '@/components/takeoff/TakeoffAssemblyBuilderShell';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
+import pageStyles from './TakeoffDrawingPage.module.css';
 
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
@@ -99,9 +100,18 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
-      <header className="takeoff-app-header takeoff-app-header-compact">
-        <div className="takeoff-app-title"><strong>{set.name}</strong><span>{estimateLabel} · {set.revision_label}</span></div>
-        {locked&&<span className="takeoff-app-lock">READ ONLY</span>}
+      <header className={pageStyles.identityStrip}>
+        <div className={pageStyles.identity}>
+          <strong className={pageStyles.title}>{set.name}</strong>
+          <div className={pageStyles.meta}>
+            <span className={pageStyles.estimate}>{estimateLabel}</span>
+            {set.revision_label && <>
+              <span className={pageStyles.separator} aria-hidden="true">•</span>
+              <span className={pageStyles.revision}>{set.revision_label}</span>
+            </>}
+          </div>
+        </div>
+        {locked&&<span className={pageStyles.lock}>Read only</span>}
       </header>
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
