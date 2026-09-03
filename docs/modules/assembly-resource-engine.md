@@ -109,7 +109,7 @@ Child assemblies inherit only through explicit bindings. Cycles are invalid.
 
 Carez retains a deterministic formula AST as the authoritative execution model. Arbitrary JavaScript, `eval`, SQL expression strings, and an independent math.js runtime are not commercial calculation authorities.
 
-The Assembly Studio should make formula authoring readable and visual while compiling to the same deterministic AST used by the server.
+The Assembly Builder should make formula authoring readable and visual while compiling to the same deterministic AST used by the server.
 
 Required engine capabilities:
 
@@ -168,17 +168,48 @@ Each labor output preserves:
 
 Changing a production assumption changes man-hours; it does not change the physical resource quantity unless a method/property explicitly requires that relationship.
 
-## Assembly Studio UX contract
+## Assembly Builder UX contract
 
 Assembly creation is too complex for the Takeoff right Inspector and must not be implemented as a long stack of ordinary form fields inside that pane.
 
-The primary authoring experience is a dedicated full-page **Assembly Studio** inside the permanent Carez desktop shell.
+The primary authoring experience is a dedicated **Assembly Builder composer integrated into the Takeoff workstation**. Normal authoring keeps the live plan visible and preserves the estimator's current drawing context.
 
-Takeoff should provide only lightweight assembly selection, method/profile interaction, status/holds, and a clear command to open the selected assembly in Assembly Studio when authorized.
+The preferred desktop model is:
+
+`Takeoff Plan + compact Inspector + resizable bottom workstation`
+
+where the permanent Quantity Worksheet region can expand into Assembly Builder mode. The builder may reduce the visible plan height while active, but it must not navigate the estimator to a separate route, open a separate browser window, or replace the product with a disconnected Assembly Studio.
+
+### Inspector boundary
+
+The Takeoff Inspector remains contextual and lightweight. It may expose:
+
+- selected assembly and published/draft version;
+- selected job method/profile;
+- required job-specific properties;
+- holds and warnings;
+- a bounded set of key outputs;
+- commands such as Create Assembly, Edit Assembly, Create Revision, Open Builder, or Return to Builder.
+
+The Inspector is not the primary recipe-authoring canvas and must not contain the full property/resource/formula editor.
+
+### Builder entry and draft lifecycle
+
+Assembly Builder supports these entry paths:
+
+- Create Blank Assembly;
+- Start From Template;
+- Duplicate Company Assembly;
+- Create Revision from Published Version;
+- Edit Existing Draft.
+
+Creating a new assembly may use a small setup dialog for identity and measurement type. After creation, the draft opens in the integrated builder.
+
+Published versions remain read-only. Editing published work requires `Create Revision`, producing a new mutable draft without changing any prior published version or historical Takeoff lineage.
 
 ### Interaction model
 
-The Studio should feel like assembling a concrete recipe rather than filling out a database form.
+The builder should feel like assembling a concrete recipe rather than filling out a database form.
 
 Core interaction patterns:
 
@@ -186,21 +217,61 @@ Core interaction patterns:
 - reorder blocks by drag-and-drop;
 - connect property/output dependencies with constrained visual links or explicit mapping chips;
 - add a child assembly by dragging it into the recipe;
-- drag resources into output/labor/equipment sections;
+- drag resources into material/labor/equipment/subcontract sections;
 - configure a selected block inline, in a focused popover/sheet, or an expandable block rather than relying on a permanent overloaded right pane;
 - show inherited parent values as compact source chips;
 - show units and provenance directly on blocks;
 - show missing inputs and invalid formulas at the block that causes them;
-- provide undo/redo while editing a draft;
+- provide draft undo/redo;
 - keep published versions read-only.
 
-The canvas should be structured enough to avoid free-form node-graph spaghetti. A recommended organization is a compact vertical recipe with clear lanes for **Inputs / Methods**, **Logic / Child Assemblies**, and **Resource Outputs**, with a live result shelf or Test Bench below.
+The builder must be structured enough to avoid free-form node-graph spaghetti. The default recipe organization should use bounded lanes/sections such as:
+
+- **Inputs / Properties**;
+- **Methods / Decisions**;
+- **Logic / Child Assemblies**;
+- **Resource Outputs**;
+- **Labor / Production**;
+- **Test / Validation**.
+
+### Focus Builder
+
+Complex assemblies may require more workspace than the normal bottom composer provides.
+
+The integrated builder therefore supports **Focus Builder** mode.
+
+Focus Builder requirements:
+
+- remains on the same Takeoff route and within the permanent Carez desktop shell;
+- temporarily expands the Assembly Builder to occupy most of the available workspace;
+- may collapse or minimize nonessential Takeoff panes while focused;
+- uses the same draft state, formula engine, resources, undo/redo stack, Test Bench, and publish controls as normal builder mode;
+- does not create a second assembly-authoring implementation;
+- preserves current sheet, selected measurement, plan viewport, zoom/pan, calibration context, and relevant selection state;
+- `Exit Focus` returns to the prior Takeoff drawing state and normal builder size without reloading or losing draft edits;
+- does not mutate Takeoff geometry merely by entering or leaving focus mode.
+
+Focus Builder is an enlargement of the same integrated composer, not a separate Assembly Studio.
+
+### Live plan context
+
+When normal Assembly Builder mode is open, the plan should remain visible and usable enough to preserve measurement context. The estimator should be able to use a current or selected Takeoff measurement as Test Bench input without recreating its quantity.
+
+Builder entry/exit must preserve:
+
+- current Takeoff set;
+- active sheet;
+- current page position;
+- zoom/pan state;
+- selected measurement where valid;
+- selected assembly/method context;
+- unsaved assembly draft state.
 
 ### Test Bench
 
 A draft assembly must support sample testing before publication.
 
-The estimator can enter representative Takeoff quantities/properties and immediately inspect:
+The estimator may use either representative manual inputs or an eligible live/current Takeoff measurement and immediately inspect:
 
 - resolved parent and child properties;
 - concrete CY;
@@ -217,7 +288,7 @@ Preview must use the same canonical formula/property engine as server calculatio
 
 ### Template experience
 
-Assembly Studio should provide:
+The integrated Assembly Builder should provide:
 
 - Create Blank Assembly;
 - Start From Template;
@@ -225,6 +296,8 @@ Assembly Studio should provide:
 - Create Revision from Published Version.
 
 Templates should be visually browsable by concrete scope such as foundations, walls, slabs/flatwork, reinforcement, formwork methods, placement, finishing, joints, curing, embeds, and specialty concrete.
+
+Template browsing may use a modal/library overlay because it is a selection task, but `Use Template` must return the estimator to the integrated Assembly Builder with a new company-owned draft.
 
 A template is a learning/acceleration device, not an imposed Carez estimating assumption.
 
@@ -267,7 +340,9 @@ Takeoff owns authoritative physical geometry.
 
 The Assembly & Resource Engine converts that geometry plus declared properties/methods into deterministic resource outputs.
 
-Estimating consumes those outputs, pricing provenance, labor build-up, and holds for commercial review. Estimating does not own a second assembly or formula engine.
+The Assembly Builder is visually integrated into the Takeoff workstation, but assembly draft/version/resource/formula authority remains owned by the Assembly & Resource Engine. This prevents the Takeoff Inspector or drawing component from becoming a second assembly engine.
+
+Estimating consumes assembly outputs, pricing provenance, labor build-up, and holds for commercial review. Estimating does not own a second assembly or formula engine.
 
 At award, the Accepted Scope Snapshot preserves the exact published assembly versions and deterministic outputs accepted for execution. Later assembly revisions or production-history recommendations do not alter that snapshot, the frozen commercial baseline, or existing production-scope allocations.
 
@@ -278,15 +353,16 @@ The module is acceptable when an estimator can:
 - start with an empty company assembly library;
 - create an assembly from scratch without developer-written SQL/code;
 - create an assembly from a template without inheriting future template changes;
+- create a new revision from a published assembly without changing prior jobs;
+- author the assembly while remaining in the Takeoff workstation with the live plan in context;
+- enter and exit Focus Builder without losing plan viewport/selection context or draft state;
 - add and configure typed parent properties;
 - drag resources and child assemblies into a recipe;
 - bind child properties to parent/Takeoff/project/plan-fact sources;
 - build formulas through the interactive UI;
 - receive dimensional/formula validation before publication;
-- test sample quantities in the same calculation engine used in production;
+- test sample or eligible live Takeoff quantities in the same calculation engine used in production;
 - publish an immutable version;
 - select the published version in Takeoff;
 - trace every resource/labor output to the exact measurement, property source, child component, formula, version, and pricing/production source;
-- revise by creating a new draft version without changing prior jobs;
 - work without any hard-coded Carez assembly being required or silently inserted into the company library.
-
