@@ -58,6 +58,17 @@ The flagship estimator workspace is organized as:
 
 Closing a context pane must never remove the permanent desktop rail.
 
+## Information density and progressive disclosure
+
+B2 should be information-dense, not text-dense.
+
+- Persistent text must identify an object, communicate current state/problem, or enable a current decision. Explanatory narration, duplicate summaries, provenance paragraphs, and repeated zero-state metadata should be removed from primary workstation surfaces.
+- Keep provenance and audit data in the domain model; expose it contextually when the estimator requests detail rather than consuming permanent workspace.
+- Do not repeat the same selected object, assembly, status, Snap/Ortho state, or keyboard instruction in multiple simultaneous surfaces.
+- Use warning/status text for actionable exceptions. Healthy/empty states should remain visually quiet.
+- Tooltips, contextual popovers, shortcut/help surfaces, Inspector tabs, and selected-row detail are preferred over permanent helper paragraphs.
+- A cleaner UI must never hide unresolved holds, missing inputs/prices, destructive state, or other information required for a safe estimator decision.
+
 ## Synchronized layers
 
 Carez presents three synchronized layers of the same estimate:
@@ -77,6 +88,26 @@ The Takeoff inspector uses three functional tabs:
 There is no fake `Layers` module. `Build Plan` is a Carez-specific first-class concept.
 
 The compact Build Plan inspector shows method status, revision, important assumptions and unresolved verification. Advanced editing uses the main application workspace rather than an oversized permanent sidebar form, browser popup or separate window.
+
+The Takeoffs tab is an operational selector/review surface rather than an explanatory document. Assembly search/selection and current-sheet measurements should remain compact. Do not permanently show assembly provenance/source paragraphs or duplicate the selected assembly in a second `Active Assembly` card when the list selection already identifies it.
+
+## Takeoff sheet-pane behavior
+
+- Sheet identity and actionable sheet state are primary.
+- Do not repeat `0 TAKEOFFS` or equivalent empty counters on every sheet.
+- Missing scale or another action-required state may be shown prominently; healthy sheets without takeoffs can remain quiet.
+- Sheet-number/title indexing remains professional and compact; page identity must remain traceable.
+
+## Takeoff chrome hierarchy
+
+The drawing area is the scarce resource. The Takeoff page should minimize stacked horizontal bands above it.
+
+- Retain permanent app rail and required project/module navigation.
+- Retain takeoff-set/project identity and drawing tools.
+- Consolidate redundant Takeoff-specific header information where practical instead of stacking independent website-like title bands.
+- Long persistent keyboard-instruction strings should move to contextual shortcut/help surfaces.
+- Status bars should show current/actionable state and avoid duplicating toolbar toggle state already visible above.
+- Chrome consolidation must be browser-verified across panel open/close, worksheet collapse/expand, resize, and drawing zoom/pan behavior.
 
 ## Takeoff drawing detail behavior
 
