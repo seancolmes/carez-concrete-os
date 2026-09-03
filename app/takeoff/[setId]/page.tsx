@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
-import { TakeoffDrawingWorkspace } from '@/components/takeoff/TakeoffDrawingWorkspace';
+import { TakeoffAssemblyBuilderShell } from '@/components/takeoff/TakeoffAssemblyBuilderShell';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
 
@@ -36,6 +36,19 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
   ]);
 
+  const [
+    { data: builderAssemblies }, { data: builderVersions }, { data: builderVariables }, { data: builderComponents },
+    { data: builderChildren }, { data: builderBindings }, { data: builderFolders },
+  ] = await Promise.all([
+    supabase.from('concrete_assemblies').select('id,folder_id,code,name,category,primary_measurement,description,display_style,direct_takeoff_enabled,active').eq('company_id', companyId).eq('active', true).order('category').order('name'),
+    supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,source_type,source_label,source_reference,default_risk_class_code,assembly_code_snapshot,assembly_name_snapshot,category_snapshot,primary_measurement_snapshot,description_snapshot,render_config,created_at,published_at').eq('company_id', companyId).order('assembly_id').order('version_no', { ascending: false }),
+    supabase.from('concrete_assembly_variables').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
+    supabase.from('concrete_assembly_components').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
+    supabase.from('concrete_assembly_children').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
+    supabase.from('concrete_assembly_property_bindings').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
+    supabase.from('concrete_assembly_folders').select('*').eq('company_id', companyId).eq('active', true).order('sort_order').order('name'),
+  ]);
+
   const measurementIds = (measurements || []).map((m: any) => m.id);
   let summaries: any[] = [];
   if (measurementIds.length) {
@@ -55,6 +68,35 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   const locked = Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
   const estimateLabel = estimate ? `${estimate.estimate_number}-R${estimate.version}` : 'Estimate';
 
+  const workspaceProps = {
+    takeoffSet: set,
+    estimate,
+    pdfUrl: pdfUrl || '',
+    sourceTitle: document?.title || 'Plan set',
+    initialSheets: sheets || [],
+    scaleRegions: scaleRegions || [],
+    initialMeasurements: measurements || [],
+    measurementSummaries: summaries,
+    assemblies: assemblies || [],
+    versions: versions || [],
+    variables: variables || [],
+    sections: sections || [],
+    riskClasses: riskClasses || [],
+    methodProfiles: methodProfiles || [],
+    locked,
+  };
+
+  const builderData = {
+    assemblies: builderAssemblies || [],
+    versions: builderVersions || [],
+    variables: builderVariables || [],
+    components: builderComponents || [],
+    children: builderChildren || [],
+    bindings: builderBindings || [],
+    folders: builderFolders || [],
+    measurements: measurements || [],
+  };
+
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
       <header className="takeoff-app-header takeoff-app-header-compact">
@@ -66,23 +108,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
-      <TakeoffDrawingWorkspace
-        takeoffSet={set}
-        estimate={estimate}
-        pdfUrl={pdfUrl}
-        sourceTitle={document.title}
-        initialSheets={sheets || []}
-        scaleRegions={scaleRegions || []}
-        initialMeasurements={measurements || []}
-        measurementSummaries={summaries}
-        assemblies={assemblies || []}
-        versions={versions || []}
-        variables={variables || []}
-        sections={sections || []}
-        riskClasses={riskClasses || []}
-        methodProfiles={methodProfiles || []}
-        locked={locked}
-      />
+      <TakeoffAssemblyBuilderShell setId={setId} workspaceProps={workspaceProps} builderData={builderData} />
       </>}
     </div>
   </AppShell>;
