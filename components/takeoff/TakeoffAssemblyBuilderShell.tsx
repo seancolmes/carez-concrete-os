@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { Copy, FilePlus2, LayoutTemplate, PencilLine, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from 'react';
+import { Copy, FilePlus2, GripHorizontal, LayoutTemplate, PencilLine, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ASSEMBLY_TEMPLATES } from '@/lib/takeoff/assemblyTemplates';
 import {
@@ -33,6 +33,16 @@ type Props = {
 };
 
 type DialogMode = 'blank' | 'templates' | 'existing';
+type DialogDrag = {
+  startX: number;
+  startY: number;
+  originX: number;
+  originY: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
 
 const latestByAssembly = (versions: any[]) => {
   const map = new Map<string, any[]>();
@@ -45,15 +55,26 @@ const latestByAssembly = (versions: any[]) => {
   return map;
 };
 
+const codeFromName = (name: string) => name
+  .trim()
+  .toUpperCase()
+  .replace(/[^A-Z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 28);
+
 export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData }: Props) {
   const router = useRouter();
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const dialogDragRef = useRef<DialogDrag | null>(null);
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('blank');
+  const [dialogOffset, setDialogOffset] = useState({ x: 0, y: 0 });
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [blankCodeTouched, setBlankCodeTouched] = useState(false);
   const [blank, setBlank] = useState({ code: '', name: '', category: 'Foundations', primaryMeasurement: 'LF' as 'LF' | 'SF' | 'EA' | 'CY', description: '' });
   const [duplicate, setDuplicate] = useState<{ sourceVersionId: string; code: string; name: string } | null>(null);
 
@@ -66,6 +87,31 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
       return () => window.clearTimeout(timer);
     }
   }, [activeVersionId, activeVersion, isPending, router]);
+
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const drag = dialogDragRef.current;
+      if (!drag) return;
+      const requestedX = event.clientX - drag.startX;
+      const requestedY = event.clientY - drag.startY;
+      const deltaX = Math.max(10 - drag.left, Math.min(window.innerWidth - 10 - drag.right, requestedX));
+      const deltaY = Math.max(10 - drag.top, Math.min(window.innerHeight - 10 - drag.bottom, requestedY));
+      setDialogOffset({ x: drag.originX + deltaX, y: drag.originY + deltaY });
+    };
+    const end = () => {
+      dialogDragRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const enterVersion = (versionId: string) => {
     setActiveVersionId(versionId);
@@ -88,19 +134,48 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
     });
   };
 
+  const resetDialog = () => {
+    setDialogOffset({ x: 0, y: 0 });
+    setMessage('');
+  };
+
   const openCreate = () => {
     setDialogMode('blank');
     setDuplicate(null);
+    setBlankCodeTouched(false);
+    setBlank({ code: '', name: '', category: 'Foundations', primaryMeasurement: 'LF', description: '' });
+    resetDialog();
     setDialogOpen(true);
   };
   const openLibrary = () => {
     setDialogMode('existing');
     setDuplicate(null);
+    resetDialog();
     setDialogOpen(true);
   };
   const closeBuilder = () => {
     setFocus(false);
     setOpen(false);
+  };
+
+  const startDialogDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button,input,select,textarea,a')) return;
+    const rect = dialogRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    event.preventDefault();
+    dialogDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: dialogOffset.x,
+      originY: dialogOffset.y,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+    };
+    document.body.style.cursor = 'move';
+    document.body.style.userSelect = 'none';
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   return <AssemblyBuilderProvider value={{ open, focus, openCreate, openLibrary, closeBuilder }}>
@@ -120,11 +195,11 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
       </div>}
 
       {dialogOpen && <div className={styles.backdrop} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>
-        <section className={styles.dialog} role="dialog" aria-modal="true" aria-label="Assembly Builder start">
-          <header className={styles.dialogHeader}>
-            <div>
-              <span>Assembly Builder</span>
-              <strong>Create or continue a concrete recipe</strong>
+        <section ref={dialogRef} className={styles.dialog} style={{ transform: `translate(${dialogOffset.x}px, ${dialogOffset.y}px)` }} role="dialog" aria-modal="true" aria-label="Assembly Builder start">
+          <header className={styles.dialogHeader} onPointerDown={startDialogDrag} title="Drag to move">
+            <div className={styles.dialogIdentity}>
+              <GripHorizontal size={15} aria-hidden="true" />
+              <div><span>Assembly Builder</span><strong>Create or continue a concrete recipe</strong></div>
             </div>
             <button type="button" className={styles.iconButton} onClick={() => setDialogOpen(false)} aria-label="Close"><X size={17} /></button>
           </header>
@@ -137,26 +212,25 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
 
           <div className={styles.dialogBody}>
             {dialogMode === 'blank' && <div className={styles.blankForm}>
-              <div className={styles.dialogIntro}><strong>Start clean.</strong><span>Define the recipe identity here. Properties, resources, formulas, and child assemblies are built in the workstation—not in this dialog.</span></div>
+              <div className={styles.dialogIntro}><strong>New blank recipe</strong><span>Name it, choose what you measure, then build the materials and labor in the workstation.</span></div>
               <div className={styles.fieldGrid}>
-                <label><span>Assembly code</span><input value={blank.code} onChange={event => setBlank(value => ({ ...value, code: event.target.value.toUpperCase() }))} placeholder="FTG-STRIP" /></label>
-                <label className={styles.wide}><span>Assembly name</span><input value={blank.name} onChange={event => setBlank(value => ({ ...value, name: event.target.value }))} placeholder="Strip Footing" /></label>
+                <label className={styles.wide}><span>Assembly name</span><input value={blank.name} onChange={event => { const name = event.target.value; setBlank(value => ({ ...value, name, code: blankCodeTouched ? value.code : codeFromName(name) })); }} placeholder="Strip Footing" autoFocus /></label>
+                <label><span>Code</span><input value={blank.code} onChange={event => { setBlankCodeTouched(true); setBlank(value => ({ ...value, code: event.target.value.toUpperCase() })); }} placeholder="STRIP-FOOTING" /></label>
                 <label><span>Category</span><input value={blank.category} onChange={event => setBlank(value => ({ ...value, category: event.target.value }))} /></label>
-                <label><span>Takeoff measurement</span><select value={blank.primaryMeasurement} onChange={event => setBlank(value => ({ ...value, primaryMeasurement: event.target.value as any }))}><option value="LF">Linear · LF</option><option value="SF">Area · SF</option><option value="EA">Count · EA</option><option value="CY">Volume · CY</option></select></label>
-                <label className={styles.full}><span>Description <em>optional</em></span><textarea value={blank.description} onChange={event => setBlank(value => ({ ...value, description: event.target.value }))} rows={2} placeholder="What this assembly represents and when your company uses it." /></label>
+                <label><span>Takeoff measurement</span><select value={blank.primaryMeasurement} onChange={event => setBlank(value => ({ ...value, primaryMeasurement: event.target.value as any }))}><option value="LF">Linear feet</option><option value="SF">Square feet</option><option value="EA">Count</option><option value="CY">Cubic yards</option></select></label>
               </div>
-              <footer className={styles.dialogFooter}><span>{message}</span><button type="button" className={styles.primaryButton} disabled={isPending || !blank.code.trim() || !blank.name.trim()} onClick={() => run(
+              <footer className={styles.dialogFooter}><span>{message}</span><button type="button" className={styles.primaryButton} disabled={isPending || !blank.code.trim() || !blank.name.trim() || !blank.category.trim()} onClick={() => run(
                 () => createAssemblyDraft(setId, blank),
                 result => enterVersion(result.assembly_version_id),
-                'Creating draft…',
-              )}><Plus size={15} />Create draft</button></footer>
+                'Creating blank recipe…',
+              )}><Plus size={15} />Create blank recipe</button></footer>
             </div>}
 
             {dialogMode === 'templates' && <div>
-              <div className={styles.dialogIntro}><strong>Start from structure, not assumptions.</strong><span>Templates copy a concrete recipe pattern into a company-owned draft. They do not promote prices, production rates, waste, or means and methods into company truth.</span></div>
+              <div className={styles.dialogIntro}><strong>Start from a concrete pattern.</strong><span>A template copies structure only. Review the quantities, production assumptions, and prices before publishing.</span></div>
               <div className={styles.templateGrid}>{ASSEMBLY_TEMPLATES.map(template => <article key={template.id} className={styles.templateCard}>
                 <div className={styles.templateIcon}>{template.primaryMeasurement}</div>
-                <div className={styles.templateCopy}><span>{template.category}</span><strong>{template.name}</strong><p>{template.description}</p><small>{template.properties.length} properties · {template.components.length} resource outputs</small></div>
+                <div className={styles.templateCopy}><span>{template.category}</span><strong>{template.name}</strong><p>{template.description}</p><small>{template.properties.length} inputs · {template.components.length} materials/labor outputs</small></div>
                 <button type="button" disabled={isPending} onClick={() => run(
                   () => createAssemblyFromTemplate(setId, { templateId: template.id }),
                   result => enterVersion(result.assembly_version_id),
@@ -167,7 +241,7 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
             </div>}
 
             {dialogMode === 'existing' && <div>
-              <div className={styles.dialogIntro}><strong>Company assemblies.</strong><span>Continue a draft, create a revision from a published version, or duplicate a recipe into a new company-owned assembly.</span></div>
+              <div className={styles.dialogIntro}><strong>Company assemblies</strong><span>Edit a draft, create the next revision, or duplicate a recipe.</span></div>
               {duplicate ? <div className={styles.duplicateForm}>
                 <button type="button" className={styles.backButton} onClick={() => setDuplicate(null)}>← Back to library</button>
                 <strong>Duplicate assembly</strong>
