@@ -8,7 +8,6 @@ type DragState = {
   startX: number;
   startWidth: number;
   pointerId: number;
-  handle: HTMLDivElement;
 } | null;
 
 const SHEETS_MIN = 190;
@@ -18,8 +17,7 @@ const INSPECTOR_MIN = 300;
 const INSPECTOR_DEFAULT = 326;
 const INSPECTOR_MAX = 680;
 const CENTER_MIN = 420;
-const HANDLE_WIDTH = 8;
-const HANDLE_PANE_OVERLAP = 2;
+const HANDLE_WIDTH = 10;
 const KEYBOARD_STEP = 16;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -51,6 +49,7 @@ export function useTakeoffPaneResize() {
 
     let drag: DragState = null;
     let frame = 0;
+    let hiddenInspectorMeta: HTMLElement | null = null;
     const remembered: Partial<Record<PaneKind, number>> = {};
     const handles: Partial<Record<PaneKind, HTMLDivElement>> = {};
     const handleLines: Partial<Record<PaneKind, HTMLDivElement>> = {};
@@ -66,17 +65,17 @@ export function useTakeoffPaneResize() {
 
     const currentWidth = (pane: HTMLElement | null, kind: PaneKind) => {
       if (!pane) return 0;
+      if (remembered[kind] !== undefined) return remembered[kind] as number;
       const measured = pane.getBoundingClientRect().width;
-      const fallback = defaultFor(kind);
-      return remembered[kind] ?? (measured > 0 ? measured : fallback);
+      return measured > 0 ? measured : defaultFor(kind);
     };
 
     const maxFor = (kind: PaneKind) => {
       const { sheets, inspector } = getPanes();
-      const other = kind === 'sheets'
+      const otherWidth = kind === 'sheets'
         ? currentWidth(inspector, 'inspector')
         : currentWidth(sheets, 'sheets');
-      const available = workspace.clientWidth - other - CENTER_MIN;
+      const available = workspace.clientWidth - otherWidth - CENTER_MIN;
       return Math.max(minimumFor(kind), Math.min(maximumFor(kind), available));
     };
 
@@ -84,7 +83,21 @@ export function useTakeoffPaneResize() {
       remembered[kind] = clamp(width, minimumFor(kind), maxFor(kind));
     };
 
-    const updateHandle = (kind: PaneKind, pane: HTMLElement | null) => {
+    const hideInspectorSheetMeta = () => {
+      const { inspector } = getPanes();
+      if (!inspector) return;
+      const closeButton = inspector.querySelector<HTMLElement>('[title="Hide inspector"]');
+      const header = closeButton?.parentElement;
+      const identity = header?.firstElementChild;
+      const title = identity?.firstElementChild;
+      const meta = title?.nextElementSibling;
+      if (meta instanceof HTMLElement) {
+        hiddenInspectorMeta = meta;
+        meta.style.display = 'none';
+      }
+    };
+
+    const positionHandle = (kind: PaneKind, pane: HTMLElement | null) => {
       const handle = handles[kind];
       if (!handle) return;
 
@@ -95,55 +108,65 @@ export function useTakeoffPaneResize() {
 
       const workspaceRect = workspace.getBoundingClientRect();
       const paneRect = pane.getBoundingClientRect();
-      const boundary = kind === 'sheets'
-        ? paneRect.right - workspaceRect.left
-        : paneRect.left - workspaceRect.left;
-      const left = kind === 'sheets'
-        ? boundary - HANDLE_PANE_OVERLAP
-        : boundary - (HANDLE_WIDTH - HANDLE_PANE_OVERLAP);
+      const boundary = kind === 'sheets' ? paneRect.right : paneRect.left;
 
       handle.style.display = 'block';
-      handle.style.left = `${Math.round(left)}px`;
+      handle.style.left = `${Math.round(boundary - HANDLE_WIDTH / 2)}px`;
+      handle.style.top = `${Math.round(workspaceRect.top)}px`;
+      handle.style.height = `${Math.max(0, Math.round(workspaceRect.height))}px`;
       handle.setAttribute('aria-valuemin', String(minimumFor(kind)));
       handle.setAttribute('aria-valuemax', String(maxFor(kind)));
       handle.setAttribute('aria-valuenow', String(Math.round(currentWidth(pane, kind))));
     };
 
+    const updateHandles = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const panes = getPanes();
+        positionHandle('sheets', panes.sheets);
+        positionHandle('inspector', panes.inspector);
+      });
+    };
+
     const applyGrid = () => {
+      hideInspectorSheetMeta();
+
       if (window.innerWidth <= 900) {
         workspace.style.removeProperty('grid-template-columns');
-        updateHandle('sheets', null);
-        updateHandle('inspector', null);
+        positionHandle('sheets', null);
+        positionHandle('inspector', null);
         return;
       }
 
       const { sheets, inspector } = getPanes();
-      if (sheets && remembered.sheets === undefined) remembered.sheets = clamp(currentWidth(sheets, 'sheets'), SHEETS_MIN, SHEETS_MAX);
-      if (inspector && remembered.inspector === undefined) remembered.inspector = clamp(currentWidth(inspector, 'inspector'), INSPECTOR_MIN, INSPECTOR_MAX);
+      if (sheets && remembered.sheets === undefined) {
+        remembered.sheets = clamp(sheets.getBoundingClientRect().width || SHEETS_DEFAULT, SHEETS_MIN, SHEETS_MAX);
+      }
+      if (inspector && remembered.inspector === undefined) {
+        remembered.inspector = clamp(inspector.getBoundingClientRect().width || INSPECTOR_DEFAULT, INSPECTOR_MIN, INSPECTOR_MAX);
+      }
+
+      if (sheets) remembered.sheets = clamp(currentWidth(sheets, 'sheets'), SHEETS_MIN, maxFor('sheets'));
+      if (inspector) remembered.inspector = clamp(currentWidth(inspector, 'inspector'), INSPECTOR_MIN, maxFor('inspector'));
 
       const sheetWidth = sheets ? currentWidth(sheets, 'sheets') : 0;
       const inspectorWidth = inspector ? currentWidth(inspector, 'inspector') : 0;
 
-      if (sheets && inspector) workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px,1fr) ${inspectorWidth}px`;
-      else if (sheets) workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px,1fr)`;
-      else if (inspector) workspace.style.gridTemplateColumns = `minmax(${CENTER_MIN}px,1fr) ${inspectorWidth}px`;
-      else workspace.style.removeProperty('grid-template-columns');
+      if (sheets && inspector) {
+        workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px, 1fr) ${inspectorWidth}px`;
+      } else if (sheets) {
+        workspace.style.gridTemplateColumns = `${sheetWidth}px minmax(${CENTER_MIN}px, 1fr)`;
+      } else if (inspector) {
+        workspace.style.gridTemplateColumns = `minmax(${CENTER_MIN}px, 1fr) ${inspectorWidth}px`;
+      } else {
+        workspace.style.removeProperty('grid-template-columns');
+      }
 
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const panes = getPanes();
-        updateHandle('sheets', panes.sheets);
-        updateHandle('inspector', panes.inspector);
-      });
+      updateHandles();
     };
 
     const endDrag = () => {
       if (drag) {
-        try {
-          if (drag.handle.hasPointerCapture(drag.pointerId)) drag.handle.releasePointerCapture(drag.pointerId);
-        } catch {
-          // Pointer may already have been released by the browser.
-        }
         const line = handleLines[drag.kind];
         if (line) line.style.opacity = '0';
       }
@@ -152,7 +175,7 @@ export function useTakeoffPaneResize() {
       document.body.style.userSelect = '';
     };
 
-    const beginDrag = (kind: PaneKind, handle: HTMLDivElement, event: PointerEvent) => {
+    const beginDrag = (kind: PaneKind, event: PointerEvent) => {
       if (window.innerWidth <= 900 || event.button !== 0) return;
       const { sheets, inspector } = getPanes();
       const pane = kind === 'sheets' ? sheets : inspector;
@@ -165,9 +188,7 @@ export function useTakeoffPaneResize() {
         startX: event.clientX,
         startWidth: currentWidth(pane, kind),
         pointerId: event.pointerId,
-        handle,
       };
-      try { handle.setPointerCapture(event.pointerId); } catch {}
       const line = handleLines[kind];
       if (line) line.style.opacity = '1';
       document.body.style.cursor = 'col-resize';
@@ -176,7 +197,7 @@ export function useTakeoffPaneResize() {
 
     const moveDrag = (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
-      event.preventDefault();
+      if (event.cancelable) event.preventDefault();
       const delta = event.clientX - drag.startX;
       const rawWidth = drag.kind === 'sheets'
         ? drag.startWidth + delta
@@ -205,11 +226,9 @@ export function useTakeoffPaneResize() {
       handle.tabIndex = 0;
       handle.title = `Drag to resize ${kind}`;
       Object.assign(handle.style, {
-        position: 'absolute',
-        top: '0',
-        bottom: '0',
+        position: 'fixed',
         width: `${HANDLE_WIDTH}px`,
-        zIndex: '80',
+        zIndex: '2147483000',
         cursor: 'col-resize',
         background: 'transparent',
         touchAction: 'none',
@@ -219,7 +238,7 @@ export function useTakeoffPaneResize() {
         position: 'absolute',
         top: '0',
         bottom: '0',
-        left: kind === 'sheets' ? `${HANDLE_PANE_OVERLAP - 1}px` : `${HANDLE_WIDTH - HANDLE_PANE_OVERLAP}px`,
+        left: `${Math.floor(HANDLE_WIDTH / 2) - 1}px`,
         width: '2px',
         background: '#1e5bff',
         opacity: '0',
@@ -228,10 +247,7 @@ export function useTakeoffPaneResize() {
       });
       handle.appendChild(line);
 
-      const pointerDown = (event: PointerEvent) => beginDrag(kind, handle, event);
-      const pointerMove = (event: PointerEvent) => moveDrag(event);
-      const pointerUp = () => endDrag();
-      const pointerCancel = () => endDrag();
+      const pointerDown = (event: PointerEvent) => beginDrag(kind, event);
       const pointerEnter = () => { line.style.opacity = '1'; };
       const pointerLeave = () => { if (!drag || drag.kind !== kind) line.style.opacity = '0'; };
       const focus = () => { line.style.opacity = '1'; };
@@ -259,24 +275,18 @@ export function useTakeoffPaneResize() {
       };
 
       handle.addEventListener('pointerdown', pointerDown);
-      handle.addEventListener('pointermove', pointerMove);
-      handle.addEventListener('pointerup', pointerUp);
-      handle.addEventListener('pointercancel', pointerCancel);
       handle.addEventListener('pointerenter', pointerEnter);
       handle.addEventListener('pointerleave', pointerLeave);
       handle.addEventListener('focus', focus);
       handle.addEventListener('blur', blur);
       handle.addEventListener('keydown', keyDown);
       handle.addEventListener('dblclick', doubleClick);
-      workspace.appendChild(handle);
+      document.body.appendChild(handle);
       handles[kind] = handle;
       handleLines[kind] = line;
 
       return () => {
         handle.removeEventListener('pointerdown', pointerDown);
-        handle.removeEventListener('pointermove', pointerMove);
-        handle.removeEventListener('pointerup', pointerUp);
-        handle.removeEventListener('pointercancel', pointerCancel);
         handle.removeEventListener('pointerenter', pointerEnter);
         handle.removeEventListener('pointerleave', pointerLeave);
         handle.removeEventListener('focus', focus);
@@ -289,21 +299,37 @@ export function useTakeoffPaneResize() {
 
     const removeSheetHandle = createHandle('sheets');
     const removeInspectorHandle = createHandle('inspector');
-    const observer = new MutationObserver(applyGrid);
-    observer.observe(workspace, { childList: true });
+    const mutationObserver = new MutationObserver(applyGrid);
+    mutationObserver.observe(workspace, { childList: true });
     const resizeObserver = new ResizeObserver(applyGrid);
     resizeObserver.observe(workspace);
+
+    const pointerUp = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      endDrag();
+    };
+    const reposition = () => updateHandles();
+
+    window.addEventListener('pointermove', moveDrag, { passive: false });
+    window.addEventListener('pointerup', pointerUp);
+    window.addEventListener('pointercancel', pointerUp);
     window.addEventListener('resize', applyGrid);
+    window.addEventListener('scroll', reposition, true);
     applyGrid();
 
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      mutationObserver.disconnect();
       resizeObserver.disconnect();
+      window.removeEventListener('pointermove', moveDrag);
+      window.removeEventListener('pointerup', pointerUp);
+      window.removeEventListener('pointercancel', pointerUp);
       window.removeEventListener('resize', applyGrid);
+      window.removeEventListener('scroll', reposition, true);
       removeSheetHandle();
       removeInspectorHandle();
       workspace.style.removeProperty('grid-template-columns');
+      hiddenInspectorMeta?.style.removeProperty('display');
       endDrag();
     };
   }, []);
