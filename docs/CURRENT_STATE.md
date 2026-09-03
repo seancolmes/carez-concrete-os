@@ -112,6 +112,17 @@ Controlled measurement deletion / cleanup isolation QA is **PASS**:
 - Measurement A still has eight distinct component keys, six distinct source-output estimate-item links, zero duplicate output-component groups, zero duplicate estimate-item source groups, and zero ownership/lineage mismatches;
 - Measurement A, all eight of its output rows, and all six generated estimate items retain the pre-delete `2026-09-03 00:11:04.509192+00` update timestamp, confirming deletion of B did not recalculate or mutate A.
 
+Controlled cross-sheet / All Sheets Quantity Worksheet QA is **PASS**:
+
+- authenticated browser QA verified `This Sheet` correctly isolates measurements to the active PDF sheet, `All Sheets` shows both A4 and A5 measurements exactly once, row selection opens the correct measurement/sheet context, sheet switching does not alter either measurement, and hard refresh preserves the two-sheet view without duplicates;
+- Measurement A `Strip Footing 1` remains on A4 / Page 4 with id `c2883636-bc1b-44d8-87c1-bcabf469e0f7` at `5.0105 LF`; Measurement C `QA Cross-Sheet C` is independently persisted on A5 / Page 5 with id `12507d7c-532d-4527-9bda-0fff6c333ffa` at `1.4381 LF`;
+- A and C use distinct `takeoff_sheets` rows and distinct sheet-owned scale regions; each measurement's `scale_region_id` resolves to the same sheet as the measurement, preventing cross-sheet scale ownership;
+- both retain published assembly version `dbeed58c-0b1a-4df7-b153-9b8c9d8e576e` and the same resolved `formed_footing` / `direct_chute` / `continuous_rebar` method choices;
+- each measurement owns eight distinct child-output rows with eight distinct component keys, six active/estimate-visible outputs, and six generated estimate items;
+- every generated estimate item resolves to the same source output, source measurement, and published assembly version with zero ownership/lineage mismatches;
+- duplicate checks report zero duplicate output-component groups and zero duplicate estimate-item source-output groups, and A/C share zero output ids and zero generated estimate-item ids;
+- Measurement A, all of its output rows, and all of its estimate items retain the earlier `2026-09-03 00:11:04.509192+00` timestamp while C and its downstream lineage were created at `2026-09-03 01:48:37.869776+00`, confirming creation and sheet switching for C did not recalculate or mutate A.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -132,7 +143,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA for cross-sheet / All Sheets Quantity Worksheet behavior and sheet-switch isolation now that multi-measurement aggregation and deletion cleanup pass.
+1. Continue authenticated Takeoff P0 QA across the other primary measurement modes: representative SF polygon/cutout behavior and EA count behavior, including Quantity Worksheet recalculation and exact downstream lineage.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
 3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
 4. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
@@ -157,6 +168,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Resolved nested Takeoff output → estimate-item lineage: **PASS**, including exact source output/measurement/published-assembly identifiers and no duplicate active estimate rows in the controlled case.
 - Multi-measurement Quantity Worksheet aggregation, edit isolation, undo/redo isolation, refresh persistence, independent child-output ownership, and exact generated estimate-item lineage: **PASS**.
 - Measurement deletion cleanup, downstream output/estimate-item cascade cleanup, orphan prevention, and unaffected-measurement isolation: **PASS**.
+- Cross-sheet `This Sheet` / `All Sheets` worksheet scoping, row-selection sheet context, refresh persistence, independent scale-region ownership, and exact cross-sheet output/estimate-item lineage: **PASS**.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
@@ -164,7 +176,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, and exact-lineage foundation. Cross-sheet worksheet behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, multi-measurement isolation, deletion cleanup, cross-sheet scoping, and exact-lineage foundation. Representative SF polygon/cutout behavior, EA count behavior, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
