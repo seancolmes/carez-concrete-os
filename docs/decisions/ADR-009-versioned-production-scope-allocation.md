@@ -15,7 +15,7 @@ An allocation identifies:
 
 - Production Work Unit;
 - source Accepted Scope Snapshot item or later approved change-scope item;
-- exact Takeoff measurement/output version and published assembly version where applicable;
+- exact Takeoff measurement/role/output version, Project Concrete Condition version, Company Condition Template/Platform Archetype version, and referenced legacy assembly version where applicable;
 - operation/production-quantity basis;
 - allocated quantity and compatible unit;
 - location, segment, or partition identity where applicable;

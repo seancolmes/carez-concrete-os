@@ -7,13 +7,13 @@
 
 ## Purpose
 
-Carez should not ask AI to perform takeoff first. A plan upload should first become a concrete-specific, source-cited knowledge layer that user-authored assemblies and takeoff objects can consume.
+Carez should not ask AI to perform takeoff first. A plan upload should first become a concrete-specific, source-cited knowledge layer that Project Concrete Conditions, Company Condition Templates, and Takeoff objects can consume.
 
 The separation is deliberate:
 
 - **Plans define design requirements.** Concrete strength, wall/slab/footing dimensions, reinforcement, cover, joints, embeds, testing, finishes, schedules, details and revisions come from the contract documents.
-- **Estimator-authored assemblies define means, methods and commercial logic.** Waste, form system, crew, production rate, equipment, purchasing assumptions, cost and sell remain under estimator control.
-- **AI proposes; people approve.** AI discovery never silently becomes an authoritative scope, quantity, assembly assumption, cost or field instruction.
+- **Estimator-approved Conditions and company templates define means, methods, and commercial logic.** Waste, form system, crew, production rate, equipment, purchasing assumptions, cost and sell remain under estimator control.
+- **AI proposes; people approve.** AI discovery never silently becomes an authoritative scope, quantity, Condition assumption, cost, or field instruction.
 
 ## Concrete information model
 
@@ -59,7 +59,7 @@ Canonical property keys are namespaced strings, for example:
 - `footing.width_in`
 - `footing.depth_in`
 
-The schema intentionally does not hard-code the complete vocabulary as a database enum. The custom Assembly Builder will later map these canonical plan keys to estimator-authored property definitions.
+The schema intentionally does not hard-code the complete vocabulary as a database enum. The Condition Engine maps these canonical plan keys to typed archetype/module inputs and estimator-approved Project Condition properties.
 
 ## Source provenance
 
@@ -107,14 +107,14 @@ Plan intelligence is revision-bound through `takeoff_set_id`. A new plan revisio
 
 `takeoff_plan_fact_applications` is the future bridge from confirmed plan requirements to a measured object. It stores the exact fact/decision/value applied and an optional future target property key.
 
-It does **not** directly change geometry, cost, production rate or sell. When the custom Assembly Builder is implemented, its property resolver will consume approved applications using this order:
+It does **not** directly change geometry, cost, production rate or sell. The Condition input resolver consumes approved applications using this order:
 
 1. estimator manual override
 2. takeoff-object approved plan fact
 3. detail/zone approved plan fact
 4. type/schedule approved plan fact
 5. sheet/plan-set approved plan fact
-6. estimator-authored assembly default
+6. published Company Condition Template default
 
 Geometry remains authoritative for measured dimensions; plan intelligence supplies design requirements and annotations, not replacement geometry.
 
@@ -138,8 +138,8 @@ Raw AI evidence/facts are service-written and office-readable. Human decisions a
 
 - OCR / vision / LLM plan scanning
 - automatic sheet naming
-- automatic fact-to-assembly-property mapping
-- Custom Assembly Builder hierarchy/properties/formulas
+- automatic fact-to-Condition-property mapping
+- Condition archetype/module schemas and company-template property mapping
 - automatic takeoff mutation
 - revision-diff UI
 - field publication of unconfirmed AI findings

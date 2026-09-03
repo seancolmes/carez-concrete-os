@@ -6,7 +6,7 @@ Status: Accepted
 
 Carez uses one shared light workstation visual system across the application, with a permanent dark navy app rail on authenticated desktop surfaces.
 
-The approved visual direction combines premium OS-level refinement with concrete-estimating workstation density and speed. It is informed by Apple-level polish, zzTakeoff tool placement and compact controls, Estimating Edge estimating depth, and STACK-style organization, without copying another product.
+The approved visual direction combines premium OS-level refinement with the simplicity, open working area, readable condition organization, and estimating seriousness demonstrated by The EDGE Estimator. Carez retains selected fast plan-tool patterns and modern organization from the earlier references without copying another product.
 
 This is a Carez-wide presentation system, not a Takeoff-only theme. Authenticated desktop pages, module workspaces, reporting surfaces, tables, forms, empty states, dialogs, and shared navigation should use the same visual vocabulary unless a documented field/mobile or customer-facing context requires a purpose-specific variation.
 
@@ -20,11 +20,13 @@ This is a Carez-wide presentation system, not a Takeoff-only theme. Authenticate
 - Typography prioritizes readability at 100% desktop zoom with stronger headings and neutral data text.
 - Controls/panels use crisp geometry with small radii, subtle borders, and limited elevation.
 - Icons are used deliberately for navigation, drawing tools, compact utilities, section identity, and high-frequency actions.
-- Main workstation density remains slightly more spacious than zzTakeoff while avoiding generic SaaS whitespace.
+- Main workstations prioritize comfortable readability and generous usable work area at 100% zoom. They remain information-dense without feeling cramped and avoid both tiny controls and empty SaaS whitespace.
 - Data-heavy pages remain table/list-first where that matches the work; do not convert operational grids into decorative card walls.
 - Empty states are concise, visually calm, and actionable where a real next action exists.
-- Takeoff drawing workspace remains light and plan-first, with the permanent resizable Quantity Worksheet and compact Inspector preserved.
-- The Inspector favors collapsed sections and progressive disclosure.
+- Takeoff remains light and plan-first, with a permanent resizable Quantity/Estimate Worksheet, Plans/Conditions/Zones context tabs, and 2D/3D/Split view control.
+- Condition Properties favors readable tabs, collapsed sections, dropdowns, typed inputs, and progressive disclosure.
+- The Condition Properties window may dock, float, drag, resize, maximize/focus, and restore while preserving plan and draft context.
+- Core panes resize predictably; Carez avoids uncontrolled overlapping dialogs or many simultaneous floating windows.
 - Mobile remains field-first; applying the shared tokens must not force desktop workstation density onto field workflows.
 - Customer-facing proposal/print documents may retain document-specific presentation but should use Carez typography, brand, readability, and interaction standards where applicable.
 
@@ -44,7 +46,7 @@ This decision changes presentation, not domain authority. It does not alter:
 - calibration or measurement semantics;
 - server-authoritative calculations;
 - RLS / tenant isolation;
-- published Scope Recipe immutability;
+- published Company Condition Template and retained legacy recipe/version immutability;
 - Takeoff → estimate lineage;
 - Accepted Scope Snapshot / frozen commercial baseline rules;
 - separation of Production Quantity, Direct Cost, and Sell;
@@ -59,4 +61,4 @@ Implementation occurs on canonical `staging` in bounded slices even though the v
 
 A rendered page is not accepted only because its stylesheet changed. Representative routes from every module must be browser-verified for readability, overflow, controls, tables, empty states, responsive behavior, and preservation of domain behavior.
 
-The supporting detailed visual contract is `docs/b2-estimator-focus-redesign.md`.
+The primary Takeoff visual/product contract is docs/concrete-condition-3d-workstation-target.md. The broader shared-system contract remains docs/b2-estimator-focus-redesign.md where it does not conflict with the newer Condition workstation target.

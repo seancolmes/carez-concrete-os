@@ -46,7 +46,7 @@ This ADR establishes target architecture. It does not claim the Job Spine migrat
 - PostgreSQL/Supabase remains authoritative.
 - Opportunity and Project histories are not merged.
 - Commercial acceptance remains immutable/versioned.
-- Takeoff and assembly lineage remain exact.
+- Takeoff measurement-role, Concrete Condition/module-output, and retained legacy assembly lineage remain exact.
 - Human authorization is required for award and Project creation.
 
 ## Canonical owners

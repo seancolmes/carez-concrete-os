@@ -27,7 +27,7 @@ The snapshot materializes the accepted interpretation and preserves exact source
 - accepted/rejected alternate decisions;
 - negotiated or partial-award scope;
 - exact Takeoff measurement/output versions;
-- exact published assembly versions and deterministic resource outputs;
+- exact measurement roles, Project Concrete Condition versions, Company Condition Template/Platform Archetype versions, module outputs, and any referenced legacy assembly versions;
 - production assumptions, direct-cost assumptions, and Sell values as separate facts;
 - pricing provenance and effective context;
 - inclusions, exclusions, clarifications, allowances, unit prices, and accepted terms;

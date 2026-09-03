@@ -39,7 +39,7 @@ A Scope Allocation is the explicit bridge between a Production Work Unit and aut
 Each allocation retains:
 - Production Work Unit;
 - source Accepted Scope Snapshot item or later approved change-scope item;
-- exact source Takeoff measurement/output version and published assembly version where applicable;
+- exact source Takeoff measurement/role/output version, Project Concrete Condition version, Company Condition Template/Platform Archetype version, and referenced legacy assembly version where applicable;
 - operation/production-quantity basis;
 - allocated quantity and compatible unit;
 - location/segment or other partition identity when applicable;

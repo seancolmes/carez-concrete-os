@@ -1,13 +1,13 @@
 > **Document status:** RESEARCH CONTRACT  
 > **Canonical owner:** `docs/modules/estimating.md`, `docs/modules/takeoff.md`, `docs/ARCHITECTURE.md`  
 > **Use:** Source hierarchy and domain corrections that inform P1 means/methods design. It is not the primary implementation-status document.  
-> **Supersession:** Accepted research conclusions remain supporting evidence unless an approved canonical spec or ADR supersedes them.
+> **Supersession:** Domain/source conclusions remain supporting evidence. ADR-012 supersedes the assembly/method-profile product vocabulary and the former Method Studio/Build Plan UX; active implementation uses Concrete Conditions and modules.
 
 # Estimating P1 — Construction Method Research Contract
 
 ## Purpose
 
-Carez OS must estimate concrete as a builder without pretending to be the structural engineer or formwork engineer. The assembly engine therefore separates design facts, Carez means-and-method decisions, physical resources, production, procurement and commercial pricing.
+Carez OS must estimate concrete as a builder without pretending to be the structural engineer or formwork engineer. The Concrete Condition & Resource Engine therefore separates design facts, Carez means-and-method decisions, physical resources, production, procurement, and commercial pricing.
 
 This document records the source hierarchy and domain corrections established during P1 research.
 
@@ -116,67 +116,23 @@ The method profile should therefore retain the validated form-system source/enve
 
 If the job falls outside the validated method envelope, the method should block verification and require an engineered/manufacturer-reviewed layout rather than extrapolating.
 
-## UX architecture — stop putting the whole method in the inspector
+## UX architecture — Condition modules, not method/formula studios
 
-The P1 proof placed every Build Plan field directly in the narrow Takeoff inspector. The domain concept is sound; the presentation is not the target architecture.
+The domain research remains valid, but ADR-012 supersedes the former Method Library/Method Studio, Job Build Plan Workbench, and assembly-first Inspector as the active product contract.
 
-Target interaction model:
+Current target:
 
-### 1. Method Library / Method Studio
-
-A separate company-level module for reusable, versioned construction recipes. Examples:
-
-- strip footing — 2x10 Douglas Fir board forms
-- strip footing — earth formed
-- wall — 3/4 Plyform + validated Jahn system
-- wall — another proprietary/rental form system
-- direct chute placement
-- line-pump placement
-
-This is where Carez authors the reusable method recipe, resource components, valid inputs, source/envelope and baseline production assumptions.
-
-### 2. Job Build Plan Workbench
-
-When an estimator selects an assembly that does not yet have a verified job method, Takeoff enters a dedicated **workspace mode** in the center of the application. It is not a browser popup and not a separate browser window.
-
-The workbench stages are:
-
-```text
-Plan Facts
-→ Means & Methods
-→ Resource Build-up
-→ Production
-→ Review & Verify
-```
-
-The workbench has enough width to show source references, field groups, resource previews and warnings without compressing the PDF inspector.
-
-### 3. Compact drawing inspector
-
-After verification, normal Takeoff returns to the PDF/vector canvas. The permanent right inspector shows only operational drawing information:
-
-- assembly
-- concise verified method summary
-- status/revision
-- object name/location
-- per-object plan facts that legitimately vary by measurement
-- `Review Build Plan` action
-- Start Takeoff
-
-Example summary:
-
-```text
-VERIFIED · R3
-2x10 DF · 2 sides · stakes 4 ft O.C.
-#4 × 2 · engineer laps from S2.1
-Direct Chute
-```
-
-Editing a verified means-and-method decision creates/verifies a new job method revision. Existing measurements retain the exact prior profile.
+1. Company means/method defaults live in versioned Company Condition Templates.
+2. Job-specific facts and verified decisions live in a versioned Project Concrete Condition.
+3. Relevant method controls appear within readable Condition Properties tabs/modules such as Forms, Rebar, Excavation, Placement/Equipment, and Labor.
+4. Safety- or cost-critical decisions show their source/envelope and block only dependent outputs when unresolved.
+5. Standard work uses typed fields, toggles, dropdowns, and compact resource previews; Formula Composer is not part of normal Takeoff.
+6. The window may dock, float, drag, resize, maximize/focus, and restore without losing the plan context or draft.
+7. Existing measurements retain the exact Condition/template or legacy method-profile lineage used when created.
 
 ## Estimate Lines disclosure
 
-Takeoff-generated estimate groups are hierarchical by measurement/assembly and must render as disclosure groups. Clicking the group header collapses/expands all generated child cost lines and the measurement subtotal while preserving the group identity, measured quantity and group direct-cost total.
+Takeoff-generated estimate groups are hierarchical by Concrete Condition and measurement role and must render as disclosure groups. Clicking the group header collapses/expands all generated child cost lines and the measurement subtotal while preserving the group identity, measured quantity and group direct-cost total.
 
 This is required for estimates with many takeoffs and should later be extended with `Expand all`, `Collapse all`, search/filter and remembered user view state if needed.
 
@@ -184,8 +140,8 @@ This is required for estimates with many takeoffs and should later be extended w
 
 Research-driven recipe changes must follow the existing immutable-version rule:
 
-- never mutate a published assembly version
-- author the correction as a new draft version
+- never mutate a published Company Condition Template or referenced legacy assembly version
+- author the correction as a new draft template/version
 - validate formulas and source assumptions
 - review the UX and method semantics
 - publish only after QA

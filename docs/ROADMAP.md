@@ -9,14 +9,26 @@ Outcome:
 - authenticated Takeoff visual QA complete;
 - no geometry, lineage, RLS, or migration regressions.
 
+## P0.5 — Concrete Condition + 3D Takeoff foundation
+
+Outcome:
+- active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
+- additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
+- EDGE-inspired light workstation uses Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window;
+- Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
+- 2D, 3D, and Split modes share selection and totals; read-only derived 3D exposes representative elevation, overlap/gap, step, and cutout errors;
+- supported legacy recipes/variants are migrated and reconciled before new-work entry switches;
+- old Recipe Editor/Formula Composer/Assembly Library UI is removed from the active workflow only after dependency and browser-verification gates;
+- no referenced published or accepted history is deleted.
+
 ## P1 — Estimating
 
 Outcome:
-- unified Scope → Takeoff → Pricing → Review → Proposal workflow;
-- pricing provenance and missing-price review;
-- builder means/method verification;
+- unified Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal workflow;
+- pricing provenance, supplier quote sets, and missing-price review;
+- builder means/method verification through Condition modules and explicit job overrides;
 - production-rate and labor build-up;
-- immutable assembly/version lineage;
+- immutable Condition/template/archetype/output lineage, with legacy compatibility retained while referenced;
 - bid review and proposal handoff.
 
 ## P2 — CRM / Preconstruction

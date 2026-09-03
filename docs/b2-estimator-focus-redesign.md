@@ -1,7 +1,7 @@
 > **Document status:** ACCEPTED DETAILED DESIGN  
 > **Canonical owner:** `docs/ARCHITECTURE.md`, `docs/modules/takeoff.md`, `docs/modules/estimating.md`  
 > **Use:** Supporting visual/interaction contract. Where this file conflicts with a canonical document, the canonical document wins.  
-> **Supersession:** Active until explicitly superseded by an approved replacement design.
+> **Supersession:** The Carez-wide light visual system remains active. Takeoff/Estimating workspace, Condition Properties, formula/recipe, and 2D/3D details are superseded by docs/concrete-condition-3d-workstation-target.md and ADR-012/ADR-013.
 
 # Carez Concrete OS — B2 Estimator Focus redesign
 
@@ -12,8 +12,8 @@ B2 is a desktop-first professional estimating interface. The benchmark is a refi
 The approved direction blends:
 
 - Apple-level polish, clarity, restraint, and perceived quality;
-- zzTakeoff tool placement, compact controls, and takeoff speed;
-- Estimating Edge trade-estimating seriousness and assembly/estimate structure;
+- Estimating EDGE simplicity, readable condition organization, open working area, and trade-estimating seriousness;
+- selective fast plan-tool and keyboard patterns from zzTakeoff where they remain compatible with the Condition workstation;
 - STACK-style modern organization and visual clarity.
 
 These are references for interaction quality and visual discipline, not instructions to copy another product.
@@ -60,8 +60,8 @@ Exact production colors are governed by the shared design tokens. Do not sample 
 
 ### Density and spacing
 
-- Target density is slightly more spacious than zzTakeoff while remaining a professional workstation.
-- Increase breathing room around controls and sections only enough to improve scanning and precision.
+- Target density follows a readable concrete estimating workstation: generous usable plan/table area, comfortably readable fields, and calm spacing without losing operational density.
+- Give controls and sections enough breathing room for fast scanning and precise pointer use at 100% zoom.
 - Do not create large empty regions, oversized hero areas, or card-heavy dashboards inside production workspaces.
 - Prefer alignment, separators, subtle surface shifts, and progressive disclosure over large rounded containers.
 
@@ -102,11 +102,13 @@ The light workstation system applies to every authenticated desktop module throu
 The flagship estimator workspace is organized as:
 
 1. permanent global rail,
-2. project/sheet context pane,
-3. dominant PDF/vector drawing canvas,
-4. assembly/takeoff inspector,
-5. persistent quantity/estimate worksheet,
+2. resizable context pane with Plans, Conditions, and Zones tabs,
+3. dominant PDF/vector drawing canvas with 2D, 3D, and Split modes,
+4. dockable/floatable/resizable Condition Properties window,
+5. persistent resizable Quantity/Estimate Worksheet,
 6. compact project/module bar.
+
+Core panes resize predictably. Condition Properties is the primary governed work window and may dock, float, maximize/focus, and restore. Carez does not accumulate many simultaneous overlapping dialogs.
 
 Closing a context pane must never remove the permanent desktop rail.
 
@@ -149,20 +151,22 @@ The approved **Owner Reports** page establishes the reporting-page pattern.
 
 ## Synchronized estimator layers
 
-Carez presents three synchronized layers of the same estimate:
+Carez presents synchronized views of the same estimate:
 
-`Drawing -> Takeoff / Assembly -> Estimate`
+Drawing/2D → derived 3D verification → Concrete Condition/modules → Quantity/Estimate Worksheet → commercial estimate.
 
-Geometry remains authoritative in normalized/vector page coordinates. Assemblies expand geometry into physical resources, production and generated estimate lines. Financial lineage remains server-authoritative.
+Geometry remains authoritative in normalized/vector page coordinates. The 3D scene derives from the same IDs and governed dimensional facts. Conditions expand geometry into physical resources, labor, equipment, holds, and generated estimate lines. Financial lineage remains server-authoritative.
 
-## Inspector model
+## Condition Properties model
 
-The Takeoff Inspector is a compact operational property surface, not a permanently expanded form.
+Condition Properties is a readable concrete operational surface, not a programming screen or permanently expanded form.
 
-- Prefer collapsed sections by default with clear section headings and strong disclosure affordances.
-- Expand the sections that matter to the current selection, unresolved hold, or active editing task.
-- Keep selected measurement identity, critical quantity/unit, actionable inputs, and blocking state immediately discoverable.
-- Advanced recipe authoring remains in the Recipe Editor rather than turning the permanent Inspector into a long configuration form.
+- Use family-aware tabs such as General, Rebar, Forms, Excavation, Labor, Drawing, and More.
+- Prefer collapsed sections with clear headings and strong disclosure affordances.
+- Expand sections relevant to the selection, active measurement role, unresolved hold, or current editing task.
+- Keep Condition identity, critical dimensions, elevation, primary quantity/unit, actionable inputs, enabled modules, and blocking state immediately discoverable.
+- Use typed inputs, toggles, dropdowns, compact grids, and visually distinct derived values.
+- Formula Composer is not shown in normal Takeoff; authorized advanced custom company logic lives outside the daily workflow.
 - Provenance/audit detail remains available contextually without permanent narration.
 
 ## Takeoff sheet-pane behavior
@@ -202,16 +206,18 @@ The drawing canvas must remain visually primary and should feel closer to a prof
 - Status and hold color are semantic; ordinary rows should remain neutral.
 - Important totals may receive stronger typography or contained emphasis, but should not dominate the drawing workflow.
 
-## Builder Methods
+## Builder methods
 
-Builder Methods remain part of P1. The existing verification, immutable profile lineage, conditional activation and draw gate remain authoritative through the redesign.
+Builder methods remain explicit through Company Condition Template defaults and Project Concrete Condition overrides. Verification, immutable source lineage, conditional activation, and safety/cost-critical holds remain authoritative. They are configured inside relevant Condition modules rather than through a separate recipe-first workflow.
 
 ## Estimate hierarchy
 
-Takeoff measurement/assembly groups remain collapsible. Parent groups own their generated resource/cost children and measurement subtotal. The redesign changes presentation, not lineage semantics.
+Concrete Condition groups remain collapsible. Each Condition owns its role-linked measurements and generated module/resource/labor/cost children. The redesign preserves exact version/output lineage and separately displays Production Quantity, Direct Cost, and Sell.
 
 ## Implementation boundary
 
-This redesign is presentation-system work, not an architectural rewrite. It must not change Takeoff geometry authority, calibration, server-authoritative calculations, RLS/tenant isolation, published recipe/version semantics, commercial lineage, accepted-scope immutability, field-truth separation, or Production Quantity / Direct Cost / Sell separation.
+The shared visual-system work does not change Takeoff geometry authority, calibration, server-authoritative calculations, RLS/tenant isolation, commercial lineage, accepted-scope immutability, field-truth separation, or Production Quantity/Direct Cost/Sell separation.
+
+ADR-012 separately authorizes the controlled product-model migration from recipe/formula-first UI to Concrete Conditions while preserving published legacy history and calculation lineage. ADR-013 governs derived 3D.
 
 Routine implementation occurs on canonical `staging`. `main` remains production only. User browser QA uses the single stable staging URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.

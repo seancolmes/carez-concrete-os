@@ -1,7 +1,7 @@
-> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Document status:** SUPERSEDED — HISTORICAL REFERENCE  
 > **Canonical owner:** `docs/modules/takeoff.md`, `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
-> **Use:** Supporting P1 means/methods/resource architecture contract.  
-> **Supersession:** Active until explicitly superseded; current implementation progress belongs in `docs/CURRENT_STATE.md`.
+> **Use:** Historical record of the recipe/method-profile implementation target. Do not use as the active Condition product contract.  
+> **Supersession:** Superseded by `docs/concrete-condition-3d-workstation-target.md` and ADR-012. Durable separation of plan facts, methods, production, commercial assumptions, explicit resources, formwork safety boundaries, and pricing provenance remains canonical.
 
 # Carez Builder Means, Methods & Resource Engine
 

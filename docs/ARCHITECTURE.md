@@ -10,7 +10,7 @@ Canonical digital thread:
 Job Spine
 → Opportunity / ITB
 → Plans
-→ Takeoff
+→ Takeoff / Concrete Conditions
 → Estimate Revision
 → Proposal Revision
 → Award Decision
@@ -66,30 +66,43 @@ Every bid-to-closeout lifecycle is anchored by one persistent company-scoped **J
 - PDF is visual reference; stable normalized/vector page coordinates are authoritative geometry.
 - Geometry and calibration remain deterministic across zoom/render changes.
 - Editing, cutouts, arcs, duplication, undo/redo, and worksheet lineage operate on persisted domain state.
-- The permanent resizable bottom Quantity Worksheet is a flagship workstation element and remains available during normal recipe authoring.
-- Takeoff selects and applies published company-owned Concrete Scope Recipes plus verified Project Scope Variants/job inputs.
-- Recipe authoring stays on the same Takeoff route through a movable/resizable popup Recipe Editor over the live plan. It is not a separate page/browser window and does not turn the permanent Inspector into a long form.
-- Focus Builder maximizes/restores that same editor while preserving sheet, viewport, zoom/pan, calibration, selection, and draft state.
+- The primary daily object is a named Project Concrete Condition, not a formula or generic recipe.
+- One primary measurement role and optional secondary roles connect independently persisted geometry to the same Condition.
+- The permanent resizable bottom Quantity/Estimate Worksheet remains available during Condition setup, measuring, verification, and commercial review.
+- The estimator works through a resizable context pane with Plans, Conditions, and Zones tabs; a dominant drawing surface; a dockable/floatable/resizable Condition Properties window; and the worksheet.
+- Standard Takeoff uses concrete-readable tabs, toggles, dropdowns, typed dimensions, compact grids, derived values, and explicit overrides/holds. Normal users do not see or author formulas.
+- Window layout changes preserve sheet, viewport, zoom/pan, calibration, selection, active tool, and unsaved property state.
+- Accepted Scope Snapshots preserve the exact measurement, role, Condition/template/archetype versions, outputs, and commercial lineage used by the awarded Proposal revision.
 
-## Assembly and resource engine
+## Concrete Condition and resource engine
 
-- Carez does not use a hard-coded production assembly catalog for new work.
-- New companies may begin with an empty company recipe library.
-- The persisted company assembly/version model is presented as **Concrete Scope Recipes**: reusable user-authored logic for Slabs, Footings, Walls, Grade Beams, Pads, Flatwork, and other concrete scope.
-- Optional system templates live separately and become company-owned only through explicit copy-to-draft.
-- Published Scope Recipe versions are immutable; referenced historical versions remain preserved for lineage.
-- A **Project Scope Variant** is a takeoff-set/job-specific versioned configuration of one published Scope Recipe. It resolves exact plan facts plus estimator-approved method, production, and commercial inputs without forcing a new global recipe for every drawing condition.
-- Existing verified method-profile storage may be extended compatibly to persist Scope Variants; historical profiles remain valid.
-- Recipes support repeatable **System Blocks** for concrete volume, continuous reinforcing, spaced/transverse reinforcing, rebar grids/mats, WWF/WWR, dowels/starters, fiber, vapor barrier, formwork, labor, placement/pump/equipment, and custom items.
-- System Blocks are calculation primitives, not hidden project assumptions. Multiple reinforcing/system instances may coexist in one recipe.
-- Recipes convert authoritative Takeoff measurements plus resolved variables into deterministic resource/labor outputs.
-- Resources are first-class and independently priceable; recipes determine physical demand rather than embedding current price into quantity math.
-- Installed/theoretical quantity, procurement quantity, reusable inventory demand, Direct Cost, and Sell are distinct.
-- Formula authoring is estimator-friendly but compiles to one deterministic server-authoritative engine with validation, dependency/cycle protection, conditional logic, and traceability.
-- Normal users are not required to type internal calculation namespaces.
-- Takeoff → published Scope Recipe version → Project Scope Variant → child/component/resource output → estimate item lineage remains exact.
-- Missing inputs or prices are explicit holds, not fabricated zeros.
-- Plan facts, method decisions, production assumptions, and commercial assumptions remain distinguishable and retain provenance.
+- Carez owns versioned Platform Condition Archetypes that define supported geometry roles, typed schemas, module compatibility, deterministic algorithms, validation, output contracts, and dimensional facts.
+- Companies own versioned Company Condition Templates containing preferred enabled modules, products, means/methods, production baselines, waste/rounding policy, and pricing defaults.
+- Jobs use versioned Project Concrete Conditions containing confirmed plan facts and estimator-approved method, production, and commercial overrides.
+- Platform behavior may encode reliable concrete math; it may not silently choose job dimensions, reinforcing design, means/methods, production rates, price, waste, or margin.
+- Standard Condition modules include Concrete, Forms, Reinforcing, Anchors/Embeds, Slab Systems, Excavation/Backfill, Placement/Pump/Equipment, Finish/Cure/Protection, Labor Operations, and Miscellaneous.
+- Modules are repeatable where physical work repeats and expose typed inputs, activation/validation, deterministic outputs, presentation metadata, provenance, and holds.
+- Anchor bolts, dowels, embeds, blockouts, joints, reinforcement sets, form resources, equipment, and labor operations are first-class traceable outputs.
+- Resources are independently priceable; Conditions determine physical demand rather than embedding current price into quantity math.
+- Installed/theoretical quantity, procurement quantity, reusable inventory demand, Production Quantity, Direct Cost, and Sell are distinct.
+- Valid geometry saves when one module is unresolved. Only dependent outputs receive Input, 3D Input, Price, Labor Rate, Method Verification, or Review holds.
+- Published Company Condition Template versions are immutable; Project Condition revisions and overrides preserve exact source provenance.
+- Formula Composer is removed from normal Takeoff. The deterministic AST remains a compatibility and authorized advanced-company extension behind the same server-authoritative validation/calculation path.
+- Canonical lineage is Takeoff Measurement + Role → Project Concrete Condition Version → Company Condition Template Version → Platform Condition Archetype Version → Module/Output → Takeoff Output → Estimate Item.
+- Existing published assembly/recipe versions, formula ASTs, outputs, method profiles, estimate links, and accepted references remain immutable through a dependency-safe migration. Legacy UI becomes read-only before removal; referenced history is never deleted.
+
+## Derived 2D/3D takeoff verification
+
+- The drawing workspace exposes 2D, 3D, and synchronized Split modes.
+- Persisted 2D/vector geometry remains quantity authority. The 3D scene is a deterministic projection of the same measurement/role/Condition IDs plus governed profile, dimensions, elevation/reference, openings, and segment/step metadata.
+- A mesh or rendered solid is never an independent quantity record and never becomes commercial calculation authority.
+- Selection, Condition color, visibility, zones, filters, review state, and worksheet focus synchronize across views.
+- Missing required dimensions/elevation create a visible 3D Input Required hold; Carez does not invent geometry.
+- Initial 3D is read-only quality control: orbit/pan/zoom, hide/isolate, zone/level filters, issue list, and click-through to Condition Properties.
+- Quality checks may surface overlap/duplicates, gaps/disconnections, floating or incorrectly elevated elements, opening/cutout conflicts, step discontinuities, and revision changes. Humans confirm scope corrections.
+- Controlled property editing from 3D follows only after it uses the same commands, validation, persistence, undo/redo, and lineage as 2D. Freeform 3D modeling is not an initial goal.
+- Rebar visualization may later display governed estimating assumptions, but it is not structural-engineering or fabrication authority.
+- If 3D rendering is unavailable, authoritative 2D Takeoff and quantities continue to operate.
 
 ## Commercial lineage
 
@@ -146,7 +159,7 @@ A **Constraint** is a prospective readiness condition. A **Blocker Event** recor
 
 Field truth separates Timecard, Actual Work Context, Constraint, Blocker Event, Completion Evidence, and Production Evidence. Correcting work context never rewrites payroll time. Waiting, blocked, rework, setup, and ambiguous time remain distinguishable from productive labor.
 
-Production Evidence is append-only/versioned and may inform future estimating but never automatically rewrites published recipes, assumptions, budgets, Accepted Scope Snapshots, or accepted estimates.
+Production Evidence is append-only/versioned and may inform future estimating but never automatically rewrites published Company Condition Templates, Project Condition assumptions, budgets, Accepted Scope Snapshots, or accepted estimates.
 
 ## Finance and procurement
 
@@ -160,7 +173,7 @@ One document architecture links files to the Job Spine and phase-specific entiti
 
 AI may assist setup, recognition, extraction, repetition, comparison, retrieval, summarization, QA, clerical preparation, schedule/readiness risk detection, alternate READY-work suggestions, and production-evidence classification.
 
-Humans remain authoritative for scope, assumptions, recipes, means/methods, production rates, pricing, margin, budgets, schedule commitments/material resequencing, approvals, and final commercial decisions.
+Humans remain authoritative for scope, Project Concrete Conditions, company templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, schedule commitments/material resequencing, approvals, and final commercial decisions.
 
 ## Experience architecture
 
@@ -173,7 +186,7 @@ CLOSED: [ permanent app rail ][ workspace ]
 
 The primary desktop rail never disappears merely because the context drawer closes.
 
-Visual direction: professional, industrial, calm, precise, dense, premium, concrete-native. Avoid generic SaaS styling, excessive whitespace, giant rounded cards, glassmorphism, and decorative UI that competes with plans or estimating data.
+Visual direction: modern, minimal, calm, precise, spacious enough for excellent readability, and concrete-native. Use the Estimating EDGE interaction pattern as a benchmark for clear condition organization and screen division while retaining Carez branding and the shared light workstation system. Prefer crisp borders, tabs, dropdowns, restrained color, readable grids, and a small number of predictable dockable/floatable/resizable windows. Avoid tiny text, cramped tool chrome, generic SaaS card walls, giant rounded cards, glassmorphism, decorative UI, excessive unused whitespace, and uncontrolled overlapping dialogs.
 
 ### Dashboard / Today
 

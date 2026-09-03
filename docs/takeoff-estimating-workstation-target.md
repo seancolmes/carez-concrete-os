@@ -1,7 +1,7 @@
-> **Document status:** ACCEPTED DETAILED DESIGN  
+> **Document status:** SUPERSEDED — HISTORICAL REFERENCE  
 > **Canonical owner:** `docs/modules/takeoff.md`, `docs/modules/estimating.md`, `docs/ARCHITECTURE.md`  
-> **Use:** Supporting integrated estimator-workstation product contract and implementation sequencing.  
-> **Supersession:** Active until explicitly superseded; present implementation status belongs in `docs/CURRENT_STATE.md`.
+> **Use:** Historical record of the prior assembly/recipe-first workstation contract. Do not use for new implementation.  
+> **Supersession:** Superseded by `docs/concrete-condition-3d-workstation-target.md`, ADR-012, and ADR-013. Durable geometry, hold, pricing-provenance, commercial-lineage, and accepted-scope safeguards remain preserved in canonical owners.
 
 # Carez Concrete OS — Integrated Takeoff + Estimating Workstation
 

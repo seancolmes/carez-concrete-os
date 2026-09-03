@@ -10,9 +10,10 @@ Issued and accepted commercial records preserve exact historical lineage. Custom
 
 ```text
 Job Spine
-→ Takeoff Measurement / Output Version
-→ Published Assembly Version
-→ Deterministic Output
+→ Takeoff Measurement / Role / Output Version
+→ Project Concrete Condition Version
+→ Company Condition Template / Platform Archetype Version
+→ Condition Module / Deterministic Output
 → Estimate Item
 → Proposal Revision
 → Award Decision / Customer Acceptance
@@ -24,9 +25,9 @@ Job Spine
 ```
 
 ## Consequences
-- Published assembly versions are immutable.
+- Published Company Condition Template/Platform Archetype versions and referenced legacy assembly versions are immutable.
 - Accepted/issued commercial records are mutation-protected.
-- The Accepted Scope Snapshot explicitly records accepted/rejected alternates, partial or negotiated scope, quantities, terms, clarifications, inclusions, exclusions, allowances, unit prices, Takeoff/assembly lineage, production/direct-cost/sell assumptions, and pricing provenance.
+- The Accepted Scope Snapshot explicitly records accepted/rejected alternates, partial or negotiated scope, quantities, terms, clarifications, inclusions, exclusions, allowances, unit prices, Takeoff/Condition/module lineage, production/direct-cost/sell assumptions, and pricing provenance.
 - Opportunity, Project, and other phase records remain distinct entities linked by the same Job Spine.
 - The original commercial baseline is distinct from schedule and production-assumption baselines.
 - Changes, forecast revisions, and actuals append new state rather than rewriting the original baseline.
@@ -39,4 +40,6 @@ Job Spine
 - ADR-008 — Accepted Scope Snapshot and Frozen Commercial Baseline
 - ADR-009 — Versioned Production Scope Allocation
 - ADR-010 — Separate Field Truth and Production Evidence Records
+- ADR-012 — Concrete Condition Engine
+- ADR-013 — Derived 2D/3D Takeoff Verification
 

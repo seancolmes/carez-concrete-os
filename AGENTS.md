@@ -34,10 +34,13 @@ Permanent branches are only `staging` and `main`.
 - Prefer a modular monolith.
 - Server-authoritative calculations for quantities, costs, pricing lineage, and financial values.
 - Preserve RLS, tenant isolation, auditability, immutable/versioned commercial records, and safe migrations.
-- Published assembly versions are immutable.
+- Published Company Condition Template versions and all referenced legacy assembly/recipe versions are immutable.
+- The primary daily Takeoff object is a Concrete Condition with typed concrete modules; normal Takeoff must not require Formula Composer.
+- One primary and optional secondary measurement roles remain independently persisted and traceable to the same Condition.
+- Persisted normalized 2D/vector geometry remains quantity authority; 3D is a synchronized derived verification view and never a second quantity engine.
 - Production Quantity, Direct Cost, and Sell remain distinct.
 - PDF is visual reference; stable page-coordinate vector geometry is authoritative for Takeoff.
-- AI assists setup, recognition, retrieval, repetition, comparison, and QA. Humans remain authoritative for scope, assemblies, production rates, pricing, margin, budgets, and approvals.
+- AI assists setup, recognition, retrieval, repetition, comparison, and QA. Humans remain authoritative for scope, Conditions, company templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
 
 ## Implementation rules
 
@@ -45,6 +48,7 @@ Permanent branches are only `staging` and `main`.
 - Make the smallest coherent change that solves the confirmed problem.
 - Do not modify unrelated code.
 - Protect domain and data lineage.
+- Migrate the legacy recipe/formula workflow additively: prove Condition parity and reconcile references before retiring UI; never delete published/accepted history.
 - Use source-controlled Supabase migrations for schema or database behavior changes.
 - Do not create a second client-side calculation engine that diverges from server/domain logic.
 - Do not introduce microservices, Kubernetes, Kafka, or event sourcing without a demonstrated requirement.
@@ -67,6 +71,8 @@ CLOSED: [ permanent app rail ][ workspace ]
 ```
 
 Only the context drawer may be transient.
+
+The estimator workstation follows the approved light, modern, minimal, readable Condition layout: permanent rail; resizable Plans/Conditions/Zones pane; dominant 2D/3D/Split drawing surface; one dockable/floatable/resizable Condition Properties window; and permanent resizable Quantity/Estimate Worksheet. Avoid tiny text, cramped chrome, decorative card walls, and uncontrolled overlapping dialogs.
 
 ## Required implementation report
 

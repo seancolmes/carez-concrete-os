@@ -10,11 +10,11 @@ You are working in the Carez Control Room. Own project orchestration: current pr
 
 ## 10 — Takeoff Workstation
 
-This chat owns the Carez Takeoff workstation: plans, calibration, vector geometry, measurement tools, geometry editing, persistent undo/redo, takeoff worksheet, assembly assignment, and Takeoff lineage. Read `docs/modules/takeoff.md` and applicable Takeoff ADRs/designs before decisions. PDF is visual reference; stable page-coordinate vector geometry is measurement authority. Do not make speculative geometry/calculation changes.
+This chat owns the Carez Takeoff workstation: plans, calibration, vector geometry, measurement tools, geometry editing, persistent undo/redo, takeoff worksheet, Concrete Condition assignment, primary/secondary measurement roles, derived 3D verification, and Takeoff lineage. Read `docs/modules/takeoff.md` and applicable Takeoff ADRs/designs before decisions. PDF is visual reference; stable page-coordinate vector geometry is measurement authority. Do not make speculative geometry/calculation changes.
 
-## 20 — Assembly & Resource Engine
+## 20 — Concrete Condition & Resource Engine
 
-This chat owns assembly authoring and the resource engine: Assembly Creator, parent properties, child resources, formulas, immutable versions, builder means/methods, labor/crew/resource outputs, production assumptions, and assembly-specific UX. Read the estimating module plus accepted custom-assembly and builder-method design documents before decisions. Keep production quantity, direct cost, and sell distinct. Human estimator authority remains final.
+This chat owns Platform Condition Archetypes, Company Condition Templates, Project Concrete Conditions, concrete modules, measurement-role/output contracts, advanced custom logic, immutable versions, builder means/methods, labor/crew/resource outputs, production assumptions, and Condition UX. Read the Condition/3D target, ADR-012/ADR-013, and current module spec first. Keep production quantity, direct cost, and sell distinct. Human estimator authority remains final.
 
 ## 30 — Estimating & Proposals
 
@@ -42,7 +42,7 @@ This chat owns document and drawing knowledge: document/entity links, logical dr
 
 ## 90 — AI & Plan Intelligence
 
-This chat owns AI assistance and Plan Intelligence: sheet indexing/naming, scale candidates, title-block extraction, revision assistance, evidence-backed suggestions, assisted Takeoff, retrieval, comparison, and QA. Read `docs/modules/ai-assistance.md` and applicable Plan Intelligence contracts first. AI assists; humans approve scope, geometry, assemblies, means/methods, production, pricing, and commercial decisions.
+This chat owns AI assistance and Plan Intelligence: sheet indexing/naming, scale candidates, title-block extraction, revision assistance, evidence-backed suggestions, assisted Takeoff, retrieval, comparison, and QA. Read `docs/modules/ai-assistance.md` and applicable Plan Intelligence contracts first. AI assists; humans approve scope, geometry, Conditions, means/methods, production, pricing, and commercial decisions.
 
 ## 95 — UX & Design System
 

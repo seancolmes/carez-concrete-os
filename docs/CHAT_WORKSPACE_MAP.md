@@ -14,7 +14,7 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 |---|---|---|
 | `00 — Carez Control Room` | current priority, roadmap, cross-module decisions, release coordination, routing new ideas | `docs/CURRENT_STATE.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md` |
 | `10 — Takeoff Workstation` | plans, calibration, geometry, measurement tools, takeoff worksheet, takeoff lineage | `docs/modules/takeoff.md`, Takeoff ADRs and accepted detailed designs |
-| `20 — Assembly & Resource Engine` | assembly authoring, properties, resources, builder methods, production/resource logic, assembly creator UX | `docs/modules/estimating.md`, custom assembly and builder-method accepted designs |
+| `20 — Concrete Condition & Resource Engine` | archetypes, company templates, project Conditions, modules, measurement roles, resources, advanced logic, builder methods, production/resource logic | `docs/modules/assembly-resource-engine.md`, `docs/concrete-condition-3d-workstation-target.md`, ADR-012/ADR-013 |
 | `30 — Estimating & Proposals` | Scope → Takeoff → Pricing → Review → Proposal, cost/pricing provenance, labor/crew buildup, bid review | `docs/modules/estimating.md` |
 | `40 — CRM & Preconstruction` | leads, opportunities, ITBs, bid calendar, customers, preconstruction pipeline | `docs/modules/crm-preconstruction.md` |
 | `50 — Projects, Work Packages & Scheduling` | award handoff, frozen budget, work packages, operations, readiness, schedule | `docs/modules/projects-work-packages-scheduling.md` |
@@ -104,7 +104,7 @@ Naming:
 - `<domain number><letter> — <objective> — Work` for focused Work execution.
 
 Examples:
-- `20A — Assembly Creator — Implementation`
+- `20A — Concrete Condition Foundation — Implementation`
 - `60A — Field Workflow Research — Work`
 - `95A — Design System Audit — Work`
 
@@ -112,7 +112,7 @@ Temporary threads are narrow and disposable. They do not become sources of produ
 
 ## Continuation rule
 
-When a permanent chat becomes too long, create a continuation using the same domain identity, for example `20 — Assembly & Resource Engine — Continuation 2`.
+When a permanent chat becomes too long, create a continuation using the same domain identity, for example `20 — Concrete Condition & Resource Engine — Continuation 2`.
 
 Bootstrap from current GitHub truth: `docs/README.md`, `docs/CURRENT_STATE.md`, applicable module specs, ADRs/accepted designs, relevant issues/PRs, and repository evidence. Do not summarize the entire old transcript as authority. Carry forward only unresolved conversational context that has not yet become canonical.
 
