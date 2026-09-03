@@ -95,7 +95,7 @@ Properties may be grouped for estimator readability, exposed or hidden from Take
 
 A deterministic source mapping into an assembly property.
 
-Supported namespaces remain:
+Canonical execution namespaces remain:
 
 - `Takeoff.*`;
 - `Project.*`;
@@ -103,13 +103,13 @@ Supported namespaces remain:
 - `PlanFact.*`;
 - `Properties.*`.
 
-Child assemblies inherit only through explicit bindings. Cycles are invalid.
+These are internal calculation namespaces, not normal estimator-facing labels. Child assemblies inherit only through explicit bindings. Cycles are invalid.
 
 ## Formula engine
 
 Carez retains a deterministic formula AST as the authoritative execution model. Arbitrary JavaScript, `eval`, SQL expression strings, and an independent math.js runtime are not commercial calculation authorities.
 
-The Assembly Builder should make formula authoring readable and visual while compiling to the same deterministic AST used by the server.
+The Assembly Builder must make formula authoring concrete-estimator friendly while compiling to the same deterministic AST used by the server.
 
 Required engine capabilities:
 
@@ -128,11 +128,37 @@ Required engine capabilities:
 
 The engine should become unit-aware so invalid dimensional operations are rejected before publication. Common concrete units include IN, FT, LF, SF, CF, CY, EA, LB, TON, HR, MH, GAL, and package/purchase units.
 
-The UI may display estimator-friendly expressions such as:
+### Estimator-facing formula authoring
 
-`Concrete Volume = Takeoff.Area * Properties.Thickness`
+Normal users must not be required to understand or type internal tokens such as `Takeoff.Length` or `Properties.form_sides`.
 
-but execution must compile to and run through the canonical deterministic formula engine.
+The builder should present human-scale formula inputs such as:
+
+- Measured length;
+- Measured area;
+- Measured count;
+- Measured volume;
+- Measured perimeter when available;
+- the assembly's named inputs such as Width, Thickness, Formed sides, Waste %, Rebar density, or Labor rate;
+- numeric constants;
+- +, -, ×, ÷, and parentheses;
+- explicit common conversions such as inches to feet and cubic feet to cubic yards;
+- rounding helpers such as Round and Round up;
+- advanced min/max/lookup/conditional capability when needed.
+
+Estimator-facing expressions may read like:
+
+`Length × depth_in ÷ 12 × formed_sides`
+
+or, through richer labels in the visual builder:
+
+`Measured length × Footing depth ÷ 12 × Formed sides`
+
+while the saved and executed expression remains the canonical deterministic AST with explicit namespaces.
+
+The preferred product direction is a guided formula composer rather than a giant hidden catalog of hard-coded concrete formulas. Templates may provide useful concrete recipe patterns, but estimators must be able to create and change the math themselves without developer code.
+
+Raw namespace syntax may remain available as an advanced compatibility/expert path, but it must not dominate ordinary authoring.
 
 ## Quantity separation
 
@@ -203,7 +229,7 @@ Assembly Builder supports these entry paths:
 - Create Revision from Published Version;
 - Edit Existing Draft.
 
-Creating a new assembly may use a small setup dialog for identity and measurement type. After creation, the draft opens in the integrated builder.
+Creating a new assembly may use a small setup dialog for identity and measurement type. That dialog should be movable when it overlaps useful drawing context. After creation, the draft opens in the integrated builder.
 
 Published versions remain read-only. Editing published work requires `Create Revision`, producing a new mutable draft without changing any prior published version or historical Takeoff lineage.
 
@@ -225,14 +251,16 @@ Core interaction patterns:
 - provide draft undo/redo;
 - keep published versions read-only.
 
-The builder must be structured enough to avoid free-form node-graph spaghetti. The default recipe organization should use bounded lanes/sections such as:
+The builder's left block palette and right Test Bench are horizontally resizable. The estimator must be able to widen the Test Bench when result labels or inputs are clipped and narrow it again when more recipe space is needed. Pane widths should persist locally for that workstation.
 
-- **Inputs / Properties**;
-- **Methods / Decisions**;
-- **Logic / Child Assemblies**;
-- **Resource Outputs**;
-- **Labor / Production**;
-- **Test / Validation**.
+The default recipe UI should favor plain concrete language:
+
+- **Inputs**;
+- **Sub-assemblies** when needed;
+- **Materials & labor**;
+- **Test Bench**.
+
+Advanced logic remains available but should not dominate the default reading order.
 
 ### Focus Builder
 
@@ -355,11 +383,14 @@ The module is acceptable when an estimator can:
 - create an assembly from a template without inheriting future template changes;
 - create a new revision from a published assembly without changing prior jobs;
 - author the assembly while remaining in the Takeoff workstation with the live plan in context;
+- move the small create/library dialog when it obscures useful context;
+- resize the builder's block palette and Test Bench horizontally and retain useful widths;
 - enter and exit Focus Builder without losing plan viewport/selection context or draft state;
 - add and configure typed parent properties;
 - drag resources and child assemblies into a recipe;
 - bind child properties to parent/Takeoff/project/plan-fact sources;
-- build formulas through the interactive UI;
+- build ordinary concrete formulas from measured geometry, named inputs, math operators, numeric constants, conversions, and rounding without needing to type internal namespace tokens;
+- use advanced deterministic formula syntax when genuinely needed;
 - receive dimensional/formula validation before publication;
 - test sample or eligible live Takeoff quantities in the same calculation engine used in production;
 - publish an immutable version;
