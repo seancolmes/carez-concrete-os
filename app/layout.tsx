@@ -33,6 +33,7 @@ import './b2-estimator-focus.css';
 import './jobs-b2.css';
 import './b2-context-drawer.css';
 import './b2-readability.css';
+import './carez-light-workstation.css';
 
 const inter = Inter({
   subsets: ['latin'],
