@@ -43,6 +43,13 @@ import {
 } from '@/lib/takeoff/assemblyContext';
 import { evaluateRule } from '@/lib/takeoff/rules';
 import {
+  ConcreteFormulaComposer,
+  FormulaConditionBuilder,
+  type FormulaAuthoringConfig,
+  type FormulaCondition,
+  type FormulaConditionGroup,
+} from './ConcreteFormulaComposer';
+import {
   deleteAssemblyChild,
   deleteAssemblyComponent,
   deleteAssemblyProperty,
@@ -110,9 +117,9 @@ type ComponentForm = {
   pricingStrategy: string;
   defaultUnitCost: string;
   catalogItemId: string;
-  conditionProperty: string;
-  conditionOperator: string;
-  conditionValue: string;
+  quantityAuthoring: FormulaAuthoringConfig;
+  laborAuthoring: FormulaAuthoringConfig;
+  conditions: FormulaConditionGroup;
 };
 
 type ChildForm = { childVersionId: string; key: string; label: string; quantityFormula: string; bindings: string };
@@ -147,17 +154,51 @@ const expressionText = (formula: any) => formatFormulaExpression(formula).replac
 const seedString = (seed: Record<string, unknown>, key: string, fallback = '') => typeof seed[key] === 'string' ? String(seed[key]) : fallback;
 const optionText = (options: unknown) => enumOptions(options).map(option => `${option.value}:${option.label}`).join(', ');
 
-function conditionFromRule(rule: any) {
-  if (!rule?.left?.var || !rule?.right || !('const' in rule.right)) return { property: '', operator: 'eq', value: '' };
-  return { property: String(rule.left.var).replace(/^properties\./, ''), operator: String(rule.op || 'eq'), value: String(rule.right.const ?? '') };
+const emptyConditions = (): FormulaConditionGroup => ({ match: 'all', conditions: [] });
+
+function conditionLeaf(rule: any, index: number): FormulaCondition | null {
+  if (!rule?.left?.var || !rule?.right || !('const' in rule.right) || !['eq', 'neq', 'gt', 'gte', 'lt', 'lte'].includes(String(rule.op || ''))) return null;
+  return {
+    id: `condition-${index + 1}`,
+    propertyKey: String(rule.left.var).replace(/^properties\./, ''),
+    operator: String(rule.op || 'eq') as FormulaCondition['operator'],
+    value: String(rule.right.const ?? ''),
+  };
 }
 
-function makeCondition(property: any, operator: string, raw: string) {
-  if (!property || raw === '') return null;
-  let value: string | number | boolean = raw;
-  if (['number', 'dimension', 'percentage'].includes(property.value_type)) value = Number(raw);
-  if (property.value_type === 'boolean') value = raw === 'true';
-  return { op: operator, left: { var: `properties.${property.variable_key}` }, right: { const: value } };
+function conditionsFromRule(rule: any): FormulaConditionGroup {
+  if (!rule) return emptyConditions();
+  const grouped = rule.op === 'and' || rule.op === 'or';
+  const source = grouped && Array.isArray(rule.args) ? rule.args : [rule];
+  return {
+    match: rule.op === 'or' ? 'any' : 'all',
+    conditions: source.map((child: any, index: number) => conditionLeaf(child, index)).filter(Boolean) as FormulaCondition[],
+  };
+}
+
+function conditionRule(property: any, condition: FormulaCondition) {
+  if (!property || condition.value === '') return null;
+  let value: string | number | boolean = condition.value;
+  if (['number', 'dimension', 'percentage'].includes(property.value_type)) value = Number(condition.value);
+  if (property.value_type === 'boolean') value = condition.value === 'true';
+  return { op: condition.operator, left: { var: `properties.${property.variable_key}` }, right: { const: value } };
+}
+
+function makeConditionGroup(group: FormulaConditionGroup, properties: any[]) {
+  const rules = group.conditions.map(condition => conditionRule(properties.find(property => property.variable_key === condition.propertyKey), condition)).filter(Boolean) as any[];
+  if (!rules.length) return null;
+  if (rules.length === 1) return rules[0];
+  return { op: group.match === 'any' ? 'or' : 'and', args: rules };
+}
+
+function authoringSection(component: any, key: 'quantity' | 'labor', fallback: string): FormulaAuthoringConfig {
+  const config = component?.authoring_config?.[key];
+  if (!config || typeof config !== 'object') return { mode: 'easy', expression: fallback, steps: [] };
+  return {
+    mode: config.mode === 'advanced' ? 'advanced' : 'easy',
+    expression: typeof config.expression === 'string' ? config.expression : fallback,
+    steps: Array.isArray(config.steps) ? config.steps : [],
+  };
 }
 
 export function AssemblyBuilderComposer({ setId, versionId, builderData, focus, onFocusChange, onClose, onCreateAnother }: Props) {
@@ -417,10 +458,11 @@ function PropertyBlock({ row, binding, ...props }: BlockProps & { binding: any }
 }
 
 function ComponentBlock({ row, properties, catalogItems, ...props }: BlockProps & { properties: any[]; catalogItems: any[] }) {
-  const condition = conditionFromRule(row.activation_rule);
+  const conditions = conditionsFromRule(row.activation_rule);
   const catalog = catalogItems.find(item => item.id === row.catalog_item_id);
   const detail = catalog ? `${catalog.name}${catalog.vendor_name ? ` · ${catalog.vendor_name}` : ''}` : formatFormulaExpression(row.quantity_formula);
-  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${row.estimate_item_type === 'labor' ? styles.laborIcon : styles.resourceIcon}`}>{row.estimate_item_type === 'labor' ? <Hammer size={14} /> : <Package size={14} />}</div><div className={styles.blockMain}><span>{friendly(row.estimate_item_type)}</span><strong>{row.label}</strong><small>{detail}</small></div>{condition.property && <div className={styles.conditionChip}><Braces size={11} />If {properties.find(property => property.variable_key === condition.property)?.label || condition.property}</div>}<div className={styles.blockMeta}><b>{row.output_unit}</b><span>{row.estimate_item_type === 'labor' && row.labor_rate_formula ? `${formatFormulaExpression(row.labor_rate_formula)} MH/unit` : catalog ? 'Catalog resource' : friendly(row.pricing_strategy || 'current_cost')}</span></div><BlockActions {...props} /></article>;
+  const conditionLabel = conditions.conditions.length ? conditions.conditions.length === 1 ? properties.find(property => property.variable_key === conditions.conditions[0].propertyKey)?.label || conditions.conditions[0].propertyKey : `${conditions.conditions.length} conditions` : '';
+  return <article className={styles.block} draggable={!props.readOnly} onDragStart={props.onDragStart} onDragOver={event => event.preventDefault()} onDrop={props.onDrop}><div className={styles.blockGrip}><GripHorizontal size={13} /></div><div className={`${styles.blockIcon} ${row.estimate_item_type === 'labor' ? styles.laborIcon : styles.resourceIcon}`}>{row.estimate_item_type === 'labor' ? <Hammer size={14} /> : <Package size={14} />}</div><div className={styles.blockMain}><span>{friendly(row.estimate_item_type)}</span><strong>{row.label}</strong><small>{detail}</small></div>{conditionLabel && <div className={styles.conditionChip}><Braces size={11} />If {conditionLabel}</div>}<div className={styles.blockMeta}><b>{row.output_unit}</b><span>{row.estimate_item_type === 'labor' && row.labor_rate_formula ? `${formatFormulaExpression(row.labor_rate_formula)} MH/unit` : catalog ? 'Catalog resource' : friendly(row.pricing_strategy || 'current_cost')}</span></div><BlockActions {...props} /></article>;
 }
 
 function ChildBlock({ row, data, ...props }: BlockProps & { data: BuilderData }) {
@@ -456,7 +498,6 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
   const existingChild = editor.kind === 'child' ? children.find(row => row.id === editor.id) : null;
   const seed = editor.seed || {};
   const binding = existingProperty ? bindings.find(row => row.variable_id === existingProperty.id) : null;
-  const condition = conditionFromRule(existingComponent?.activation_rule);
   const originalOptionText = optionText(existingProperty?.options);
   const [error, setError] = useState('');
 
@@ -476,20 +517,24 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
     sourceKey: binding?.source_key || '',
   });
 
+  const existingQuantity = existingComponent?.quantity_formula ? expressionText(existingComponent.quantity_formula) : seedString(seed, 'formula', primaryToken(primaryUnit));
+  const existingLabor = existingComponent?.labor_rate_formula ? expressionText(existingComponent.labor_rate_formula) : seedString(seed, 'laborRateFormula');
+  const quantityAuthoring = authoringSection(existingComponent, 'quantity', existingQuantity);
+  const laborAuthoring = authoringSection(existingComponent, 'labor', existingLabor);
   const [component, setComponent] = useState<ComponentForm>({
     key: existingComponent?.component_key || seedString(seed, 'key'),
     label: existingComponent?.label || seedString(seed, 'label'),
     itemType: existingComponent?.estimate_item_type || seedString(seed, 'itemType', 'material'),
     resourceBehavior: existingComponent?.resource_behavior || seedString(seed, 'resourceBehavior', 'consumed_material'),
     outputUnit: existingComponent?.output_unit || seedString(seed, 'outputUnit', 'EA'),
-    formula: existingComponent?.quantity_formula ? expressionText(existingComponent.quantity_formula) : seedString(seed, 'formula', primaryToken(primaryUnit)),
-    laborRateFormula: existingComponent?.labor_rate_formula ? expressionText(existingComponent.labor_rate_formula) : seedString(seed, 'laborRateFormula'),
+    formula: quantityAuthoring.expression || existingQuantity,
+    laborRateFormula: laborAuthoring.expression || existingLabor,
     pricingStrategy: existingComponent?.pricing_strategy || seedString(seed, 'pricingStrategy', 'current_cost'),
     defaultUnitCost: existingComponent?.default_unit_cost ? String(existingComponent.default_unit_cost) : '',
     catalogItemId: existingComponent?.catalog_item_id || '',
-    conditionProperty: condition.property,
-    conditionOperator: condition.operator,
-    conditionValue: condition.value,
+    quantityAuthoring,
+    laborAuthoring,
+    conditions: conditionsFromRule(existingComponent?.activation_rule),
   });
 
   const [child, setChild] = useState<ChildForm>({
@@ -536,14 +581,6 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
     }
 
     if (editor.kind === 'component') {
-      try {
-        compileFormulaExpression(component.formula);
-        if (component.itemType === 'labor' && component.laborRateFormula) compileFormulaExpression(component.laborRateFormula);
-      } catch (caught: any) {
-        setError(caught.message);
-        return;
-      }
-      const conditionProperty = properties.find(row => row.variable_key === component.conditionProperty);
       onSave(() => saveAssemblyComponent(setId, {
         versionId,
         id: existingComponent?.id || null,
@@ -557,7 +594,11 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
         pricingStrategy: component.pricingStrategy as any,
         defaultUnitCost: component.defaultUnitCost ? Number(component.defaultUnitCost) : null,
         catalogItemId: component.catalogItemId || null,
-        activationRule: makeCondition(conditionProperty, component.conditionOperator, component.conditionValue),
+        activationRule: makeConditionGroup(component.conditions, properties),
+        authoringConfig: {
+          quantity: { ...component.quantityAuthoring, expression: component.formula },
+          ...(component.itemType === 'labor' ? { labor: { ...component.laborAuthoring, expression: component.laborRateFormula } } : {}),
+        },
       }), 'Scope item saved');
       return;
     }
@@ -614,9 +655,9 @@ function BlockEditor({ editor, versionId, setId, properties, components, childre
             }}><option value="">No catalog product linked</option>{catalogItems.map(item => <option key={item.id} value={item.id}>{item.name}{item.vendor_name ? ` · ${item.vendor_name}` : ''}{item.sku ? ` · ${item.sku}` : ''}</option>)}</select></Field>
           </div>
           {selectedCatalog && <div className={styles.editorSection}><div><strong>{selectedCatalog.name}</strong><span>{[selectedCatalog.vendor_name, selectedCatalog.sku, selectedCatalog.default_unit, Number(selectedCatalog.default_unit_cost || 0) > 0 ? `$${Number(selectedCatalog.default_unit_cost).toFixed(2)}/${selectedCatalog.default_unit}` : null].filter(Boolean).join(' · ')}</span></div></div>}
-          <FormulaField title="Quantity math" value={component.formula} onChange={value => setComponent(current => ({ ...current, formula: value }))} primaryUnit={primaryUnit} properties={properties} />
-          {component.itemType === 'labor' && <FormulaField title="Labor hours per output unit" value={component.laborRateFormula} onChange={value => setComponent(current => ({ ...current, laborRateFormula: value }))} primaryUnit={primaryUnit} properties={properties} compact />}
-          <div className={styles.editorSection}><div><strong>Use only when</strong><span>Optional. Example: use WWF only when the WWF variable is Yes.</span></div><div className={styles.conditionBuilder}><select value={component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionProperty: event.target.value }))}><option value="">Always use</option>{properties.map(row => <option key={row.id} value={row.variable_key}>{row.label}</option>)}</select><select value={component.conditionOperator} disabled={!component.conditionProperty} onChange={event => setComponent(value => ({ ...value, conditionOperator: event.target.value }))}><option value="eq">is</option><option value="neq">is not</option><option value="gt">greater than</option><option value="gte">at least</option><option value="lt">less than</option><option value="lte">at most</option></select><ConditionInput property={properties.find(row => row.variable_key === component.conditionProperty)} value={component.conditionValue} onChange={value => setComponent(current => ({ ...current, conditionValue: value }))} /></div></div>
+          <ConcreteFormulaComposer title="Quantity" value={component.formula} onChange={formula => setComponent(current => ({ ...current, formula }))} primaryUnit={primaryUnit} outputUnit={component.outputUnit} properties={properties} config={component.quantityAuthoring} onConfigChange={quantityAuthoring => setComponent(current => ({ ...current, quantityAuthoring }))} />
+          {component.itemType === 'labor' && <ConcreteFormulaComposer title="Labor hours per output unit" value={component.laborRateFormula} onChange={laborRateFormula => setComponent(current => ({ ...current, laborRateFormula }))} primaryUnit={primaryUnit} outputUnit={`MH/${component.outputUnit || primaryUnit}`} properties={properties} config={component.laborAuthoring} onConfigChange={laborAuthoring => setComponent(current => ({ ...current, laborAuthoring }))} compact />}
+          <FormulaConditionBuilder properties={properties} value={component.conditions} onChange={conditions => setComponent(current => ({ ...current, conditions }))} />
           <div className={styles.editorGrid}><Field label="Pricing source"><select value={component.pricingStrategy} onChange={event => setComponent(value => ({ ...value, pricingStrategy: event.target.value }))}><option value="current_cost">Current company cost</option><option value="catalog">Company catalog</option><option value="manual">Estimator/manual</option><option value="none">Not priced</option></select></Field><Field label="Draft unit cost · optional"><input value={component.defaultUnitCost} onChange={event => setComponent(value => ({ ...value, defaultUnitCost: event.target.value }))} inputMode="decimal" /></Field></div>
         </>}
 
@@ -664,11 +705,4 @@ function FormulaField({ title, value, onChange, primaryUnit, properties, compact
     </div>
     {preview && status === 'Formula valid' && <div className={styles.formulaPreview}><span>Reads as</span><code>{preview}</code></div>}
   </div>;
-}
-
-function ConditionInput({ property, value, onChange }: { property: any; value: string; onChange: (value: string) => void }) {
-  if (!property) return <input value="" disabled placeholder="Value" />;
-  if (property.value_type === 'boolean') return <select value={value} onChange={event => onChange(event.target.value)}><option value="">Select…</option><option value="true">Yes</option><option value="false">No</option></select>;
-  if (property.value_type === 'enum') return <select value={value} onChange={event => onChange(event.target.value)}><option value="">Select…</option>{enumOptions(property.options).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>;
-  return <input value={value} onChange={event => onChange(event.target.value)} placeholder="Value" />;
 }
