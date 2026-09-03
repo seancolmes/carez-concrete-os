@@ -80,6 +80,15 @@ Controlled geometry editing / committed history QA is **PASS**:
 - committed undo/redo restores the expected geometry and quantity;
 - the final state persists after hard refresh.
 
+Resolved-method Quantity Worksheet / nested lineage QA is **PASS**:
+
+- with all required method choices resolved, each expected active child output appears once in the Quantity Worksheet with the correct quantity/unit/status;
+- the selected line-pump placement branch is active while the mutually exclusive direct-placement branch remains legitimately inactive;
+- Supabase inspection confirms seven active estimate-visible outputs generated seven estimate items for the controlled strip-footing measurement;
+- Ready-mix concrete remains `0.4879 CY`, formwork `12.6655 SFCA`, line-pump placement labor `0.1952 HR`, line-pump service `4 HR`, and reinforcement `11.1679 LB` for both material and labor production quantity;
+- every generated estimate item retains the exact `source_takeoff_output_id`, `source_takeoff_measurement_id`, and published `source_assembly_version_id` for the controlled measurement;
+- no duplicate generated estimate items were observed for the active output branches.
+
 ## Accepted Takeoff P0 QA/UX hardening — PR #24
 
 Issues #20–#23 are browser-accepted and closed.
@@ -100,7 +109,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 
 ## Current priority
 
-1. Continue authenticated Takeoff P0 QA for broader Quantity Worksheet behavior and exact nested lineage using the accepted explicit-hold foundation.
+1. Continue authenticated Takeoff P0 QA for multi-measurement Quantity Worksheet aggregation, editing/recalculation across several measurements, and exact estimate lineage under those changes.
 2. Reproduce and diagnose Issue #18 if the Server Component render error reappears during controlled QA.
 3. Evaluate/schedule Issue #17 as a non-blocking workstation UX enhancement.
 4. Reconcile active Takeoff/Estimating foundation documents into canonical module specs as needed.
@@ -121,6 +130,8 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Saved-geometry edit / worksheet recalculation / committed undo-redo / refresh persistence: **PASS**.
 - Direct root Takeoff output → estimate-item provenance: **PASS**.
 - Nested required-input hold behavior / output completeness: **PASS** under Issue #20 acceptance.
+- Fully resolved child-output Quantity Worksheet completeness: **PASS**.
+- Resolved nested Takeoff output → estimate-item lineage: **PASS**, including exact source output/measurement/published-assembly identifiers and no duplicate active estimate rows in the controlled case.
 - Hover-only saved-measurement detail interaction: **PASS** under Issue #21 acceptance.
 - B2 typography/readability pass: **PASS** under Issue #22 acceptance.
 - Automatic PDF sheet naming/indexing: **PASS** under Issue #23 acceptance.
@@ -128,7 +139,7 @@ Issue #19 is now closed as browser-verified PASS; no code change was required be
 - Issue #17 free pan below fit-size: **OPEN**, non-blocking UX enhancement.
 - Issue #18 intermittent Server Component error: **OPEN**, exact trigger not reproduced.
 
-Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, and UX foundation. The intermittent Server Component error if reproduced, broader worksheet behavior, and authenticated estimating workflows remain open work.
+Authenticated Takeoff P0 behavioral QA can now continue from an accepted scale, nested-output, worksheet, and exact-lineage foundation. Multi-measurement worksheet aggregation, the intermittent Server Component error if reproduced, and authenticated estimating workflows remain open work.
 
 ## Known deferred work
 
