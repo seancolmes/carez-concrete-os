@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { Copy, FilePlus2, GripHorizontal, LayoutTemplate, PencilLine, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ASSEMBLY_TEMPLATES } from '@/lib/takeoff/assemblyTemplates';
@@ -43,6 +43,10 @@ type DialogDrag = {
   top: number;
   bottom: number;
 };
+type PaneDrag = { kind: 'palette' | 'test'; startX: number; width: number };
+
+const BUILDER_PANE_STORAGE_KEY = 'carez.assemblyBuilder.panes.v1';
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 const latestByAssembly = (versions: any[]) => {
   const map = new Map<string, any[]>();
@@ -66,11 +70,14 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
   const router = useRouter();
   const dialogRef = useRef<HTMLElement | null>(null);
   const dialogDragRef = useRef<DialogDrag | null>(null);
+  const paneDragRef = useRef<PaneDrag | null>(null);
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('blank');
   const [dialogOffset, setDialogOffset] = useState({ x: 0, y: 0 });
+  const [paletteWidth, setPaletteWidth] = useState(200);
+  const [testBenchWidth, setTestBenchWidth] = useState(360);
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -80,6 +87,10 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
 
   const versionsByAssembly = useMemo(() => latestByAssembly(builderData.versions), [builderData.versions]);
   const activeVersion = builderData.versions.find(version => version.id === activeVersionId) || null;
+  const builderPaneStyle = {
+    '--assembly-palette-width': `${paletteWidth}px`,
+    '--assembly-test-width': `${testBenchWidth}px`,
+  } as CSSProperties;
 
   useEffect(() => {
     if (activeVersionId && !activeVersion && !isPending) {
@@ -89,17 +100,38 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
   }, [activeVersionId, activeVersion, isPending, router]);
 
   useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(BUILDER_PANE_STORAGE_KEY) || '{}');
+      if (Number.isFinite(Number(stored.palette))) setPaletteWidth(clamp(Number(stored.palette), 160, 340));
+      if (Number.isFinite(Number(stored.test))) setTestBenchWidth(clamp(Number(stored.test), 280, 640));
+    } catch {
+      // Pane preferences are optional.
+    }
+  }, []);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(BUILDER_PANE_STORAGE_KEY, JSON.stringify({ palette: paletteWidth, test: testBenchWidth })); }
+    catch { /* Browser storage is optional. */ }
+  }, [paletteWidth, testBenchWidth]);
+
+  useEffect(() => {
     const move = (event: PointerEvent) => {
-      const drag = dialogDragRef.current;
-      if (!drag) return;
-      const requestedX = event.clientX - drag.startX;
-      const requestedY = event.clientY - drag.startY;
-      const deltaX = Math.max(10 - drag.left, Math.min(window.innerWidth - 10 - drag.right, requestedX));
-      const deltaY = Math.max(10 - drag.top, Math.min(window.innerHeight - 10 - drag.bottom, requestedY));
-      setDialogOffset({ x: drag.originX + deltaX, y: drag.originY + deltaY });
+      const dialogDrag = dialogDragRef.current;
+      if (dialogDrag) {
+        const requestedX = event.clientX - dialogDrag.startX;
+        const requestedY = event.clientY - dialogDrag.startY;
+        const deltaX = Math.max(10 - dialogDrag.left, Math.min(window.innerWidth - 10 - dialogDrag.right, requestedX));
+        const deltaY = Math.max(10 - dialogDrag.top, Math.min(window.innerHeight - 10 - dialogDrag.bottom, requestedY));
+        setDialogOffset({ x: dialogDrag.originX + deltaX, y: dialogDrag.originY + deltaY });
+      }
+
+      const paneDrag = paneDragRef.current;
+      if (paneDrag?.kind === 'palette') setPaletteWidth(clamp(paneDrag.width + event.clientX - paneDrag.startX, 160, 340));
+      if (paneDrag?.kind === 'test') setTestBenchWidth(clamp(paneDrag.width - (event.clientX - paneDrag.startX), 280, 640));
     };
     const end = () => {
       dialogDragRef.current = null;
+      paneDragRef.current = null;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -178,11 +210,21 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
+  const startPaneDrag = (event: ReactPointerEvent<HTMLButtonElement>, kind: PaneDrag['kind']) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    paneDragRef.current = { kind, startX: event.clientX, width: kind === 'palette' ? paletteWidth : testBenchWidth };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
   return <AssemblyBuilderProvider value={{ open, focus, openCreate, openLibrary, closeBuilder }}>
     <div className={`${styles.shell} ${focus ? styles.focusShell : ''}`}>
       <TakeoffDrawingWorkspace {...workspaceProps} />
 
-      {open && activeVersionId && <div className={focus ? styles.focusLayer : styles.builderLayer}>
+      {open && activeVersionId && <div className={focus ? styles.focusLayer : styles.builderLayer} style={builderPaneStyle}>
         <AssemblyBuilderComposer
           setId={setId}
           versionId={activeVersionId}
@@ -192,6 +234,8 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
           onClose={closeBuilder}
           onCreateAnother={openCreate}
         />
+        <button type="button" className={`${styles.builderPaneHandle} ${styles.palettePaneHandle}`} aria-label="Resize Assembly Builder block palette" title="Drag to resize blocks pane" onPointerDown={event => startPaneDrag(event, 'palette')} />
+        <button type="button" className={`${styles.builderPaneHandle} ${styles.testPaneHandle}`} aria-label="Resize Assembly Builder Test Bench" title="Drag to resize Test Bench" onPointerDown={event => startPaneDrag(event, 'test')} />
       </div>}
 
       {dialogOpen && <div className={styles.backdrop} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>
