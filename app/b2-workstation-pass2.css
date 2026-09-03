@@ -275,3 +275,65 @@
 [class*="TakeoffDrawingWorkspace_sheetButton__"]{min-height:42px!important;height:auto!important}
 [class*="TakeoffDrawingWorkspace_inspectorTabs__"],
 [class*="TakeoffDrawingWorkspace_inspectorTabs__"] button{min-height:36px!important;height:36px!important}
+
+/* Issues #31/#32 — approved subtractive Takeoff workstation cleanup. */
+.takeoff-app-header-compact{
+  height:27px!important;
+  min-height:27px!important;
+  flex:0 0 27px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  padding:0 8px!important;
+}
+.takeoff-app-header-compact .takeoff-app-title{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+.takeoff-app-header-compact .takeoff-app-title strong{
+  flex:none!important;
+  font-size:13px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.takeoff-app-header-compact .takeoff-app-title span{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+  line-height:1!important;
+  color:var(--b2-text-2)!important;
+}
+.takeoff-app-header-compact .takeoff-app-lock{flex:none!important}
+
+/* The selected assembly is already explicit in the list; provenance remains data, not persistent UI. */
+[class*="TakeoffDrawingWorkspace_assemblySource__"],
+[class*="TakeoffDrawingWorkspace_inspectorActionStrip__"]{display:none!important}
+[class*="TakeoffDrawingWorkspace_inspectorBody__"] > [class*="TakeoffDrawingWorkspace_group__"]:has([class*="TakeoffDrawingWorkspace_assemblyList__"]) [class*="TakeoffDrawingWorkspace_groupHelp__"]{display:none!important}
+
+/* Healthy empty sheets stay quiet; unresolved scale is the actionable state. */
+[class*="TakeoffDrawingWorkspace_sheetStatusReady__"]{display:none!important}
+[class*="TakeoffDrawingWorkspace_sheetStatusHold__"]{font-size:0!important}
+[class*="TakeoffDrawingWorkspace_sheetStatusHold__"]::before{
+  content:'SCALE REQUIRED';
+  font-size:12px!important;
+  line-height:1.15!important;
+  color:var(--b2-warning,#F59E0B)!important;
+}
+[class*="TakeoffDrawingWorkspace_sheetButton__"]{min-height:38px!important}
+
+/* Toolbar is authoritative for Snap/Ortho; shortcuts already live behind disclosure. */
+[class*="TakeoffDrawingWorkspace_statusbar__"] > span:nth-child(3),
+[class*="TakeoffDrawingWorkspace_statusHint__"]{display:none!important}
+[class*="TakeoffDrawingWorkspace_center__"]{grid-template-rows:34px minmax(0,1fr) 21px!important}
+[class*="TakeoffDrawingWorkspace_toolbar__"]{min-height:34px!important;height:34px!important;padding-top:2px!important;padding-bottom:2px!important}
+[class*="TakeoffDrawingWorkspace_toolButton__"]{height:28px!important}
+[class*="TakeoffDrawingWorkspace_statusbar__"]{min-height:21px!important;height:21px!important}
+
+@media(max-width:980px){
+  .takeoff-app-header-compact{height:27px!important;min-height:27px!important;flex-basis:27px!important}
+}
