@@ -1,307 +1,248 @@
-# Module Spec — Assembly & Resource Engine
+# Module Spec — Concrete Condition & Resource Engine
 
-Status: approved P1 foundation
+Status: approved P0.5 architecture target; legacy assembly runtime remains active until migrated and verified
 
 ## Purpose
 
-Provide a concrete-native engine in which each company owns reusable **Concrete Scope Recipes**, resolves project-specific **Scope Variants**, composes repeatable concrete **System Blocks**, and produces deterministic material/labor/equipment outputs from Takeoff geometry.
+Turn authoritative Takeoff geometry plus explicit concrete plan facts, company methods, production assumptions, and commercial inputs into deterministic physical resources, labor, equipment, holds, and estimate lineage without requiring formula authoring during normal estimating.
 
-Canonical lineage:
-
-`Job Spine -> Takeoff Geometry -> Published Scope Recipe Version -> Project Scope Variant -> Deterministic Resource Outputs -> Estimate Items -> Proposal Revision -> Accepted Scope Snapshot -> Frozen Commercial Baseline / Budget`
+The repository path remains assembly-resource-engine.md during migration so existing links do not break. **Concrete Condition & Resource Engine** is the active product and architecture name.
 
 ## Product invariants
 
-- No hard-coded Carez production recipes are silently created for new companies.
-- System templates are separate from company recipes and must be explicitly copied to a company draft before publication/use.
-- Published company recipe versions are immutable.
-- Historical referenced versions remain preserved for exact lineage even when retired from new work.
-- Plan facts, estimator method decisions, production assumptions, and commercial assumptions remain distinguishable.
-- Missing required inputs, rates, or prices become explicit holds rather than fabricated zeros.
-- Quantity and cost calculations remain deterministic and server-authoritative.
-- One formula engine governs preview, Takeoff calculation, estimating, and recalculation.
+- Concrete Conditions are the primary estimator-facing model.
+- Standard Conditions are operated through concrete modules, typed fields, toggles, dropdowns, and compact grids.
+- Formula Composer is not part of normal Takeoff.
+- Platform calculation behavior does not silently choose project scope, reinforcing design, means/methods, production rates, waste, price, or margin.
+- Company templates and project Conditions remain versioned and attributable.
+- Published Company Condition Template versions are immutable.
+- Calculations are deterministic and server-authoritative.
+- RLS, tenant isolation, auditability, and exact output lineage remain mandatory.
+- Resources are first-class and independently priceable.
 - Production Quantity, Direct Cost, and Sell remain separate.
-- Humans remain authoritative for scope, plan interpretation, means/methods, production rates, pricing, margin, and publication.
+- Installed/theoretical quantity, procurement quantity, and reusable inventory demand remain separate.
+- Missing requirements create explicit holds rather than fabricated zeros.
+- Accepted commercial references and published legacy records are never destructively rewritten.
 
 ## Product concepts
 
-### Concrete Scope Recipe
+### Platform Condition Archetype
 
-Product-facing name for the reusable company-owned assembly identity/version. Examples include Slab on Grade, Strip Footing, Foundation Wall, Grade Beam, Pad Footing, Sidewalk, Driveway, and other concrete scope.
+A Carez-owned, versioned definition of one concrete family. It owns:
 
-A recipe may contain typed variables, direct scope items/resources, labor operations, equipment/subcontract outputs, child recipes, formula dependencies, conditions, and production assumptions.
+- supported primary and secondary measurement roles;
+- typed input/output schemas and units;
+- module compatibility;
+- deterministic algorithms;
+- validation and hold rules;
+- dimensional facts required for derived 3D;
+- property-tab presentation metadata;
+- migration compatibility identifiers.
 
-A recipe defines the **possible logic of the scope**, not one fixed job condition. A single Slab recipe can support different thickness, reinforcement, vapor, form, finish, placement, and production configurations through variables and repeatable systems.
+Archetypes supply reliable concrete calculation behavior. They are not company or project assumptions.
 
-### Project Scope Variant
+### Company Condition Template
 
-A takeoff-set/job-specific, versioned configuration of one published Scope Recipe. Typical names may follow the drawings: `S1`, `S2`, `F1`, `F2`, `W1`, etc.
+A company-owned versioned preset for one archetype. It owns preferred:
 
-A variant can preserve:
+- products/catalog mappings;
+- enabled modules;
+- means/method defaults;
+- production baselines and sources;
+- waste/rounding policies;
+- pricing policy/default source;
+- labels, organization, and template tags.
 
-- plan facts/dimensions;
-- reinforcement configuration;
-- optional systems such as vapor barrier or insulation;
-- estimator-approved means/methods;
-- production assumptions;
-- commercial/waste assumptions where applicable;
-- exact published Scope Recipe version.
+A published template is immutable. A change creates a draft revision and later publication.
 
-Project Scope Variants prevent global recipe proliferation. They are not new published company recipes and do not mutate the recipe version they configure.
+### Project Concrete Condition
 
-Existing `takeoff_method_profiles` may provide the persistence foundation when extended compatibly with a profile kind/variant code. Historical verified method profiles remain valid.
+A job/takeoff-set-specific versioned condition, such as F1, F2, W1, or S1. It owns:
 
-### Variable
+- confirmed plan facts;
+- estimator-approved method decisions;
+- job production assumptions;
+- permitted commercial overrides;
+- enabled/repeated module instances;
+- primary and secondary measurement links;
+- drawing presentation;
+- holds/review state;
+- exact source provenance and supersession history.
 
-A named typed input or derived value. Supported families include dimension, number/quantity, percentage/factor, boolean, enum/choice, spacing, resource reference, text/note, and derived numeric values.
+### Condition Module
 
-Variables may be classified as:
+A composable, typed capability attached to a Condition.
 
-- plan fact;
-- method decision;
-- production assumption;
-- commercial assumption;
-- derived.
+Initial module registry:
 
-Canonical execution namespaces such as `Takeoff.*`, `Project.*`, `Parent.*`, `PlanFact.*`, and `Properties.*` remain internal calculation concepts. Ordinary estimator UI uses human labels.
+- Concrete
+- Forms
+- Reinforcing
+- Anchors / embeds
+- Slab systems
+- Excavation / backfill
+- Placement / pump / equipment
+- Finish / cure / protection
+- Labor operations
+- Miscellaneous
 
-### Scope Item / Resource Output
+A module contains inputs, activation, validation, deterministic output rules, output definitions, and presentation metadata. Repeatable instances are supported where the physical work repeats.
 
-A calculated material, labor, equipment, rental, subcontract, inventory, or other output produced by the recipe.
+### Measurement Role
 
-Resources remain first-class and independently priceable. A Scope Item may bind to a company/catalog product with supplier/SKU/unit/provenance information, but current price is not embedded into physical quantity math.
+A named relationship between persisted Takeoff geometry and a Project Concrete Condition. One role is primary; others may provide edge forms, steps, openings, joints, blockouts, anchor groups, or other traceable geometry.
 
-### System Block
+### Output
 
-A repeatable concrete-specific calculation primitive that accelerates recipe building without imposing a complete job assembly.
+A deterministic module result with:
 
-Required System Block families:
+- exact Condition/archetype/template/module version lineage;
+- measurement/role drivers;
+- production quantity and unit;
+- installed/procurement/inventory classification;
+- labor/equipment basis where applicable;
+- hold/review state;
+- price provenance;
+- estimate-item linkage.
 
-- concrete volume;
-- continuous reinforcing;
-- spaced/transverse reinforcing;
-- rebar grid/mat;
-- WWF/WWR;
-- dowels/starters;
-- fiber;
-- vapor barrier/retarder;
-- formwork/edge forms/wall forms;
-- labor operation;
-- pump/placement/equipment;
-- custom item.
+## Input governance
 
-System Blocks may create editable variables, scope items, and deterministic starter formulas. They do not silently approve dimensions, bar size/count/spacing, layers, production rates, waste, prices, products, or means/methods.
+Every input is typed as:
 
-Multiple instances are allowed. A footing can contain three continuous bars plus a transverse reinforcing set. A slab can contain one or two rebar mats, WWF, fiber, or no reinforcing. Unique component/property keys must be generated deterministically for repeated blocks.
+1. plan fact;
+2. method decision;
+3. production assumption;
+4. commercial assumption;
+5. drawing presentation.
 
-## Reinforcement model
+Resolution order is:
 
-Reinforcing must not be reduced to a single yes/no variable.
+1. authorized project/Condition override;
+2. approved plan fact;
+3. Company Condition Template default;
+4. Platform Archetype default only where genuinely universal and safe;
+5. unresolved hold.
 
-Supported patterns should include:
+Derived and editable values must look different in the UI. Overrides retain actor, time, reason, prior source, and effective value.
 
-- **Continuous bars** — bar size + count along measured length;
-- **Spaced/transverse bars** — bar size + spacing + individual bar length/source geometry;
-- **Grid/mat** — bar size + spacing + directions + layers/mats;
-- **WWF/WWR** — area coverage plus overlap/waste/product;
-- **Dowels/starters** — spacing/count + bar length;
-- **Stirrups/ties** — count/spacing and piece length where appropriate;
-- **Fiber** — dosage per concrete quantity;
-- **Custom** — estimator-authored deterministic math.
+A built-in geometry/measurement fact is used before asking for a duplicate input.
 
-The UI should expose concrete language such as `#5 @ 18 in O.C. each way · 2 mats` while preserving exact underlying variables/formulas.
+## Module behavior
 
-## Formula engine
+### Concrete
 
-Carez retains the deterministic formula AST as authoritative. No arbitrary JavaScript, `eval`, SQL expression strings, or independent math.js runtime may become commercial calculation authority.
+Calculates theoretical volume from authoritative geometry and governed dimensions/profile, then applies explicit waste/rounding only at the appropriate output layer. Concrete class/PSI/mix are estimator-visible facts when used.
 
-Required capabilities include arithmetic; min/max; ceil/floor/round; comparisons; conditionals; enum-driven activation; piecewise/lookup rules; explicit conversions; dependency tracking; cycle rejection; tracing; and publish validation.
+### Forms
 
-Ordinary users must not need to type internal tokens such as `Takeoff.Length`. The guided composer should expose:
+Calculates form contact area plus explicit consumed/reusable form resources from visible formed-face and system choices. It does not hide unknown resources behind a generic allowance.
 
-- Measured length;
-- Measured area;
-- Measured count;
-- Measured volume;
-- Measured perimeter when available;
-- named recipe variables;
-- numeric constants;
-- +, -, ×, ÷, parentheses;
-- common conversions such as inches-to-feet and cubic-feet-to-cubic-yards;
-- round/round-up/min/max;
-- advanced conditional/lookup controls when needed.
+Safety-critical form-system layouts require a verified source/envelope and human approval. Carez counts a selected safe method; it does not engineer formwork.
 
-Carez hard-codes reliable calculation primitives/helpers, not a closed catalog of job-specific formulas. Generated formulas remain visible/editable to the estimator before publication.
+### Reinforcing
 
-The engine should become unit-aware across common concrete units including IN, FT, LF, SF, CF, CY, EA, LB, TON, HR, MH, GAL, and package/purchase units.
+Supports repeated sets for continuous bars, transverse bars, vertical/horizontal wall steel, mats/grids, dowels/starters, ties/stirrups, cages, WWR/WWF, fiber, and governed custom scheduled steel.
 
-## Formula Composer UX contract
+Inputs may include size/unit weight, count/spacing, cover, layers/faces, stock length, lap policy, standard hooks/shapes, location range, waste, and placement labor. Carez never invents structural design.
 
-The default estimator-facing formula experience is a **Concrete Formula Composer**, not a raw formula textarea. It combines the following approved interaction model:
+### Anchors / embeds
 
-1. **Sentence-style calculation building.** The estimator reads and assembles human-labeled tokens such as `Measured length × Sides formed × Form height × Form labor rate`. Internal namespaces remain hidden in normal use.
-2. **Concrete calculation blocks.** The composer offers reusable calculation primitives such as measured quantity, continuous runs, spaced locations, stock-length/lap math, coverage, form contact area, volume, labor production, rounding, and custom math. These are helpers, not job assumptions.
-3. **Visual conditions.** Optional/conditional outputs are authored as visible `When / And / Then` conditions rather than forcing nested textual `if()` syntax. Multiple conditions may be combined where supported by the canonical rule engine.
-4. **Context-aware measurement browser.** Only authoritative geometry available for the Takeoff context is offered. The UI uses labels such as `Measured length`, `Measured area`, `Measured count`, `Measured volume`, and `Measured perimeter` when that geometry is actually available.
-5. **Named intermediate calculations.** Complex math may be broken into estimator-named steps such as `Splices per run`, `Added lap`, `Bar length`, and `Total steel`. Named steps are authoring metadata that compile/inline into the final canonical AST; they do not create a second runtime engine.
-6. **Unit-aware guidance and validation.** The composer tracks known unit families, flags incompatible addition/subtraction and incompatible final result dimensions, and makes common conversions explicit. Unit guidance must never silently change physical meaning.
-7. **Easy + Advanced modes.** Easy mode is the default visual/sentence composer. Advanced mode exposes the synchronized human-readable expression for experienced estimators. Both compile to the same canonical AST; Advanced mode is not a separate calculation engine.
+Supports direct counts, spacing along runs, grouped anchor templates, dowels/embeds linked to secondary measurement roles, and blockouts/penetrations with traceable count sources.
 
-### Formula Composer behavior
+### Slab systems
 
-- Existing formulas remain editable and can be opened in Advanced mode even when no authoring metadata exists.
-- Easy mode may reconstruct a readable calculation from the canonical AST when possible and otherwise fall back to an explicit `Advanced calculation` state without losing the formula.
-- Formula tokens reference stable variable keys internally but display estimator-facing labels.
-- Unknown variable references are rejected before save and again before publish.
-- Named calculation steps must reject duplicate names, unresolved references, and dependency cycles.
-- Formula conditions reuse the canonical rule/activation engine rather than embedding business logic in UI-only state.
-- The final persisted `quantity_formula` / `labor_rate_formula` AST remains sufficient for authoritative calculation even if authoring metadata is unavailable.
-- Authoring metadata may preserve Easy-mode step labels/layout, but it cannot override or replace the canonical AST.
-- Formula preview/Test Bench and production calculation must evaluate the same AST and resolved property context.
-- Published recipe formulas and their authoring metadata are immutable; edits require a new draft revision.
-- Publish is blocked by invalid AST, unresolved variables, invalid/cyclic named steps, or deterministic unit-validation errors that make the result dimensionally incompatible.
+Supports vapor barrier, granular base, WWR/rebar/fiber, thickened edges, joints, blockouts, finish, cure, protection, and placement choices as visible modules.
 
-### Example reading model
+### Excavation / backfill
 
-A complex reinforcing calculation should be understandable without reading programming syntax:
+Uses explicit cut profile, working room, over-excavation, export, reuse, and backfill/compaction assumptions. The source plan geometry and assumptions remain explainable.
 
-`WHEN Bars in run > 0 AND Stock length > 0`
+### Placement / equipment
 
-- `Splices per run = max(0, round up(Measured length ÷ Stock length) - 1)`
-- `Added lap = Splices per run × Lap length`
-- `Bar length = Measured length + Added lap`
-- `Total steel = Bar length × Bars in run`
+Separates physical demand from commercial fulfillment. Pump, chute, conveyor, crane/bucket, owned equipment, rental, and subcontract paths remain distinct where applicable.
 
-The estimator may inspect/edit the synchronized Advanced expression, but the normal workflow remains the readable calculation sequence above.
+### Labor operations
 
-## Quantity separation
+Each operation preserves physical basis/unit, immutable company baseline and source, estimator-reviewed job rate, resulting man-hours, labor cost basis, and output lineage. Changing labor production does not change physical material quantity.
 
-Keep distinct:
+## Holds
 
-1. installed/theoretical quantity;
-2. procurement quantity after waste/package/stock/minimum-order/rental rounding;
-3. reusable inventory demand.
+Valid geometry persists when a specific module cannot calculate. Hold categories include:
 
-Examples: slab vapor installed SF -> procurement rolls; rebar installed LF/LB -> stock bars/bundles/tons; concrete theoretical CY -> order quantity -> later placed/returned actuals; reusable form hardware -> required inventory without pretending every piece is consumed.
+- Input required
+- 3D input required
+- Price required
+- Labor rate required
+- Method verification required
+- Review/manual override
 
-## Labor and production
+A hold blocks only the dependent output and appropriate commercial-readiness gate. Resolving it recalculates atomically without redrawing geometry.
 
-Labor is an operation/resource, not a generic allowance. Preserve physical production quantity/unit, baseline MH/unit/source, historical evidence when available, estimator-reviewed job MH/unit, resulting MH, loaded labor rate/provenance, and direct labor cost.
+## Advanced custom logic
 
-Changing productivity changes man-hours, not material quantity unless the method explicitly changes physical demand.
+A single deterministic AST engine remains available for compatibility and authorized advanced company configuration.
 
-## Recipe Editor UX contract
+- It is not exposed in normal Takeoff.
+- It cannot execute arbitrary JavaScript, SQL expressions, or unvalidated code.
+- It compiles through the same unit/reference/dependency validation and server calculation path.
+- Existing valid published formulas remain readable and reproducible.
+- A standard Condition module should be extended when a broadly useful concrete pattern is missing.
+- Advanced logic is for legitimate company-specific cases, not the default way to model ordinary concrete.
 
-Primary authoring is a **movable/resizable popup Recipe Editor inside the Takeoff workstation**.
+## 3D projection boundary
 
-It must:
+The engine emits governed dimensional facts for the derived 3D service: profile, dimensions, elevation/reference, sweep/extrusion, openings, and segment overrides.
 
-- remain on the same Takeoff route;
-- leave the live plan visible behind it;
-- leave the permanent Quantity Worksheet as the normal bottom worksheet;
-- be draggable from its title bar;
-- be resizable horizontally and vertically within safe workstation bounds;
-- persist useful local size/position where practical;
-- support Focus/Maximize and Restore as the same editor/state;
-- preserve sheet, viewport, zoom/pan, calibration, selected measurement, and draft state;
-- never mutate geometry merely by opening/moving/resizing/focusing/closing;
-- avoid turning the permanent Inspector into the full authoring surface.
+It does not accept 3D mesh measurements as quantity authority. Slabs/pads extrude governed profiles; walls/strip footings/grade beams sweep governed profiles; cutouts/openings subtract; stepped segments follow explicit elevation/profile data.
 
-The Inspector remains contextual: selected recipe/version/variant, current inputs, holds, key outputs, and commands to create/edit/open the Recipe Editor.
+The renderer and client may cache meshes by stable version/hash, but all calculated outputs remain server/domain results.
 
-### Entry paths
+## Lineage
 
-Support:
+Canonical lineage is:
 
-- Create Blank Scope Recipe;
-- Start From Template;
-- Duplicate Company Recipe;
-- Edit Existing Draft;
-- Create Revision from Published Version.
+Takeoff Measurement + Role  
+→ Project Concrete Condition Version  
+→ Company Condition Template Version  
+→ Platform Condition Archetype Version  
+→ Condition Module / Output Definition  
+→ Takeoff Output  
+→ Estimate Item
 
-A small movable setup dialog may collect recipe name/code/category/primary measurement before opening the Recipe Editor.
+The compatibility layer may additionally retain legacy assembly version/component IDs until all referenced history is fully supported.
 
-### Default recipe reading order
+## Migration from legacy assemblies/recipes
 
-Normal UI should use plain construction language:
+The migration is additive and dependency-safe.
 
-- **Variables** / plan inputs;
-- **Systems**;
-- **Materials & labor**;
-- **Test Bench**.
-
-Advanced dependencies, namespace details, and JSON remain progressive disclosure/expert territory.
-
-### System Block experience
-
-The Recipe Editor must provide a concrete-focused `+ Add system` experience with the required System Block families. Adding the same family multiple times must work. Each inserted block opens a focused configuration editor appropriate to that pattern.
-
-Examples:
-
-- `Continuous rebar` -> bar size, count, measured basis, allowance/product;
-- `Rebar grid/mat` -> bar size, spacing, directions, layers;
-- `WWF/WWR` -> area basis, overlap/waste, product;
-- `Vapor barrier` -> area basis, overlap/waste, product;
-- `Formwork` -> measured basis, height/depth, sides, reusable/consumed resources;
-- `Labor operation` -> production quantity/unit and MH/unit;
-- `Concrete volume` -> area/length geometry plus thickness/width/depth as applicable.
-
-### Focus Builder
-
-Focus Builder maximizes the same popup Recipe Editor to most of the Takeoff workspace. Restore returns to the prior position/size with all draft state retained. It is not a separate route or second authoring implementation.
-
-### Test Bench
-
-A draft can test representative manual inputs or an eligible live/current Takeoff measurement and preview resolved variables, children, concrete, reinforcing, formwork, vapor/insulation, labor MH, equipment/subcontract, quantity separation, holds, trace, and provenance through the same production engine.
-
-## Project Scope Variant UX
-
-After a recipe is published and selected for a job, the estimator can save reusable project-specific variants such as `S1` or `F2`.
-
-Variant editing should present the active plan facts and estimator decisions in compact groups and save a versioned verified configuration. Selecting a Project Scope Variant applies its resolved inputs to new Takeoff measurements. If its governed values change, Carez requires a new verified variant revision rather than silently changing prior measurements.
-
-Historical legacy build-method profiles remain selectable/traceable during transition.
-
-## Template experience
-
-Templates are optional structural starting patterns organized by concrete scope. They may include example variables/formulas/resource roles and source notes but never silently become company pricing or production truth. `Use Template` creates an independent company draft.
-
-## Concrete-native resource coverage
-
-Support ready-mix; reinforcing bars/mesh/fiber/dowels/chairs/tie wire; vapor materials; insulation; form panels/lumber/ties/brackets/walers/strongbacks/stakes/braces/release agents/reusable hardware; joints/fillers/sealants/dowel systems/sawcuts; embeds/anchors/inserts; curing; finishing; pumps/placement equipment; rentals; subcontractors; consumables; and other explicit resources.
-
-Reference values from books/manufacturers may be shown with provenance but never silently promoted to company defaults.
-
-## Removal of legacy hard-coded assemblies
-
-Stop creating seeded Carez production assemblies for companies; remove them from active new-work selectors; preserve referenced historical versions as hidden/retired lineage; remove unreferenced seed records only after dependency-safe verification; recreate useful examples as Templates rather than live company recipes.
+1. Inventory legacy assemblies, versions, variables, components, children, formulas, method profiles, measurements, outputs, estimate links, proposals, and accepted references.
+2. Add Condition/archetype/template/module/role structures with company-scoped RLS and immutable version rules.
+3. Provide explicit legacy compatibility IDs/mappings.
+4. Implement and test pilot archetypes for Pad/Column Footing, Strip/Wall Footing, and Slab on Grade.
+5. Convert supported company recipes/project variants and reconcile quantity, hold, price, and lineage results.
+6. Switch new standard work to Conditions only after parity.
+7. Preserve historical legacy views as read-only where needed.
+8. Remove active Recipe Editor/Formula Composer/Assembly Library routes and components after dependency checks.
+9. Never delete a referenced published or accepted record. Any physical schema retirement requires a separate approved recoverable migration.
 
 ## Integration boundaries
 
-Takeoff owns authoritative physical geometry. The Assembly & Resource Engine converts that geometry plus resolved Scope Variant inputs into physical resource/labor outputs. Estimating consumes those outputs and owns pricing review/Sell; it does not create a second recipe/formula engine.
+### Takeoff
 
-At award, the Accepted Scope Snapshot preserves exact recipe versions, variants/assumptions, Takeoff outputs, and pricing provenance used by the accepted commercial state.
+Owns plan/revision/calibration, vector geometry, measurement roles, selection/editing, 2D/3D/Split interaction, and the estimator workstation.
 
-## Acceptance
+### Estimating
 
-Representative acceptance includes:
+Owns scope organization, pricing review, production-rate review, Direct Cost/Sell strategy, commercial holds, recap, and Proposal revisions.
 
-- empty company recipe library works;
-- create from blank/template/duplicate/revision without SQL/code;
-- popup Recipe Editor moves/resizes and retains useful state;
-- Focus/Restore preserves plan and draft context;
-- Quantity Worksheet remains available during normal authoring;
-- typed variables can be created/edited;
-- System Blocks can be inserted repeatedly;
-- slab/footing examples can represent no reinforcing, WWF, continuous bars, spaced bars, one/two mats, vapor yes/no, and multiple reinforcing sets;
-- Formula Composer Easy mode can build nontrivial concrete math without internal namespace typing;
-- context measurement browser only offers available authoritative geometry;
-- visual multi-condition rules can activate/deactivate outputs;
-- named intermediate calculation steps persist as authoring metadata, reject cycles/unresolved references, and compile to the canonical AST;
-- unit-aware guidance catches dimensionally invalid calculations before publish;
-- Advanced mode remains synchronized with the same deterministic formula authority;
-- sample/live Takeoff Test Bench uses the production engine;
-- Project Scope Variants such as S1/F1 can be saved, selected, revised, and bound to measurements;
-- published recipe versions remain immutable;
-- exact recipe/variant/component/resource/estimate lineage remains traceable;
-- no hard-coded Carez production recipe is silently required or inserted.
+### Resource catalog and procurement
+
+Own product/supplier/rental/inventory identity, quotes/cost history, package/stock optimization, fulfillment, commitments, and receipts. Condition outputs express physical demand.
+
+### Project and field
+
+Consume accepted scope and resource/production assumptions through immutable lineage. Actual evidence may inform future templates but never silently rewrites them.
+
+## Initial acceptance
+
+The engine is accepted when the three pilot families can be created, measured, edited, recalculated, priced, traced, migrated, and verified in 2D/3D without formula UI in the daily workflow, with representative RLS, refresh, undo/redo, deletion, cross-sheet, hold, and output-reconciliation tests.
