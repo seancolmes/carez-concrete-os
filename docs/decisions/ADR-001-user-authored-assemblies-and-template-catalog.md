@@ -1,84 +1,62 @@
-# ADR-001 — User-Authored Assemblies and Separate Template Catalog
+# ADR-001 — User-Authored Concrete Scope Recipes and Template Catalog
 
 Status: Accepted
 Date: 2026-09-02
-Amended: 2026-09-02 — integrated Takeoff Assembly Builder and Focus Builder interaction locked
+Amended: 2026-09-03 — Scope Recipes, Project Scope Variants, repeatable System Blocks, and floating Recipe Editor locked
 
 ## Context
 
-Carez has an accepted immutable custom-assembly foundation, but earlier migrations also seed selectable concrete assemblies and embed example dimensions, production factors, waste assumptions, and labor baselines into company working libraries.
+Concrete drawing conditions vary heavily. A slab may use rebar, WWF/WWR, fiber, or no reinforcing. Footings may contain continuous bars, transverse bars, multiple layers, or combinations. Vapor barrier, forms, placement, finishing, embeds, products, and production assumptions also vary.
 
-This conflicts with the approved product direction: estimators must build and own their own assemblies, while Carez may accelerate setup through optional templates similar to professional takeoff/estimating systems.
+Carez already has a deterministic, immutable company-assembly foundation. The approved product direction is to keep that authority while presenting it to estimators as reusable concrete scope logic rather than a fixed catalog or database-style editor.
 
-The Assembly Builder also requires a richer authoring experience than ordinary input forms inside the Takeoff Inspector. The Takeoff right pane is already responsible for measurement and selected-object context and should not become the primary assembly authoring surface.
-
-An earlier form of this ADR placed authoring in a separate full-page Assembly Studio. That interaction is superseded by the approved integrated model: normal assembly authoring remains inside the Takeoff workstation with the live plan in context, using a dedicated resizable builder/composer surface. A temporary Focus Builder may expand that composer for complex work without navigating to another route or creating a separate application surface.
+The earlier bottom-composer authoring model is superseded. The Quantity Worksheet remains the permanent Takeoff worksheet. Normal recipe authoring uses a movable/resizable popup over the live plan; Focus Builder maximizes that same editor when needed.
 
 ## Decision
 
-1. **Carez will not ship hard-coded selectable production assemblies as the working assembly catalog.**
-2. New companies start with an empty company Assembly Library.
-3. Existing hard-coded assembly seed/initialization behavior is removed from active product behavior.
-4. Existing referenced published assembly versions remain preserved as hidden/retired lineage records until safe retention rules permit deletion; unreferenced seeded records may be removed through a verified migration.
-5. Useful examples are recreated as a separate read-only **Assembly Template Catalog**.
-6. Using a template explicitly copies it into a new company-owned draft assembly. Template updates never mutate the company's copied assembly.
-7. Primary assembly authoring remains **inside the Takeoff workstation**. In normal authoring mode the live plan remains visible and the Assembly Builder uses a dedicated resizable composer surface, normally expanding from the permanent bottom Quantity Worksheet/workstation region. It is not implemented as a long form in the Takeoff Inspector, a separate browser window, or a disconnected full-page route.
-8. The Takeoff Inspector remains compact and contextual. It may show the selected assembly/version, current job method/profile, holds, key outputs, and commands such as Create Assembly, Edit Assembly, Create Revision, or Open Builder, but it is not the primary recipe-authoring canvas.
-9. The Assembly Builder supports an optional **Focus Builder** mode for complex assemblies. Focus Builder may temporarily expand the composer to occupy most of the Takeoff workspace, but it remains on the same Takeoff route, uses the same draft and calculation authority, and preserves sheet, plan, zoom/pan, selection, and measurement context so exiting focus returns the estimator to the prior drawing state.
-10. The Assembly Builder uses structured drag-and-drop building blocks for properties, resources, labor/equipment outputs, formulas, and child assemblies.
-11. Authoring remains constrained and recipe-oriented rather than becoming an unrestricted node-graph canvas.
-12. A Test Bench previews resolved properties, resource quantities, man-hours, holds, provenance, and formula traces using the same deterministic server-authoritative calculation engine.
-13. The existing deterministic formula AST remains the commercial calculation authority. UI-friendly expression authoring may compile to this AST, but a separate math.js/JavaScript evaluator is not authoritative.
-14. The formula engine is extended with unit awareness, conditional logic, lookup/piecewise rules, dependency validation, and circular-reference protection.
-15. Resources are first-class and independently priceable. Assemblies calculate physical resource/labor demand; resource/pricing systems provide current costs and provenance.
-16. Installed/theoretical quantity, procurement quantity, and reusable inventory demand remain separate concepts.
-17. Labor production assumptions remain separate from loaded labor price and preserve source/provenance.
+1. Carez does not seed a selectable production-assembly catalog into a company's working library. New companies may begin with no company recipes.
+2. The persisted assembly/version model is presented as **Concrete Scope Recipes**: reusable company-owned recipes for Slab, Strip Footing, Wall, Grade Beam, Pad Footing, Sidewalk, and other concrete scope.
+3. Published Scope Recipe versions are immutable. Editing published work creates a new draft revision.
+4. System templates remain separate read-only starting patterns. `Use Template` copies a template into a company-owned draft.
+5. A **Project Scope Variant** is a job/takeoff-set-specific configuration of one published Scope Recipe, such as `S1`, `S2`, `F1`, or `F2`. It resolves plan facts and estimator-approved method/production/commercial variables without forcing a new global recipe for each drawing condition.
+6. Existing verified Takeoff method-profile infrastructure may be extended compatibly to store Project Scope Variants. Historical method profiles remain valid.
+7. Carez supports repeatable **System Blocks**. Required families include concrete volume, continuous rebar, spaced/transverse rebar, rebar grid/mat, WWF/WWR, dowels/starters, fiber, vapor barrier, formwork, labor operations, pump/placement/equipment, and custom items.
+8. System Blocks are calculation primitives, not hidden job assumptions. They may create editable variables and deterministic formulas, but cannot silently choose dimensions, bar layouts, rates, waste, prices, products, or means/methods.
+9. Multiple reinforcing sets may coexist in one Scope Recipe. A scope may therefore combine longitudinal bars, transverse bars, grids/mats, WWF/WWR, dowels, ties/stirrups, fiber, or custom reinforcing.
+10. The primary **Recipe Editor** remains on the same Takeoff route with the live plan visible. It is a movable/resizable popup, not a separate browser window, separate route, permanent Inspector form, or normal bottom-workstation takeover.
+11. Recipe Editor position and size should persist locally where practical. **Focus Builder** is a maximize/restore state of the same popup and same draft.
+12. Opening, moving, resizing, maximizing, restoring, or closing the editor must not mutate Takeoff geometry or discard sheet, viewport, zoom/pan, calibration, selection, or draft state.
+13. The Takeoff Inspector remains compact/contextual, and the Quantity Worksheet remains available beneath the plan while recipe authoring is open.
+14. Formula authoring remains estimator-friendly and compiles to the canonical deterministic server-authoritative AST. Ordinary users are not required to type internal namespace tokens.
+15. Carez hard-codes reliable calculation primitives/helpers rather than a closed catalog of job formulas. Estimators can compose and edit math from measured geometry, named inputs, operators, conversions, rounding, conditions, and system helpers.
+16. Resources remain first-class and independently priceable. Scope items can bind to company/catalog resources without mixing physical quantity math with current pricing.
+17. Installed/theoretical quantity, procurement quantity, reusable inventory demand, Direct Cost, and Sell remain distinct.
+18. Test Bench previews the current recipe/variant through the same canonical engine.
+19. Referenced historical recipe versions remain preserved for lineage. Legacy seeded records are retired/removed only through dependency-safe migration.
 
 ## Rationale
 
-A fixed catalog forces Carez assumptions onto contractors and creates maintenance problems as means, methods, supplier products, labor productivity, and company practices differ. User-owned assemblies preserve estimator authority and make the system adaptable without code changes.
+A fixed catalog cannot represent real concrete drawings, while creating a new global assembly for every drawing variation causes catalog explosion. Scope Recipe + Project Scope Variant + repeatable System Blocks preserves reusable company logic while allowing each project to resolve the exact drawn condition.
 
-Templates retain the setup speed of systems such as zzTakeoff without making example assumptions commercial truth.
-
-Keeping normal assembly authoring in the Takeoff workstation preserves plan context and avoids forcing an estimator to leave the measurement workflow just to create or revise a recipe. Moving the heavy authoring surface into a resizable bottom composer protects the Inspector from becoming an overloaded property form. Focus Builder provides additional workspace when a recipe becomes complex without introducing a second route, second authoring model, or context-loss boundary.
+The popup editor preserves plan context and the permanent worksheet, can be moved away from a detail, and can be maximized only when complex work requires more room.
 
 ## Consequences
 
-### Positive
-
-- estimators can create and revise concrete recipes without developer intervention;
-- no hard-coded Carez assembly is required for new work;
-- templates accelerate setup without becoming hidden defaults;
-- resource quantities, production assumptions, and costs remain traceable and independently maintainable;
-- normal assembly authoring keeps the live plan in context;
-- the Takeoff Inspector remains compact and task-focused;
-- Focus Builder provides room for complex authoring without navigating away from Takeoff;
-- published assembly lineage remains immutable and auditable.
-
-### Costs / migration work
-
-- existing seeded assembly creation and selectors must be audited and removed from active new-work behavior;
-- historical references require a safe retirement/deletion migration strategy;
-- a separate template storage/model and explicit copy-to-company workflow are required;
-- the integrated Assembly Builder requires significant UI, drag/drop, formula-authoring, preview, validation, resource-library, bottom-workstation resizing, and Focus Builder state-preservation work;
-- Takeoff drawing state must survive entry/exit from normal builder and Focus Builder modes without mutating geometry or losing viewport/selection context;
-- unit-aware formula validation will require coordinated domain changes and tests.
+- One reusable recipe can support many plan variants.
+- Reinforcing and other systems can repeat as needed.
+- Estimators get concrete-specific helpers without losing control of the math.
+- Existing immutable version/resource/formula authority remains reusable.
+- Current bottom-composer presentation must be converted to popup presentation.
+- Existing method-profile storage requires a compatible Scope Variant discriminator/metadata contract.
+- Resource Catalog/product integration can deepen incrementally without becoming a second calculation engine.
 
 ## Protected invariants
 
-This decision does not change:
-
-- Supabase/PostgreSQL authority;
-- tenant isolation and RLS;
-- stable Takeoff page-coordinate geometry;
-- immutable/versioned published assembly lineage;
-- server-authoritative deterministic calculations;
-- separation of Production Quantity, Direct Cost, and Sell;
-- human authority over assemblies, means/methods, production rates, pricing, margin, and approvals.
+This decision does not change Supabase/PostgreSQL authority, RLS/tenant isolation, stable Takeoff page-coordinate geometry, immutable published recipe lineage, server-authoritative deterministic calculations, exact Takeoff-to-estimate lineage, Production Quantity / Direct Cost / Sell separation, or human authority over scope, methods, production, pricing, margin, and approvals.
 
 ## Canonical owners
 
 - `docs/modules/assembly-resource-engine.md`
+- `docs/modules/takeoff.md`
 - `docs/modules/estimating.md`
 - `docs/ARCHITECTURE.md`
-- `docs/modules/takeoff.md` for the Takeoff/Assembly Builder interaction boundary
