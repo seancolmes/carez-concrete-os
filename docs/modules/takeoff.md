@@ -15,17 +15,40 @@ Plans → calibrate/verify scale → select published company assembly/method �
 - Cutouts/holes, arcs, editing, duplication, calibration, and quantity worksheet preserve lineage.
 - Geometry may save when downstream component assumptions are missing; dependent outputs become explicit holds.
 - Permanent resizable bottom quantity/estimate worksheet on desktop.
-- Takeoff consumes published company-owned assemblies; it does not own the primary assembly-authoring experience.
-- The Takeoff Inspector remains focused on the selected measurement, job-specific method/profile inputs, holds, and review. It must not become a long-form assembly builder.
-- Authorized users may open the selected assembly in the dedicated Assembly Studio, but authoring occurs outside the plan workspace.
+- Takeoff consumes published company-owned assemblies; assembly draft/version/resource/formula authority remains owned by the Assembly & Resource Engine.
+- The Takeoff Inspector remains focused on the selected measurement, job-specific method/profile inputs, holds, key outputs, and assembly commands. It must not become a long-form assembly builder.
+- Primary assembly authoring remains inside the Takeoff workstation through a dedicated resizable Assembly Builder composer, normally expanding from the permanent bottom worksheet/workstation region so the live plan remains in context.
+- The Assembly Builder is not a separate browser window, separate application route, or disconnected full-page studio.
+- Complex assemblies may use Focus Builder, which temporarily expands the same integrated composer while preserving Takeoff sheet, viewport, zoom/pan, selection, calibration context, and draft state. Exiting focus returns to the prior drawing state.
 - Accepted Scope Snapshots preserve the exact Takeoff measurement/output versions used by the awarded Proposal revision; later Takeoff edits or revisions never mutate accepted scope.
 
-## Assembly selection boundary
+## Assembly selection and authoring boundary
 
 - No hard-coded Carez production assembly is required for new Takeoff work.
 - Only published company-owned assemblies are selectable for production Takeoff.
-- System templates are not selectable directly; they must first be copied into a company draft and published through Assembly Studio.
+- System templates are not selectable directly; they must first be copied into a company-owned draft and published through the integrated Assembly Builder.
 - Historical measurements continue to reference the exact immutable assembly version they were created with, even if that version is later retired/hidden from new selection.
+- The Inspector may expose lightweight actions such as Create Assembly, Start From Template, Edit Draft, Create Revision, Open Builder, and Return to Builder when authorized.
+- Creating a new assembly may use a small setup dialog for assembly identity and takeoff measurement type, after which authoring occurs in the integrated builder.
+- Editing a published assembly always creates a new draft revision; published versions remain immutable.
+- Builder mode may reduce the visible plan height while open but must preserve enough drawing context for the estimator to understand and test the assembly against the current Takeoff.
+- Focus Builder may temporarily occupy most of the Takeoff workspace, but it remains the same builder state and same Takeoff route rather than a second authoring experience.
+
+## Builder/plan state contract
+
+Entering normal Assembly Builder mode or Focus Builder must not mutate Takeoff geometry or discard drawing context.
+
+Where valid, preserve:
+
+- current Takeoff set;
+- active sheet/page;
+- scale/calibration context;
+- plan viewport and zoom/pan state;
+- selected measurement;
+- selected assembly and method/profile context;
+- unsaved assembly draft state.
+
+An eligible selected/current Takeoff measurement may be used as Test Bench input so the estimator can validate assembly outputs against real plan geometry without retyping the authoritative physical quantity.
 
 ## Sheet naming and indexing
 - Imported PDF pages should be auto-named when reliable sheet metadata can be extracted from the page text/title block.
@@ -70,6 +93,8 @@ Measurements, derived quantities, assembly/resource outputs, holds, estimate-ite
 
 ## Current foundation
 P0 geometry/editor/atomic recalculation foundation is implemented. Additional B2 workstation work exists. Fresh authenticated/browser acceptance remains required for current staging behavior.
+
+The current Build Plan Inspector/workbench is a job-specific method verification surface for existing assemblies. It is not the approved drag-and-drop Assembly Builder and should not be treated as satisfying the integrated Assembly Builder/Focus Builder contract.
 
 ## Deferred/next
 Multi-select, whole-object pointer movement, clipboard, layers, snapping, revision overlay/migration, thumbnails/batch sheet operations, assisted plan intelligence.
