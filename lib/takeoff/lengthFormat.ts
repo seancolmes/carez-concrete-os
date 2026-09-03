@@ -30,11 +30,10 @@ export function formatArchitecturalLength(valueFeet: unknown, denominator = 8) {
     fraction = ` ${fractionUnits / divisor}/${denominator / divisor}`;
   }
 
-  return `${sign}${feet}'-${inches}${fraction}"`;
+  return `${sign}${feet}'-${inches}${fraction}\"`;
 }
 
 export function formatTakeoffQuantityValue(value: unknown, unit: unknown, digits = 2) {
-  if (String(unit || '').toUpperCase() === 'LF') return formatArchitecturalLength(value);
   return numeric(value).toLocaleString('en-US', { maximumFractionDigits: digits });
 }
 
