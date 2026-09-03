@@ -42,6 +42,23 @@ Staging QA isolation is verified and Issue #30 is closed:
 - the staging UI/browser has been verified with QA-only identity/data;
 - mutation-heavy QA may occur on the stable staging QA deployment.
 
+## Carez-wide light visual system
+
+Issue #37 is the implementation owner for the newly approved Carez-wide light workstation visual system.
+
+Implemented on canonical staging:
+
+- ADR-011 now governs one shared light presentation system across authenticated desktop Carez pages while preserving purpose-specific mobile/field and customer-document treatment;
+- `app/carez-light-workstation.css` supplies the shared light tokens, legacy variable compatibility, permanent dark navy app rail, light topbar/context drawer, common page hierarchy, surfaces, tables, controls, statuses, empty states, Dashboard / Today treatment, Owner Reports treatment, login treatment, and compatibility styling for Takeoff CSS modules;
+- `app/carez-light-module-overrides.css` bridges legacy estimator/Takeoff/estimate surfaces that still contained hard-coded dark colors;
+- `app/layout.tsx` loads both new presentation layers after the legacy styles so existing page behavior can migrate without rewriting domain components;
+- `app/reports/page.tsx` now uses the approved Owner Reports visual hierarchy, semantic metric icons, clearer empty states, and existing-route CTAs without inventing unsupported reporting features;
+- the approved Dashboard / Today and Owner Reports concepts remain reference surfaces for the rest of the application.
+
+Automated validation for staging commit `e1f3481` passed Typecheck, Domain tests, and Next.js Build. Vercel reports that same staging commit READY on the single stable staging alias.
+
+This is an implementation checkpoint, not visual acceptance. The shared system reaches authenticated routes through the common shell/tokens, but representative pages from every module still require rendered browser QA for contrast, overflow, density, special-purpose component overrides, and route-specific regressions. No page should be described as visually accepted solely from source/CI evidence.
+
 ## Verified Takeoff baseline
 
 The following representative Takeoff behavior has already been browser-verified on canonical staging and should not be redone unless a regression is observed:
@@ -66,9 +83,9 @@ See Git history/issues for detailed acceptance evidence from earlier checkpoints
 
 ## Current Takeoff UX work
 
-Issue #35 is the active bounded Takeoff presentation acceptance item.
+Issue #35 remains the active bounded Takeoff presentation acceptance item and must be rechecked against the new light visual layer.
 
-Implemented on staging:
+Implemented on staging before the light-system pass:
 
 - PR #34 declutter/chrome changes merged into staging (`0ad693a`);
 - pane/readability and decimal-LF worksheet behavior from superseded PR #36 consolidated directly into staging (`3abfb16`);
@@ -88,7 +105,7 @@ Approved behavior:
 - the Takeoff-set identity strip uses a compact professional hierarchy rather than stacked microtext;
 - Quantity Worksheet LF quantities use decimal LF in the quantity column while architectural formatting remains available in drawing/detail contexts.
 
-The corrective divider/header changes are implemented but are not accepted as fixed until the stable staging deployment is browser-verified. Issue #35 remains open until that acceptance occurs.
+The corrective divider/header changes and the new light visual layer are implemented but are not accepted as fixed until the stable staging deployment is browser-verified. Issue #35 remains open until that acceptance occurs.
 
 ## Known bounded follow-up
 
@@ -98,10 +115,11 @@ The corrective divider/header changes are implemented but are not accepted as fi
 
 ## Current sequence
 
-1. Complete rendered acceptance of Issue #35 on the single staging QA link.
-2. Complete the remaining controlled EA Count / Takeoff P0 acceptance gate if still outstanding.
-3. Reconcile Takeoff P0 completion in canonical specs/current state.
-4. Continue P1 Estimating according to `ROADMAP.md`.
+1. Browser-QA the Carez-wide light system on the stable staging alias, starting with Dashboard / Today, Owner Reports, Takeoff, and representative module routes; record route-specific corrections under Issue #37.
+2. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the new light system.
+3. Complete the remaining controlled EA Count / Takeoff P0 acceptance gate if still outstanding.
+4. Reconcile Takeoff P0 completion in canonical specs/current state.
+5. Continue P1 Estimating according to `ROADMAP.md` while using the approved light system as the presentation baseline.
 
 ## Production rule
 
