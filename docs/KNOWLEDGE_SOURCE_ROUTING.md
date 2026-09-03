@@ -37,7 +37,7 @@ Use the active Project technical sources, currently focused on the ACI 302 slab 
 Technical references inform concrete-domain reasoning; they do not define Carez product architecture and do not override project drawings/specifications, current codes, manufacturer requirements, or engineered temporary-works requirements.
 
 ## Estimating methodology / production references
-Use approved Carez module/assembly contracts first, then the active Project estimating references for terminology, workflow, benchmarks, and sanity checks.
+Use approved Carez Concrete Condition/module contracts first, then active Project estimating references for terminology, workflow, benchmarks, and sanity checks.
 
 Generic productivity values, national cost-book prices, waste factors, and example markups are benchmarks only. They do not become Carez defaults without explicit approval.
 
