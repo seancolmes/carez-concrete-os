@@ -11,7 +11,7 @@ Sheet naming/indexing, title-block extraction, scale candidates, document extrac
 ## Approval tiers
 - Automatic, low-risk clerical/indexing tasks.
 - Suggest + batch approve for metadata candidates.
-- Individual approval for scope-impacting geometry/assembly suggestions.
+- Individual approval for scope-impacting geometry, measurement-role, or Concrete Condition suggestions.
 - Advisory only for production rates, pricing, margin, budget, and final commercial decisions.
 
 ## Invariants
