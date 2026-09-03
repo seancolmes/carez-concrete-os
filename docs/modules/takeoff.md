@@ -18,6 +18,7 @@ Plans → calibrate/verify scale → select published company assembly/method �
 - Takeoff consumes published company-owned assemblies; it does not own the primary assembly-authoring experience.
 - The Takeoff Inspector remains focused on the selected measurement, job-specific method/profile inputs, holds, and review. It must not become a long-form assembly builder.
 - Authorized users may open the selected assembly in the dedicated Assembly Studio, but authoring occurs outside the plan workspace.
+- Accepted Scope Snapshots preserve the exact Takeoff measurement/output versions used by the awarded Proposal revision; later Takeoff edits or revisions never mutate accepted scope.
 
 ## Assembly selection boundary
 
@@ -49,8 +50,16 @@ Plans/sheets, calibration, measurement geometry, published company assembly vers
 ## Outputs
 Measurements, derived quantities, assembly/resource outputs, holds, estimate-item lineage.
 
+## Award and execution lineage
+
+- Takeoff remains the physical measurement authority; it does not infer which proposal alternates or negotiated scope the customer accepted.
+- Awarded physical scope enters execution only through an immutable Accepted Scope Snapshot item or a later approved change-scope item.
+- A Production Work Unit may partition that authorized scope through one or more versioned Scope Allocations rather than assuming one whole Takeoff measurement equals one field work unit.
+- Every Scope Allocation retains the exact accepted Takeoff measurement/output version, quantity, unit, and authorization source. Allocation revision never edits the accepted Takeoff quantity in place.
+
 ## Current foundation
 P0 geometry/editor/atomic recalculation foundation is implemented. Additional B2 workstation work exists. Fresh authenticated/browser acceptance remains required for current staging behavior.
 
 ## Deferred/next
 Multi-select, whole-object pointer movement, clipboard, layers, snapping, revision overlay/migration, thumbnails/batch sheet operations, assisted plan intelligence.
+
