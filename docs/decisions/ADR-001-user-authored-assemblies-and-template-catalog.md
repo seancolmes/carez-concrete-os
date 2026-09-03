@@ -1,8 +1,17 @@
 # ADR-001 — User-Authored Concrete Scope Recipes and Template Catalog
 
-Status: Accepted
+Status: Superseded in part by ADR-012
 Date: 2026-09-02
-Amended: 2026-09-03 — Scope Recipes, Project Scope Variants, repeatable System Blocks, floating Recipe Editor, and Concrete Formula Composer locked
+Amended: 2026-09-03 — Scope Recipes, Project Scope Variants, repeatable System Blocks, floating Recipe Editor, and Concrete Formula Composer locked  
+Amended: 2026-09-03 — Daily recipe/formula-first product model superseded by Concrete Conditions under ADR-012
+
+## Supersession
+
+ADR-012 supersedes the estimator-facing product decisions in this record that made Scope Recipes, Project Scope Variants, System Blocks, Recipe Editor, and Formula Composer the normal Takeoff workflow.
+
+The active product model is Platform Condition Archetype → Company Condition Template → Project Concrete Condition → Condition Module/Output. Standard Conditions use typed fields, toggles, dropdowns, tabs, and governed overrides; formula authoring moves to authorized advanced company configuration.
+
+This ADR remains authoritative historical rationale for the existing storage/runtime and for these durable protections: immutable published versions, deterministic server-authoritative calculation, tenant isolation, explicit inputs, dependency-safe migration, first-class resources, exact output/estimate lineage, and preservation of referenced history. Existing valid formula ASTs remain reproducible during migration. They are not the future daily interface.
 
 ## Context
 
