@@ -44,6 +44,17 @@ Plans → calibrate/verify scale → select published company assembly/method �
 - Persistent selected-object detail belongs in the right Inspector and Quantity Worksheet rather than an oversized drawing overlay.
 - Hover/detail presentation must never mutate normalized page-coordinate geometry, calibration, persisted measurement data, or Takeoff → assembly → estimate lineage.
 
+## Workstation information hierarchy and declutter contract
+- The visual priority is `Plan / geometry → active takeoff decision → quantity / hold state`. Persistent UI must not compete with the drawing without an operational reason.
+- Persistent text should identify an object, communicate current state or a problem, or enable a current estimator decision. Explanatory narration, provenance paragraphs, duplicate selection summaries, and repeated zero-state metadata should not occupy permanent workstation space.
+- Assembly provenance such as `source_label`, `source_reference`, and version lineage remains persisted and auditable but is not shown as an always-visible Inspector card. Provenance belongs in contextual detail/audit surfaces when needed.
+- The Takeoffs tab should present one compact assembly-selection surface, search, and the current-sheet measurement list. Do not repeat the selected assembly again in a separate persistent `Active Assembly` card when selection state is already clear.
+- Helper copy such as explanations of what a concrete assembly is should be omitted from the normal dense workstation. Use progressive disclosure/tooltips only when needed.
+- Sheet rows should emphasize sheet identity and actionable state. Do not repeat `0 TAKEOFFS` or equivalent empty counters on every sheet. Show warning text when action is required, such as missing scale; otherwise omit low-value zero-state text.
+- Persistent status/chrome must not duplicate the same Snap/Ortho/tool state in multiple locations. Keyboard help belongs in contextual help/shortcuts rather than a long always-visible instruction string.
+- The Takeoff page should minimize stacked horizontal chrome above the drawing. Project/module identity, takeoff-set identity, and drawing tools remain necessary, but redundant header bands should be consolidated where possible without removing the permanent app rail or project/module navigation contract.
+- Declutter work is presentation-only unless separately approved. It must not change geometry authority, calibration, published assembly selection semantics, deterministic formulas, quantity outputs, pricing, RLS, tenant isolation, or Takeoff → estimate lineage.
+
 ## Inputs
 Plans/sheets, calibration, measurement geometry, published company assembly version, verified method profile, declared estimator inputs.
 
@@ -62,4 +73,3 @@ P0 geometry/editor/atomic recalculation foundation is implemented. Additional B2
 
 ## Deferred/next
 Multi-select, whole-object pointer movement, clipboard, layers, snapping, revision overlay/migration, thumbnails/batch sheet operations, assisted plan intelligence.
-
