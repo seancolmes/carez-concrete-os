@@ -39,7 +39,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   const [
     { data: builderAssemblies }, { data: builderVersions }, { data: builderVariables }, { data: builderComponents },
-    { data: builderChildren }, { data: builderBindings }, { data: builderFolders },
+    { data: builderChildren }, { data: builderBindings }, { data: builderFolders }, { data: builderCatalogItems },
   ] = await Promise.all([
     supabase.from('concrete_assemblies').select('id,folder_id,code,name,category,primary_measurement,description,display_style,direct_takeoff_enabled,active').eq('company_id', companyId).eq('active', true).order('category').order('name'),
     supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,source_type,source_label,source_reference,default_risk_class_code,assembly_code_snapshot,assembly_name_snapshot,category_snapshot,primary_measurement_snapshot,description_snapshot,render_config,created_at,published_at').eq('company_id', companyId).order('assembly_id').order('version_no', { ascending: false }),
@@ -48,6 +48,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('concrete_assembly_children').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
     supabase.from('concrete_assembly_property_bindings').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
     supabase.from('concrete_assembly_folders').select('*').eq('company_id', companyId).eq('active', true).order('sort_order').order('name'),
+    supabase.from('cost_catalog_items').select('id,name,description,default_unit,default_unit_cost,vendor_name,sku,cost_code_id').eq('company_id', companyId).eq('active', true).order('name'),
   ]);
 
   const measurementIds = (measurements || []).map((m: any) => m.id);
@@ -95,6 +96,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     children: builderChildren || [],
     bindings: builderBindings || [],
     folders: builderFolders || [],
+    catalogItems: builderCatalogItems || [],
     measurements: measurements || [],
   };
 
