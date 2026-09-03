@@ -72,20 +72,23 @@ Implemented on staging:
 
 - PR #34 declutter/chrome changes merged into staging (`0ad693a`);
 - pane/readability and decimal-LF worksheet behavior from superseded PR #36 consolidated directly into staging (`3abfb16`);
-- sheet-row casing/status refinement consolidated directly into staging (`a1339ae`).
+- sheet-row casing/status refinement consolidated directly into staging (`a1339ae`);
+- sheet rows were reduced to quiet page/sheet identity with scale-status/count clutter removed;
+- pane divider handling was corrected from clipped pane-local resize targets to workspace-level captured-pointer separators (`253cc38`);
+- the cramped two-line Takeoff identity header was replaced with a compact horizontal set-name + estimate/revision hierarchy (`b7e06f8`, `0b8ecfa`).
 
 Approved behavior:
 
-- healthy/scaled sheet rows remain visually quiet;
-- repeated `0 TAKEOFFS`, `SCALE SET`, and other zero-value row clutter is not shown;
-- an unscaled sheet shows `Set scale` in normal sentence case with a red border and white text;
+- all sheet rows remain visually quiet regardless of scale state; the sheet pane does not show `Set scale`, `Not Scaled`, `Scaled`, scale-region counts, takeoff counts, warning boxes, or red status borders;
+- scale state/actions remain in the drawing toolbar/status area and Properties scale controls where they are actionable;
 - ordinary Carez UI headings/status/actions use sentence/title case, not automatic ALL CAPS;
 - assembly provenance remains persisted for audit/lineage but is not permanently narrated in the Takeoff Inspector;
 - duplicate helper/selection/status text is removed through progressive disclosure;
-- Sheets and Inspector panes may be horizontally resized while preserving the center drawing workspace;
+- Sheets and Inspector panes resize horizontally from their shared drawing boundaries while preserving a usable center drawing workspace;
+- the Takeoff-set identity strip uses a compact professional hierarchy rather than stacked microtext;
 - Quantity Worksheet LF quantities use decimal LF in the quantity column while architectural formatting remains available in drawing/detail contexts.
 
-Issue #35 remains open until the stable staging deployment is browser-accepted.
+The corrective divider/header changes are implemented but are not accepted as fixed until the stable staging deployment is browser-verified. Issue #35 remains open until that acceptance occurs.
 
 ## Known bounded follow-up
 
