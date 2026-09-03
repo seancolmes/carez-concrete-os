@@ -23,7 +23,7 @@ The permanent rail must retain its width and hit area when the context drawer cl
 
 ## Data/domain acceptance
 
-Changes touching geometry, assemblies, estimating, pricing, budget, production, or finance must verify deterministic calculations, tenant/company isolation, historical lineage, and mutation boundaries.
+Changes touching geometry, Concrete Conditions/modules, derived 3D, estimating, pricing, budget, production, or finance must verify deterministic calculations, identical 2D/3D/worksheet totals where applicable, tenant/company isolation, historical lineage, and mutation boundaries.
 
 ## Completion report
 
