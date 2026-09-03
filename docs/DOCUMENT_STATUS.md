@@ -8,8 +8,9 @@ This registry classifies non-canonical supporting documents so developers and AI
 - **ACCEPTED DETAILED DESIGN** — approved supporting design beneath canonical architecture/module docs.
 - **ACCEPTED ACCEPTANCE CRITERIA** — approved focused acceptance rule.
 - **RESEARCH CONTRACT** — approved research basis/source hierarchy used to inform canonical design.
+- **SUPERSEDED** — retained only as an explicit historical reference; it has no authority for new implementation.
 
-Historical implementation and superseded vision documents are removed from the active documentation set. Git history/closed PRs/issues preserve that evidence without competing with current product truth.
+Historical implementation and superseded vision documents are excluded from the active documentation set. A small number may remain explicitly marked SUPERSEDED when their runtime/migration evidence is needed; Git history and closed PRs/issues preserve the rest without competing with current product truth.
 
 ## Canonical governance documents
 
@@ -29,13 +30,19 @@ Historical implementation and superseded vision documents are removed from the a
 
 | Document | Classification | Canonical owner / interpretation |
 | --- | --- | --- |
-| `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | B2 visual/interaction contract supporting Architecture + Takeoff/Estimating specs |
-| `builder-means-methods-resource-engine.md` | ACCEPTED DETAILED DESIGN | Means/methods/resource contract supporting Assembly & Resource Engine + Takeoff + Estimating |
+| `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | Carez-wide light visual system; Takeoff details defer to the newer Condition/3D target |
+| `concrete-condition-3d-workstation-target.md` | ACCEPTED DETAILED DESIGN | Active Concrete Condition, EDGE-inspired workstation, derived 3D, migration, and acceptance contract |
 | `concrete-plan-intelligence-foundation.md` | ACCEPTED DETAILED DESIGN | Plan Intelligence domain/schema foundation supporting AI + Documents/Knowledge |
-| `custom-assembly-authoring-foundation.md` | ACCEPTED DETAILED DESIGN | Immutable assembly authoring/runtime contract supporting Assembly & Resource Engine + Estimating |
 | `p1-builder-method-acceptance.md` | ACCEPTED ACCEPTANCE CRITERIA | Focused P1 verification/resource acceptance rules |
 | `p1-method-research-contract.md` | RESEARCH CONTRACT | Source hierarchy/domain research contract for P1 means/methods |
-| `takeoff-estimating-workstation-target.md` | ACCEPTED DETAILED DESIGN | Integrated estimator workstation contract supporting Takeoff + Estimating |
+
+## Superseded historical references
+
+| Document | Classification | Replacement / retained value |
+| --- | --- | --- |
+| `takeoff-estimating-workstation-target.md` | SUPERSEDED | Replaced by the Condition/3D target; retains prior geometry, hold, and pricing rationale |
+| `custom-assembly-authoring-foundation.md` | SUPERSEDED | Replaced by ADR-012; retains current runtime and migration-compatibility evidence |
+| `builder-means-methods-resource-engine.md` | SUPERSEDED | Replaced by ADR-012; retains method/resource/safety rationale incorporated into the new engine |
 
 ## Conflict rule
 
