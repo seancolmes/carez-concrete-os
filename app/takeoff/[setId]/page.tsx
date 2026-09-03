@@ -1,6 +1,4 @@
 import { redirect, notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Calculator } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { TakeoffDrawingWorkspace } from '@/components/takeoff/TakeoffDrawingWorkspace';
@@ -59,16 +57,9 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
-      <header className="takeoff-app-header">
-        <div className="takeoff-app-left">
-          <Link href="/takeoff" className="takeoff-app-back"><ArrowLeft size={17}/><span>Takeoff</span></Link>
-          <div className="takeoff-app-divider"/>
-          <div className="takeoff-app-title"><strong>{set.name}</strong><span>{estimateLabel} · {estimate?.name || 'Concrete Estimate'} · {set.revision_label}</span></div>
-        </div>
-        <div className="takeoff-app-actions">
-          {locked&&<span className="takeoff-app-lock">READ ONLY</span>}
-          <Link href="/estimates" className="takeoff-app-link"><Calculator size={15}/> Estimate</Link>
-        </div>
+      <header className="takeoff-app-header takeoff-app-header-compact">
+        <div className="takeoff-app-title"><strong>{set.name}</strong><span>{estimateLabel} · {set.revision_label}</span></div>
+        {locked&&<span className="takeoff-app-lock">READ ONLY</span>}
       </header>
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
