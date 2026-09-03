@@ -31,6 +31,7 @@ When sources conflict, prefer the higher authority and record the conflict if it
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
 - [Development Workflow](workflow/DEVELOPMENT_WORKFLOW.md)
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
+- [Concrete Condition + 3D Workstation Target](concrete-condition-3d-workstation-target.md)
 
 ## Branch / user-test rule
 
@@ -41,6 +42,7 @@ Nik tests Carez only on the single stable staging QA URL defined in `BRANCH_AND_
 ## Module specifications
 
 - [Takeoff](modules/takeoff.md)
+- [Concrete Condition & Resource Engine](modules/assembly-resource-engine.md)
 - [Estimating](modules/estimating.md)
 - [CRM / Preconstruction](modules/crm-preconstruction.md)
 - [Projects / Work Packages / Scheduling](modules/projects-work-packages-scheduling.md)
