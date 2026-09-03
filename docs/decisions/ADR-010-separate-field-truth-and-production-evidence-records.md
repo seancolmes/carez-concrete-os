@@ -51,7 +51,7 @@ Carez may derive simple `HIGH`, `MEDIUM`, `LOW`, or `EXCLUDED` presentation stat
 - blocker/waiting/rework/setup time does not contaminate productive rates;
 - completion and production learning retain exact authorized quantity/version context;
 - generated daily records can be evidence-backed without turning foremen into clerks;
-- estimator guidance remains explainable and never silently changes assemblies.
+- estimator guidance remains explainable and never silently changes Company Condition Templates, Project Condition assumptions, or referenced legacy assemblies.
 
 ### Implementation requirements
 
@@ -67,7 +67,7 @@ This ADR establishes target architecture. It does not claim these field records 
 
 - scheduled assignment and actual work remain distinct;
 - paid time is not automatically productive time;
-- Production Evidence is advisory history, not an assembly or estimate mutation;
+- Production Evidence is advisory history, not a Company Condition Template, Project Condition, legacy assembly, or estimate mutation;
 - humans remain authoritative for completion verification, production-assumption adoption, and schedule/commercial approvals.
 
 ## Related decisions
