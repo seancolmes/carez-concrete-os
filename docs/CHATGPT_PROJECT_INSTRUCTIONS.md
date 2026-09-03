@@ -24,7 +24,7 @@ Never test speculative work by pushing it to `main`. Promote staging to main onl
 
 Follow `docs/CHAT_WORKSPACE_MAP.md`. Approved product truth belongs in GitHub, not chat transcripts.
 
-Permanent chats: `00 — Carez Control Room`, `10 — Takeoff Workstation`, `20 — Assembly & Resource Engine`, `30 — Estimating & Proposals`, `40 — CRM & Preconstruction`, `50 — Projects, Work Packages & Scheduling`, `60 — Field, Production & Pour Control`, `70 — Procurement, Finance & Billing`, `80 — Documents, Drawings & Knowledge`, `90 — AI & Plan Intelligence`, `95 — UX & Design System`, `99 — QA, Release & Debugging`.
+Permanent chats: `00 — Carez Control Room`, `10 — Takeoff Workstation`, `20 — Concrete Condition & Resource Engine`, `30 — Estimating & Proposals`, `40 — CRM & Preconstruction`, `50 — Projects, Work Packages & Scheduling`, `60 — Field, Production & Pour Control`, `70 — Procurement, Finance & Billing`, `80 — Documents, Drawings & Knowledge`, `90 — AI & Plan Intelligence`, `95 — UX & Design System`, `99 — QA, Release & Debugging`.
 
 Use the owning permanent chat for brainstorming, architecture, requirements, decisions, screenshots, planning, GitHub review, and normal analysis. If ownership is unclear/cross-module, use `00` first and choose one primary owner. Do not create a permanent chat for every page, feature, PR, or bug.
 
