@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateCondition } from '../lib/takeoff/conditions/calculate.ts';
 import { adaptConditionOutputsToLegacy } from '../lib/takeoff/conditions/legacyAdapter.ts';
+import {
+  assertCompleteConditionMappings,
+  buildConditionCommitOutputs,
+  resolveConditionInputGroups,
+} from '../lib/takeoff/conditions/persistence.ts';
 import type {
   ConditionCalculationRequest,
   ConditionInputGroup,
@@ -228,4 +233,78 @@ test('legacy adapter emits existing atomic-RPC payload without invoking formula 
   assert.equal(payload[0].formula_trace.engine, 'concrete_condition_v1');
   assert.equal(payload[1].production_quantity, 0);
   assert.equal(payload[1].pricing_status, 'not_priced');
+  assert.equal(payload[1].is_active, true);
+  assert.equal(payload[1].estimate_visible, false);
+});
+
+test('project inputs override company defaults while provenance remains explicit', () => {
+  const resolved = resolveConditionInputGroups({
+    companyDefaults: {
+      planFacts: { width_ft: 2, depth_ft: 1 },
+      commercial: { concrete_waste_pct: 5 },
+    },
+    companyProvenance: {
+      planFacts: { width_ft: { mode: 'company_default', sourceLabel: 'Perez footing default' } },
+    },
+    projectValues: {
+      planFacts: { width_ft: 2.5 },
+    },
+    projectProvenance: {
+      planFacts: { width_ft: { mode: 'explicit_override', sourceLabel: 'Detail 4/S5.1', note: 'Stepped footing' } },
+    },
+  });
+
+  assert.deepEqual(resolved.planFacts?.width_ft, {
+    value: 2.5,
+    mode: 'explicit_override',
+    sourceLabel: 'Detail 4/S5.1',
+    note: 'Stepped footing',
+  });
+  assert.deepEqual(resolved.planFacts?.depth_ft, { value: 1, mode: 'company_default' });
+  assert.deepEqual(resolved.commercial?.concrete_waste_pct, { value: 5, mode: 'company_default' });
+});
+
+test('database commit payload preserves holds and never accepts a second quantity source', () => {
+  const calculation = calculateCondition({
+    archetypeKey: 'slab_on_grade',
+    conditionVersionId: 'condition-server-authority',
+    measurementRoles: [role('area', 'slab-area', 'S1', 900, 'SF', 'polygon')],
+    inputs: inputs({ commercial: { concrete_waste_pct: 5 } }),
+  });
+  const commit = buildConditionCommitOutputs(calculation);
+  const concrete = commit.find(item => item.output_key === 'concrete.installed_cy');
+  assert.ok(concrete);
+  assert.equal(concrete.status, 'held');
+  assert.equal(concrete.production_quantity, null);
+  assert.equal(concrete.holds[0].hold_code, 'input_required');
+  assert.equal(concrete.provenance.authority, 'server');
+  assert.deepEqual(concrete.calculation_trace.measurementIds, ['slab-area']);
+});
+
+test('production persistence requires an exact one-to-one compatibility mapping', () => {
+  const calculation = calculateCondition({
+    archetypeKey: 'pad_column_footing',
+    conditionVersionId: 'condition-mapping',
+    measurementRoles: [role('locations', 'pad-count', 'S1', 4, 'EA', 'count')],
+    modules: [
+      { moduleKey: 'forms', enabled: false },
+      { moduleKey: 'reinforcing', enabled: false },
+      { moduleKey: 'anchors_embeds', enabled: false },
+      { moduleKey: 'labor', enabled: false },
+    ],
+    inputs: inputs({
+      planFacts: { width_ft: 6, length_ft: 6, depth_ft: 1.5 },
+      commercial: { concrete_waste_pct: 5 },
+    }),
+  });
+  const keys = calculation.outputs.map(item => item.outputKey);
+  assert.doesNotThrow(() => assertCompleteConditionMappings(calculation, keys));
+  assert.throws(
+    () => assertCompleteConditionMappings(calculation, keys.slice(1)),
+    /mapping is incomplete; missing concrete\.installed_cy/,
+  );
+  assert.throws(
+    () => assertCompleteConditionMappings(calculation, [...keys, keys[0]]),
+    /mapped more than once/,
+  );
 });

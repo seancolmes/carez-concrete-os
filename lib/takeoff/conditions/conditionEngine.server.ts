@@ -5,7 +5,14 @@ import 'server-only';
 // run without a database or browser.
 export { calculateCondition, roundConditionQuantity } from './calculate.ts';
 export { adaptConditionOutputsToLegacy } from './legacyAdapter.ts';
+export {
+  assertCompleteConditionMappings,
+  buildConditionCommitOutputs,
+  resolveConditionInputGroups,
+} from './persistence.ts';
 export type {
   LegacyConditionOutputMapping,
   LegacyPreparedConditionOutput,
 } from './legacyAdapter.ts';
+export type { ConditionCommitOutput } from './persistence.ts';
+export { prepareConcreteConditionPilotPersistence } from './persistence.server.ts';
