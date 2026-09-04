@@ -33,6 +33,10 @@ When sources conflict, prefer the higher authority and record the conflict if it
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
 - [Concrete Condition + 3D Workstation Target](concrete-condition-3d-workstation-target.md)
 
+## Global UI authority
+
+`docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md` is the Carez-wide presentation authority. It applies to UI work performed from every module chat, not only `95 — UX & Design System`. While Issue #44 remains open, it is the implementation/completion owner for the full dark shadcn migration. No module may introduce or revive a competing light/B2/legacy visual system, compatibility layer, route-specific design framework, or parallel component library.
+
 ## Branch / user-test rule
 
 Permanent branches are only `staging` and `main`.
