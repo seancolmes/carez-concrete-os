@@ -13,9 +13,12 @@ export type LegacyConditionOutputMapping = {
   unitCost?: number | null;
   costSource?: string | null;
   baselineSource?: string | null;
+  resourceBehavior?: string | null;
+  estimateVisible?: boolean;
 };
 
 export type LegacyPreparedConditionOutput = {
+  condition_output_key: string;
   assembly_component_id: string;
   component_key: string;
   label: string;
@@ -32,6 +35,9 @@ export type LegacyPreparedConditionOutput = {
   cost_source: string;
   direct_cost: number;
   pricing_status: 'priced' | 'missing_price' | 'missing_input' | 'not_priced';
+  is_active: boolean;
+  estimate_visible: boolean;
+  resource_behavior: string;
   formula_trace: Record<string, unknown>;
 };
 
@@ -76,6 +82,7 @@ export function adaptConditionOutputsToLegacy(
     const laborHours = mapping.estimateItemType === 'labor' ? quantity : 0;
 
     return {
+      condition_output_key: output.outputKey,
       assembly_component_id: mapping.assemblyComponentId,
       component_key: mapping.componentKey,
       label: mapping.label,
@@ -92,6 +99,12 @@ export function adaptConditionOutputsToLegacy(
       cost_source: mapping.costSource || '',
       direct_cost: pricing.directCost,
       pricing_status: pricing.status,
+      // Compatibility rows stay active so an existing manual unit-price override
+      // survives module disable/enable. Estimate visibility controls whether the
+      // projection produces a commercial line.
+      is_active: true,
+      estimate_visible: output.status !== 'inactive' && mapping.estimateVisible !== false,
+      resource_behavior: mapping.resourceBehavior || '',
       formula_trace: {
         engine: 'concrete_condition_v1',
         compatibility_mode: true,

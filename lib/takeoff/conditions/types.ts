@@ -49,6 +49,14 @@ export type ConditionValue = {
 
 export type ConditionInputGroups = Partial<Record<ConditionInputGroup, Record<string, ConditionValue>>>;
 
+export type ConditionRawInputGroups = Partial<Record<ConditionInputGroup, Record<string, ConditionScalar>>>;
+
+export type ConditionInputProvenanceValue = Omit<ConditionValue, 'value'>;
+
+export type ConditionInputProvenance = Partial<
+  Record<ConditionInputGroup, Record<string, ConditionInputProvenanceValue>>
+>;
+
 export type ConditionMeasurementRole = {
   roleKey: string;
   measurementId: string;
@@ -62,6 +70,21 @@ export type ConditionModuleSelection = {
   moduleKey: ConditionModuleKey;
   instanceKey?: string;
   enabled: boolean;
+};
+
+export type ConditionModuleConfiguration = ConditionModuleSelection & {
+  label?: string;
+  inputValues?: Record<string, ConditionScalar>;
+  inputProvenance?: Record<string, ConditionInputProvenanceValue>;
+  legacyChildKey?: string | null;
+  sortOrder?: number;
+};
+
+export type ConditionMeasurementRoleAssignment = {
+  roleKey: string;
+  roleInstanceKey?: string;
+  measurementId: string;
+  sortOrder?: number;
 };
 
 export type ConditionOutputOverride = {
@@ -122,6 +145,16 @@ export type ConditionCalculation = {
   archetypeKey: ConditionArchetypeKey;
   conditionVersionId: string;
   outputs: ConditionOutput[];
+};
+
+export type PersistConcreteConditionPilotInput = {
+  conditionVersionId: string;
+  inputs?: ConditionRawInputGroups;
+  inputProvenance?: ConditionInputProvenance;
+  modules?: ConditionModuleConfiguration[];
+  measurementRoles?: ConditionMeasurementRoleAssignment[];
+  outputOverrides?: Record<string, ConditionOutputOverride>;
+  compatibilityAnchorMeasurementId?: string | null;
 };
 
 export type ConditionInputDefinition = {
