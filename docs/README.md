@@ -31,8 +31,15 @@ When sources conflict, prefer the higher authority and record the conflict if it
 - [Carez Shared Component Pack](design-system/CAREZ_COMPONENT_PACK.md)
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
 - [Development Workflow](workflow/DEVELOPMENT_WORKFLOW.md)
+- [Codex Execution Workflow](workflow/CODEX_EXECUTION_WORKFLOW.md)
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
 - [Concrete Condition + 3D Workstation Target](concrete-condition-3d-workstation-target.md)
+
+## Agent execution authority
+
+ADR-017 and `docs/workflow/CODEX_EXECUTION_WORKFLOW.md` define the local-first coding model: ChatGPT/connected tools own Carez reasoning, scoping, QA/release inspection, and documentation reconciliation; local Codex with Ollama + `gpt-oss:20b` is the default bounded code executor; cloud Codex is reserved for justified high-risk/difficult escalation; GitHub Actions is the comprehensive post-push validation path.
+
+Root `AGENTS.md` intentionally contains only the execution-critical invariants and boundaries needed by coding agents. Do not expand it back into a duplicate of the entire documentation tree.
 
 ## Global UI authority
 
