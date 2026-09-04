@@ -52,92 +52,50 @@
   --radius-4xl: calc(var(--radius) * 2.25);
 }
 
-:root {
-  --radius: .625rem;
-
-  /* Carez: neutral construction workstation with restrained brand blue. */
-  --background: oklch(.985 .004 250);
-  --foreground: oklch(.205 .018 255);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(.205 .018 255);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(.205 .018 255);
-  --primary: oklch(.555 .19 257);
-  --primary-foreground: oklch(.99 .002 250);
-  --secondary: oklch(.955 .009 250);
-  --secondary-foreground: oklch(.285 .025 255);
-  --muted: oklch(.958 .007 250);
-  --muted-foreground: oklch(.51 .024 255);
-  --accent: oklch(.935 .025 252);
-  --accent-foreground: oklch(.34 .08 257);
-  --destructive: oklch(.58 .205 25);
-  --destructive-foreground: oklch(.99 .002 250);
-  --success: oklch(.59 .14 150);
-  --success-foreground: oklch(.985 .01 150);
-  --warning: oklch(.72 .15 75);
-  --warning-foreground: oklch(.26 .055 62);
-  --border: oklch(.895 .012 250);
-  --input: oklch(.885 .014 250);
-  --ring: oklch(.62 .17 257);
-  --chart-1: oklch(.56 .19 257);
-  --chart-2: oklch(.61 .14 150);
-  --chart-3: oklch(.7 .145 75);
-  --chart-4: oklch(.56 .15 30);
-  --chart-5: oklch(.55 .11 205);
-
-  /* Dark shadcn Sidebar is the permanent Carez desktop rail. */
-  --sidebar: oklch(.19 .024 255);
-  --sidebar-foreground: oklch(.94 .008 250);
-  --sidebar-primary: oklch(.64 .18 257);
-  --sidebar-primary-foreground: oklch(.99 .002 250);
-  --sidebar-accent: oklch(.27 .028 255);
-  --sidebar-accent-foreground: oklch(.98 .004 250);
-  --sidebar-border: oklch(.31 .023 255);
-  --sidebar-ring: oklch(.64 .18 257);
-}
-
+:root,
 .dark {
-  --background: oklch(.17 .018 255);
-  --foreground: oklch(.94 .008 250);
-  --card: oklch(.205 .019 255);
-  --card-foreground: oklch(.94 .008 250);
-  --popover: oklch(.205 .019 255);
-  --popover-foreground: oklch(.94 .008 250);
-  --primary: oklch(.67 .16 257);
-  --primary-foreground: oklch(.16 .018 255);
-  --secondary: oklch(.255 .02 255);
-  --secondary-foreground: oklch(.93 .008 250);
-  --muted: oklch(.245 .018 255);
-  --muted-foreground: oklch(.7 .018 250);
-  --accent: oklch(.29 .04 257);
-  --accent-foreground: oklch(.95 .006 250);
-  --destructive: oklch(.66 .18 24);
-  --destructive-foreground: oklch(.99 .002 250);
-  --success: oklch(.66 .13 150);
-  --success-foreground: oklch(.15 .03 150);
-  --warning: oklch(.77 .14 75);
-  --warning-foreground: oklch(.2 .05 62);
-  --border: oklch(.33 .02 255);
-  --input: oklch(.34 .02 255);
-  --ring: oklch(.66 .16 257);
-  --chart-1: oklch(.67 .16 257);
-  --chart-2: oklch(.66 .13 150);
-  --chart-3: oklch(.77 .14 75);
-  --chart-4: oklch(.68 .15 30);
-  --chart-5: oklch(.67 .1 205);
-  --sidebar: oklch(.145 .016 255);
-  --sidebar-foreground: oklch(.94 .008 250);
-  --sidebar-primary: oklch(.67 .16 257);
-  --sidebar-primary-foreground: oklch(.15 .016 255);
-  --sidebar-accent: oklch(.235 .022 255);
-  --sidebar-accent-foreground: oklch(.96 .005 250);
-  --sidebar-border: oklch(.29 .02 255);
-  --sidebar-ring: oklch(.67 .16 257);
+  --radius: .5rem;
+  --background: oklch(.145 .008 255);
+  --foreground: oklch(.94 .006 250);
+  --card: oklch(.18 .009 255);
+  --card-foreground: oklch(.94 .006 250);
+  --popover: oklch(.185 .01 255);
+  --popover-foreground: oklch(.95 .005 250);
+  --primary: oklch(.94 .006 250);
+  --primary-foreground: oklch(.16 .008 255);
+  --secondary: oklch(.235 .01 255);
+  --secondary-foreground: oklch(.92 .006 250);
+  --muted: oklch(.215 .009 255);
+  --muted-foreground: oklch(.68 .012 250);
+  --accent: oklch(.27 .012 255);
+  --accent-foreground: oklch(.95 .005 250);
+  --destructive: oklch(.65 .19 25);
+  --destructive-foreground: oklch(.98 .003 250);
+  --success: oklch(.68 .13 150);
+  --success-foreground: oklch(.15 .025 150);
+  --warning: oklch(.78 .13 78);
+  --warning-foreground: oklch(.2 .04 65);
+  --border: oklch(.29 .01 255);
+  --input: oklch(.31 .011 255);
+  --ring: oklch(.72 .008 250);
+  --chart-1: oklch(.7 .09 255);
+  --chart-2: oklch(.68 .13 150);
+  --chart-3: oklch(.78 .13 78);
+  --chart-4: oklch(.68 .14 30);
+  --chart-5: oklch(.67 .09 205);
+  --sidebar: oklch(.145 .008 255);
+  --sidebar-foreground: oklch(.94 .006 250);
+  --sidebar-primary: oklch(.94 .006 250);
+  --sidebar-primary-foreground: oklch(.16 .008 255);
+  --sidebar-accent: oklch(.235 .01 255);
+  --sidebar-accent-foreground: oklch(.96 .004 250);
+  --sidebar-border: oklch(.29 .01 255);
+  --sidebar-ring: oklch(.72 .008 250);
 }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  html { min-height: 100%; background: var(--background); }
+  html { min-height: 100%; background: var(--background); color-scheme: dark; }
   body {
     @apply min-h-svh bg-background font-sans text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -145,7 +103,7 @@
   }
   button, input, select, textarea { font: inherit; }
   strong { font-weight: 650; }
-  ::selection { background: color-mix(in oklch, var(--primary) 24%, transparent); }
+  ::selection { background: color-mix(in oklch, var(--foreground) 18%, transparent); }
 }
 
 @layer components {
@@ -157,12 +115,17 @@
   .carez-section-header { @apply flex flex-wrap items-end justify-between gap-3; }
   .carez-section-title { @apply text-base font-semibold tracking-tight; }
   .carez-section-description { @apply mt-0.5 text-sm text-muted-foreground; }
-  .carez-kicker { @apply mb-1 text-xs font-medium text-primary; }
+  .carez-kicker { @apply mb-1 text-xs font-medium text-muted-foreground; }
   .carez-data-number { @apply font-mono tabular-nums tracking-tight; }
-  .carez-toolbar { @apply flex min-h-10 flex-wrap items-center gap-2 border-b bg-background px-3 py-1.5; }
+  .carez-toolbar { @apply flex min-h-9 flex-wrap items-center gap-1 border-b bg-background px-2 py-1; }
 }
 
-/* Staging build identity stays visible without becoming application chrome. */
+@keyframes carez-indeterminate {
+  0% { transform: translateX(-130%); }
+  50% { transform: translateX(120%); }
+  100% { transform: translateX(310%); }
+}
+
 .carez-build-identity {
   position: fixed;
   right: 10px;
@@ -176,7 +139,7 @@
   color: var(--muted-foreground);
   font: 650 9px/1.2 var(--font-geist-mono), ui-monospace, SFMono-Regular, Consolas, monospace;
   letter-spacing: .03em;
-  box-shadow: 0 4px 14px rgb(15 23 42 / .08);
+  box-shadow: 0 4px 14px rgb(0 0 0 / .24);
   backdrop-filter: blur(8px);
 }
 
@@ -185,6 +148,17 @@
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: color-mix(in oklch, var(--muted-foreground) 32%, transparent); border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; }
 *::-webkit-scrollbar-thumb:hover { background: color-mix(in oklch, var(--muted-foreground) 50%, transparent); border: 2px solid transparent; background-clip: padding-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot^="carez-"],
+  [data-slot^="carez-"]::before,
+  [data-slot^="carez-"]::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
 
 @media (max-width: 980px) { .carez-build-identity { display: none; } }
 @media print { .carez-build-identity { display: none !important; } }

@@ -5,8 +5,8 @@ import {TooltipProvider} from '@/components/ui/tooltip';
 
 /*
  * Legacy structural CSS remains temporarily for routes not yet converted to
- * literal shadcn components. The old B2/light visual override stack is no
- * longer loaded. globals.css + carez-shadcn-compat.css are the visual authority.
+ * literal shadcn/Carez components. ADR-015 dark tokens + ADR-016 shell are the
+ * active presentation authority; carez-shadcn-compat.css remains transitional.
  */
 import './polish.css';
 import './construction-ui.css';
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" className={`${inter.variable} ${GeistMono.variable}`}>
+  return <html lang="en" className={`${inter.variable} ${GeistMono.variable} dark`}>
     <body className={inter.className}>
       <TooltipProvider>
         {children}

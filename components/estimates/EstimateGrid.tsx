@@ -3,16 +3,16 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {ExternalLink,Search,X} from 'lucide-react';
+import {ExternalLink,Search} from 'lucide-react';
 import {Badge} from '@/components/ui/badge';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Card} from '@/components/ui/card';
+import {buttonVariants} from '@/components/ui/button';
 import {Checkbox} from '@/components/ui/checkbox';
 import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
 import {Input} from '@/components/ui/input';
 import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {CarezDataGrid} from '@/components/carez';
 import {cn} from '@/lib/utils';
 
 export type EstimateGridStage='working'|'ready'|'issued'|'awarded'|'history';
@@ -122,7 +122,7 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
   const inspected=rows.find(row=>row.id===inspectedId)||null;
 
   return <div className="space-y-3">
-    <Card ref={shellRef} tabIndex={0} onKeyDown={handleKeyDown} className="gap-0 py-0 shadow-none outline-none focus-visible:ring-3 focus-visible:ring-ring/20" aria-label="Estimate workbench grid">
+    <CarezDataGrid ref={shellRef} tabIndex={0} onKeyDown={handleKeyDown} className="focus-visible:ring-3 focus-visible:ring-ring/20" aria-label="Estimate workbench grid">
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
         <div className="relative min-w-64 flex-1 lg:max-w-md"><Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/><Input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search estimate, job, or project" aria-label="Search estimates" className="h-8 pl-8 text-xs"/></div>
         <Tabs value={stage} onValueChange={value=>setStage(value as 'all'|EstimateGridStage)} className="w-auto">
@@ -157,23 +157,23 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
           </TableRow></TableHeader>
           <TableBody>{visibleRows.map((row,index)=>{
             const selected=selectedIds.has(row.id),active=index===activeIndex,marginLow=row.projectedMargin<row.targetMargin;
-            return <TableRow key={row.id} data-grid-index={index} data-state={selected?'selected':undefined} className={cn('cursor-pointer',active&&'ring-1 ring-inset ring-primary/35')} aria-selected={selected} onClick={()=>{setActiveIndex(index);setInspectedId(row.id)}} onDoubleClick={()=>router.push(row.estimateHref)}>
+            return <TableRow key={row.id} data-grid-index={index} data-state={selected?'selected':undefined} className={cn('cursor-pointer',active&&'ring-1 ring-inset ring-foreground/20')} aria-selected={selected} onClick={()=>{setActiveIndex(index);setInspectedId(row.id)}} onDoubleClick={()=>router.push(row.estimateHref)}>
               <TableCell onClick={event=>event.stopPropagation()}><Checkbox checked={selected} onCheckedChange={()=>toggleRow(row.id)} aria-label={selected?`Clear ${row.displayNumber} selection`:`Select ${row.displayNumber}`}/></TableCell>
-              <TableCell><Link className="font-mono text-xs font-semibold text-primary hover:underline" href={row.estimateHref}>{row.displayNumber}</Link></TableCell>
+              <TableCell><Link className="font-mono text-xs font-semibold text-foreground hover:underline" href={row.estimateHref}>{row.displayNumber}</Link></TableCell>
               <TableCell><div className="font-medium">{row.name}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</div></TableCell>
               <TableCell><StageBadge stage={row.stage} label={row.stageLabel}/></TableCell>
               <TableCell className="carez-data-number text-right">{row.takeoffObjects?`${row.takeoffObjects} obj`:'—'}</TableCell>
-              <TableCell className={cn('carez-data-number text-right',row.priceHolds&&'text-amber-700')}>{row.priceHolds}</TableCell>
+              <TableCell className={cn('carez-data-number text-right',row.priceHolds&&'text-warning')}>{row.priceHolds}</TableCell>
               <TableCell className="carez-data-number text-right">{money(row.directCost)}</TableCell>
               <TableCell className="carez-data-number text-right font-semibold">{money(row.quote)}</TableCell>
-              <TableCell className={cn('carez-data-number text-right font-medium',marginLow?'text-amber-700':'text-success')}>{row.projectedMargin.toFixed(1)}%</TableCell>
+              <TableCell className={cn('carez-data-number text-right font-medium',marginLow?'text-warning':'text-success')}>{row.projectedMargin.toFixed(1)}%</TableCell>
               <TableCell className="carez-data-number text-right text-muted-foreground">{row.targetMargin.toFixed(1)}%</TableCell>
               <TableCell className="text-xs text-muted-foreground">{date(row.updatedAt)}</TableCell>
               <TableCell onClick={event=>event.stopPropagation()}><div className="flex items-center gap-1.5"><Link className={buttonVariants({size:'sm'})} href={row.estimateHref}>Open<ExternalLink/></Link>{row.secondaryHref&&row.secondaryLabel?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={row.secondaryHref}>{row.secondaryLabel}</Link>:null}</div></TableCell>
             </TableRow>;
           })}</TableBody>
         </Table>}
-    </Card>
+    </CarezDataGrid>
 
     <Sheet open={Boolean(inspected)} onOpenChange={open=>{if(!open)setInspectedId(null)}}>
       {inspected?<SheetContent className="w-[92vw] overflow-y-auto sm:max-w-md">
@@ -184,9 +184,9 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
             <InspectorRow label="Takeoff"><span className="carez-data-number">{inspected.takeoffObjects} obj</span></InspectorRow>
             <InspectorRow label="Direct cost"><span className="carez-data-number">{money(inspected.directCost)}</span></InspectorRow>
             <InspectorRow label="Sell"><span className="carez-data-number">{money(inspected.quote)}</span></InspectorRow>
-            <InspectorRow label="Margin"><span className={cn('carez-data-number',inspected.projectedMargin<inspected.targetMargin?'text-amber-700':'text-success')}>{inspected.projectedMargin.toFixed(1)}%</span></InspectorRow>
+            <InspectorRow label="Margin"><span className={cn('carez-data-number',inspected.projectedMargin<inspected.targetMargin?'text-warning':'text-success')}>{inspected.projectedMargin.toFixed(1)}%</span></InspectorRow>
             <InspectorRow label="Target"><span className="carez-data-number">{inspected.targetMargin.toFixed(1)}%</span></InspectorRow>
-            <InspectorRow label="Price holds"><span className={cn('carez-data-number',inspected.priceHolds&&'text-amber-700')}>{inspected.priceHolds}</span></InspectorRow>
+            <InspectorRow label="Price holds"><span className={cn('carez-data-number',inspected.priceHolds&&'text-warning')}>{inspected.priceHolds}</span></InspectorRow>
             <InspectorRow label="Updated"><span>{date(inspected.updatedAt)}</span></InspectorRow>
           </dl></section>
           <div className="flex flex-wrap gap-2"><Link className={buttonVariants()} href={inspected.estimateHref}>Open estimate<ExternalLink/></Link>{inspected.secondaryHref&&inspected.secondaryLabel?<Link className={buttonVariants({variant:'outline'})} href={inspected.secondaryHref}>{inspected.secondaryLabel}</Link>:null}</div>
