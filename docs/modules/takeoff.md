@@ -98,15 +98,16 @@ Available facts include count, location, supported shape/profile, per-instance d
 
 ## Workstation information hierarchy
 
+- Global navigation lives above the workstation in the ADR-016 compact application header + animated category navigation shell; Takeoff does not spend permanent horizontal width on a global app rail.
 - Visual priority is plan/geometry → active Condition decision → quantity/hold state.
-- The permanent dark navy rail remains visible at desktop width.
-- The resizable context pane uses Plans, Conditions, and Zones tabs.
+- The resizable contextual left pane uses Plans, Conditions, and Zones tabs and is module-specific rather than global navigation.
 - The drawing surface owns the largest area.
 - Condition Properties is the one governed dockable/floatable work window; Carez does not create a pile of overlapping dialogs.
 - The bottom worksheet remains a readable estimator grid with resizable columns and saved views.
+- Shared controls should use the accepted Carez component pack: Condition Tree, Number Field, Toolbar, Resizable Workspace, Data Grid, Loading States, File Upload, Date/Time where relevant, and the shared motion language.
 - Persistent text must identify an object, communicate actionable state/problem, or enable a decision.
 - Provenance remains stored but appears through drill-down instead of permanent narration.
-- Minimize stacked horizontal chrome and duplicate status/tool state.
+- Minimize stacked horizontal chrome and duplicate status/tool state inside the module workspace; the compact global header/category rows remain outside the Takeoff work area.
 
 ## Inputs
 
@@ -131,7 +132,7 @@ Existing published recipes/assemblies, formula ASTs, outputs, method profiles, e
 
 ## Current foundation
 
-P0 geometry/editor/atomic recalculation is implemented. The approved Concrete Condition and 3D contracts describe the next architecture target and are not current implementation claims. Current verified state remains exclusively in docs/CURRENT_STATE.md.
+P0 geometry/editor/atomic recalculation is implemented. The approved Concrete Condition, derived 3D, dark shadcn, top-navigation shell, and shared component-pack contracts describe architecture targets that still require implementation/browser verification where not already present. Current verified implementation state remains exclusively in docs/CURRENT_STATE.md.
 
 ## Deferred/next
 
