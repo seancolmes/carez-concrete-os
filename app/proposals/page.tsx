@@ -2,12 +2,21 @@ import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowRight,CheckCircle2,Clock3,Eye,FileText,MessageSquareText,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {Badge} from '@/components/ui/badge';
+import {buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle} from '@/components/ui/card';
+import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
 import {createClient} from '@/lib/supabase/server';
+import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const day=(v:any)=>v?new Date(`${String(v).slice(0,10)}T12:00:00`).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
 const dt=(v:any)=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
-const stageLabel=(v:string)=>({sent:'Sent · Not Viewed',viewed:'Viewed',needs_reply:'Needs Reply',accepted:'Accepted',declined:'Declined',expired:'Expired',revoked:'Link Off',superseded:'Superseded'} as any)[v]||v;
+const stageLabel=(v:string)=>({sent:'Sent · not viewed',viewed:'Viewed',needs_reply:'Needs reply',accepted:'Accepted',declined:'Declined',expired:'Expired',revoked:'Link off',superseded:'Superseded'} as any)[v]||v;
+
+function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
+  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700')}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+}
 
 export default async function ProposalsPage(){
   const supabase=await createClient();
@@ -35,23 +44,36 @@ export default async function ProposalsPage(){
   const history=rows.filter((r:any)=>['declined','expired','revoked','superseded'].includes(r.stage)||r.e.status==='superseded');
   const openValue=[...ready,...market,...needs].reduce((sum:number,row:any)=>sum+row.sell,0);
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page proposals-v3">
-    <div className="command-hero"><div><div className="section-kicker">ESTIMATE · PROPOSAL</div><h1>Proposals</h1><p>Prepare the offer, send one immutable revision, see customer engagement, and know exactly who needs a follow-up. Proposal management should feel like a sales pipeline—not a document settings page.</p></div><div className="command-actions"><Link className="button secondary" href="/estimates"><FileText size={15}/> Estimates</Link><Link className="button secondary" href="/estimates/audit"><ShieldCheck size={15}/> Audit</Link></div></div>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Proposals</h1><p className="carez-page-description">Prepare one immutable customer offer, track engagement, respond to questions, and keep the winning revision connected to the awarded job.</p></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><FileText/>Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link></div>
+      </header>
 
-    <div className="takeoff-flow-strip"><span>1 <b>Takeoff</b></span><ArrowRight/><span>2 <b>Estimate</b></span><ArrowRight/><span>3 <b>Audit</b></span><ArrowRight/><span className="active">4 <b>Proposal</b></span></div>
+      <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
+        {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+      </nav>
 
-    <div className="command-grid section"><div className="command-card"><div className="command-label">Ready to Send</div><div className="command-value">{ready.length}</div><div className="command-help">Estimate revisions waiting for proposal prep.</div></div><div className={`command-card ${needs.length?'watch':''}`}><div className="command-label">Needs Reply</div><div className="command-value">{needs.length}</div><div className="command-help">Customer question, change request or response.</div></div><div className={`command-card ${market.length?'good':''}`}><div className="command-label">In Market</div><div className="command-value">{market.length}</div><div className="command-help">Sent or viewed and awaiting decision.</div></div><div className="command-card"><div className="command-label">Open Proposal Value</div><div className="command-value">{money(openValue)}</div><div className="command-help">Current ready + active customer proposals.</div></div></div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Ready to send" value={String(ready.length)} help="Estimate revisions waiting for proposal prep."/>
+        <Metric label="Needs reply" value={String(needs.length)} help="Customer question, change request, or response." tone={needs.length?'warning':'default'}/>
+        <Metric label="In market" value={String(market.length)} help="Sent or viewed and awaiting decision." tone={market.length?'success':'default'}/>
+        <Metric label="Open proposal value" value={money(openValue)} help="Current ready and active customer proposals."/>
+      </section>
 
-    {needs.length>0&&<section className="section"><div className="section-heading"><div><div className="section-kicker">ATTENTION</div><div className="section-title">Customer response waiting</div><div className="section-heading-meta">These are the proposals most likely to require action now.</div></div></div><div className="proposal-pipeline-grid">{needs.map((row:any)=><ProposalCard key={row.e.id} row={row} priority/>)}</div></section>}
+      {needs.length>0?<section className="carez-section"><div className="carez-section-header"><div><p className="carez-kicker">Attention</p><h2 className="carez-section-title">Customer response waiting</h2><p className="carez-section-description">These proposals are most likely to require action now.</p></div></div><div className="grid gap-3 lg:grid-cols-2">{needs.map((row:any)=><ProposalCard key={row.e.id} row={row} priority/>)}</div></section>:null}
 
-    <section className="section"><div className="section-heading"><div><div className="section-kicker">CUSTOMER PIPELINE</div><div className="section-title">Ready & In Market</div><div className="section-heading-meta">Each card shows the current customer state. Open it only when you need to prepare, send, follow up, respond, or revise.</div></div></div>
-      {ready.length+market.length===0?<div className="empty-state"><div><div className="title">No proposal is waiting right now</div><div className="meta">Finish an estimate, run the audit, then mark it Ready for Audit / Proposal.</div><div className="section"><Link className="button" href="/estimates">Open Estimates</Link></div></div></div>:<div className="proposal-pipeline-grid">{[...ready,...market].map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div>}
-    </section>
+      <section className="carez-section">
+        <div className="carez-section-header"><div><p className="carez-kicker">Customer pipeline</p><h2 className="carez-section-title">Ready & in market</h2><p className="carez-section-description">Prepare, send, follow up, respond, or revise only from the current authoritative proposal state.</p></div></div>
+        {ready.length+market.length===0?<Empty className="min-h-56 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><FileText/></EmptyMedia><EmptyTitle>No proposal is waiting right now</EmptyTitle><EmptyDescription>Finish an estimate, run the audit, then move the revision into proposal preparation.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/estimates">Open estimates</Link></EmptyContent></Empty>:<div className="grid gap-3 lg:grid-cols-2">{[...ready,...market].map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div>}
+      </section>
 
-    {won.length>0&&<section className="section"><div className="section-heading"><div><div className="section-kicker">WON</div><div className="section-title">Accepted Proposals</div><div className="section-heading-meta">Accepted proposal revisions are locked and already handed into the awarded-job workflow.</div></div></div><div className="proposal-pipeline-grid">{won.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></section>}
+      {won.length>0?<section className="carez-section"><div className="carez-section-header"><div><p className="carez-kicker">Won</p><h2 className="carez-section-title">Accepted proposals</h2><p className="carez-section-description">Accepted proposal revisions are locked and already handed into the awarded-job workflow.</p></div></div><div className="grid gap-3 lg:grid-cols-2">{won.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></section>:null}
 
-    {history.length>0&&<section className="section"><details className="history-disclosure"><summary>Closed / Previous Proposal Revisions <span>{history.length}</span></summary><div className="proposal-pipeline-grid section">{history.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></details></section>}
-  </div></AppShell>;
+      {history.length>0?<section className="carez-section"><details className="overflow-hidden rounded-lg border bg-card"><summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 bg-muted/30 px-3 text-sm font-medium">Closed / previous proposal revisions <Badge variant="secondary">{history.length}</Badge></summary><div className="grid gap-3 border-t p-3 lg:grid-cols-2">{history.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></details></section>:null}
+    </div>
+  </AppShell>;
 }
 
 function ProposalCard({row,priority=false}:{row:any;priority?:boolean}){
@@ -60,7 +82,19 @@ function ProposalCard({row,priority=false}:{row:any;priority?:boolean}){
   const customer=lead.customer_name||q?.customer_name||'Customer';
   const job=lead.project_name||project?.name||e.name;
   const viewed=Number(q?.view_count||0)>0;
-  const label=q?stageLabel(stage):stage==='ready'?'Ready to Prepare':stage;
+  const label=q?stageLabel(stage):stage==='ready'?'Ready to prepare':stage;
   const next=q?.next_action||(stage==='ready'?'Prepare and issue customer proposal':'Open proposal');
-  return <article className={`proposal-card-v3 ${priority?'priority':''}`}><header><div className="proposal-card-icon">{responses?<MessageSquareText/>:viewed?<Eye/>:<FileText/>}</div><div><span>{proposalNumber}</span><strong>{customer}</strong><small>{job}</small></div><b>{label}</b></header><div className="proposal-card-body"><div className="proposal-card-price"><span>Customer price</span><strong>{money(sell)}</strong></div><div className="proposal-card-facts"><div><span>Views</span><strong>{q?Number(q.view_count||0):'—'}</strong></div><div><span>Responses</span><strong className={responses?'attention':''}>{responses}</strong></div><div><span>Last Viewed</span><strong>{q?.last_viewed_at?dt(q.last_viewed_at):'—'}</strong></div><div><span>Follow-up</span><strong className={q?.follow_up_due_now?'attention':''}>{q?.follow_up_due?day(q.follow_up_due):'—'}</strong></div></div><div className="proposal-card-next"><Clock3 size={14}/><span>{next}</span></div></div><footer><Link className="button" href={`/proposals/${e.id}`}>{q?'Open Proposal':'Prepare Proposal'} <ArrowRight size={14}/></Link>{stage==='accepted'&&e.project_id&&<Link className="button secondary" href={`/projects/${e.project_id}`}><CheckCircle2 size={14}/> Open Job</Link>}</footer></article>;
+  const Icon=responses?MessageSquareText:viewed?Eye:FileText;
+
+  return <Card className={cn('gap-0 py-0 shadow-none',priority&&'border-amber-500/30')}>
+    <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3"><span className={cn('flex size-9 items-center justify-center rounded-lg bg-accent text-primary',priority&&'bg-amber-500/10 text-amber-700')}><Icon className="size-4"/></span><div className="min-w-0"><p className="font-mono text-[10px] font-semibold text-primary">{proposalNumber}</p><CardTitle className="mt-1 truncate">{customer}</CardTitle><CardDescription className="mt-0.5 truncate">{job}</CardDescription></div><Badge variant={stage==='accepted'?'secondary':priority?'secondary':'outline'} className={cn(stage==='accepted'&&'bg-success/10 text-success',priority&&'bg-amber-500/10 text-amber-700')}>{label}</Badge></CardHeader>
+    <CardContent className="space-y-3 p-4">
+      <div><div className="text-xs text-muted-foreground">Customer price</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{money(sell)}</div></div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[
+        ['Views',q?Number(q.view_count||0):'—',false],['Responses',responses,responses>0],['Last viewed',q?.last_viewed_at?dt(q.last_viewed_at):'—',false],['Follow-up',q?.follow_up_due?day(q.follow_up_due):'—',Boolean(q?.follow_up_due_now)],
+      ].map(([name,value,attention])=><div key={String(name)} className="rounded-lg border bg-muted/20 p-2.5"><div className="text-[11px] text-muted-foreground">{name}</div><div className={cn('mt-1 text-xs font-medium',attention&&'text-amber-700')}>{value}</div></div>)}</div>
+      <div className="flex gap-2 rounded-lg border bg-muted/20 px-3 py-2.5 text-xs leading-5"><Clock3 className="mt-0.5 size-3.5 shrink-0 text-primary"/><span>{next}</span></div>
+    </CardContent>
+    <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3"><Link className={buttonVariants({size:'sm'})} href={`/proposals/${e.id}`}>{q?'Open proposal':'Prepare proposal'}<ArrowRight/></Link>{stage==='accepted'&&e.project_id?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/projects/${e.project_id}`}><CheckCircle2/>Open job</Link>:null}</CardFooter>
+  </Card>;
 }
