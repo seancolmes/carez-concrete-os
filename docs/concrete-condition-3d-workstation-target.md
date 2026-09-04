@@ -1,7 +1,7 @@
 > **Document status:** ACCEPTED DETAILED DESIGN  
 > **Canonical owner:** docs/ARCHITECTURE.md, docs/modules/takeoff.md, docs/modules/assembly-resource-engine.md, docs/modules/estimating.md  
 > **Use:** Approved product, interaction, migration, and acceptance contract for the Concrete Condition workstation and derived 3D verification.  
-> **Supersession:** Replaces the active recipe/formula-first Takeoff contracts in takeoff-estimating-workstation-target.md, custom-assembly-authoring-foundation.md, and builder-means-methods-resource-engine.md. Their durable data, safety, and lineage invariants remain preserved by ADR-012.
+> **Supersession:** Replaces the active recipe/formula-first Takeoff contracts in takeoff-estimating-workstation-target.md, custom-assembly-authoring-foundation.md, and builder-means-methods-resource-engine.md. Their durable data, safety, and lineage invariants remain preserved by ADR-012. ADR-016 governs the global top-navigation shell, and ADR-015 + docs/design-system/CAREZ_COMPONENT_PACK.md govern the shared dark shadcn presentation/components.
 
 # Carez Concrete OS — Concrete Condition + 3D Workstation Target
 
@@ -49,19 +49,22 @@ Carez uses this as behavioral evidence for a derived 3D quality-control view. HA
 8. **Keyboard and pointer fluency.** High-frequency commands support predictable shortcuts, focus order, context menus, and undo/redo.
 9. **No hidden assumptions.** Derived defaults and explicit overrides are visually different and retain provenance.
 10. **Safe continuity.** Sheet, zoom/pan, selection, window layout, filters, and unsaved property state survive normal view/layout changes.
+11. **Global navigation stays out of the drawing width.** Carez uses the ADR-016 compact top header/category navigation, while left/right panes inside Takeoff remain contextual to the estimator task.
+12. **Shared controls stay shared.** Reuse the accepted Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, File Upload, Loading States, Date/Time and motion patterns rather than creating local equivalents.
 
 ## Desktop workstation
 
 ~~~mermaid
 flowchart TB
-  top["Compact project / module bar"] --> work["Estimator workspace"]
+  shell["Compact Carez application header"] --> nav["Global category navigation + animated panels"]
+  nav --> work["Estimator workspace"]
   work --> left["Resizable context pane: Plans · Conditions · Zones"]
   work --> center["Drawing surface: 2D · 3D · Split"]
   work --> right["Condition Properties: dock · float · resize"]
   center --> bottom["Resizable Quantity / Estimate Worksheet"]
 ~~~
 
-The permanent dark navy Carez rail remains outside this workspace and never disappears at desktop width.
+The global desktop left app rail is not part of the accepted target. The top shell owns global navigation; the Takeoff side panes own only module context.
 
 ### Context pane
 
@@ -71,15 +74,19 @@ Top tabs:
 - **Conditions** — condition tree, type/code/name, color, visibility, status, quick add/duplicate.
 - **Zones** — bid zones, alternates, phases, buildings, levels, pour/scope groupings.
 
-The pane is resizable and collapsible. The permanent rail remains visible when it closes.
+The pane is resizable and collapsible. Closing it returns width to the drawing workspace without changing or hiding the global top navigation.
+
+The Conditions tab should use the shared Carez Condition Tree where the interaction matches. Search/filter, visibility, context actions, keyboard selection, drawing color, and hold/status indicators must remain compact and synchronized with plan/Properties/worksheet selection.
 
 ### Drawing surface
 
-A compact toolbar contains measurement tools, selection/editing, snap/ortho, cutouts, arcs, undo/redo, visibility, and view mode.
+A compact Carez Toolbar contains measurement tools, selection/editing, snap/ortho, cutouts, arcs, undo/redo, visibility, and view mode.
 
 View switch: **2D**, **3D**, **Split**.
 
 The canvas owns the largest area. Plan geometry remains readable and Takeoff colors remain more salient than UI chrome.
+
+The toolbar uses shared tooltip, icon, overflow, toggle, focus, shortcut, and functional-motion behavior rather than page-local controls.
 
 ### Condition Properties window
 
@@ -113,6 +120,7 @@ Within a tab:
 - common inputs appear first;
 - toggles enable modules;
 - dropdowns select governed choices;
+- shared Carez Number Field controls handle governed numeric/dimension/spacing/count/rate values where appropriate;
 - numeric/architectural dimension inputs declare units;
 - computed fields are read-only and visually distinct;
 - source badges reveal platform, company, plan, project, or manual provenance;
@@ -120,13 +128,13 @@ Within a tab:
 
 ### Quantity / Estimate Worksheet
 
-The bottom dock is permanently available and vertically resizable. It supports synchronized selection, grouping, saved views, filtering, column resizing, keyboard navigation, and targeted edits.
+The bottom dock is permanently available and vertically resizable through the Carez Resizable Workspace composition. It supports synchronized selection, grouping, saved views, filtering, column resizing, keyboard navigation, and targeted edits.
 
 Core views: Quantities, Resources, Labor, Pricing, Holds, and Recap.
 
 Core columns include Condition, role/measurement, sheet/zone, production quantity/unit, concrete, reinforcing, forms, embeds, equipment, man-hours, unit cost, Direct Cost, Sell, status/hold, and provenance drill-down.
 
-The worksheet is a professional grid, not a card stack.
+The worksheet uses the shared Carez Data Grid. It is a professional grid, not a card stack.
 
 ## Concrete Condition model
 
@@ -247,7 +255,7 @@ No flag changes scope automatically.
 
 ### Performance and fallback
 
-Mesh derivation is incremental and keyed by stable version/hash. Large sheets/projects may load by visible zone/level. If WebGL/rendering is unavailable, 2D Takeoff and all quantities continue to function; 3D reports an explicit unavailable state.
+Mesh derivation is incremental and keyed by stable version/hash. Large sheets/projects may load by visible zone/level. If WebGL/rendering is unavailable, 2D Takeoff and all quantities continue to function; 3D reports an explicit unavailable state using the shared Carez Loading/Unavailable patterns.
 
 ## Migration from the old framework
 
@@ -290,11 +298,14 @@ There is no big-bang destructive database rewrite.
 
 ### P0.5B — EDGE-inspired workstation shell
 
-- Plans/Conditions/Zones context tabs;
-- dockable/floatable/resizable Condition Properties;
+- ADR-016 compact application header + global animated category navigation outside the module work area;
+- Plans/Conditions/Zones contextual tabs using shared Condition Tree/filter patterns;
+- dockable/floatable/resizable Condition Properties through the Carez Resizable Workspace;
 - 2D, 3D, and Split switch;
-- simplified readable toolbar and permanent worksheet;
-- saved local panel layout with safe reset.
+- shared Carez Toolbar and Number Field controls;
+- permanent worksheet using the Carez Data Grid;
+- saved local panel layout with safe reset;
+- no permanent global desktop left rail.
 
 ### P0.5C — Three pilot families
 
@@ -340,7 +351,9 @@ The direction is accepted only when an authenticated estimator can:
 9. undo/redo, refresh, delete, and work across sheets without orphan/duplicate outputs;
 10. preserve every historical published/accepted reference through migration;
 11. complete normal Takeoff with the old recipe/formula UI absent from the primary workflow;
-12. work comfortably at 100% desktop zoom with readable fields, calm spacing, and predictable docking/resizing.
+12. work comfortably at 100% desktop zoom with readable fields, calm spacing, and predictable docking/resizing;
+13. use the top global header/category navigation without losing drawing width, while contextual Takeoff panes remain distinct from global navigation;
+14. use shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading, File Upload and motion behavior instead of duplicate local design primitives where applicable.
 
 ## Non-goals for P0.5
 
@@ -349,4 +362,4 @@ The direction is accepted only when an authenticated estimator can:
 - fabrication-grade rebar detailing;
 - AI-generated scope without estimator approval;
 - destructive deletion of published history;
-- simultaneous redesign of unrelated Carez modules.
+- simultaneous domain redesign of unrelated Carez modules.
