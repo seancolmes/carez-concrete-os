@@ -22,7 +22,7 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 | `70 — Procurement, Finance & Billing` | vendors, procurement, POs, commitments, actuals, changes, billing, banking/accounting integrations | `docs/modules/procurement-finance.md` |
 | `80 — Documents, Drawings & Knowledge` | document linking, drawing revisions, search, retrieval, project knowledge | `docs/modules/documents-knowledge.md` |
 | `90 — AI & Plan Intelligence` | plan intelligence, assisted Takeoff, extraction, evidence-backed AI suggestions | `docs/modules/ai-assistance.md` and accepted Plan Intelligence contracts |
-| `95 — UX & Design System` | global shell, navigation, typography, color, iconography, density, shared components, responsive rules | architecture/design-system rules and accepted B2 design documents |
+| `95 — UX & Design System` | global shell, navigation, typography, color, iconography, density, shared components, responsive rules | ADR-015, ADR-014 component architecture where not superseded, Issue #44 while open, shared shadcn workspace |
 | `99 — QA, Release & Debugging` | cross-module acceptance, browser QA, staging verification, release/promotion defects | `docs/CURRENT_STATE.md`, QA/release workflow docs |
 
 ## Mode and execution routing
@@ -63,7 +63,7 @@ CAREZ ROUTING
 CHAT: exact owning permanent chat name or `Stay in this chat`
 MODE: `Regular Chat`, `Work`, or `Codex`
 TEMP CHAT: `No` or exact temporary ChatGPT/Work thread name
-CODEX TASK: `No` or exact Codex task name
+CODEX TASK: `No` or exact separate Codex task name
 WHY: one short sentence
 NEXT ACTION: exact action the user should take next
 RETURN TO: owning permanent chat after temporary Work/Codex activity, or `N/A`
@@ -82,6 +82,7 @@ Routing semantics:
 4. Banking, payroll, AP, AR, POs, vendor bills, changes, and similar finance features begin under `70` unless their scope later justifies focused execution.
 5. New ideas with unclear ownership begin in `00`; route them before substantial design work.
 6. Current implementation priority is never inferred from chat order. Read `CURRENT_STATE.md` and `ROADMAP.md`.
+7. Any chat that changes rendered UI must use the shared Carez shadcn workspace defined by ADR-015. Module chats may compose domain-specific screens, but they may not introduce or revive a separate light/B2/legacy design system, compatibility layer, route-local framework, or parallel component library. New global patterns route through `95` for canonicalization.
 
 ## QA discovery funnel
 
