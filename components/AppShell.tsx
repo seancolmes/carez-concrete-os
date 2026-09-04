@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
@@ -18,6 +17,8 @@ import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle} from '@/comp
 import {Tooltip,TooltipContent,TooltipTrigger} from '@/components/ui/tooltip';
 import {cn} from '@/lib/utils';
 import {carezMotion} from '@/components/carez/motion';
+import {createClient} from '@/lib/supabase/client';
+import {COMPANY_BRANDING_CHANGED_EVENT,FALLBACK_COMPANY_LOGO,companyLogoPublicUrl} from '@/lib/companyBranding';
 
 type NavItem={href:string;label:string;Icon:any;hint?:string};
 type NavGroup={label:string;items:NavItem[]};
@@ -98,12 +99,12 @@ export function CarezProjectSwitcher({label='Carez workspace',detail='Company'}:
   </Button>;
 }
 
-export function CarezTopShell({userName,onOpenCommand,onOpenMobile}:{userName:string;onOpenCommand:()=>void;onOpenMobile:()=>void}){
+export function CarezTopShell({userName,logoUrl,onOpenCommand,onOpenMobile}:{userName:string;logoUrl:string;onOpenCommand:()=>void;onOpenMobile:()=>void}){
   const initial=userName.trim().charAt(0).toUpperCase()||'C';
   return <div className="flex h-12 items-center gap-2 border-b border-border bg-background px-3">
     <Button type="button" variant="ghost" size="icon-sm" className="md:hidden" onClick={onOpenMobile} aria-label="Open navigation"><Menu/></Button>
     <Link href="/" prefetch={false} className="flex shrink-0 items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
-      <Image src="/brand/carez-wordmark.png" alt="Carez Concrete" width={128} height={48} priority className="h-5 w-auto object-contain object-left"/>
+      <img src={logoUrl} alt="Company logo" className="h-5 max-w-32 object-contain object-left"/>
       <span className="hidden text-[10px] font-medium tracking-wide text-muted-foreground xl:inline">Concrete OS</span>
     </Link>
     <span className="mx-1 hidden h-5 w-px bg-border md:block"/>
@@ -185,9 +186,9 @@ export function CarezCommandMenu({open,onOpenChange,onNavigate}:{open:boolean;on
   </CommandDialog>;
 }
 
-function CarezMobileNavigation({open,onOpenChange,pathname}:{open:boolean;onOpenChange:(open:boolean)=>void;pathname:string}){
+function CarezMobileNavigation({open,onOpenChange,pathname,logoUrl}:{open:boolean;onOpenChange:(open:boolean)=>void;pathname:string;logoUrl:string}){
   return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="left" className="w-[88vw] max-w-sm gap-0 p-0">
-    <SheetHeader className="border-b border-border"><SheetTitle>Carez Concrete OS</SheetTitle><SheetDescription>Open a workspace</SheetDescription></SheetHeader>
+    <SheetHeader className="border-b border-border"><SheetTitle><img src={logoUrl} alt="Company logo" className="h-6 max-w-48 object-contain object-left"/></SheetTitle><SheetDescription>Open a workspace</SheetDescription></SheetHeader>
     <div className="min-h-0 flex-1 overflow-y-auto p-2">{navGroups.map(group=><section key={group.label} className="mb-3"><div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">{group.label}</div><div className="space-y-0.5">{group.items.map(({href,label,Icon})=><Link key={href} href={href} prefetch={false} className={cn('flex h-9 items-center gap-2 rounded-md px-2.5 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30',matchesPath(pathname,href)&&'bg-muted text-foreground')}><Icon className="size-4 text-muted-foreground"/><span>{label}</span></Link>)}</div></section>)}</div>
     <div className="border-t border-border p-2"><Link href="/settings" prefetch={false} className="flex h-9 items-center gap-2 rounded-md px-2.5 text-sm hover:bg-muted"><Settings className="size-4 text-muted-foreground"/>Settings</Link></div>
   </SheetContent></Sheet>;
@@ -196,10 +197,31 @@ function CarezMobileNavigation({open,onOpenChange,pathname}:{open:boolean;onOpen
 export function AppShell({children,userName,immersive=false}:{children:React.ReactNode;userName:string;immersive?:boolean}){
   const pathname=usePathname();
   const router=useRouter();
+  const supabase=useMemo(()=>createClient(),[]);
   const [commandOpen,setCommandOpen]=useState(false);
   const [mobileOpen,setMobileOpen]=useState(false);
+  const [logoUrl,setLogoUrl]=useState(FALLBACK_COMPANY_LOGO);
   const workstation=isWorkstation(pathname);
   const current=useMemo(()=>[...allItems].sort((a,b)=>b.href.length-a.href.length).find(item=>matchesPath(pathname,item.href))||allItems[0],[pathname]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    async function loadBranding(){
+      const {data:{user}}=await supabase.auth.getUser();
+      if(!user||cancelled)return;
+      const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).maybeSingle();
+      if(!profile?.company_id||cancelled)return;
+      const {data:branding}=await supabase.from('company_branding').select('logo_path').eq('company_id',profile.company_id).maybeSingle();
+      if(!cancelled)setLogoUrl(companyLogoPublicUrl(supabase,branding?.logo_path||null));
+    }
+    void loadBranding();
+    const onBranding=(event:Event)=>{
+      const logoPath=(event as CustomEvent<{logoPath?:string|null}>).detail?.logoPath||null;
+      setLogoUrl(companyLogoPublicUrl(supabase,logoPath));
+    };
+    window.addEventListener(COMPANY_BRANDING_CHANGED_EVENT,onBranding);
+    return()=>{cancelled=true;window.removeEventListener(COMPANY_BRANDING_CHANGED_EVENT,onBranding)};
+  },[supabase]);
 
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();setCommandOpen(open=>!open)}};
@@ -214,11 +236,11 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
   return <div className="flex min-h-svh flex-col bg-background text-foreground">
     <BankSyncPulse/><OutlookSyncPulse/>
     <div className="relative z-40 shrink-0 bg-background">
-      <CarezTopShell userName={userName} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/>
+      <CarezTopShell userName={userName} logoUrl={logoUrl} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/>
       <CarezCategoryNav pathname={pathname}/>
     </div>
     <main aria-label={current.label} className={workstation?'min-h-0 min-w-0 flex-1 overflow-hidden':'min-h-0 min-w-0 flex-1 overflow-auto bg-background p-4 md:p-5'}>{children}</main>
     <CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate}/>
-    <CarezMobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} pathname={pathname}/>
+    <CarezMobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} pathname={pathname} logoUrl={logoUrl}/>
   </div>;
 }
