@@ -29,6 +29,11 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
     window.dispatchEvent(new CustomEvent(COMPANY_BRANDING_CHANGED_EVENT,{detail:{logoPath:nextPath}}));
   };
 
+  async function syncCommercialLogo(path:string|null){
+    const logo=path?companyLogoPublicUrl(supabase,path):FALLBACK_COMPANY_LOGO;
+    await supabase.from('company_billing_profiles').update({logo_path:logo,updated_at:new Date().toISOString()}).eq('company_id',companyId);
+  }
+
   async function save(){
     const file=files[0];
     if(!file){setMessage('Choose a logo first.');return;}
@@ -49,6 +54,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
         updated_at:new Date().toISOString(),
       },{onConflict:'company_id'});
       if(saveError){await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([path]);throw saveError;}
+      await syncCommercialLogo(path);
       const previous=logoPath;
       publish(path);setFiles([]);setMessage('Company logo updated.');
       if(previous&&previous!==path)await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([previous]);
@@ -68,6 +74,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
         updated_at:new Date().toISOString(),
       },{onConflict:'company_id'});
       if(error)throw error;
+      await syncCommercialLogo(null);
       const previous=logoPath;
       publish(null);setFiles([]);setMessage('Using the default Carez logo.');
       if(previous)await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([previous]);
