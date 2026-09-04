@@ -36,7 +36,7 @@ jobs:
       - name: Install Tailwind and shadcn dependencies
         run: |
           pnpm add -D tailwindcss @tailwindcss/postcss postcss
-          pnpm add shadcn class-variance-authority clsx tailwind-merge tw-animate-css
+          pnpm add shadcn @base-ui/react class-variance-authority clsx tailwind-merge tw-animate-css
       - name: Configure Tailwind and shadcn manually
         run: |
           cat > postcss.config.mjs <<'EOF'
