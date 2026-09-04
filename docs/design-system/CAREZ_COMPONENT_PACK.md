@@ -15,6 +15,25 @@ All components use the active dark graphite semantic token system, source-owned 
 
 Third-party component libraries are reference/source pools only. Any copied/adapted code must be license-vetted, reviewed for accessibility and bundle cost, converted to Carez semantic tokens, and owned in the Carez repository.
 
+## UI redesign option-research protocol
+
+When Nik asks to redesign, rethink, or improve a Carez UI surface, do not jump directly to one visual composition unless he explicitly asks for a single direction.
+
+Before recommending the design:
+
+1. inspect the current Carez route/component source, the relevant module contract, the active shell, semantic tokens, and existing shared Carez components;
+2. research current shadcn/ui primitives, compositions, docs, and registry patterns that fit the interaction;
+3. research the applicable approved external reference/source pools in ADR-015, including HextaUI, UI-X, Loading UI, LocalMode interaction references, COSS UI, Lucide Animated, ReUI, More Shadcn, and beUI when they are relevant; use current/live source pages when available rather than relying only on remembered patterns;
+4. normally present 2–4 meaningfully different functionality/interaction options before converging on one direction;
+5. for each option identify the reference/component family, core interaction model, why it fits Carez, desktop/mobile behavior where relevant, likely implementation complexity or risk, and what can reuse existing Carez source versus requiring a new Carez-owned composition;
+6. distinguish a real reusable source component from a design/inspiration reference, and do not imply incompatible or unverified source can be copied directly;
+7. recommend the strongest option for the Carez workflow while preserving Nik's choice;
+8. after Nik selects or approves a direction, produce the requested mockup/build prompt/implementation using the chosen pattern and promote material accepted behavior into canonical GitHub documentation.
+
+Options should differ in behavior or workflow, not merely color, spacing, or cosmetic styling. For example, a navigation redesign might compare an icon rail + flyout model, a collapsible contextual tree, and a command/search-centered model rather than three visually similar sidebars.
+
+This protocol does not authorize a second design system. External sources remain reference/source pools subject to ADR-015 licensing, accessibility, bundle-cost, architecture, and Carez-token requirements.
+
 ## 1. Carez Data Grid
 
 ### Role
