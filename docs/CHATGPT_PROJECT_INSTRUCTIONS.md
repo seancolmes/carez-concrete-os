@@ -26,11 +26,22 @@ Follow `docs/CHAT_WORKSPACE_MAP.md`. Approved product truth belongs in GitHub, n
 
 Permanent chats: `00 — Carez Control Room`, `10 — Takeoff Workstation`, `20 — Concrete Condition & Resource Engine`, `30 — Estimating & Proposals`, `40 — CRM & Preconstruction`, `50 — Projects, Work Packages & Scheduling`, `60 — Field, Production & Pour Control`, `70 — Procurement, Finance & Billing`, `80 — Documents, Drawings & Knowledge`, `90 — AI & Plan Intelligence`, `95 — UX & Design System`, `99 — QA, Release & Debugging`.
 
-Use the owning permanent chat for brainstorming, architecture, requirements, decisions, screenshots, planning, GitHub review, and normal analysis. If ownership is unclear/cross-module, use `00` first and choose one primary owner. Do not create a permanent chat for every page, feature, PR, or bug.
+Use the owning permanent chat for brainstorming, architecture, requirements, decisions, screenshots, planning, GitHub review, normal analysis, implementation scoping, QA coordination, and release/documentation reconciliation. If ownership is unclear/cross-module, use `00` first and choose one primary owner. Do not create a permanent chat for every page, feature, PR, or bug.
 
-Regular Chat is default. Use Work selectively for large/multi-step research, document/file/artifact-heavy work, or persistent agentic execution. Use Codex separately only for substantial coding/debugging when appropriate; never say “switch this chat to Codex.” If the user asks ChatGPT to do the implementation directly and available tools can do it safely, do the work rather than routing to Codex.
+Regular Chat is default. Use Work selectively for large/multi-step research, document/file/artifact-heavy work, or persistent agentic execution.
 
-Temporary ChatGPT/Work threads are only for focused isolated work. A Codex task is separate from ChatGPT. If a permanent chat becomes too long, create `<permanent chat> — Continuation N` and bootstrap from canonical GitHub docs.
+Carez uses the local-first Codex workflow in ADR-017 and `docs/workflow/CODEX_EXECUTION_WORKFLOW.md`:
+
+- Local Codex with Ollama + `gpt-oss:20b` is the default Codex executor for bounded implementation.
+- Cloud Codex is reserved for difficult/high-risk implementation or debugging that meets the documented escalation criteria.
+- ChatGPT/connected tools should perform repository/docs inspection, architecture reasoning, issue triage, CI/Vercel/Supabase inspection, QA coordination, documentation reconciliation, and release management whenever those tools can do so directly.
+- When using local Codex, verify the active provider/model is actually local Ollama + `gpt-oss:20b` before execution.
+- Use one coherent objective per Codex task and prefer fresh bounded tasks over long general-purpose Codex threads.
+- Local bounded failures get one implementation attempt and one focused correction from the exact failure; after the second failure, stop and re-scope or escalate.
+
+Never say “switch this chat to Codex.” A Codex task is separate from ChatGPT. If the user asks ChatGPT to do implementation directly and available tools can do it safely, do the work rather than routing unnecessarily.
+
+Temporary ChatGPT/Work threads are only for focused isolated work. If a permanent chat becomes too long, create `<permanent chat> — Continuation N` and bootstrap from canonical GitHub docs.
 
 ## QA discovery routing
 
@@ -44,12 +55,12 @@ CAREZ ROUTING
 CHAT: owning permanent chat or Stay in this chat
 MODE: Regular Chat, Work, or Codex
 TEMP CHAT: No or exact temporary ChatGPT/Work thread
-CODEX TASK: No or exact separate Codex task
+CODEX TASK: No or exact separate Codex task; prefix `Local —` or `Cloud —` when Codex is used
 WHY: one short sentence
 NEXT ACTION: exactly what the user should do next
 RETURN TO: owning permanent chat after temporary activity, or N/A
 
-Never make the user remember or infer the routing system.
+Never make the user remember or infer the routing system or whether Codex should be local versus cloud.
 
 ## Approval → GitHub
 
@@ -109,7 +120,9 @@ Follow `CAREZ_PROJECT_SOURCE_GUIDE.md` and `docs/KNOWLEDGE_SOURCE_ROUTING.md`. P
 
 ## Implementation workflow
 
-Before code changes: read canonical docs; inspect existing implementation; reproduce first; separate evidence from hypothesis; confirm root cause; make the smallest coherent fix; preserve architecture/RLS/tenant isolation/data/commercial lineage; avoid unrelated work; run relevant tests/typecheck/build; deploy to the one staging line; browser-verify there; report files/root cause/validation/risks/staging checkpoint. Do not repeatedly audit the whole repo for localized work. Do not redo completed work.
+Before code changes: read only the canonical material needed for the bounded change; inspect relevant implementation; reproduce/understand the issue; separate evidence from hypothesis; confirm root cause when practical; prepare a bounded implementation packet; make the smallest coherent fix; preserve architecture/RLS/tenant isolation/data/commercial lineage; avoid unrelated work; run task-appropriate local validation; push/checkpoint; let GitHub Actions run comprehensive validation; then inspect deployment and browser-verify rendered work on stable staging. Do not repeatedly audit the whole repo for localized work. Do not redo completed work.
+
+Codex should normally stop after coding, appropriate local validation, and checkpoint reporting. It should not spend execution time polling Vercel, managing releases, or updating unrelated documentation unless that is explicitly the task.
 
 ## Current priority
 
