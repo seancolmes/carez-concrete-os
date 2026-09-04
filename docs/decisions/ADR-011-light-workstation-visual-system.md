@@ -1,6 +1,8 @@
 # ADR-011 — Light Workstation Visual System
 
-Status: Accepted
+Status: Superseded by ADR-014
+
+> Superseded 2026-09-03. The historical decision below is retained for traceability. shadcn/ui is now the canonical Carez shared UI foundation and Issue #44 owns the replacement.
 
 ## Decision
 
