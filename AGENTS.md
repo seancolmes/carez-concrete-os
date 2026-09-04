@@ -2,82 +2,103 @@
 
 This repository is the canonical product and implementation source of truth for Carez Concrete OS.
 
-## Read before changing code
+## Execution rule
 
-1. Read `docs/README.md`.
-2. Read `docs/CURRENT_STATE.md`.
-3. Read `docs/BRANCH_AND_RELEASE_MODEL.md`.
-4. Read the applicable file under `docs/modules/`.
-5. Read relevant ADRs under `docs/decisions/`.
-6. Inspect the existing implementation and migrations.
-7. Reproduce the problem before changing code.
+Follow `docs/workflow/CODEX_EXECUTION_WORKFLOW.md` and ADR-017.
 
-## Branch / test discipline
+Codex is a code executor, not the primary Carez product-reasoning, release-management, or documentation-coordination surface.
+
+When a supplied implementation packet already defines approved behavior, implement that packet directly unless contradictory repository evidence makes the change unsafe. Do not reopen architecture merely to rediscover decisions already made.
+
+Local Codex using Ollama + `gpt-oss:20b` is the default Codex execution path for bounded implementation. Cloud Codex is reserved for justified high-risk or difficult work.
+
+Before a task intended to use local inference, verify that the active provider is local Ollama and the selected model is `gpt-oss:20b`.
+
+## Read only what the task requires
+
+Always honor repository canonical truth, but avoid broad archaeology for localized work.
+
+Read the following when needed to execute safely:
+
+- `docs/README.md` for source hierarchy;
+- `docs/CURRENT_STATE.md` and `docs/ROADMAP.md` when current priority/state matters;
+- `docs/BRANCH_AND_RELEASE_MODEL.md` for branch/release behavior;
+- the applicable module spec and relevant ADRs when the task requires domain/architecture interpretation;
+- existing implementation and migrations directly related to the requested change.
+
+If the task is a bounded implementation with approved behavior already stated, do not independently audit unrelated modules or ADRs.
+
+## Branch discipline
 
 Permanent branches are only `staging` and `main`.
 
-- `staging` is the single development/integration/QA/user-acceptance line.
+- `staging` is the development/integration/QA/user-acceptance line.
 - `main` is production only.
+- Routine approved work should use current `staging` when safe.
+- Temporary branches are exceptional internal details for substantial/risky isolated work; start from current `staging`, merge into `staging`, and delete before user QA.
+- Never use `main` to test speculative work.
 - Nik tests only the stable staging Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
-- Never ask Nik to choose among feature branches, PR previews, commit-specific links, or alternate Vercel deployments.
-- Do not create long-lived module/feature/QA/archive/governance branches.
-- A temporary branch is allowed only when technically necessary; it must start from current staging, remain internal, merge into staging, and be deleted before user browser QA.
-- Git history, issues, PRs, ADRs, module specs, tags, and releases preserve history; stale branches are not archives.
 
-## Architecture invariants
+## Protected architecture invariants
 
-- Concrete-specific operating system, not generic construction SaaS.
-- Preserve the digital thread: Job Spine → Opportunity/ITB → Takeoff → Estimate Revision → Proposal Revision → Award Decision → Accepted Scope Snapshot → Frozen Commercial Baseline/Budget → Project → Work Package → Operation → Production Work Unit → Versioned Scope Allocation → Schedule/Readiness → Assignment → Timecard + Actual Work Context → Completion/Production Evidence → Cost/Forecast.
-- Opportunity and Project remain distinct phase records linked by the persistent Job Spine; award never mutates one entity into the other.
-- Constraint, Blocker Event, Timecard, Actual Work Context, Completion Evidence, and Production Evidence remain separate, linked records.
-- PostgreSQL/Supabase is the source of truth.
-- Prefer a modular monolith.
-- Server-authoritative calculations for quantities, costs, pricing lineage, and financial values.
-- Preserve RLS, tenant isolation, auditability, immutable/versioned commercial records, and safe migrations.
-- Published Company Condition Template versions and all referenced legacy assembly/recipe versions are immutable.
-- The primary daily Takeoff object is a Concrete Condition with typed concrete modules; normal Takeoff must not require Formula Composer.
-- One primary and optional secondary measurement roles remain independently persisted and traceable to the same Condition.
-- Persisted normalized 2D/vector geometry remains quantity authority; 3D is a synchronized derived verification view and never a second quantity engine.
+- Carez is a concrete-specific operating system, not generic construction SaaS.
+- PostgreSQL/Supabase is source of truth.
+- Preserve RLS, tenant isolation, auditability, and safe source-controlled migrations.
+- Preserve server-authoritative quantities, costs, pricing lineage, and financial values.
+- Preserve immutable/versioned commercial records, published Company Condition Template versions, and referenced legacy assembly/recipe versions.
+- Preserve the digital thread from opportunity/takeoff through estimate, proposal, award, project, production, and cost/forecast.
 - Production Quantity, Direct Cost, and Sell remain distinct.
-- PDF is visual reference; stable page-coordinate vector geometry is authoritative for Takeoff.
-- AI assists setup, recognition, retrieval, repetition, comparison, and QA. Humans remain authoritative for scope, Conditions, company templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
+- PDF is visual reference; persisted stable page-coordinate 2D/vector geometry is Takeoff quantity authority.
+- Concrete Condition/module outputs remain traceable to primary/secondary measurements and estimate lineage.
+- Derived 3D is verification only and never a second quantity engine.
+- Humans remain authoritative for scope, Conditions, templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
 
 ## Implementation rules
 
-- Continue the existing modernization; do not restart it or redo completed P0 work without evidence.
-- Make the smallest coherent change that solves the confirmed problem.
+- Continue the existing modernization; do not restart it or redo verified work without evidence.
+- Make the smallest coherent change that solves the bounded problem.
 - Do not modify unrelated code.
-- Protect domain and data lineage.
-- Migrate the legacy recipe/formula workflow additively: prove Condition parity and reconcile references before retiring UI; never delete published/accepted history.
-- Use source-controlled Supabase migrations for schema or database behavior changes.
-- Do not create a second client-side calculation engine that diverges from server/domain logic.
+- Protect domain, data, and commercial lineage.
+- Use source-controlled Supabase migrations for schema/database behavior changes.
+- Do not introduce a second client-side calculation engine that diverges from server/domain logic.
 - Do not introduce microservices, Kubernetes, Kafka, or event sourcing without a demonstrated requirement.
+- When local validation fails, allow one focused correction using the exact failure. After a second failed local attempt, stop and return evidence for re-scoping or cloud escalation.
 
-## UI / writing rules
+## UI rules
 
-Rendered behavior is authoritative for UI acceptance.
+ADR-015 is the Carez-wide dark shadcn presentation authority. ADR-016 owns the desktop shell.
 
-For UI work: reproduce in browser, implement the smallest fix, run relevant tests/typecheck/build, then browser-verify on the stable staging URL.
+- Desktop uses the compact top application header + animated global category navigation + module-specific contextual panes.
+- The previous permanent global desktop left app rail is superseded and must not be reintroduced.
+- Use the shared source-owned shadcn workspace and `docs/design-system/CAREZ_COMPONENT_PACK.md`.
+- Do not revive B2/light styling, legacy route-local design systems, compatibility layers, alternate palettes, or parallel component libraries.
+- Use normal sentence/title case for ordinary headings, statuses, actions, and helper text.
+- A successful source change/build is not rendered UI acceptance; browser acceptance occurs separately on stable staging.
 
-Carez uses normal sentence/title case for ordinary UI headings, statuses, actions, and helper text. Do not default to ALL CAPS. Uppercase is reserved for true codes/acronyms or source-document text where it materially belongs.
+## Validation boundary
 
-Do not claim a browser defect is fixed from source inspection or build success alone.
+Run task-appropriate local validation, not automatically the full repository build for every small change.
 
-Desktop shell invariant at desktop width:
+Typical guidance:
 
-```text
-OPEN:   [ permanent app rail ][ context drawer ][ workspace ]
-CLOSED: [ permanent app rail ][ workspace ]
-```
+- small/localized edit: targeted test or typecheck as appropriate;
+- normal implementation: typecheck plus relevant targeted tests;
+- high-risk domain change: typecheck plus relevant domain tests and any additional focused validation required by the invariant.
 
-Only the context drawer may be transient.
+GitHub Actions is the comprehensive post-push validation path. Codex should normally stop after implementation, appropriate local validation, and checkpoint reporting rather than polling Vercel or performing release management.
 
-The estimator workstation follows the approved light, modern, minimal, readable Condition layout: permanent rail; resizable Plans/Conditions/Zones pane; dominant 2D/3D/Split drawing surface; one dockable/floatable/resizable Condition Properties window; and permanent resizable Quantity/Estimate Worksheet. Avoid tiny text, cramped chrome, decorative card walls, and uncontrolled overlapping dialogs.
+## Completion report
 
-## Required implementation report
+Report only what is needed to hand work back cleanly:
 
-Report observed evidence, confirmed root cause, files changed, implemented fix, tests/typecheck/build, browser verification, remaining risks, and the staging checkpoint.
+- files changed;
+- concise implementation summary;
+- validation run/results;
+- commit SHA when committed/pushed;
+- unresolved failure/risk, if any.
+
+Then stop.
 
 ## Documentation rule
 
-Chats and experiments are not canonical architecture. When a product, UX, domain, or architecture decision is approved, update the applicable canonical document in the same workstream. Follow `docs/workflow/APPROVAL_TO_DOCUMENTATION.md`.
+Chats and Codex threads are not canonical architecture. Significant approved decisions are promoted through `docs/workflow/APPROVAL_TO_DOCUMENTATION.md`. Routine coding tasks should not update unrelated documentation unless the implementation packet explicitly includes a documentation change.
