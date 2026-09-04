@@ -120,22 +120,28 @@ Previously implemented behavior still required:
 The shadcn redesign must not regress these behaviors or the newer Concrete Condition / derived 2D+3D workstation target.
 
 
-## Concrete Condition foundation (Issue #40 — in progress)
+## Concrete Condition foundation and persistence (Issue #40 — in progress)
 
-This checkpoint begins the accepted Concrete Condition runtime without replacing working Takeoff behavior:
+This checkpoint continues the accepted Concrete Condition runtime without replacing working Takeoff behavior:
 
 - an additive, versioned Platform Archetype → Company Template → Project Concrete Condition domain is present;
 - module instances, typed input compartments, independent primary/secondary measurement roles, outputs, holds, provenance, and legacy IDs are explicit records;
 - published platform/company versions and verified project versions are immutable;
 - Pad / Column Footing, Strip / Wall Footing, and Slab on Grade are seeded as the first governed pilot families;
 - the deterministic Condition kernel produces EA, LF, SF, CY, LB, and HR outputs, including cutout-adjusted slab area, isolated dependent holds, and traceable explicit overrides;
-- a one-way adapter maps governed Condition results into the existing atomic Takeoff/output/estimate payload;
-- the additive migrations are applied to the isolated QA Supabase project, all 11 new tables have RLS, and Supabase reports no Condition-domain security or uncovered-foreign-key advisories;
-- deterministic pilot fixtures currently pass 7 tests.
+- the authenticated server-only persistence path loads measurement quantity/unit/geometry facts from Supabase rather than accepting calculated quantities from the browser;
+- one transaction now persists Condition inputs, module state, primary/secondary role assignments, outputs, holds, the legacy Takeoff compatibility projection, and generated estimate-item lineage;
+- each projected Condition designates one compatibility anchor measurement; non-anchor role measurements keep their own geometry while their duplicate estimate lines are hidden, and detached role measurements restore their legacy output projection;
+- optimistic concurrency rejects stale Condition or measurement snapshots;
+- current versus superseded compatibility lineage and exact/held/inactive/mismatch states are exposed through reconciliation views;
+- verification now requires the current projected revision, every governed output, explicit holds, and a reconciled compatibility projection;
+- source migration `20260904135826_condition_persistence_reconciliation.sql` is applied to the isolated QA Supabase project;
+- deterministic pilot fixtures pass 10 tests;
+- a rolled-back authenticated QA fixture passed exact projection, held-output persistence, stale-write rejection, multi-sheet secondary suppression, detach restoration, and zero orphan/duplicate estimate-line checks.
 
-The existing assembly/formula/measurement/output/estimate runtime remains active as the compatibility layer. This checkpoint does not switch the Takeoff UI, delete legacy schema, infer structural engineering requirements, or claim full Issue #40 acceptance.
+The existing assembly/formula/measurement/output/estimate runtime remains active as the compatibility layer. No legacy table, published version, measurement, output, or estimate history was deleted. Operational recovery is therefore a code-path rollback to the existing runtime; the additive schema can remain dormant. Destructive schema rollback is not allowed after real Condition data exists without a dedicated preservation migration.
 
-Still open under Issue #40: end-to-end persistence/recalculation wiring, authenticated pilot CRUD and cross-sheet browser QA, representative old/new reconciliation, orphan checks, and the later UI transition coordinated with Issue #39.
+Still open under Issue #40: pilot Template/Condition authoring UI, authenticated browser CRUD and cross-sheet acceptance, representative real-project old/new reconciliation, undo/redo/delete workflow acceptance, and the later 2D/derived-3D workstation transition coordinated with Issues #39 and #44.
 
 ## Known bounded follow-up
 
