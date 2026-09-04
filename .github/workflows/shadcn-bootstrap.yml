@@ -1,0 +1,58 @@
+name: One-time shadcn bootstrap
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - .shadcn-bootstrap
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install current dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Initialize shadcn/ui
+        run: pnpm dlx shadcn@latest init -d -y
+      - name: Add Carez component foundation
+        run: >-
+          pnpm dlx shadcn@latest add
+          button badge breadcrumb card checkbox collapsible command dialog dropdown-menu
+          empty field input label popover progress scroll-area select separator sheet sidebar
+          skeleton table tabs textarea tooltip resizable -y
+      - name: Normalize lockfile
+        run: pnpm install --no-frozen-lockfile
+      - name: Typecheck generated component source
+        run: pnpm typecheck
+      - name: Commit bootstrap output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml components.json app/globals.css components hooks lib postcss.config.mjs
+          if git diff --cached --quiet; then
+            echo "No shadcn bootstrap changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: bootstrap shadcn ui foundation"
+          git push origin HEAD:staging
