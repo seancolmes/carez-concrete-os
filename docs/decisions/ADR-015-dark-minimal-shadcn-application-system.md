@@ -19,6 +19,18 @@ The final accepted runtime must not rely on a compatibility layer that restyles 
 
 Legacy global presentation files must be removed from `app/layout.tsx` and deleted when no remaining runtime consumer requires them. Route/module CSS that merely reproduces the prior design system must also be replaced with shadcn/Tailwind composition. Highly specialized geometry/rendering CSS may remain only when it is required for an actual drawing/rendering primitive and is not acting as a second design system.
 
+## Cross-chat enforcement
+
+This ADR is global application architecture, not a rule that applies only when work happens in `95 — UX & Design System`.
+
+Every permanent Carez chat and every temporary ChatGPT/Work/Codex execution thread must follow this system whenever it changes rendered UI. Before modifying a routable screen or reusable rendered component, inspect the current `components/ui` source-owned shadcn primitives, `components/AppShell.tsx`, semantic tokens, relevant shared Carez compositions, and Issue #44 while that issue remains open.
+
+Module chats own module workflow and domain behavior; they do not own separate visual frameworks. A module may compose domain-specific screens from the shared Carez shadcn workspace, but it may not introduce or revive a B2/light/legacy theme, compatibility CSS layer, route-specific design system, hard-coded alternate application palette, or parallel component library.
+
+If work touches a still-legacy surface, the touched area should move toward the accepted shadcn system rather than deepen the legacy structure. New shared tokens, global interaction patterns, reusable primitives/compositions, navigation behavior, or application-wide presentation rules are reconciled through `95 — UX & Design System` and then reused by all modules.
+
+Specialized CSS may remain only for genuine geometry/rendering, print, field/mobile layout, or other behavior that cannot reasonably be expressed by the shared primitives and is not functioning as a hidden second design system.
+
 ## Visual contract
 
 ### Color
