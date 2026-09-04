@@ -2,6 +2,7 @@ import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {Building2,Calculator,Database,Landmark,LogOut,Mail,Settings2} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {CompanyBrandingSettings} from '@/components/settings/CompanyBrandingSettings';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
@@ -22,18 +23,24 @@ export default async function SettingsPage(){
   const {data:profile,error}=await supabase.from('profiles').select('full_name,role,company_id').eq('id',user.id).maybeSingle();
   if(profile?.role==='employee')redirect('/employee');
 
-  const [{data:tax},{data:risks},{data:outlook},{data:plaid}]=profile?.company_id?await Promise.all([
+  const [{data:tax},{data:risks},{data:outlook},{data:plaid},{data:branding}]=profile?.company_id?await Promise.all([
     supabase.from('labor_tax_settings').select('*').eq('company_id',profile.company_id).eq('tax_year',2026).maybeSingle(),
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour').eq('company_id',profile.company_id).eq('tax_year',2026).eq('active',true).order('code'),
     supabase.from('outlook_connections').select('mailbox_email,mailbox_name,status,last_sync_at,last_error,subscription_expires_at').eq('company_id',profile.company_id).maybeSingle(),
     supabase.from('plaid_connections').select('id,status,institution_name').eq('company_id',profile.company_id).eq('status','active'),
-  ]):[{data:null},{data:[]},{data:null},{data:[]}];
+    supabase.from('company_branding').select('logo_path').eq('company_id',profile.company_id).maybeSingle(),
+  ]):[{data:null},{data:[]},{data:null},{data:[]},{data:null}];
 
   const name=profile?.full_name||user.email||'Owner',outlookReady=outlookConfigured(),outlookConnected=outlook?.status==='active';
 
   return <AppShell userName={name}>
     <div className="carez-page">
       <header className="carez-page-header"><div><p className="carez-kicker">System</p><h1 className="carez-page-title">Settings</h1><p className="carez-page-description">Company connections, operating rules, and the labor-cost settings Carez uses behind the scenes.</p></div></header>
+
+      {profile?.company_id?<section className="carez-section">
+        <div className="carez-section-header"><div><p className="carez-kicker">Company</p><h2 className="carez-section-title">Branding</h2><p className="carez-section-description">Company identity used by the Carez workspace and new commercial documents.</p></div></div>
+        <CompanyBrandingSettings companyId={profile.company_id} initialLogoPath={branding?.logo_path||null}/>
+      </section>:null}
 
       <section className="carez-section">
         <div className="carez-section-header"><div><p className="carez-kicker">Connections</p><h2 className="carez-section-title">Integrations</h2><p className="carez-section-description">Services that remove office work or provide authoritative external data.</p></div></div>
