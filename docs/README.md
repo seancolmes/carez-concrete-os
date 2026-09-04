@@ -28,6 +28,7 @@ When sources conflict, prefer the higher authority and record the conflict if it
 - [ChatGPT Project Instructions](CHATGPT_PROJECT_INSTRUCTIONS.md)
 - [Chat Workspace Map](CHAT_WORKSPACE_MAP.md)
 - [Chat Starter Pack](CHAT_STARTER_PACK.md)
+- [Carez Shared Component Pack](design-system/CAREZ_COMPONENT_PACK.md)
 - [Approval → Documentation Workflow](workflow/APPROVAL_TO_DOCUMENTATION.md)
 - [Development Workflow](workflow/DEVELOPMENT_WORKFLOW.md)
 - [QA and Acceptance](workflow/QA_AND_ACCEPTANCE.md)
@@ -35,7 +36,11 @@ When sources conflict, prefer the higher authority and record the conflict if it
 
 ## Global UI authority
 
-`docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md` is the Carez-wide presentation authority. It applies to UI work performed from every module chat, not only `95 — UX & Design System`. While Issue #44 remains open, it is the implementation/completion owner for the full dark shadcn migration. No module may introduce or revive a competing light/B2/legacy visual system, compatibility layer, route-specific design framework, or parallel component library.
+`docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md` is the Carez-wide dark shadcn presentation authority. `docs/decisions/ADR-016-top-navigation-shell-and-component-pack.md` owns the desktop shell: compact top application header + animated global category navigation + module-specific contextual panes. The previous permanent global desktop left rail is superseded.
+
+`docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack: Data Grid, Number Field, Date/Time Field, Condition Tree, Toolbar, Resizable Workspace, File Upload, Loading States, and Motion. All module chats must reuse/extend the shared source-owned shadcn workspace instead of introducing local design systems, compatibility layers, alternate palettes, or parallel component libraries.
+
+While Issue #44 remains open, it is the implementation/completion owner for the full dark shadcn migration, ADR-016 shell replacement, legacy-UI removal, and initial shared-component rollout.
 
 ## Branch / user-test rule
 
