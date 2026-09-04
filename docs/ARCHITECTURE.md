@@ -186,15 +186,19 @@ CLOSED: [ permanent app rail ][ workspace ]
 
 The primary desktop rail never disappears merely because the context drawer closes.
 
-Visual direction: modern, minimal, calm, precise, spacious enough for excellent readability, and concrete-native. Use the Estimating EDGE interaction pattern as a benchmark for clear condition organization and screen division while retaining Carez branding and the shared light workstation system. Prefer crisp borders, tabs, dropdowns, restrained color, readable grids, and a small number of predictable dockable/floatable/resizable windows. Avoid tiny text, cramped tool chrome, generic SaaS card walls, giant rounded cards, glassmorphism, decorative UI, excessive unused whitespace, and uncontrolled overlapping dialogs.
+Visual direction is governed by ADR-015: dark-first, black/graphite, modern, minimal, calm, precise, dense, high-readability, and concrete-native. Carez uses source-owned shadcn/ui React primitives, semantic tokens, `components/AppShell.tsx`, and shared Carez compositions as one application-wide workspace. Every route and module consumes that same system; route-level work may not define a competing light/B2/legacy theme, compatibility layer, hard-coded alternate palette, or parallel component framework. ADR-014 remains relevant for source-owned shadcn component/composition architecture only where ADR-015 does not supersede it.
+
+Use the Estimating EDGE interaction pattern only as a benchmark for clear condition organization, professional screen division, and estimator workflow—not as a visual theme. Prefer crisp separators, tabs, dropdowns, restrained semantic color, readable grids, compact tables, sheets/popovers/dialogs, and a small number of predictable dockable/floatable/resizable windows. Avoid tiny text, cramped tool chrome, generic SaaS card walls, giant rounded cards, glassmorphism, decorative UI, excessive unused whitespace, perpetual decorative motion, and uncontrolled overlapping dialogs.
+
+Shared visual patterns, tokens, global navigation behaviors, and reusable components are owned by `95 — UX & Design System`. Domain modules may compose their own screens from the shared shadcn workspace without waiting on 95 for every local layout decision, but they may not create a second design system.
 
 ### Dashboard / Today
 
 The authenticated desktop home surface is the **Today** operating dashboard. It is an operations command surface rather than a generic analytics dashboard.
 
-- Preserve the permanent dark navy Carez app rail while the main dashboard uses the approved light workstation system.
+- Preserve the permanent Carez desktop app rail and render the main dashboard in the same dark shadcn application system; there is no separate approved light dashboard theme.
 - The primary hierarchy is current operating position → management attention → scheduled production → active jobs, with estimating pipeline and cash attention as secondary operating context.
 - Existing dashboard metrics and domain meaning remain intact: Ready to Move, Hard Holds, Field Active, Customers Owe, 7-Day Cash, management attention, scheduled production, active jobs, bid pipeline, and operational cash attention.
 - Management exceptions gain stronger hierarchy when present; healthy/zero states remain visually quiet.
-- Use icons, semantic color, typography, spacing, and table/list structure to improve scan speed without turning the page into a card-heavy SaaS dashboard.
-- The approved light-system Dashboard concept is the reference presentation target for this route; implementation must preserve existing data sources, links, permissions, Job Spine meaning, and operational semantics.
+- Use icons, semantic color, typography, spacing, separators, and table/list structure to improve scan speed without turning the page into a card-heavy SaaS dashboard.
+- ADR-015 and the shared Carez shadcn workspace are the reference presentation target for this route; implementation must preserve existing data sources, links, permissions, Job Spine meaning, and operational semantics.
