@@ -2,12 +2,25 @@ import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {AlertTriangle,ArrowRight,Calculator,LibraryBig,Plus,Ruler,Upload} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {Badge} from '@/components/ui/badge';
+import {Button,buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle} from '@/components/ui/card';
+import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
+import {Input} from '@/components/ui/input';
 import {createClient} from '@/lib/supabase/server';
 import {ManualTakeoffEntry} from '@/components/takeoff/ManualTakeoffEntry';
 import {createTakeoffSet,updateTakeoffOutputPrice} from './actions';
+import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 const qty=(n:any,d=1)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
+
+function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-amber-500/30')}>
+    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700')}>{value}</CardTitle></CardHeader>
+    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
+  </Card>;
+}
 
 export default async function TakeoffPage(){
   const supabase=await createClient();
@@ -56,52 +69,78 @@ export default async function TakeoffPage(){
   const missingOutputs=(outputs||[]).filter((o:any)=>['missing_price','missing_labor_rate'].includes(o.pricing_status)&&Number(o.production_quantity||o.estimated_man_hours||0)>0);
   const totalDirect=(summaries||[]).reduce((sum:number,row:any)=>sum+Number(row.takeoff_direct_cost||0),0);
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page takeoff-home-v3">
-    <div className="command-hero">
-      <div><div className="section-kicker">ESTIMATE · TAKEOFF</div><h1>Concrete Takeoff</h1><p>Open the plans, measure the physical work, and let Carez assemblies build labor, material, equipment and field quantities behind the scenes.</p></div>
-      <div className="command-actions"><Link className="button secondary" href="/takeoff/assemblies"><LibraryBig size={15}/> Assembly Library</Link><Link className="button secondary" href="/estimates"><Calculator size={15}/> Estimate</Link></div>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Concrete takeoff</h1><p className="carez-page-description">Open the plans, measure the physical work, and let Carez conditions and assemblies build labor, material, equipment, and field quantities behind the drawing.</p></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assemblies</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
+      </header>
+
+      <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Carez estimating workflow">
+        {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===0?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+      </nav>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Working bids" value={String(activeSets.filter((set:any)=>!issued.has(set.estimate_id)).length)} help="Active takeoff revisions."/>
+        <Metric label="Measured scope" value={String(activeMeasurements.length)} help="Concrete objects measured or entered."/>
+        <Metric label="Needs pricing" value={String(missingOutputs.length)} help="Assembly outputs blocking a clean estimate." tone={missingOutputs.length?'warning':'success'}/>
+        <Metric label="Takeoff direct cost" value={money(totalDirect)} help="Current generated direct cost across takeoffs."/>
+      </section>
+
+      {startableEstimates.length>0?<Card className="shadow-none">
+        <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><p className="carez-kicker">Start a bid</p><CardTitle>Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate. Carez creates the takeoff set and opens the drawing workspace without inserting an unnecessary setup screen.</CardDescription></div>
+          <form action={createTakeoffSet} className="flex flex-col gap-2 sm:flex-row"><input type="hidden" name="name" value="Concrete Takeoff"/><select name="estimate_id" required defaultValue="" className="h-8 min-w-72 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20"><option value="" disabled>Choose estimate…</option>{startableEstimates.map((e:any)=><option key={e.id} value={e.id}>{e.estimate_number}-R{e.version} — {e.name}</option>)}</select><Button type="submit" size="sm"><Plus/>Start takeoff</Button></form>
+        </CardHeader>
+      </Card>:null}
+
+      <section className="carez-section">
+        <div className="carez-section-header"><div><p className="carez-kicker">Your bids</p><h2 className="carez-section-title">Takeoff workbench</h2><p className="carez-section-description">The plans stay primary. Pricing holds and manual field quantities stay attached to the bid without competing with measurement work.</p></div></div>
+        {activeSets.length===0?<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Ruler/></EmptyMedia><EmptyTitle>No takeoff started yet</EmptyTitle><EmptyDescription>Create an estimate first, then start its plan takeoff here.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/estimates">Open estimates</Link></EmptyContent></Empty>:
+          <div className="grid gap-4">{activeSets.map((set:any)=>{
+            const estimate:any=estimateMap.get(set.estimate_id);
+            const locked=!estimate||issued.has(set.estimate_id)||['accepted','approved','superseded'].includes(estimate.status);
+            const ms=measurementsBySet.get(set.id)||[];
+            const setSheets=sheetsBySet.get(set.id)||[];
+            const unscaled=setSheets.filter((sheet:any)=>sheet.scale_status!=='calibrated').length;
+            const summary:any=summaryMap.get(set.estimate_id)||{};
+            const setOutputs=ms.flatMap((m:any)=>outputByMeasurement.get(m.id)||[]);
+            const holds=setOutputs.filter((o:any)=>['missing_price','missing_labor_rate'].includes(o.pricing_status)&&Number(o.production_quantity||o.estimated_man_hours||0)>0);
+            const materialHolds=holds.filter((o:any)=>o.estimate_item_type!=='labor');
+            const status=locked?'Issued / read only':!set.source_document_id?'Attach plans':unscaled>0?'Set sheet scale':holds.length?'Resolve pricing':'Takeoff ready';
+            const tone=locked?'muted':!set.source_document_id||unscaled>0||holds.length?'warning':'success';
+            return <Card key={set.id} className="gap-0 py-0 shadow-none">
+              <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
+                <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-4"/></span>
+                <div className="min-w-0"><CardTitle className="truncate">{estimate?.name||set.name}</CardTitle><CardDescription className="mt-1 truncate">{estimate?`${estimate.estimate_number}-R${estimate.version}`:'Estimate'} · {set.revision_label}{set.source_filename?` · ${set.source_filename}`:''}</CardDescription></div>
+                <Badge variant={tone==='warning'?'secondary':tone==='success'?'secondary':'outline'} className={cn(tone==='warning'&&'bg-amber-500/10 text-amber-700',tone==='success'&&'bg-success/10 text-success',tone==='muted'&&'text-muted-foreground')}>{status}</Badge>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                <div className="grid grid-cols-2 divide-x divide-y border-b sm:grid-cols-5 sm:divide-y-0">
+                  {[['Sheets',set.page_count||setSheets.length||'—'],['Objects',ms.length],['Labor',`${qty(summary.takeoff_man_hours)} MH`],['Price holds',holds.length],['Direct cost',money(summary.takeoff_direct_cost)]].map(([label,value],index)=><div key={String(label)} className="px-4 py-3"><div className="text-[11px] font-medium text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-sm font-semibold tabular-nums',label==='Price holds'&&holds.length&&'text-amber-700')}>{value}</div></div>)}
+                </div>
+
+                {!locked&&holds.length>0?<details className="border-b">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-amber-500/5 px-4 py-2.5 text-xs font-medium text-amber-800"><span className="flex items-center gap-2"><AlertTriangle className="size-3.5"/>Resolve {holds.length} pricing hold{holds.length===1?'':'s'}</span><span className="text-[11px] font-normal text-muted-foreground">Open</span></summary>
+                  <div className="space-y-3 p-4">{materialHolds.length===0?<div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground">The remaining hold is labor configuration. Review the estimating system in the Assembly Library.</div>:<div className="divide-y rounded-lg border">{materialHolds.map((o:any)=><div className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" key={o.id}><div><div className="text-sm font-medium">{o.label}</div><div className="mt-0.5 text-xs text-muted-foreground">{qty(o.production_quantity,2)} {o.production_unit} · current price missing</div></div><form action={updateTakeoffOutputPrice} className="flex items-center gap-2"><div className="relative"><span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span><Input name="unit_cost" type="number" min="0" step="0.01" inputMode="decimal" required placeholder="0.00" className="h-8 w-28 pl-6 pr-7 text-right text-xs"/><span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">/{o.production_unit}</span></div><input type="hidden" name="output_id" value={o.id}/><Button type="submit" variant="outline" size="sm">Save</Button></form></div>)}</div>}</div>
+                </details>:null}
+
+                {!locked?<details>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium hover:bg-muted/40"><span>Manual quantity / field measurement</span><span className="text-[11px] font-normal text-muted-foreground">Fallback</span></summary>
+                  <div className="border-t p-4"><div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-5 text-muted-foreground">Use this only when the quantity comes from a field dimension, sketch, owner quantity, or another verified source instead of the PDF.</div><ManualTakeoffEntry takeoffSetId={set.id} assemblies={assemblies||[]} versions={versions||[]} variables={variables||[]} sections={sectionsByEstimate.get(set.estimate_id)||[]} riskClasses={riskClasses||[]}/></div>
+                </details>:null}
+              </CardContent>
+
+              <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3">
+                <Link className={buttonVariants({size:'sm'})} href={`/takeoff/${set.id}`}>{set.source_document_id?<><Ruler/>Open takeoff</>:<><Upload/>Attach plans</>}</Link>
+                <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimate</Link>
+                {locked?<span className="ml-auto self-center text-xs text-muted-foreground">Accepted/issued geometry stays preserved with this revision.</span>:null}
+              </CardFooter>
+            </Card>;
+          })}</div>}
+      </section>
+
+      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="carez-kicker">Estimating system</p><CardTitle>Concrete assemblies do the heavy lifting</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published assemblies convert plan geometry into concrete, reinforcement, forms, finish labor, and production quantities. Maintain those recipes separately from daily takeoff work.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Open assembly library</Link></CardHeader></Card>
     </div>
-
-    <div className="takeoff-flow-strip" aria-label="Carez estimating workflow"><span className="active">1 <b>Takeoff</b></span><ArrowRight/><span>2 <b>Estimate</b></span><ArrowRight/><span>3 <b>Audit</b></span><ArrowRight/><span>4 <b>Proposal</b></span></div>
-
-    <div className="command-grid section">
-      <div className="command-card"><div className="command-label">Working Bids</div><div className="command-value">{activeSets.filter((set:any)=>!issued.has(set.estimate_id)).length}</div><div className="command-help">Active takeoff revisions.</div></div>
-      <div className="command-card"><div className="command-label">Measured Scope</div><div className="command-value">{activeMeasurements.length}</div><div className="command-help">Concrete objects measured or entered.</div></div>
-      <div className={`command-card ${missingOutputs.length?'watch':'good'}`}><div className="command-label">Needs Pricing</div><div className="command-value">{missingOutputs.length}</div><div className="command-help">Assembly outputs blocking a clean estimate.</div></div>
-      <div className="command-card"><div className="command-label">Takeoff Direct Cost</div><div className="command-value">{money(totalDirect)}</div><div className="command-help">Current generated direct cost across takeoffs.</div></div>
-    </div>
-
-    {startableEstimates.length>0&&<section className="section"><div className="start-takeoff-card"><div className="start-takeoff-copy"><div className="section-kicker">START A BID</div><div className="section-title">Open a new plan takeoff</div><div className="section-heading-meta">Choose the estimate. Carez creates the takeoff record and opens the drawing workspace immediately—no setup form first.</div></div><form action={createTakeoffSet} className="start-takeoff-form"><input type="hidden" name="name" value="Concrete Takeoff"/><select name="estimate_id" required defaultValue=""><option value="" disabled>Choose estimate…</option>{startableEstimates.map((e:any)=><option key={e.id} value={e.id}>{e.estimate_number}-R{e.version} — {e.name}</option>)}</select><button className="button"><Plus size={15}/> Start Takeoff</button></form></div></section>}
-
-    <section className="section">
-      <div className="section-heading"><div><div className="section-kicker">YOUR BIDS</div><div className="section-title">Takeoff Workbench</div><div className="section-heading-meta">Primary action is always the plans. Pricing holds and manual quantities stay attached to the bid but out of the way until needed.</div></div></div>
-      {activeSets.length===0?<div className="empty-state"><div><div className="title">No takeoff started yet</div><div className="meta">Create an estimate first, then start the takeoff here.</div><div className="section"><Link className="button" href="/estimates">Open Estimates</Link></div></div></div>:
-      <div className="takeoff-workbench">{activeSets.map((set:any)=>{
-        const estimate:any=estimateMap.get(set.estimate_id);
-        const locked=!estimate||issued.has(set.estimate_id)||['accepted','approved','superseded'].includes(estimate.status);
-        const ms=measurementsBySet.get(set.id)||[];
-        const setSheets=sheetsBySet.get(set.id)||[];
-        const unscaled=setSheets.filter((sheet:any)=>sheet.scale_status!=='calibrated').length;
-        const summary:any=summaryMap.get(set.estimate_id)||{};
-        const setOutputs=ms.flatMap((m:any)=>outputByMeasurement.get(m.id)||[]);
-        const holds=setOutputs.filter((o:any)=>['missing_price','missing_labor_rate'].includes(o.pricing_status)&&Number(o.production_quantity||o.estimated_man_hours||0)>0);
-        const materialHolds=holds.filter((o:any)=>o.estimate_item_type!=='labor');
-        const status=locked?'Issued / Read Only':!set.source_document_id?'Attach Plans':unscaled>0?'Set Sheet Scale':holds.length?'Resolve Pricing':'Takeoff Ready';
-        const statusClass=locked?'':!set.source_document_id||unscaled>0||holds.length?'watch':'good';
-        return <article className="takeoff-bid-card" key={set.id}>
-          <div className="takeoff-bid-head"><div className="takeoff-bid-icon"><Ruler/></div><div className="takeoff-bid-title"><strong>{estimate?.name||set.name}</strong><span>{estimate?`${estimate.estimate_number}-R${estimate.version}`:'Estimate'} · {set.revision_label}{set.source_filename?` · ${set.source_filename}`:''}</span></div><span className={`takeoff-bid-status ${statusClass}`}>{status}</span></div>
-
-          <div className="takeoff-bid-stats"><div><span>Sheets</span><strong>{set.page_count||setSheets.length||'—'}</strong></div><div><span>Objects</span><strong>{ms.length}</strong></div><div><span>Labor</span><strong>{qty(summary.takeoff_man_hours)} MH</strong></div><div className={holds.length?'hold':''}><span>Price Holds</span><strong>{holds.length}</strong></div><div><span>Direct Cost</span><strong>{money(summary.takeoff_direct_cost)}</strong></div></div>
-
-          <div className="takeoff-bid-actions"><Link className="button" href={`/takeoff/${set.id}`}>{set.source_document_id?<><Ruler size={15}/> Open Takeoff</>:<><Upload size={15}/> Attach Plans</>}</Link><Link className="button secondary" href="/estimates"><Calculator size={15}/> Estimate</Link>{locked&&<span className="takeoff-bid-note">Accepted/issued geometry stays preserved with this revision.</span>}</div>
-
-          {!locked&&holds.length>0&&<details className="takeoff-bid-drawer"><summary><span><AlertTriangle size={14}/> Resolve {holds.length} pricing hold{holds.length===1?'':'s'}</span><small>Open</small></summary><div className="takeoff-bid-drawer-body">{materialHolds.length===0?<div className="meta">The remaining hold is labor configuration. Review the Estimating System in the Assembly Library.</div>:<div className="price-hold-list">{materialHolds.map((o:any)=><div className="price-hold-row" key={o.id}><div><strong>{o.label}</strong><span>{qty(o.production_quantity,2)} {o.production_unit} · current price missing</span></div><form action={updateTakeoffOutputPrice}><div className="price-entry"><span>$</span><input name="unit_cost" type="number" min="0" step="0.01" inputMode="decimal" required placeholder="0.00"/><b>/{o.production_unit}</b></div><input type="hidden" name="output_id" value={o.id}/><button className="button secondary">Save</button></form></div>)}</div>}</div></details>}
-
-          {!locked&&<details className="takeoff-bid-drawer"><summary><span>Manual quantity / field measurement</span><small>Fallback</small></summary><div className="takeoff-bid-drawer-body"><div className="manual-fallback-note">Use this only when the quantity comes from a field dimension, sketch, owner quantity or other verified source instead of the PDF.</div><ManualTakeoffEntry takeoffSetId={set.id} assemblies={assemblies||[]} versions={versions||[]} variables={variables||[]} sections={sectionsByEstimate.get(set.estimate_id)||[]} riskClasses={riskClasses||[]}/></div></details>}
-        </article>;
-      })}</div>}
-    </section>
-
-    <section className="section"><div className="takeoff-system-strip"><div><div className="section-kicker">ESTIMATING SYSTEM</div><div className="section-title">Concrete assemblies do the heavy lifting</div><div className="section-heading-meta">{(assemblies||[]).length} published assemblies convert plan geometry into concrete, reinforcement, forms, finish labor and production quantities. Keep those recipes maintained separately from daily takeoff work.</div></div><Link className="button secondary" href="/takeoff/assemblies">Open Assembly Library</Link></div></section>
-  </div></AppShell>;
+  </AppShell>;
 }
