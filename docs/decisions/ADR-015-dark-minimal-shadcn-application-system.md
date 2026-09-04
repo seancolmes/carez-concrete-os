@@ -4,6 +4,7 @@ Status: Accepted
 Date: 2026-09-03
 Owner: 95 — UX & Design System
 Supersedes: the presentation/theme contract in ADR-014; ADR-014 remains authoritative for source-owned shadcn primitives and composition architecture unless this ADR says otherwise.
+Shell authority: ADR-016 supersedes the prior permanent-left-rail shell section of this ADR.
 
 ## Context
 
@@ -23,7 +24,7 @@ Legacy global presentation files must be removed from `app/layout.tsx` and delet
 
 This ADR is global application architecture, not a rule that applies only when work happens in `95 — UX & Design System`.
 
-Every permanent Carez chat and every temporary ChatGPT/Work/Codex execution thread must follow this system whenever it changes rendered UI. Before modifying a routable screen or reusable rendered component, inspect the current `components/ui` source-owned shadcn primitives, `components/AppShell.tsx`, semantic tokens, relevant shared Carez compositions, and Issue #44 while that issue remains open.
+Every permanent Carez chat and every temporary ChatGPT/Work/Codex execution thread must follow this system whenever it changes rendered UI. Before modifying a routable screen or reusable rendered component, inspect the current `components/ui` source-owned shadcn primitives, the current shared shell implementation, semantic tokens, relevant shared Carez compositions, ADR-016, `docs/design-system/CAREZ_COMPONENT_PACK.md`, and Issue #44 while that issue remains open.
 
 Module chats own module workflow and domain behavior; they do not own separate visual frameworks. A module may compose domain-specific screens from the shared Carez shadcn workspace, but it may not introduce or revive a B2/light/legacy theme, compatibility CSS layer, route-specific design system, hard-coded alternate application palette, or parallel component library.
 
@@ -37,14 +38,14 @@ Specialized CSS may remain only for genuine geometry/rendering, print, field/mob
 
 - Default authenticated Carez UI is dark.
 - Foundation is neutral black/graphite rather than blue-tinted or colored application chrome.
-- Background, sidebar, cards, popovers, sheets, menus, tables, toolbars, and inspectors use subtle luminance separation rather than decorative color fields.
+- Background, headers, navigation panels, cards, popovers, sheets, menus, tables, toolbars, and inspectors use subtle luminance separation rather than decorative color fields.
 - Primary actions use neutral high-contrast treatment by default. Bright blue is not the persistent primary-button identity.
 - Color is semantic and scarce: success, warning, destructive, selected measurement/geometry, and other states where color communicates actual meaning.
 - Remove previous Carez UI palette assumptions from the active application token set. Historical brand colors do not dictate application chrome.
 
 ### Surface hierarchy
 
-- Prefer one continuous workstation canvas with separators, rows, grouped toolbars, split panes, tables, drawers, command menus, and sheets.
+- Prefer one continuous workstation canvas with separators, rows, grouped toolbars, split panes, tables, drawers, command menus, sheets, and contextual side panes.
 - Do not turn every section or number into a rounded card.
 - Cards are reserved for genuinely bounded objects or compact summaries.
 - Avoid glassmorphism, broad gradients, neon decoration, giant rounded containers, excessive shadows, and decorative background effects.
@@ -63,9 +64,10 @@ Specialized CSS may remain only for genuine geometry/rendering, print, field/mob
 
 - Use source-owned Lucide icons or license-vetted compatible animated Lucide variants.
 - Icons must communicate a real action, object, or state; do not add decorative iconography to every card/row.
-- Motion is functional: hover/press feedback, state transition, menu/sheet/dialog transition, direct manipulation, import/progress state, or selected-state confirmation.
+- Motion is functional: hover/press feedback, state transition, menu/sheet/dialog transition, direct manipulation, import/progress state, selected-state confirmation, and navigation continuity.
 - No perpetual decorative animation.
 - Motion should generally resolve in approximately 120–220 ms; spring behavior is reserved for direct-manipulation or overlay interactions where it improves comprehension.
+- Global category navigation follows ADR-016: approximately 160–190 ms panel transitions, subtle opacity/translate/scale, animated indicator/chevron, and container continuity when switching open categories where practical.
 - Respect `prefers-reduced-motion`.
 
 ## External component-source policy
@@ -81,9 +83,29 @@ The following sources may be used as implementation references when an individua
 - Lucide Animated — controlled animated action-icon reference;
 - ReUI — React/Tailwind/shadcn registry source for advanced controls where justified;
 - More Shadcn — design/interaction reference only when the source implementation is Svelte; Carez must implement equivalent React/shadcn behavior rather than copying incompatible Svelte code;
-- beUI — component and interaction reference for compact controls, overlays, drag/drop, dock/tool patterns, and focus behavior; individual source must be reviewed before adoption.
+- beUI — component and interaction reference for compact controls, overlays, drag/drop, dock/tool patterns, focus behavior, and navigation motion; individual source must be reviewed before adoption.
 
 Third-party registries do not become a second Carez design system. Copied source becomes Carez-owned application source, follows Carez semantic tokens, and must be reviewed for accessibility, licensing, bundle cost, maintenance, and architecture fit.
+
+## Shared component pack
+
+`docs/design-system/CAREZ_COMPONENT_PACK.md` is the accepted first shared component contract.
+
+The initial pack contains:
+
+- Carez Data Grid;
+- Carez Number Field;
+- Carez Date/Time Field;
+- Carez Condition Tree;
+- Carez Toolbar;
+- Carez Resizable Workspace;
+- Carez File Upload;
+- Carez Loading States;
+- Carez Motion system.
+
+The global shell additionally standardizes Carez-owned top-shell/category-nav/navigation-panel/project-context/command-menu compositions.
+
+Every module conversion should reuse these shared components when the interaction matches instead of creating a page-local equivalent. Module-specific wrappers are allowed; competing local design primitives are not.
 
 ## Content and asset policy
 
@@ -94,15 +116,22 @@ Third-party registries do not become a second Carez design system. Copied source
 
 ## Application-shell contract
 
-ADR-006 remains authoritative:
+ADR-016 is authoritative.
 
-OPEN: `[ permanent app rail ][ context drawer ][ workspace ]`
+Desktop target:
 
-CLOSED: `[ permanent app rail ][ workspace ]`
+```text
+[ compact application header ]
+[ global category navigation + animated dropdown panels ]
+[ contextual module pane ][ primary workspace ][ optional governed properties/detail pane ]
+                         [ persistent module dock/worksheet where applicable ]
+```
 
-The dark shadcn Sidebar remains permanent on desktop and collapses to its icon rail. Mobile remains field-first and may use Sheet/drawer navigation. The app rail must never disappear because a context drawer closes.
+The permanent global desktop left app rail is retired from the accepted target. Contextual module panes remain part of domain workspaces and are not global navigation.
 
-The shell should be visually quieter than the work. Search, notifications, account, and navigation controls use progressive disclosure and compact icon/text treatment. Tooltips carry optional explanation instead of persistent helper narration.
+The shell should be visually quieter than the work. Search, notifications, account, project/company context, and global navigation controls use progressive disclosure and compact icon/text treatment. Tooltips carry optional explanation instead of persistent helper narration.
+
+Mobile remains field-first and may use Sheet/drawer navigation instead of forcing the desktop category row onto narrow screens.
 
 ## Takeoff contract
 
@@ -115,12 +144,12 @@ Preserve exactly:
 - calibration and scale regions;
 - LF/SF/EA geometry and polygon cutouts;
 - geometry editing and committed undo/redo;
-- measurement/assembly/estimate lineage;
+- measurement/Condition/output/estimate lineage;
 - server-authoritative quantity and pricing recalculation;
-- permanent resizable Quantity Worksheet;
+- permanent resizable Quantity/Estimate Worksheet;
 - authoritative 2D geometry and derived 3D verification target.
 
-The Takeoff drawing workstation must nevertheless be fully migrated at the presentation layer. Sheets, Properties/Inspector, measurement toolbar, scale controls, worksheet chrome, dialogs, forms, menus, split panes, tabs, lists, and status presentation must use literal shadcn-compatible React primitives or tightly scoped Carez compositions. Legacy design-system CSS is not accepted as the final solution.
+The Takeoff drawing workstation must nevertheless be fully migrated at the presentation layer. Plans/Conditions/Zones, Condition Properties, measurement toolbar, scale controls, worksheet chrome, dialogs, forms, menus, split panes, tabs, lists, and status presentation must use shadcn-compatible Carez-owned source components/compositions, including the shared component pack where applicable. Legacy design-system CSS is not accepted as the final solution.
 
 ## Page-completeness requirement
 
@@ -129,7 +158,7 @@ Issue #44 is not satisfied by representative pages. Every routable Carez page an
 A route is complete only when:
 
 1. its visible structure is no longer dependent on the prior page/class design system;
-2. controls use shadcn-compatible source-owned primitives/compositions;
+2. controls use shadcn-compatible source-owned primitives/compositions and the shared Carez component pack where applicable;
 3. redundant generated-style copy and decorative/generated assets are removed;
 4. dark semantic tokens are used consistently;
 5. keyboard/focus/hover/disabled/loading/error states are coherent;
@@ -146,6 +175,7 @@ Before acceptance:
 - `pnpm build` passes;
 - Vercel serves the matching `staging` SHA on the stable staging alias;
 - every route family receives browser smoke coverage;
+- the ADR-016 top shell/category navigation is browser-verified for pointer, keyboard, focus, escape, outside-click, reduced-motion, and responsive behavior;
 - Takeoff receives focused interaction verification for previously accepted measurement behavior;
 - no rendered defect is marked fixed from source/build evidence alone;
 - `app/carez-shadcn-compat.css` is deleted;
