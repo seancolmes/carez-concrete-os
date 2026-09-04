@@ -94,6 +94,17 @@ A contextual pane must never become a second global navigation system.
 
 Mobile remains field-first. Global categories may collapse into a Sheet/drawer or other compact mobile navigation pattern. This ADR does not require the desktop top navigation row to be forced onto narrow mobile layouts.
 
+### Company branding
+
+Authenticated company branding is tenant-configurable rather than permanently hardcoded to the Carez operating-company asset.
+
+- Authorized company users may upload or reset the active company logo in Settings.
+- The authenticated application header and mobile navigation use the current company logo, with the repository Carez wordmark retained as the safe platform/default fallback.
+- Branding metadata is tenant-scoped under RLS and uploaded logo files are stored under a tenant-owned path in the dedicated branding storage bucket.
+- New customer-facing commercial documents use the company branding current at creation/issuance and preserve that identity as part of the commercial snapshot. A later Settings change must not silently rewrite an already-issued proposal, invoice, purchase order, or other immutable commercial record.
+- Unauthenticated platform-owned surfaces such as Login may continue to use the Carez platform/default identity unless a future product requirement explicitly changes that boundary.
+- Company branding changes presentation only; they do not change tenant authority, calculations, commercial values, or document lineage.
+
 ## Shared Carez component pack
 
 The first accepted shared component pack is defined in `docs/design-system/CAREZ_COMPONENT_PACK.md`.
