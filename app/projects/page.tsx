@@ -3,6 +3,10 @@ import Link from 'next/link';
 import {CalendarDays,Plus} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {JobsOperationsBoard,type JobsBoardMetrics,type JobsBoardRow} from '@/components/projects/JobsOperationsBoard';
+import {Button,buttonVariants} from '@/components/ui/button';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
 import {createProject} from './actions';
 
@@ -60,31 +64,7 @@ export default async function ProjectsPage(){
     const attention=hardHold||overdue>0||laborRemaining<0||budgetUsed>=100||field.gps>0||field.waiting>0;
     const state:JobsBoardRow['state']=j.status==='completed'?'completed':hardHold?'hold':ready>0?'ready':openOps>0?'planning':j.status==='on_hold'?'hold':'setup';
     const nextStep=hardHold?(reasons[0]||'Clear hold before work starts'):next?.title||j.next_action||(ready>0?'Choose and schedule the next ready work package':'Build the next Work Package / schedule');
-    return{
-      id:j.id,
-      jobNumber:j.job_number||null,
-      name:j.name||'Unnamed job',
-      customer:j.customers?.name||'Customer not linked',
-      location:[j.address,j.city,j.state].filter(Boolean).join(', ')||'Address not entered',
-      projectStatus:String(j.status||'active'),
-      state,
-      nextStep,
-      scheduleDate:next?.schedule_date?String(next.schedule_date).slice(0,10):null,
-      contractValue:num(j.contract_value),
-      budgetUsed,
-      laborRemaining,
-      customerOwed:num(bill.outstanding_ar),
-      overdue,
-      readyOperations:ready,
-      blockedOperations:blocked,
-      openOperations:openOps,
-      activeShifts:field.clocked,
-      pendingTimecards:field.waiting,
-      gpsExceptions:field.gps,
-      reasons,
-      attention,
-      setupHold,
-    };
+    return{id:j.id,jobNumber:j.job_number||null,name:j.name||'Unnamed job',customer:j.customers?.name||'Customer not linked',location:[j.address,j.city,j.state].filter(Boolean).join(', ')||'Address not entered',projectStatus:String(j.status||'active'),state,nextStep,scheduleDate:next?.schedule_date?String(next.schedule_date).slice(0,10):null,contractValue:num(j.contract_value),budgetUsed,laborRemaining,customerOwed:num(bill.outstanding_ar),overdue,readyOperations:ready,blockedOperations:blocked,openOperations:openOps,activeShifts:field.clocked,pendingTimecards:field.waiting,gpsExceptions:field.gps,reasons,attention,setupHold};
   });
 
   const activeRows=rows.filter(row=>row.state!=='completed');
@@ -99,19 +79,25 @@ export default async function ProjectsPage(){
   };
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="jobs-b2-page">
-      <header className="jobs-b2-page-header">
-        <div><div className="jobs-b2-eyebrow">JOBS · OPERATIONS</div><h1>Jobs</h1><p>See which jobs can move, what starts next, and what is holding the field before labor or cash gets burned.</p></div>
-        <div className="jobs-b2-page-actions">
-          <Link href="/schedule"><CalendarDays/>Schedule</Link>
-          <details className="jobs-b2-new"><summary><Plus/>New Job</summary><div className="jobs-b2-new-panel"><form action={createProject} className="form">
-            <div className="alert info"><strong>Direct-job exception.</strong> Accepted proposals create jobs automatically. Use this only for emergency/direct work.</div>
-            <label className="field"><span>Customer / job</span><input name="name" required placeholder="Smith Residence · emergency slab repair"/></label>
-            <label className="field"><span>Address</span><input name="address"/></label>
-            <div className="grid grid3"><label className="field"><span>City</span><input name="city"/></label><label className="field"><span>State</span><input name="state" defaultValue="WA"/></label><label className="field"><span>Contract amount</span><input name="contract_value" inputMode="decimal"/></label></div>
-            <label className="field"><span>Next physical action</span><input name="next_action" placeholder="Layout and form driveway"/></label>
-            <button className="button">Create Direct Job</button>
-          </form></div></details>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div><p className="carez-kicker">Operations</p><h1 className="carez-page-title">Projects</h1><p className="carez-page-description">See which jobs can move, what starts next, and what is holding the field before labor or cash gets burned.</p></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
+          <Dialog>
+            <DialogTrigger render={<Button size="sm"/>}><Plus/>New direct job</DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+              <DialogHeader><DialogTitle>Create direct job</DialogTitle><DialogDescription>Direct-job exception only. Accepted proposals create jobs automatically.</DialogDescription></DialogHeader>
+              <form action={createProject} className="grid gap-4">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground"><strong className="text-foreground">Use this only for emergency/direct work.</strong> Normal awarded work should come through the accepted proposal workflow.</div>
+                <div className="grid gap-2"><Label htmlFor="direct-name">Customer / job</Label><Input id="direct-name" name="name" required placeholder="Smith Residence · emergency slab repair"/></div>
+                <div className="grid gap-2"><Label htmlFor="direct-address">Address</Label><Input id="direct-address" name="address"/></div>
+                <div className="grid gap-3 sm:grid-cols-3"><div className="grid gap-2"><Label htmlFor="direct-city">City</Label><Input id="direct-city" name="city"/></div><div className="grid gap-2"><Label htmlFor="direct-state">State</Label><Input id="direct-state" name="state" defaultValue="WA"/></div><div className="grid gap-2"><Label htmlFor="direct-contract">Contract amount</Label><Input id="direct-contract" name="contract_value" inputMode="decimal"/></div></div>
+                <div className="grid gap-2"><Label htmlFor="direct-next">Next physical action</Label><Input id="direct-next" name="next_action" placeholder="Layout and form driveway"/></div>
+                <div className="flex justify-end"><Button type="submit">Create direct job</Button></div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
       <JobsOperationsBoard rows={rows} metrics={metrics}/>
