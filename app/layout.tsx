@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { GeistMono } from 'geist/font/mono';
+import {TooltipProvider} from '@/components/ui/tooltip';
+
+/*
+ * Legacy structural CSS remains temporarily for routes not yet converted to
+ * literal shadcn components. The old B2/light visual override stack is no
+ * longer loaded. globals.css + carez-shadcn-compat.css are the visual authority.
+ */
 import './polish.css';
 import './construction-ui.css';
 import './plain-language.css';
@@ -17,24 +24,7 @@ import './navigation-v3.css';
 import './owner-home-v3.css';
 import './employee-v3.css';
 import './globals.css';
-import './carez-figma.css';
-import './estimating-workstation.css';
-import './commercial-workstation.css';
-import './review-workstation.css';
-import './crm-workstation.css';
-import './build-identity.css';
-import './b2-estimator.css';
-import './b2-modules.css';
-import './b2-estimating-surfaces.css';
-import './b2-theme.css';
-import './b2-workstation-pass2.css';
-import './b2-design-system.css';
-import './b2-estimator-focus.css';
-import './jobs-b2.css';
-import './b2-context-drawer.css';
-import './b2-readability.css';
-import './carez-light-workstation.css';
-import './carez-light-module-overrides.css';
+import './carez-shadcn-compat.css';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,7 +46,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return <html lang="en" className={`${inter.variable} ${GeistMono.variable}`}>
     <body className={inter.className}>
-      {children}
+      <TooltipProvider>
+        {children}
+      </TooltipProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
       </div>}
