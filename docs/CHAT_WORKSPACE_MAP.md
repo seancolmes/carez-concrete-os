@@ -22,7 +22,7 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 | `70 — Procurement, Finance & Billing` | vendors, procurement, POs, commitments, actuals, changes, billing, banking/accounting integrations | `docs/modules/procurement-finance.md` |
 | `80 — Documents, Drawings & Knowledge` | document linking, drawing revisions, search, retrieval, project knowledge | `docs/modules/documents-knowledge.md` |
 | `90 — AI & Plan Intelligence` | plan intelligence, assisted Takeoff, extraction, evidence-backed AI suggestions | `docs/modules/ai-assistance.md` and accepted Plan Intelligence contracts |
-| `95 — UX & Design System` | global shell, navigation, typography, color, iconography, density, shared components, responsive rules | ADR-015, ADR-014 component architecture where not superseded, Issue #44 while open, shared shadcn workspace |
+| `95 — UX & Design System` | global shell, top navigation, animated category panels, contextual-pane rules, typography, color, iconography, density, shared components, responsive rules | ADR-015, ADR-016, `docs/design-system/CAREZ_COMPONENT_PACK.md`, ADR-014 component architecture where not superseded, Issue #44 while open |
 | `99 — QA, Release & Debugging` | cross-module acceptance, browser QA, staging verification, release/promotion defects | `docs/CURRENT_STATE.md`, QA/release workflow docs |
 
 ## Mode and execution routing
@@ -82,7 +82,7 @@ Routing semantics:
 4. Banking, payroll, AP, AR, POs, vendor bills, changes, and similar finance features begin under `70` unless their scope later justifies focused execution.
 5. New ideas with unclear ownership begin in `00`; route them before substantial design work.
 6. Current implementation priority is never inferred from chat order. Read `CURRENT_STATE.md` and `ROADMAP.md`.
-7. Any chat that changes rendered UI must use the shared Carez shadcn workspace defined by ADR-015. Module chats may compose domain-specific screens, but they may not introduce or revive a separate light/B2/legacy design system, compatibility layer, route-local framework, or parallel component library. New global patterns route through `95` for canonicalization.
+7. Any chat that changes rendered UI must use ADR-015 + ADR-016 + `docs/design-system/CAREZ_COMPONENT_PACK.md`: compact top application header, animated global category navigation, module-specific contextual panes, and the shared Carez shadcn components. Module chats may compose domain-specific screens, but they may not introduce or revive the old permanent global left rail, a light/B2/legacy design system, compatibility layer, route-local framework, alternate palette, or parallel component library. New global patterns route through `95` for canonicalization.
 
 ## QA discovery funnel
 
