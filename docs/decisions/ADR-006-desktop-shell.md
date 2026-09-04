@@ -1,19 +1,28 @@
 # ADR-006 — Permanent Desktop App Rail
 
-Status: Accepted
+Status: Superseded by ADR-016
 
-## Decision
-At desktop width, the Carez primary app rail is permanent. Only the context drawer is transient/collapsible.
+## Historical decision
 
-## Required layout
+At desktop width, the Carez primary app rail was permanent and only the context drawer was transient/collapsible.
+
+Historical layout:
 
 ```text
 OPEN:   [ permanent app rail ][ context drawer ][ workspace ]
 CLOSED: [ permanent app rail ][ workspace ]
 ```
 
-## Consequences
-- Closing the context drawer may reclaim only the drawer width.
-- Main content must never occupy or visually cover the permanent rail region.
-- Mobile navigation may remain transient and is governed separately.
-- Browser verification is required for shell acceptance; source inspection alone is insufficient.
+## Supersession
+
+ADR-016 replaces this shell architecture with:
+
+```text
+[ compact application header ]
+[ global category navigation + animated dropdown panels ]
+[ contextual module pane ][ primary workspace ][ optional governed detail/properties pane ]
+```
+
+The global desktop left rail is no longer part of the accepted target. Contextual module panes remain allowed and are distinct from global application navigation.
+
+This file remains as historical decision evidence only. Browser verification remains required before the ADR-016 shell is considered implemented/accepted.
