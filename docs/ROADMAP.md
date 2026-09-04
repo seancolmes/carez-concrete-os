@@ -5,7 +5,9 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 ## P0.1 — Shell + Takeoff acceptance
 
 Outcome:
-- desktop shell invariant browser-verified;
+- ADR-016 compact top application header + animated global category navigation replaces the permanent global desktop left rail;
+- module-specific contextual panes remain inside their owning workspaces;
+- first shared Carez component pack is introduced and reused across converted surfaces;
 - authenticated Takeoff visual QA complete;
 - no geometry, lineage, RLS, or migration regressions.
 
@@ -14,7 +16,8 @@ Outcome:
 Outcome:
 - active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
 - additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- dark shadcn workstation uses Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window, following ADR-015 without changing quantity authority;
+- EDGE-inspired concrete estimating workstation uses the ADR-015 dark shadcn system plus ADR-016 top global navigation, with Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window;
+- the shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading States, File Upload and motion patterns are used where applicable instead of route-local equivalents;
 - Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
 - 2D, 3D, and Split modes share selection and totals; read-only derived 3D exposes representative elevation, overlap/gap, step, and cutout errors;
 - supported legacy recipes/variants are migrated and reconciled before new-work entry switches;
