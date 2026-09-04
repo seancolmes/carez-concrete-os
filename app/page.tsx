@@ -5,13 +5,20 @@ import {
   FileText,PhoneCall,Ruler,Wallet
 } from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {Badge} from '@/components/ui/badge';
+import {buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
+import {Progress} from '@/components/ui/progress';
+import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
 import {createClient} from '@/lib/supabase/server';
+import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const num=(n:any)=>Number(n||0);
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const addDays=(date:string,n:number)=>{const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
-const fmtDate=(v:string)=>new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date(`${v}T12:00:00`));
+const fmtDate=(v:string)=>new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric'}).format(new Date(`${v}T12:00:00`));
 const fmtShortDate=(v?:string|null)=>v?new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).format(new Date(`${String(v).slice(0,10)}T12:00:00`)):'—';
 const fmtTime=(v?:string|null)=>{if(!v)return '';const [h,m]=String(v).split(':').map(Number);const d=new Date();d.setHours(h,m||0,0,0);return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);};
 const joinedProject=(item:any)=>Array.isArray(item?.projects)?item.projects[0]:item?.projects;
@@ -19,15 +26,33 @@ const joinedCustomer=(project:any)=>Array.isArray(project?.customers)?project.cu
 const titleCase=(v?:string|null)=>String(v||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
 
 type AttentionTone='danger'|'warning'|'info';
-type Attention={
-  priority:number;
-  tone:AttentionTone;
-  subject:string;
-  issue:string;
-  when:string;
-  href:string;
-  action:string;
-};
+type Attention={priority:number;tone:AttentionTone;subject:string;issue:string;when:string;href:string;action:string;};
+type MetricTone='neutral'|'active'|'success'|'warning'|'danger';
+
+function OperatingMetric({label,value,help,tone}:{label:string;value:string;help:string;tone:MetricTone}){
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-amber-500/30')}>
+    <CardHeader className="gap-1 px-4">
+      <CardDescription className="text-xs font-medium">{label}</CardDescription>
+      <CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='active'&&'text-primary',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700',tone==='danger'&&'text-destructive')}>{value}</CardTitle>
+    </CardHeader>
+    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
+  </Card>;
+}
+
+function StatusBadge({tone,label}:{tone:'muted'|'active'|'success'|'warning'|'danger';label:string}){
+  return <Badge variant={tone==='danger'?'destructive':tone==='active'?'default':'secondary'} className={cn(
+    tone==='success'&&'bg-success/10 text-success',
+    tone==='warning'&&'bg-amber-500/10 text-amber-700',
+    tone==='muted'&&'text-muted-foreground'
+  )}>{label}</Badge>;
+}
+
+function CompactEmpty({Icon,title,description,href,action}:{Icon:any;title:string;description:string;href:string;action:string}){
+  return <Empty className="min-h-40 border bg-muted/20">
+    <EmptyHeader><EmptyMedia variant="icon"><Icon/></EmptyMedia><EmptyTitle>{title}</EmptyTitle><EmptyDescription>{description}</EmptyDescription></EmptyHeader>
+    <EmptyContent><Link href={href} className={buttonVariants({variant:'outline',size:'sm'})}>{action}</Link></EmptyContent>
+  </Empty>;
+}
 
 export default async function HomePage(){
   const supabase=await createClient();
@@ -78,11 +103,7 @@ export default async function HomePage(){
     const state=hardHold?'hold':ready>0?'ready':'planning';
     const next=(schedule||[]).find((item:any)=>item.project_id===project.id&&item.item_type==='work');
     const customer=joinedCustomer(project);
-    return {
-      project,r,budget,bill,field,state,next,customer,
-      budgetUsed:num(budget.budget_cost_used_percent),
-      laborRemaining:num(budget.labor_hours_remaining),
-    };
+    return {project,r,budget,bill,field,state,next,customer,budgetUsed:num(budget.budget_cost_used_percent),laborRemaining:num(budget.labor_hours_remaining)};
   });
 
   const stateRank=(state:string)=>state==='hold'?0:state==='ready'?1:2;
@@ -108,73 +129,30 @@ export default async function HomePage(){
     const r:any=opReady.get(item.work_package_operation_id);
     const job:any=joinedProject(item);
     if(r?.ready_to_start_all===false){
-      attention.push({
-        priority:1,
-        tone:'danger',
-        subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,
-        issue:r.start_next_action||`${item.title} is not ready to start`,
-        when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',
-        href:'/readiness',
-        action:'Clear Hold',
-      });
+      attention.push({priority:1,tone:'danger',subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,issue:r.start_next_action||`${item.title} is not ready to start`,when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',href:'/readiness',action:'Clear hold'});
     }
   }
 
   for(const row of activeProjects){
     if(row.state!=='hold'||todayFieldWork.some((item:any)=>item.project_id===row.project.id))continue;
     const failed=num(row.r.failed_inspection_operations),blocked=num(row.r.blocked_operations);
-    attention.push({
-      priority:2,
-      tone:'danger',
-      subject:`${row.project.job_number} · ${row.project.name}`,
-      issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',
-      when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',
-      href:'/readiness',
-      action:'Readiness',
-    });
+    attention.push({priority:2,tone:'danger',subject:`${row.project.job_number} · ${row.project.name}`,issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',href:'/readiness',action:'Readiness'});
   }
 
-  if(timeReview)attention.push({
-    priority:3,tone:'warning',subject:'Field time review',
-    issue:`${timeReview} submitted timecard${timeReview===1?' needs':'s need'} approval or correction.`,
-    when:'Before payroll / job cost',href:'/field/review',action:'Review Time',
-  });
-
-  if(overdue>0)attention.push({
-    priority:4,tone:'warning',subject:'Accounts receivable',
-    issue:`${money(overdue)} customer balance is past due.`,
-    when:`${money(ar)} total outstanding`,href:'/billing',action:'Billing',
-  });
+  if(timeReview)attention.push({priority:3,tone:'warning',subject:'Field time review',issue:`${timeReview} submitted timecard${timeReview===1?' needs':'s need'} approval or correction.`,when:'Before payroll / job cost',href:'/field/review',action:'Review time'});
+  if(overdue>0)attention.push({priority:4,tone:'warning',subject:'Accounts receivable',issue:`${money(overdue)} customer balance is past due.`,when:`${money(ar)} total outstanding`,href:'/billing',action:'Billing'});
 
   for(const proposal of proposals||[]){
-    if(proposal.conversion_stage==='needs_reply')attention.push({
-      priority:5,tone:'warning',subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,
-      issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,
-      when:proposal.follow_up_due?`Follow-up · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',
-      href:`/proposals/${proposal.estimate_id}`,action:'Proposal',
-    });
-    else if(proposal.follow_up_due_now)attention.push({
-      priority:6,tone:'info',subject:`Follow up · ${proposal.proposal_number}`,
-      issue:`${proposal.customer_name||'Customer'} · ${proposal.project_name||'Proposal'}`,
-      when:proposal.follow_up_due?fmtShortDate(proposal.follow_up_due):'Due now',
-      href:`/proposals/${proposal.estimate_id}`,action:'Follow Up',
-    });
+    if(proposal.conversion_stage==='needs_reply')attention.push({priority:5,tone:'warning',subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,when:proposal.follow_up_due?`Follow-up · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',href:`/proposals/${proposal.estimate_id}`,action:'Proposal'});
+    else if(proposal.follow_up_due_now)attention.push({priority:6,tone:'info',subject:`Follow up · ${proposal.proposal_number}`,issue:`${proposal.customer_name||'Customer'} · ${proposal.project_name||'Proposal'}`,when:proposal.follow_up_due?fmtShortDate(proposal.follow_up_due):'Due now',href:`/proposals/${proposal.estimate_id}`,action:'Follow up'});
   }
 
   for(const lead of leads||[]){
-    if(lead.follow_up&&lead.follow_up<=start)attention.push({
-      priority:7,tone:'info',subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,
-      issue:lead.project_name||'Open opportunity needs follow-up.',
-      when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/leads/${lead.id}`,action:'Lead',
-    });
+    if(lead.follow_up&&lead.follow_up<=start)attention.push({priority:7,tone:'info',subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,issue:lead.project_name||'Open opportunity needs follow-up.',when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/leads/${lead.id}`,action:'Lead'});
   }
 
   for(const event of cash||[]){
-    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({
-      priority:8,tone:'warning',subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',
-      when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,
-      href:'/cashflow',action:'Cashflow',
-    });
+    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Cashflow'});
   }
   attention.sort((a,b)=>a.priority-b.priority);
 
@@ -189,127 +167,138 @@ export default async function HomePage(){
   const nextFollowUp=followUps[0]||null;
 
   const headerStatus=attention.length
-    ?`${attention.length} attention · ${jobsReady} ready · ${jobsHeld} hold · ${crewWorking} active field shift${crewWorking===1?'':'s'}`
-    :`${jobsReady} ready · ${jobsHeld} hold · ${crewWorking} active field shift${crewWorking===1?'':'s'} · no urgent exceptions`;
+    ?`${attention.length} item${attention.length===1?'':'s'} need attention · ${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'}`
+    :`${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'} · no urgent exceptions`;
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page owner-home-v3 dashboard-b2">
-    <header className="dashboard-head">
-      <div>
-        <div className="dashboard-eyebrow">CAREZ CONCRETE · TODAY</div>
-        <h1>{fmtDate(start)}</h1>
-        <p>{headerStatus}</p>
-      </div>
-      <div className="dashboard-head-actions">
-        <Link className="button" href="/projects"><BriefcaseBusiness size={15}/> Jobs</Link>
-        <Link className="button secondary" href="/schedule"><CalendarDays size={15}/> Schedule</Link>
-      </div>
-    </header>
-
-    <section className="dashboard-ops-strip" aria-label="Today's operating position">
-      <DashboardMetric label="Ready to Move" value={String(jobsReady)} help="Jobs with a physical operation ready." tone={jobsReady?'success':'neutral'}/>
-      <DashboardMetric label="Hard Holds" value={String(jobsHeld)} help="Inspection, setup, or prerequisite blocks work." tone={jobsHeld?'danger':'neutral'}/>
-      <DashboardMetric label="Field Active" value={String(activeFieldJobs)} help={`${crewWorking} active field shift${crewWorking===1?'':'s'}; named crew grouping is not modeled.`} tone={activeFieldJobs?'active':'neutral'}/>
-      <DashboardMetric label="Customers Owe" value={money(ar)} help={overdue?`${money(overdue)} past due.`:'No past-due customer balance.'} tone={overdue?'danger':ar?'warning':'neutral'}/>
-      <DashboardMetric label="7-Day Cash" value={money(cashNet)} help={`${money(cashIn)} expected in · ${money(cashOut)} expected out.`} tone={cashNet<0?'warning':'neutral'}/>
-    </section>
-
-    <div className="dashboard-primary-grid">
-      <section className="dashboard-panel dashboard-attention-panel">
-        <div className="dashboard-panel-head"><div><span>HANDLE FIRST</span><strong>Management attention</strong><small>Field blockers, cash exceptions, and follow-ups in consequence order.</small></div><b>{attention.length}</b></div>
-        {attention.length===0?<div className="dashboard-clear-row"><CheckCircle2/><div><strong>No urgent exceptions</strong><span>Today's work can run from the current plan.</span></div></div>:<div className="dashboard-attention-list">
-          <div className="dashboard-attention-columns"><span>Issue</span><span>Timing</span><span>Action</span></div>
-          {attention.slice(0,8).map((item,index)=><Link href={item.href} key={`${item.subject}-${index}`} className={`dashboard-attention-row ${item.tone}`}>
-            <span className="dashboard-attention-mark">{item.tone==='danger'?<AlertTriangle/>:item.tone==='warning'?<Clock3/>:<PhoneCall/>}</span>
-            <span className="dashboard-attention-copy"><strong>{item.subject}</strong><small>{item.issue}</small></span>
-            <span className="dashboard-attention-when">{item.when}</span>
-            <b>{item.action}<ArrowRight/></b>
-          </Link>)}
-        </div>}
-      </section>
-
-      <section className="dashboard-panel dashboard-field-panel">
-        <div className="dashboard-panel-head"><div><span>TODAY'S FIELD PLAN</span><strong>Scheduled production</strong><small>What is planned today and whether the physical work is clear.</small></div><Link href="/schedule">Full Schedule</Link></div>
-        <div className="dashboard-table-scroll">
-          <table className="dashboard-table dashboard-field-table">
-            <thead><tr><th>Time</th><th>Job</th><th>Operation</th><th>Field</th><th>Readiness</th><th/></tr></thead>
-            <tbody>{todayFieldWork.map((itemRaw:any)=>{
-              const item:any=itemRaw,job:any=joinedProject(item),rr:any=item.work_package_operation_id?opReady.get(item.work_package_operation_id):null;
-              const readiness=rr?.ready_to_start_all===false?'blocked':rr?.ready_to_start_all===true?'ready':'scheduled';
-              const field=fieldMap.get(item.project_id)||{working:0,review:0};
-              return <tr key={item.id}>
-                <td className="numeric">{fmtTime(item.start_time)||'—'}</td>
-                <td>{item.project_id?<Link href={`/projects/${item.project_id}`}><strong>{job?.job_number||'Job'}</strong><span>{job?.name||'Project'}</span></Link>:<><strong>{job?.job_number||'Job'}</strong><span>{job?.name||'Project'}</span></>}</td>
-                <td><strong>{item.title}</strong>{readiness==='blocked'&&rr?.start_next_action?<span>{rr.start_next_action}</span>:null}</td>
-                <td><strong>{field.working?`${field.working} working`:'—'}</strong><span>{field.review?`${field.review} timecard review`:field.working?'Active field shift':'No active shift'}</span></td>
-                <td><StatusDot tone={readiness==='blocked'?'danger':readiness==='ready'?'success':'muted'} label={readiness==='blocked'?'Blocked':readiness==='ready'?'Ready':'Scheduled'}/></td>
-                <td className="dashboard-row-action"><Link href={readiness==='blocked'?'/readiness':'/schedule'}>Open<ArrowRight/></Link></td>
-              </tr>;
-            })}</tbody>
-          </table>
-          {todayFieldWork.length===0&&<div className="dashboard-compact-empty"><CalendarDays/><div><strong>Nothing scheduled today</strong><span>Open Schedule to plan the next ready operation.</span></div><Link href="/schedule">Schedule<ArrowRight/></Link></div>}
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div>
+          <p className="carez-kicker">Today</p>
+          <h1 className="carez-page-title">{fmtDate(start)}</h1>
+          <p className="carez-page-description">{headerStatus}</p>
         </div>
-      </section>
-    </div>
-
-    <section className="dashboard-panel dashboard-jobs-panel">
-      <div className="dashboard-panel-head"><div><span>ACTIVE JOBS</span><strong>What moves next</strong><small>The next physical operation for each active job, with live readiness and budget position.</small></div><Link className="button secondary" href="/projects">All Jobs</Link></div>
-      <div className="dashboard-table-scroll">
-        <table className="dashboard-table dashboard-jobs-table">
-          <thead><tr><th>Job / Client</th><th>Status</th><th>Next Operation</th><th>Next Date</th><th>Field</th><th>Readiness</th><th>Budget Position</th><th/></tr></thead>
-          <tbody>{dashboardJobs.slice(0,8).map((row:any)=>{
-            const p=row.project;
-            const location=[p.city,p.state].filter(Boolean).join(', ');
-            const nextOperation=row.next?.title||(row.state==='hold'?'Clear current hold':num(row.r.ready_operations)>0?'Choose next ready operation':p.next_action||'Plan next work');
-            const readiness=row.state==='hold'?{tone:'danger',label:'Blocked'}:row.state==='ready'?{tone:'success',label:'Ready'}:{tone:'muted',label:'Plan'};
-            const hasBudget=Boolean(row.budget?.project_id);
-            return <tr key={p.id}>
-              <td className="dashboard-job-cell"><Link href={`/projects/${p.id}`}><strong>{p.job_number} · {p.name}</strong><span>{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<small>{location}</small>:null}</Link></td>
-              <td><StatusDot tone={p.status==='on_hold'?'danger':'active'} label={titleCase(p.status)}/></td>
-              <td><strong>{nextOperation}</strong>{row.state==='hold'?<span>{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':`${num(row.r.blocked_operations)} operation${num(row.r.blocked_operations)===1?'':'s'} blocked`}</span>:null}</td>
-              <td className="numeric"><strong>{fmtShortDate(row.next?.schedule_date)}</strong><span>{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></td>
-              <td><strong>{row.field.working?`${row.field.working} working`:'—'}</strong><span>{row.field.review?`${row.field.review} timecard review`:row.field.working?'Active field shift':'No active shift'}</span></td>
-              <td><StatusDot tone={readiness.tone as any} label={readiness.label}/></td>
-              <td className="dashboard-budget-cell"><strong>{hasBudget?`${row.budgetUsed.toFixed(0)}% used`:'Not frozen'}</strong>{hasBudget?<div><i style={{width:`${Math.max(0,Math.min(100,row.budgetUsed))}%`}}/></div>:null}<span>{hasBudget?`${row.laborRemaining.toFixed(1)} MH remaining`:'No authoritative budget snapshot'}</span></td>
-              <td className="dashboard-row-action"><Link href={`/projects/${p.id}`}>Open<ArrowRight/></Link></td>
-            </tr>;
-          })}</tbody>
-        </table>
-        {dashboardJobs.length===0&&<div className="dashboard-compact-empty"><BriefcaseBusiness/><div><strong>No active jobs</strong><span>Accepted proposals and direct jobs will appear here.</span></div><Link href="/projects">Jobs<ArrowRight/></Link></div>}
-      </div>
-    </section>
-
-    <div className="dashboard-lower-grid">
-      <section className="dashboard-panel dashboard-estimating-panel">
-        <div className="dashboard-panel-head"><div><span>ESTIMATING</span><strong>Bid Pipeline</strong><small>Current preconstruction workload from existing lead and proposal state.</small></div></div>
-        <div className="dashboard-mini-metrics">
-          <div><span>Open Leads</span><strong>{openLeads}</strong></div>
-          <div><span>Proposals Out</span><strong>{openProposals.length}</strong></div>
-          <div><span>Needs Reply</span><strong>{needsReply}</strong></div>
-          <div><span>Proposal Value</span><strong>{money(openProposalValue)}</strong></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects</Link>
+          <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
         </div>
-        <div className="dashboard-next-followup">{nextFollowUp?<><div><span>NEXT FOLLOW-UP</span><strong>{nextFollowUp.label}</strong><small>{fmtShortDate(nextFollowUp.date)}</small></div><Link href={nextFollowUp.href}>Open<ArrowRight/></Link></>:<div><span>NEXT FOLLOW-UP</span><strong>No dated follow-up in the current pipeline</strong></div>}</div>
-        <div className="dashboard-inline-actions"><Link href="/leads">Leads</Link><Link href="/takeoff"><Ruler/>Takeoff</Link><Link href="/estimates">Estimates</Link><Link href="/proposals"><FileText/>Proposals</Link></div>
+      </header>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Today's operating position">
+        <OperatingMetric label="Ready to move" value={String(jobsReady)} help="Jobs with a physical operation ready." tone={jobsReady?'success':'neutral'}/>
+        <OperatingMetric label="Hard holds" value={String(jobsHeld)} help="Inspection, setup, or prerequisite blocks work." tone={jobsHeld?'danger':'neutral'}/>
+        <OperatingMetric label="Field active" value={String(activeFieldJobs)} help={`${crewWorking} active field shift${crewWorking===1?'':'s'} right now.`} tone={activeFieldJobs?'active':'neutral'}/>
+        <OperatingMetric label="Customers owe" value={money(ar)} help={overdue?`${money(overdue)} past due.`:'No past-due customer balance.'} tone={overdue?'danger':ar?'warning':'neutral'}/>
+        <OperatingMetric label="7-day cash" value={money(cashNet)} help={`${money(cashIn)} expected in · ${money(cashOut)} expected out.`} tone={cashNet<0?'warning':'neutral'}/>
       </section>
 
-      <section className="dashboard-panel dashboard-finance-panel">
-        <div className="dashboard-panel-head"><div><span>FINANCIAL SNAPSHOT</span><strong>Operational cash attention</strong><small>Only existing A/R and seven-day cashflow values are shown.</small></div><Link href="/cashflow">Cashflow</Link></div>
-        <dl className="dashboard-finance-list">
-          <div><dt>Customers owe</dt><dd>{money(ar)}</dd></div>
-          <div className={overdue?'danger':''}><dt>Past due</dt><dd>{money(overdue)}</dd></div>
-          <div><dt>7-day expected in</dt><dd>{money(cashIn)}</dd></div>
-          <div><dt>7-day expected out</dt><dd>{money(cashOut)}</dd></div>
-          <div className={cashNet<0?'warning':''}><dt>7-day net</dt><dd>{money(cashNet)}</dd></div>
-        </dl>
-        <div className="dashboard-inline-actions"><Link href="/billing"><Wallet/>Billing</Link><Link href="/cashflow">Cashflow</Link></div>
+      <div className="grid gap-4 xl:grid-cols-[1.02fr_.98fr]">
+        <Card className="shadow-none">
+          <CardHeader className="grid grid-cols-[1fr_auto] gap-4 border-b">
+            <div><CardTitle>Management attention</CardTitle><CardDescription className="mt-1">Field blockers, cash exceptions, and follow-ups in consequence order.</CardDescription></div>
+            <Badge variant={attention.length?'destructive':'secondary'}>{attention.length}</Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            {attention.length===0?<div className="flex min-h-36 items-center gap-3 px-4 py-6 text-sm"><span className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success"><CheckCircle2 className="size-4"/></span><div><div className="font-medium">No urgent exceptions</div><div className="mt-0.5 text-muted-foreground">Today's work can run from the current plan.</div></div></div>:
+              <div className="divide-y">{attention.slice(0,8).map((item,index)=><Link href={item.href} key={`${item.subject}-${index}`} className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
+                <span className={cn('flex size-8 items-center justify-center rounded-lg bg-primary/8 text-primary',item.tone==='danger'&&'bg-destructive/8 text-destructive',item.tone==='warning'&&'bg-amber-500/10 text-amber-700')}>{item.tone==='danger'?<AlertTriangle className="size-4"/>:item.tone==='warning'?<Clock3 className="size-4"/>:<PhoneCall className="size-4"/>}</span>
+                <span className="min-w-0"><span className="block truncate text-sm font-medium">{item.subject}</span><span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{item.issue}</span><span className="mt-1 block text-[11px] text-muted-foreground">{item.when}</span></span>
+                <span className="hidden items-center gap-1 text-xs font-medium text-primary sm:flex">{item.action}<ArrowRight className="size-3"/></span>
+              </Link>)}</div>}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardHeader className="grid grid-cols-[1fr_auto] gap-4 border-b">
+            <div><CardTitle>Scheduled production</CardTitle><CardDescription className="mt-1">Today's field work and whether each operation is physically clear.</CardDescription></div>
+            <Link href="/schedule" className={buttonVariants({variant:'ghost',size:'sm'})}>Full schedule</Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            {todayFieldWork.length===0?<CompactEmpty Icon={CalendarDays} title="Nothing scheduled today" description="Open Schedule to plan the next ready operation." href="/schedule" action="Open schedule"/>:
+              <Table>
+                <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Time</TableHead><TableHead>Job</TableHead><TableHead>Operation</TableHead><TableHead>Field</TableHead><TableHead>Readiness</TableHead></TableRow></TableHeader>
+                <TableBody>{todayFieldWork.map((itemRaw:any)=>{
+                  const item:any=itemRaw,job:any=joinedProject(item),rr:any=item.work_package_operation_id?opReady.get(item.work_package_operation_id):null;
+                  const readiness=rr?.ready_to_start_all===false?'blocked':rr?.ready_to_start_all===true?'ready':'scheduled';
+                  const field=fieldMap.get(item.project_id)||{working:0,review:0};
+                  return <TableRow key={item.id}>
+                    <TableCell className="carez-data-number">{fmtTime(item.start_time)||'—'}</TableCell>
+                    <TableCell>{item.project_id?<Link href={`/projects/${item.project_id}`} className="font-medium hover:text-primary">{job?.job_number||'Job'}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{job?.name||'Project'}</span></Link>:<span className="font-medium">{job?.job_number||'Job'}</span>}</TableCell>
+                    <TableCell><span className="font-medium">{item.title}</span>{readiness==='blocked'&&rr?.start_next_action?<span className="mt-0.5 block max-w-56 whitespace-normal text-xs text-muted-foreground">{rr.start_next_action}</span>:null}</TableCell>
+                    <TableCell><span className="font-medium">{field.working?`${field.working} working`:'—'}</span>{field.review?<span className="mt-0.5 block text-xs text-muted-foreground">{field.review} timecard review</span>:null}</TableCell>
+                    <TableCell><StatusBadge tone={readiness==='blocked'?'danger':readiness==='ready'?'success':'muted'} label={readiness==='blocked'?'Blocked':readiness==='ready'?'Ready':'Scheduled'}/></TableCell>
+                  </TableRow>;
+                })}</TableBody>
+              </Table>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <section className="carez-section">
+        <div className="carez-section-header">
+          <div><p className="carez-kicker">Active jobs</p><h2 className="carez-section-title">What moves next</h2><p className="carez-section-description">Next physical operation, readiness, live field activity, and budget position.</p></div>
+          <Link href="/projects" className={buttonVariants({variant:'outline',size:'sm'})}>All projects</Link>
+        </div>
+        {dashboardJobs.length===0?<CompactEmpty Icon={BriefcaseBusiness} title="No active jobs" description="Accepted proposals and direct jobs will appear here." href="/projects" action="Open projects"/>:
+          <Card className="py-0 shadow-none">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Job / client</TableHead><TableHead>Status</TableHead><TableHead>Next operation</TableHead><TableHead>Next date</TableHead><TableHead>Field</TableHead><TableHead>Readiness</TableHead><TableHead className="min-w-40">Budget position</TableHead></TableRow></TableHeader>
+              <TableBody>{dashboardJobs.slice(0,8).map((row:any)=>{
+                const p=row.project;
+                const location=[p.city,p.state].filter(Boolean).join(', ');
+                const nextOperation=row.next?.title||(row.state==='hold'?'Clear current hold':num(row.r.ready_operations)>0?'Choose next ready operation':p.next_action||'Plan next work');
+                const readiness=row.state==='hold'?{tone:'danger' as const,label:'Blocked'}:row.state==='ready'?{tone:'success' as const,label:'Ready'}:{tone:'muted' as const,label:'Plan'};
+                const hasBudget=Boolean(row.budget?.project_id);
+                return <TableRow key={p.id}>
+                  <TableCell><Link href={`/projects/${p.id}`} className="font-medium hover:text-primary">{p.job_number} · {p.name}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<span className="block text-[11px] font-normal text-muted-foreground">{location}</span>:null}</Link></TableCell>
+                  <TableCell><StatusBadge tone={p.status==='on_hold'?'danger':'active'} label={titleCase(p.status)}/></TableCell>
+                  <TableCell><span className="font-medium">{nextOperation}</span>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':`${num(row.r.blocked_operations)} operation${num(row.r.blocked_operations)===1?'':'s'} blocked`}</span>:null}</TableCell>
+                  <TableCell className="carez-data-number">{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></TableCell>
+                  <TableCell><span className="font-medium">{row.field.working?`${row.field.working} working`:'—'}</span><span className="mt-0.5 block text-xs text-muted-foreground">{row.field.review?`${row.field.review} timecard review`:row.field.working?'Active field shift':'No active shift'}</span></TableCell>
+                  <TableCell><StatusBadge tone={readiness.tone} label={readiness.label}/></TableCell>
+                  <TableCell>{hasBudget?<div className="min-w-36"><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className={cn('font-medium',row.budgetUsed>=100&&'text-destructive')}>{row.budgetUsed.toFixed(0)}% used</span><span className="text-muted-foreground">{row.laborRemaining.toFixed(1)} MH left</span></div><Progress value={Math.max(0,Math.min(100,row.budgetUsed))}/></div>:<span className="text-xs text-muted-foreground">No authoritative budget snapshot</span>}</TableCell>
+                </TableRow>;
+              })}</TableBody>
+            </Table>
+          </Card>}
       </section>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>Bid pipeline</CardTitle><CardDescription>Current preconstruction workload from existing lead and proposal state.</CardDescription></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[['Open leads',String(openLeads)],['Proposals out',String(openProposals.length)],['Needs reply',String(needsReply)],['Proposal value',money(openProposalValue)]].map(([label,value])=><div key={label} className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">{value}</div></div>)}
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0"><div className="text-xs font-medium text-muted-foreground">Next follow-up</div>{nextFollowUp?<><div className="mt-1 truncate text-sm font-medium">{nextFollowUp.label}</div><div className="mt-0.5 text-xs text-muted-foreground">{fmtShortDate(nextFollowUp.date)}</div></>:<div className="mt-1 text-sm text-muted-foreground">No dated follow-up in the current pipeline</div>}</div>
+              {nextFollowUp?<Link href={nextFollowUp.href} className={buttonVariants({variant:'outline',size:'sm'})}>Open<ArrowRight/></Link>:null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/leads" className={buttonVariants({variant:'outline',size:'sm'})}>Leads</Link>
+              <Link href="/takeoff" className={buttonVariants({variant:'outline',size:'sm'})}><Ruler/>Takeoff</Link>
+              <Link href="/estimates" className={buttonVariants({variant:'outline',size:'sm'})}>Estimates</Link>
+              <Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>Proposals</Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardHeader className="grid grid-cols-[1fr_auto] gap-4"><div><CardTitle>Operational cash attention</CardTitle><CardDescription>Current A/R and seven-day cashflow values already modeled in Carez.</CardDescription></div><Link href="/cashflow" className={buttonVariants({variant:'ghost',size:'sm'})}>Cashflow</Link></CardHeader>
+          <CardContent>
+            <dl className="divide-y rounded-lg border">
+              {[
+                ['Customers owe',money(ar),'normal'],
+                ['Past due',money(overdue),overdue?'danger':'normal'],
+                ['7-day expected in',money(cashIn),'normal'],
+                ['7-day expected out',money(cashOut),'normal'],
+                ['7-day net',money(cashNet),cashNet<0?'warning':'normal'],
+              ].map(([label,value,tone])=><div key={label} className="flex items-center justify-between gap-6 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-amber-700')}>{value}</dd></div>)}
+            </dl>
+            <div className="mt-4 flex gap-2"><Link href="/billing" className={buttonVariants({variant:'outline',size:'sm'})}><Wallet/>Billing</Link><Link href="/cashflow" className={buttonVariants({variant:'outline',size:'sm'})}>Cashflow</Link></div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  </div></AppShell>;
-}
-
-function DashboardMetric({label,value,help,tone}:{label:string;value:string;help:string;tone:'neutral'|'active'|'success'|'warning'|'danger'}){
-  return <div className={`dashboard-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{help}</small></div>;
-}
-
-function StatusDot({tone,label}:{tone:'muted'|'active'|'success'|'warning'|'danger';label:string}){
-  return <span className={`dashboard-status ${tone}`}><i/>{label}</span>;
+  </AppShell>;
 }
