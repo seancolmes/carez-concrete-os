@@ -1,22 +1,22 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import type {CSSProperties} from 'react';
 import {ArrowLeft,Boxes,Gauge,Hammer,Layers3,Package,Ruler,Settings2,Shapes} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {Badge} from '@/components/ui/badge';
+import {Button,buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
+import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
 import {updateEstimatingLaborProfile} from '../actions';
-import styles from './AssemblyPage.module.css';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
+const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
-function assemblyTone(category:string){
-  const value=String(category||'').toLowerCase();
-  if(/reinforc|rebar|mesh/.test(value))return '#a78bfa';
-  if(/form|shor|brace/.test(value))return '#22d3ee';
-  if(/place|pour|pump/.test(value))return '#f59e0b';
-  if(/slab|flat|sidewalk|curb/.test(value))return '#22c55e';
-  if(/wall/.test(value))return '#ec4899';
-  return '#4f8cff';
+function Metric({label,value,Icon}:{label:string;value:string|number;Icon:any}){
+  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-4"><div><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums">{value}</CardTitle></div><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Icon className="size-4"/></span></CardHeader></Card>;
 }
 
 export default async function AssemblyLibraryPage(){
@@ -43,106 +43,49 @@ export default async function AssemblyLibraryPage(){
   const publishedVersionIds=new Set([...latestByAssembly.values()].map((version:any)=>version.id));
   const publishedComponents=(components||[]).filter((component:any)=>publishedVersionIds.has(component.assembly_version_id));
   const varsByVersion=new Map<string,any[]>();
-  for(const variable of variables||[]){
-    const rows=varsByVersion.get(variable.assembly_version_id)||[];
-    rows.push(variable);
-    varsByVersion.set(variable.assembly_version_id,rows);
-  }
+  for(const variable of variables||[]){const rows=varsByVersion.get(variable.assembly_version_id)||[];rows.push(variable);varsByVersion.set(variable.assembly_version_id,rows);}
   const compsByVersion=new Map<string,any[]>();
-  for(const component of components||[]){
-    const rows=compsByVersion.get(component.assembly_version_id)||[];
-    rows.push(component);
-    compsByVersion.set(component.assembly_version_id,rows);
-  }
+  for(const component of components||[]){const rows=compsByVersion.get(component.assembly_version_id)||[];rows.push(component);compsByVersion.set(component.assembly_version_id,rows);}
   const categories=[...new Set(publishedAssemblies.map((assembly:any)=>assembly.category||'Concrete'))];
   const laborOperations=publishedComponents.filter((component:any)=>component.estimate_item_type==='labor').length;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <main className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <div className={styles.eyebrow}>Assembly &amp; Resource Engine</div>
-          <h1>Assemblies</h1>
-          <p>Company-owned concrete recipes, resource outputs, and labor production.</p>
-        </div>
-        <div className={styles.actions}>
-          <Link className={styles.action} href="/takeoff"><ArrowLeft size={15}/>Open Takeoff</Link>
-          <Link className={`${styles.action} ${styles.actionPrimary}`} href="/takeoff/intelligence"><Gauge size={15}/>Production intelligence</Link>
-        </div>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div><p className="carez-kicker">Assembly & resource engine</p><h1 className="carez-page-title">Assemblies</h1><p className="carez-page-description">Company-owned concrete recipes that convert measured scope into labor, material, equipment, and production quantities.</p></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff"><ArrowLeft/>Takeoff</Link><Link className={buttonVariants({size:'sm'})} href="/takeoff/intelligence"><Gauge/>Production intelligence</Link></div>
       </header>
 
-      <section className={styles.metrics} aria-label="Assembly library summary">
-        <div className={`${styles.metric} ${styles.metricBlue}`}><div className={styles.metricIcon}><Layers3/></div><div><span>Published assemblies</span><strong>{publishedAssemblies.length}</strong></div></div>
-        <div className={`${styles.metric} ${styles.metricCyan}`}><div className={styles.metricIcon}><Shapes/></div><div><span>Categories</span><strong>{categories.length}</strong></div></div>
-        <div className={`${styles.metric} ${styles.metricViolet}`}><div className={styles.metricIcon}><Package/></div><div><span>Resource outputs</span><strong>{publishedComponents.length}</strong></div></div>
-        <div className={`${styles.metric} ${styles.metricOrange}`}><div className={styles.metricIcon}><Hammer/></div><div><span>Labor operations</span><strong>{laborOperations}</strong></div></div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Assembly library summary">
+        <Metric label="Published assemblies" value={publishedAssemblies.length} Icon={Layers3}/>
+        <Metric label="Categories" value={categories.length} Icon={Shapes}/>
+        <Metric label="Resource outputs" value={publishedComponents.length} Icon={Package}/>
+        <Metric label="Labor operations" value={laborOperations} Icon={Hammer}/>
       </section>
 
-      <section className={styles.laborBand} aria-label="Estimating labor cost">
-        <div className={styles.laborIcon}><Hammer size={18}/></div>
-        <div className={styles.laborMain}>
-          <span>Estimating labor cost</span>
-          <div className={styles.laborValue}><strong>{laborProfile?money(laborProfile.burdened_hourly_rate):'Not configured'}</strong>{laborProfile&&<small>/ MH</small>}</div>
-          <div className={styles.laborSource}>{laborProfile?.source_label||'Set the current fully burdened labor cost.'}</div>
-        </div>
-        <details className={styles.laborControls}>
-          <summary><Settings2 size={14}/>Edit labor cost</summary>
-          <form action={updateEstimatingLaborProfile} className={styles.laborForm}>
-            <label className={styles.field}><span>Burdened cost / MH</span><input name="burdened_hourly_rate" type="number" min="0" step="0.01" required defaultValue={laborProfile?Number(laborProfile.burdened_hourly_rate):undefined}/></label>
-            <label className={styles.field}><span>Base L&amp;I class</span><select name="base_risk_class_code" defaultValue={laborProfile?.base_risk_class_code||''}><option value="">None / blended</option>{(riskClasses||[]).map((risk:any)=><option key={`${risk.code}-${risk.tax_year}`} value={risk.code}>{risk.code} — {risk.name}</option>)}</select></label>
-            <label className={styles.field}><span>Note</span><input name="notes" placeholder="Owner-reviewed labor cost"/></label>
-            <button className={styles.saveButton}>Save labor cost</button>
-          </form>
-        </details>
-      </section>
+      <Card className="shadow-none">
+        <CardHeader className="grid gap-4 md:grid-cols-[44px_minmax(0,1fr)_auto] md:items-center"><span className="flex size-11 items-center justify-center rounded-lg bg-accent text-primary"><Hammer className="size-5"/></span><div><CardDescription className="text-xs font-medium">Estimating labor cost</CardDescription><CardTitle className="mt-1 flex items-baseline gap-1 font-mono text-2xl font-semibold tabular-nums">{laborProfile?money(laborProfile.burdened_hourly_rate):'Not configured'}{laborProfile?<span className="font-sans text-xs font-normal text-muted-foreground">/ MH</span>:null}</CardTitle><CardDescription className="mt-1">{laborProfile?.source_label||'Set the current fully burdened labor cost.'}</CardDescription></div><Dialog><DialogTrigger render={<Button variant="outline" size="sm"/>}><Settings2/>Edit labor cost</DialogTrigger><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Estimating labor cost</DialogTitle><DialogDescription>Set the owner-reviewed fully burdened labor rate and optional base L&I class used by estimating.</DialogDescription></DialogHeader><form action={updateEstimatingLaborProfile} className="grid gap-4"><div className="grid gap-2"><Label htmlFor="labor-rate">Burdened cost / MH</Label><Input id="labor-rate" name="burdened_hourly_rate" type="number" min="0" step="0.01" required defaultValue={laborProfile?Number(laborProfile.burdened_hourly_rate):undefined}/></div><div className="grid gap-2"><Label htmlFor="labor-risk">Base L&I class</Label><select id="labor-risk" className={fieldSelect} name="base_risk_class_code" defaultValue={laborProfile?.base_risk_class_code||''}><option value="">None / blended</option>{(riskClasses||[]).map((risk:any)=><option key={`${risk.code}-${risk.tax_year}`} value={risk.code}>{risk.code} — {risk.name}</option>)}</select></div><div className="grid gap-2"><Label htmlFor="labor-note">Note</Label><Input id="labor-note" name="notes" placeholder="Owner-reviewed labor cost"/></div><div className="flex justify-end"><Button type="submit">Save labor cost</Button></div></form></DialogContent></Dialog></CardHeader>
+      </Card>
 
-      <section className={styles.library}>
-        <div className={styles.sectionHead}>
-          <div className={styles.sectionTitle}><Boxes size={16}/>Published assemblies</div>
-          <div className={styles.sectionMeta}>{publishedAssemblies.length} available in Takeoff</div>
-        </div>
-
-        {publishedAssemblies.length===0?<div className={styles.empty}>No published company assemblies yet. Build the first one from Takeoff.</div>:<div className={styles.grid}>
-          {publishedAssemblies.map((assembly:any)=>{
+      <section className="carez-section">
+        <div className="carez-section-header"><div><p className="carez-kicker">Published library</p><h2 className="carez-section-title">Concrete assemblies</h2><p className="carez-section-description">{publishedAssemblies.length} published assembly{publishedAssemblies.length===1?' is':' assemblies are'} available in Takeoff.</p></div></div>
+        {publishedAssemblies.length===0?<Empty className="min-h-56 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Boxes/></EmptyMedia><EmptyTitle>No published company assemblies yet</EmptyTitle><EmptyDescription>Build the first concrete recipe from the accepted assembly workflow, then publish it for Takeoff use.</EmptyDescription></EmptyHeader></Empty>:
+          <div className="grid gap-3 lg:grid-cols-2">{publishedAssemblies.map((assembly:any)=>{
             const version:any=latestByAssembly.get(assembly.id);
             const assemblyVariables=varsByVersion.get(version.id)||[];
             const assemblyComponents=compsByVersion.get(version.id)||[];
             const labor=assemblyComponents.filter((component:any)=>component.estimate_item_type==='labor');
             const material=assemblyComponents.filter((component:any)=>component.estimate_item_type==='material');
             const other=assemblyComponents.length-labor.length-material.length;
-            const accent=assemblyTone(assembly.category);
-            return <article className={styles.card} key={assembly.id} style={{'--assembly-accent':accent} as CSSProperties}>
-              <header className={styles.cardHeader}>
-                <div className={styles.unit}><Ruler/><b>{assembly.primary_measurement}</b></div>
-                <div className={styles.identity}><span>{assembly.code} · {assembly.category||'Concrete'}</span><strong>{assembly.name}</strong></div>
-                <div className={styles.version}><i className={styles.versionDot}/>V{version.version_no} · Published</div>
-              </header>
-              <div className={styles.cardMetrics}>
-                <span><b>{material.length}</b> material</span>
-                <span><b>{labor.length}</b> labor</span>
-                <span><b>{other}</b> other</span>
-                <span><b>{assemblyVariables.length}</b> inputs</span>
-              </div>
-              <details className={styles.recipe}>
-                <summary><Layers3 size={13}/>Recipe</summary>
-                <div className={styles.recipeBody}>
-                  <div className={styles.source}><strong>{version.source_label||'Carez assembly'}</strong>{version.source_reference&&<span title={version.source_reference}>{version.source_reference}</span>}</div>
-                  <div className={styles.recipeColumns}>
-                    <div className={styles.recipeGroup}>
-                      <h3>Inputs</h3>
-                      <div className={styles.recipeList}>{assemblyVariables.length?assemblyVariables.map((variable:any)=><div className={styles.recipeRow} key={variable.id}><strong>{variable.label}</strong><span>{variable.unit||variable.value_type}</span></div>):<div className={styles.recipeRow}><strong>No estimator inputs</strong></div>}</div>
-                    </div>
-                    <div className={styles.recipeGroup}>
-                      <h3>Outputs</h3>
-                      <div className={styles.recipeList}>{assemblyComponents.map((component:any)=><div className={styles.recipeRow} key={component.id}><strong>{component.label}</strong><span>{component.output_unit}</span>{component.labor_task&&<small>{component.labor_task}</small>}</div>)}</div>
-                    </div>
-                  </div>
-                </div>
-              </details>
-            </article>;
-          })}
-        </div>}
+            return <Card className="gap-0 py-0 shadow-none" key={assembly.id}>
+              <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3"><span className="flex size-10 flex-col items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-3.5"/><span className="mt-0.5 font-mono text-[9px] font-semibold">{assembly.primary_measurement}</span></span><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><Badge variant="outline" className="font-mono text-[10px]">{assembly.code}</Badge><Badge variant="secondary">{assembly.category||'Concrete'}</Badge></div><CardTitle className="truncate">{assembly.name}</CardTitle>{assembly.description?<CardDescription className="mt-1 line-clamp-2">{assembly.description}</CardDescription>:null}</div><Badge variant="secondary" className="bg-success/10 text-success">V{version.version_no} · Published</Badge></CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-4 divide-x border-b bg-muted/20">{[['Material',material.length],['Labor',labor.length],['Other',other],['Inputs',assemblyVariables.length]].map(([label,value])=><div key={String(label)} className="px-3 py-2.5"><div className="text-[10px] text-muted-foreground">{label}</div><div className="mt-1 font-mono text-sm font-semibold tabular-nums">{value}</div></div>)}</div>
+                <details><summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-xs font-medium hover:bg-muted/40"><Layers3 className="size-3.5 text-primary"/>Recipe <span className="ml-auto text-[11px] font-normal text-muted-foreground">{assemblyComponents.length} outputs</span></summary><div className="space-y-4 border-t p-3"><div className="rounded-lg border bg-muted/20 p-3"><div className="text-xs font-medium">{version.source_label||'Carez assembly'}</div>{version.source_reference?<div className="mt-1 truncate text-xs text-muted-foreground" title={version.source_reference}>{version.source_reference}</div>:null}</div><div className="grid gap-4 sm:grid-cols-2"><div><div className="mb-2 text-xs font-semibold text-muted-foreground">Inputs</div><div className="divide-y rounded-lg border">{assemblyVariables.length?assemblyVariables.map((variable:any)=><div className="flex items-center justify-between gap-3 px-3 py-2 text-xs" key={variable.id}><span className="font-medium">{variable.label}</span><span className="text-muted-foreground">{variable.unit||variable.value_type}</span></div>):<div className="px-3 py-2 text-xs text-muted-foreground">No estimator inputs</div>}</div></div><div><div className="mb-2 text-xs font-semibold text-muted-foreground">Outputs</div><div className="divide-y rounded-lg border">{assemblyComponents.map((component:any)=><div className="px-3 py-2 text-xs" key={component.id}><div className="flex items-center justify-between gap-3"><span className="font-medium">{component.label}</span><span className="text-muted-foreground">{component.output_unit}</span></div>{component.labor_task?<div className="mt-1 text-[11px] text-muted-foreground">{component.labor_task}</div>:null}</div>)}</div></div></div></div></details>
+              </CardContent>
+            </Card>;
+          })}</div>}
       </section>
-    </main>
+    </div>
   </AppShell>;
 }
