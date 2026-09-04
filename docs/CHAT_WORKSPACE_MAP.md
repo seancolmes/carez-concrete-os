@@ -29,7 +29,7 @@ Use a small set of permanent domain chats for exploration and coordination. Crea
 
 ### Regular Chat
 
-Regular Chat is the default for permanent domain chats. Use it for brainstorming, product/architecture decisions, GitHub inspection, screenshots, scoped research, planning, QA reasoning, and preparing execution prompts.
+Regular Chat is the default for permanent domain chats. Use it for brainstorming, product/architecture decisions, GitHub inspection, screenshots, scoped research, planning, QA reasoning, implementation scoping, and preparing bounded execution packets.
 
 If the work remains discussion/analysis, stay in the owning permanent chat. Do not create a temporary thread merely because a new idea appears.
 
@@ -43,17 +43,31 @@ When Work is appropriate, start a separate focused Work thread inside the Carez 
 
 Codex is a separate code-execution surface. It is **not a mode that an existing ChatGPT Project chat can be switched into**.
 
-Use Codex when actual repository coding is required and the objective involves substantial implementation, difficult cross-file debugging, migrations, complex domain logic, or browser automation. Routine GitHub/docs inspection and simple localized work should be handled directly when possible.
+Follow ADR-017 and `docs/workflow/CODEX_EXECUTION_WORKFLOW.md`.
+
+Carez uses a local-first Codex model:
+
+- **Local Codex — default for bounded implementation:** Ollama + `gpt-oss:20b` handles routine React/TypeScript work, shadcn conversions, styling, forms/grids, mechanical refactors, straightforward handlers/tests, and known-fix debugging.
+- **Cloud Codex — escalation only:** use for difficult cross-file debugging, Takeoff geometry/math, RLS/security-sensitive work, complex migrations, Condition persistence/domain logic, concurrency/reconciliation, immutable commercial lineage, major refactors, difficult performance work, or justified browser automation.
+
+The owning permanent chat remains the product/QA coordination room. It should inspect canonical truth, determine the objective, and prepare a bounded implementation packet before Codex execution whenever practical.
 
 When Codex is appropriate:
-1. Keep the owning permanent ChatGPT chat as the product/QA coordination room.
-2. Prepare one self-contained implementation/debugging prompt in that chat.
-3. Open Codex separately.
-4. Create a focused Codex task/thread with a governed name, for example `99A — Takeoff Vertical Pan`.
-5. Paste/run the supplied implementation prompt in Codex.
-6. When Codex finishes, return to the owning permanent ChatGPT chat with the result/checkpoint for review, QA, reconciliation, and next routing.
 
-Never tell the user to “switch this chat to Codex.” Say exactly: “Open Codex separately, create the named Codex task, and paste the supplied prompt.”
+1. Keep the owning permanent ChatGPT chat as the coordination room.
+2. Prepare one self-contained implementation/debugging packet.
+3. Choose **Local Codex** by default unless cloud escalation criteria are met.
+4. For a local task, verify the active provider is Ollama and the model is `gpt-oss:20b` before execution.
+5. Open Codex separately and create one focused task/thread.
+6. Run the supplied implementation packet.
+7. After implementation and task-appropriate local validation, Codex reports changed files/results/checkpoint and stops.
+8. Return to the owning permanent chat for CI/deployment inspection, browser QA, reconciliation, and next routing.
+
+Local bounded failures use a two-attempt stop rule: one implementation attempt, one focused correction using the exact failure, then stop and return evidence for re-scoping or cloud escalation.
+
+Never tell the user to “switch this chat to Codex.” Say exactly which separate Codex task to open and whether it should use **Local Codex** or **Cloud Codex**.
+
+Do not use Codex for routine GitHub/docs archaeology, Vercel polling, release bookkeeping, or documentation reconciliation when ChatGPT/connected tools can perform those tasks directly.
 
 ## Mandatory routing footer
 
@@ -63,7 +77,7 @@ CAREZ ROUTING
 CHAT: exact owning permanent chat name or `Stay in this chat`
 MODE: `Regular Chat`, `Work`, or `Codex`
 TEMP CHAT: `No` or exact temporary ChatGPT/Work thread name
-CODEX TASK: `No` or exact separate Codex task name
+CODEX TASK: `No` or exact separate Codex task name, prefixed `Local —` or `Cloud —` when Codex is used
 WHY: one short sentence
 NEXT ACTION: exact action the user should take next
 RETURN TO: owning permanent chat after temporary Work/Codex activity, or `N/A`
@@ -71,8 +85,8 @@ RETURN TO: owning permanent chat after temporary Work/Codex activity, or `N/A`
 Routing semantics:
 - Regular Chat: normally `TEMP CHAT: No`, `CODEX TASK: No`.
 - Work: normally name the focused Work thread under `TEMP CHAT`; `CODEX TASK: No`.
-- Codex: normally `TEMP CHAT: No`; give the exact separate Codex task under `CODEX TASK`.
-- Never make the user infer whether to stay, create a Work thread, or open Codex separately.
+- Codex: normally `TEMP CHAT: No`; give the exact separate Codex task and execution class under `CODEX TASK`.
+- Never make the user infer whether to stay, create a Work thread, use local Codex, or escalate to cloud Codex.
 
 ## Routing rules
 
