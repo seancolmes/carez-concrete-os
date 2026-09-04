@@ -3,11 +3,21 @@ import Link from 'next/link';
 import {ArrowRight,FileText,Plus,Ruler,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {EstimateGrid,type EstimateGridRow,type EstimateGridStage} from '@/components/estimates/EstimateGrid';
+import {Button,buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
+import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
 import {createEstimate} from './actions';
 
 const money=(value:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
 const number=(value:any)=>Number(value||0);
+
+function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'}){
+  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+}
 
 export default async function EstimatesPage(){
   const supabase=await createClient();
@@ -46,7 +56,7 @@ export default async function EstimatesPage(){
           :estimate.status==='superseded'||estimate.status==='declined'
             ?'history'
             :'working';
-    return {estimate,proposal,project,summary,takeoff,stage};
+    return{estimate,proposal,project,summary,takeoff,stage};
   });
 
   const working=rows.filter(row=>row.stage==='working'||row.stage==='ready');
@@ -61,7 +71,7 @@ export default async function EstimatesPage(){
     const stageLabel=stage==='working'
       ?'Pricing'
       :stage==='ready'
-        ?'Ready for Audit'
+        ?'Ready for audit'
         :stage==='issued'
           ?proposal?.proposal_number||'Issued'
           :stage==='awarded'
@@ -70,7 +80,7 @@ export default async function EstimatesPage(){
               ?'Declined'
               :'Superseded';
     const secondary=stage==='working'&&!takeoffObjects
-      ?{href:'/takeoff',label:'Start Takeoff'}
+      ?{href:'/takeoff',label:'Start takeoff'}
       :stage==='ready'
         ?{href:'/estimates/audit',label:'Audit'}
         :stage==='issued'
@@ -79,7 +89,7 @@ export default async function EstimatesPage(){
             ?{href:`/projects/${project.id}`,label:'Job'}
             :null;
 
-    return {
+    return{
       id:estimate.id,
       displayNumber:`${estimate.estimate_number}-R${Number(estimate.version||0)}`,
       name:estimate.name,
@@ -100,15 +110,45 @@ export default async function EstimatesPage(){
     };
   });
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page estimates-home-v3">
-    <div className="command-hero"><div><div className="section-kicker">ESTIMATE · PRICING</div><h1>Estimates</h1><p>Price concrete scope from takeoff, resolve exceptions, protect margin, and issue the exact revision the customer will accept.</p></div><div className="command-actions"><Link className="button safety-orange" href="/takeoff"><Ruler size={14}/> Takeoff</Link><Link className="button secondary" href="/estimates/audit"><ShieldCheck size={14}/> Audit</Link><Link className="button secondary" href="/proposals"><FileText size={14}/> Proposals</Link></div></div>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+    <div className="carez-page">
+      <header className="carez-page-header">
+        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Estimates</h1><p className="carez-page-description">Price concrete scope from takeoff, resolve exceptions, protect margin, and issue the exact revision the customer will accept.</p></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Takeoff</Link>
+          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link>
+          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><FileText/>Proposals</Link>
+        </div>
+      </header>
 
-    <div className="takeoff-flow-strip"><span>1 <b>Takeoff</b></span><ArrowRight/><span className="active">2 <b>Estimate</b></span><ArrowRight/><span>3 <b>Audit</b></span><ArrowRight/><span>4 <b>Proposal</b></span></div>
+      <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
+        {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===1?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+      </nav>
 
-    <div className="command-grid section"><div className="command-card"><div className="command-label">Pricing Now</div><div className="command-value">{working.length}</div><div className="command-help">Editable bid revisions.</div></div><div className={`command-card ${ready.length?'good':''}`}><div className="command-label">Ready for Audit</div><div className="command-value">{ready.length}</div><div className="command-help">Price and scope marked ready.</div></div><div className="command-card"><div className="command-label">Issued / Awarded</div><div className="command-value">{issued.length} / {awarded.length}</div><div className="command-help">Customer-facing and won revisions.</div></div><div className="command-card"><div className="command-label">Pricing Pipeline</div><div className="command-value">{money(pipeline)}</div><div className="command-help">Recommended value still being priced.</div></div></div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Pricing now" value={String(working.length)} help="Editable bid revisions."/>
+        <Metric label="Ready for audit" value={String(ready.length)} help="Price and scope marked ready." tone={ready.length?'success':'default'}/>
+        <Metric label="Issued / awarded" value={`${issued.length} / ${awarded.length}`} help="Customer-facing and won revisions."/>
+        <Metric label="Pricing pipeline" value={money(pipeline)} help="Recommended value still being priced."/>
+      </section>
 
-    <section className="section"><div className="section-heading"><div><div className="section-kicker">ALL REVISIONS</div><div className="section-title">Estimate Workbench</div><div className="section-heading-meta">Filter, select, and open estimates from one sticky-header grid. Estimate and project identity remain frozen while financial columns scroll.</div></div><details className="controls-disclosure create-disclosure"><summary>Standalone Estimate</summary><div className="controls-body"><div className="meta">The normal workflow starts from a Lead so customer and project information carry forward.</div><form action={createEstimate} className="form section"><label className="field"><span>Description <em>optional</em></span><input name="name" placeholder="Concrete scope / property name"/></label><label className="field"><span>Existing job <em>optional</em></span><select name="project_id" defaultValue=""><option value="">New opportunity</option>{(projects||[]).map((project:any)=><option key={project.id} value={project.id}>{project.job_number} — {project.name}</option>)}</select></label><button className="button safety-orange"><Plus size={14}/> Create Estimate</button></form></div></details></div>
-      {gridRows.length?<EstimateGrid rows={gridRows}/>:<div className="empty-state"><div><div className="title">No estimates exist yet</div><div className="meta">Start from Leads, Takeoff, or create a standalone estimate above.</div><div className="action-row"><Link className="button safety-orange" href="/leads">Open Leads</Link></div></div></div>}
-    </section>
-  </div></AppShell>;
+      <section className="carez-section">
+        <div className="carez-section-header">
+          <div><p className="carez-kicker">All revisions</p><h2 className="carez-section-title">Estimate workbench</h2><p className="carez-section-description">Filter, inspect, and open authoritative estimate revisions without leaving the pricing workspace.</p></div>
+          <Dialog>
+            <DialogTrigger render={<Button variant="outline" size="sm"/>}><Plus/>Standalone estimate</DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader><DialogTitle>Create standalone estimate</DialogTitle><DialogDescription>The normal workflow starts from a Lead so customer and project information carry forward. Use this only when that lineage does not apply.</DialogDescription></DialogHeader>
+              <form action={createEstimate} className="grid gap-4">
+                <div className="grid gap-2"><Label htmlFor="estimate-name">Description <span className="font-normal text-muted-foreground">optional</span></Label><Input id="estimate-name" name="name" placeholder="Concrete scope / property name"/></div>
+                <div className="grid gap-2"><Label htmlFor="estimate-project">Existing job <span className="font-normal text-muted-foreground">optional</span></Label><select id="estimate-project" name="project_id" defaultValue="" className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20"><option value="">New opportunity</option>{(projects||[]).map((project:any)=><option key={project.id} value={project.id}>{project.job_number} — {project.name}</option>)}</select></div>
+                <div className="flex justify-end"><Button type="submit"><Plus/>Create estimate</Button></div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+        {gridRows.length?<EstimateGrid rows={gridRows}/>:<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><FileText/></EmptyMedia><EmptyTitle>No estimates yet</EmptyTitle><EmptyDescription>Start from Leads or Takeoff, or create a standalone estimate when the normal lead workflow does not apply.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/leads">Open leads</Link></EmptyContent></Empty>}
+      </section>
+    </div>
+  </AppShell>;
 }
