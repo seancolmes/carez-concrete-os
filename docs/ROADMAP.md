@@ -14,7 +14,7 @@ Outcome:
 Outcome:
 - active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
 - additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- EDGE-inspired light workstation uses Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window;
+- dark shadcn workstation uses Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window, following ADR-015 without changing quantity authority;
 - Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
 - 2D, 3D, and Split modes share selection and totals; read-only derived 3D exposes representative elevation, overlap/gap, step, and cutout errors;
 - supported legacy recipes/variants are migrated and reconciled before new-work entry switches;
