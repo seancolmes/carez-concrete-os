@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-03
+Last reconciled: 2026-09-04
 Canonical development / QA line: `staging`
 Production line: `main`
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -118,6 +118,24 @@ Previously implemented behavior still required:
 - Quantity Worksheet LF quantities use decimal LF in the quantity column while architectural formatting remains available in drawing/detail contexts.
 
 The shadcn redesign must not regress these behaviors or the newer Concrete Condition / derived 2D+3D workstation target.
+
+
+## Concrete Condition foundation (Issue #40 — in progress)
+
+This checkpoint begins the accepted Concrete Condition runtime without replacing working Takeoff behavior:
+
+- an additive, versioned Platform Archetype → Company Template → Project Concrete Condition domain is present;
+- module instances, typed input compartments, independent primary/secondary measurement roles, outputs, holds, provenance, and legacy IDs are explicit records;
+- published platform/company versions and verified project versions are immutable;
+- Pad / Column Footing, Strip / Wall Footing, and Slab on Grade are seeded as the first governed pilot families;
+- the deterministic Condition kernel produces EA, LF, SF, CY, LB, and HR outputs, including cutout-adjusted slab area, isolated dependent holds, and traceable explicit overrides;
+- a one-way adapter maps governed Condition results into the existing atomic Takeoff/output/estimate payload;
+- the additive migrations are applied to the isolated QA Supabase project, all 11 new tables have RLS, and Supabase reports no Condition-domain security or uncovered-foreign-key advisories;
+- deterministic pilot fixtures currently pass 7 tests.
+
+The existing assembly/formula/measurement/output/estimate runtime remains active as the compatibility layer. This checkpoint does not switch the Takeoff UI, delete legacy schema, infer structural engineering requirements, or claim full Issue #40 acceptance.
+
+Still open under Issue #40: end-to-end persistence/recalculation wiring, authenticated pilot CRUD and cross-sheet browser QA, representative old/new reconciliation, orphan checks, and the later UI transition coordinated with Issue #39.
 
 ## Known bounded follow-up
 
