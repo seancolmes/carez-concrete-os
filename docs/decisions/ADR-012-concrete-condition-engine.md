@@ -2,7 +2,8 @@
 
 Status: Accepted  
 Date: 2026-09-03  
-Supersedes in part: ADR-001
+Supersedes in part: ADR-001  
+Presentation/shell note: ADR-015 and ADR-016 supersede the earlier light-workstation/permanent-global-left-rail wording in this ADR. The Concrete Condition product/domain decision remains authoritative.
 
 ## Context
 
@@ -108,13 +109,15 @@ Production Quantity, Direct Cost, Sell, installed/theoretical quantity, procurem
 
 The flagship desktop layout uses:
 
-- permanent Carez app rail;
-- resizable context pane with Plans, Conditions, and Zones tabs;
+- ADR-016 compact top application header and animated global category navigation outside the module workspace;
+- resizable contextual pane with Plans, Conditions, and Zones tabs;
 - dominant drawing surface with 2D, 3D, and Split modes;
 - resizable/dockable Condition Properties window;
 - permanent resizable Quantity/Estimate Worksheet.
 
-Condition Properties use concrete-readable tabs and disclosures. Standard work is performed with selections, toggles, dropdowns, typed dimensions, and compact grids. The UI is light, spacious enough to scan comfortably, and information-dense rather than text-dense.
+There is no permanent global desktop left app rail in the accepted target. The left pane inside Takeoff is contextual to the current estimator task.
+
+Condition Properties use concrete-readable tabs and disclosures. Standard work is performed with selections, toggles, dropdowns, typed dimensions, compact grids, and the shared Carez component pack. The UI is governed by ADR-015: dark-first, black/graphite, minimal, dense, high-readability, source-owned through shadcn-compatible React components.
 
 ## Migration decision
 
