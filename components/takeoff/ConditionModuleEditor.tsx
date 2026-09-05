@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
-import {Switch} from '@/components/ui/switch';
+import {LabeledSwitch} from '@/components/ui/labeled-switch';
 import {
   conditionModuleDefinition,
   conditionModuleFieldVisible,
@@ -34,6 +34,7 @@ type Props={
 };
 
 const titleCase=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+const switchId=(...parts:string[])=>`condition-${parts.join('-').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
 
 const PRESETS:Partial<Record<ConditionModuleKey,Array<{label:string;values:Record<string,ConditionScalar>}>>>={
   reinforcing:[
@@ -107,26 +108,31 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
       const values=module.inputValues||{};
       const visible=schema.inputs.filter(field=>conditionModuleFieldVisible(moduleKey,field,values));
       const label=module.label||schema.label;
+      const moduleSwitchId=switchId(moduleKey,module.instanceKey||'default','enabled');
       return <section key={`${moduleKey}:${module.instanceKey||'default'}`} className="overflow-hidden rounded-md border border-border bg-card/35">
-        <header className="flex min-h-10 items-center gap-2 border-b border-border bg-muted/20 px-2.5">
-          <div className="min-w-0 flex-1">
-            <span className="block truncate text-[11px] font-semibold text-foreground">{label}</span>
-            <span className="block text-[9px] text-muted-foreground">{module.enabled?'Included in this Condition':'Excluded from this Condition'}</span>
-          </div>
-          <Switch
+        <header className="flex min-h-10 items-center gap-2 border-b border-border bg-muted/20 px-2.5 py-1.5">
+          <LabeledSwitch
+            id={moduleSwitchId}
             checked={module.enabled}
             disabled={disabled}
             onCheckedChange={checked=>update(index,{enabled:checked})}
-            aria-label={`${label} ${module.enabled?'included':'excluded'}`}
+            label={label}
+            description={module.enabled?'Included in this Condition':'Excluded from this Condition'}
+            className="min-h-0 flex-1 border-0 bg-transparent p-0"
           />
           {schema.repeatable&&module.instanceKey!=='default'?<Button type="button" size="icon-sm" variant="ghost" onClick={()=>remove(index)} disabled={disabled} aria-label={`Remove ${label}`}><Trash2/></Button>:null}
         </header>
         {module.enabled?<div className="grid grid-cols-2 gap-2 p-2.5 max-[1180px]:grid-cols-1">
           {visible.map(field=>field.valueType==='boolean'
-            ?<Field key={`${module.instanceKey}-${field.key}`} orientation="horizontal" className="min-h-8 items-center rounded-md border border-input bg-background px-2">
-              <FieldLabel className="min-w-0 flex-1 text-[10px] text-foreground">{field.label}</FieldLabel>
-              <Switch checked={Boolean(values[field.key])} disabled={disabled} onCheckedChange={checked=>updateValue(index,field.key,checked)} aria-label={field.label}/>
-            </Field>
+            ?<LabeledSwitch
+              key={`${module.instanceKey}-${field.key}`}
+              id={switchId(moduleKey,module.instanceKey||'default',field.key)}
+              checked={Boolean(values[field.key])}
+              disabled={disabled}
+              onCheckedChange={checked=>updateValue(index,field.key,checked)}
+              label={field.label}
+              className="min-h-8"
+            />
             :<Field key={`${module.instanceKey}-${field.key}`} className="min-w-0 gap-1">
               <FieldLabel className="text-[10px] font-semibold text-muted-foreground">{field.label}</FieldLabel>
               {field.valueType==='select'
