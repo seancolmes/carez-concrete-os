@@ -88,12 +88,13 @@ function request(): ConditionCalculationRequest {
 test('Strip Footing v3 uses construction-native longitudinal counts without a faces multiplier', () => {
   const calculation = calculateStripFootingV3(request());
   const output = (key: string) => calculation.outputs.find(item => item.outputKey === key);
-  closeTo(output('reinforcing.installed_lb')?.quantity ?? null, 316.136);
-  closeTo(output('reinforcing.procurement_lb')?.quantity ?? null, 331.9428);
-  closeTo(output('labor.reinforcing_mh')?.quantity ?? null, 6.3227);
+  closeTo(output('reinforcing.installed_lb')?.quantity ?? null, 320.308);
+  closeTo(output('reinforcing.procurement_lb')?.quantity ?? null, 336.3234);
+  closeTo(output('reinforcing.stock_bars_ea')?.quantity ?? null, 13);
+  closeTo(output('labor.reinforcing_mh')?.quantity ?? null, 6.4062);
 });
 
-test('Strip Footing v3 separates installed steel from procurement allowance', () => {
+test('Strip Footing v3 separates installed steel, procurement allowance, and stock-bar logistics', () => {
   const input = request();
   input.modules = input.modules?.map(item => item.moduleKey === 'reinforcing' && item.instanceKey !== 'default'
     ? { ...item, inputValues: { ...item.inputValues, waste_pct: 25 } }
@@ -101,10 +102,12 @@ test('Strip Footing v3 separates installed steel from procurement allowance', ()
   const calculation = calculateStripFootingV3(input);
   const installed = calculation.outputs.find(item => item.outputKey === 'reinforcing.installed_lb');
   const procurement = calculation.outputs.find(item => item.outputKey === 'reinforcing.procurement_lb');
+  const stockBars = calculation.outputs.find(item => item.outputKey === 'reinforcing.stock_bars_ea');
   const labor = calculation.outputs.find(item => item.outputKey === 'labor.reinforcing_mh');
-  closeTo(installed?.quantity ?? null, 316.136);
-  closeTo(procurement?.quantity ?? null, 395.17);
-  closeTo(labor?.quantity ?? null, 6.3227);
+  closeTo(installed?.quantity ?? null, 320.308);
+  closeTo(procurement?.quantity ?? null, 400.385);
+  closeTo(stockBars?.quantity ?? null, 15);
+  closeTo(labor?.quantity ?? null, 6.4062);
 });
 
 test('Strip Footing v3 crew-rate productivity derives crew hours and total man-hours', () => {
