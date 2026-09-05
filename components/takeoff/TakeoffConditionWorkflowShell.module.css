@@ -1,4 +1,17 @@
-.shell{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}.shell>:global([data-context-tab][data-view-mode]){flex:1;min-width:0;min-height:0}.paneToggle{position:absolute;z-index:150;display:grid;width:28px;height:28px;place-items:center;border:1px solid #31404e;border-radius:5px;background:#0d151d;color:#7f91a2;box-shadow:0 4px 14px rgba(0,0,0,.24);cursor:pointer;transition:border-color 140ms ease,background 140ms ease,color 140ms ease,transform 140ms ease}.paneToggle:hover,.paneToggle:focus-visible{border-color:#566b7e;background:#15202b;color:#e6edf4;outline:none}.paneToggle svg{width:14px;height:14px}.navigatorCollapse{top:50%;left:246px;transform:translate(-50%,-50%)}.navigatorCollapse:hover,.navigatorCollapse:focus-visible{transform:translate(-50%,-50%) scale(1.04)}.navigatorExpand{top:50%;left:19px;transform:translate(-50%,-50%)}.navigatorExpand:hover,.navigatorExpand:focus-visible{transform:translate(-50%,-50%) scale(1.04)}.propertiesCollapse{top:50%;right:376px;transform:translateY(-50%)}.propertiesCollapse:hover,.propertiesCollapse:focus-visible{transform:translateY(-50%) scale(1.04)}.propertiesExpand{top:50%;right:5px;transform:translateY(-50%)}.propertiesExpand:hover,.propertiesExpand:focus-visible{transform:translateY(-50%) scale(1.04)}
+.shell{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden;background:var(--background)}
+.shell>:global([data-context-tab][data-view-mode]){flex:1;min-width:0;min-height:0}
+.paneToggle{position:absolute;z-index:150!important;display:grid!important;width:28px!important;height:28px!important;place-items:center!important;padding:0!important;border:1px solid var(--border)!important;border-radius:var(--radius-md)!important;background:color-mix(in oklch,var(--background) 90%,var(--card))!important;color:var(--muted-foreground)!important;box-shadow:0 4px 14px rgb(0 0 0 / .2)!important;cursor:pointer!important;transition:border-color 140ms ease,background-color 140ms ease,color 140ms ease,transform 140ms ease!important}
+.paneToggle:hover,.paneToggle:focus-visible{border-color:color-mix(in oklch,var(--foreground) 30%,var(--border))!important;background:var(--muted)!important;color:var(--foreground)!important;outline:none!important}
+.paneToggle:active{scale:.97}
+.paneToggle svg{width:14px!important;height:14px!important}
+.navigatorCollapse{top:50%;left:246px;transform:translate(-50%,-50%)}
+.navigatorCollapse:hover,.navigatorCollapse:focus-visible{transform:translate(-50%,-50%)}
+.navigatorExpand{top:50%;left:19px;transform:translate(-50%,-50%)}
+.navigatorExpand:hover,.navigatorExpand:focus-visible{transform:translate(-50%,-50%)}
+.propertiesCollapse{top:50%;right:376px;transform:translateY(-50%)}
+.propertiesCollapse:hover,.propertiesCollapse:focus-visible{transform:translateY(-50%)}
+.propertiesExpand{top:50%;right:5px;transform:translateY(-50%)}
+.propertiesExpand:hover,.propertiesExpand:focus-visible{transform:translateY(-50%)}
 
 @media(min-width:1181px){
   .shell>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 390px!important}
@@ -24,8 +37,9 @@
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:calc(50% + 19px)!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 38px!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>aside:last-child>*{display:none!important}
-  .navigatorCollapse{left:206px}.propertiesCollapse{right:336px}
+  .navigatorCollapse{left:206px}
+  .propertiesCollapse{right:336px}
 }
 
-@media(max-width:860px){.paneToggle{display:none}}
-@media(prefers-reduced-motion:reduce){.paneToggle{transition:none}}
+@media(max-width:860px){.paneToggle{display:none!important}}
+@media(prefers-reduced-motion:reduce){.paneToggle{transition:none!important}}

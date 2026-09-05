@@ -22,12 +22,9 @@ type Props = {
 };
 
 type HoverState = { measurement: any; left: number; top: number };
+type HoverStatus = 'ready' | 'warning' | 'hold';
 
-const CONCRETE = /concrete|ready.?mix/;
-const REINFORCING = /rebar|reinforc|mesh/;
-const FORMWORK = /form|shor|brace/;
 const quantity = (value: unknown, digits = 2) => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: digits });
-const textKey = (output: any) => `${output.component_key || ''} ${output.label || ''}`.toLowerCase();
 
 const normalizedPoints = (points: any): NormalizedPoint[] => Array.isArray(points)
   ? points.filter((point: any) => Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y)))
@@ -49,18 +46,6 @@ const pathForGeometry = (geometry: DrawingGeometry, width: number, height: numbe
     ? `M ${points.map(point => `${point.x * width} ${point.y * height}`).join(' L ')} Z`
     : '';
   return [ring(geometry.points), ...(geometry.holes || []).map(ring)].filter(Boolean).join(' ');
-};
-
-const categoryValue = (outputs: any[], match: RegExp) => {
-  const relevant = outputs.filter(output => match.test(textKey(output)) && (output.is_active !== false || output.pricing_status === 'missing_input'));
-  if (!relevant.length) return '—';
-  if (relevant.some(output => output.pricing_status === 'missing_input')) return 'HOLD';
-  const totals = new Map<string, number>();
-  for (const output of relevant.filter(output => output.is_active !== false)) {
-    const unit = String(output.production_unit || '').toUpperCase() || 'EA';
-    totals.set(unit, (totals.get(unit) || 0) + Number(output.production_quantity || 0));
-  }
-  return [...totals].map(([unit, value]) => `${quantity(value)} ${unit}`).join(' + ') || '—';
 };
 
 const missingLabels = (outputs: any[]) => [...new Set(outputs.flatMap(output => {
@@ -118,12 +103,12 @@ export function TakeoffMeasurementHoverOverlay({
     const viewport = viewportRef.current;
     if (!viewport) return;
     const rect = viewport.getBoundingClientRect();
-    const cardWidth = 292;
-    const cardHeight = 184;
-    let left = event.clientX + 14;
-    let top = event.clientY + 14;
-    if (left + cardWidth > rect.right - 8) left = event.clientX - cardWidth - 14;
-    if (top + cardHeight > rect.bottom - 8) top = event.clientY - cardHeight - 14;
+    const cardWidth = 232;
+    const cardHeight = 92;
+    let left = event.clientX + 12;
+    let top = event.clientY + 12;
+    if (left + cardWidth > rect.right - 8) left = event.clientX - cardWidth - 12;
+    if (top + cardHeight > rect.bottom - 8) top = event.clientY - cardHeight - 12;
     left = Math.max(rect.left + 8, Math.min(left, rect.right - cardWidth - 8));
     top = Math.max(rect.top + 8, Math.min(top, rect.bottom - cardHeight - 8));
     setHover({ measurement, left, top });
@@ -134,8 +119,12 @@ export function TakeoffMeasurementHoverOverlay({
   const hoveredAssembly: any = hoveredVersion ? assemblyMap.get(hoveredVersion.assembly_id) : null;
   const holds = hover ? missingLabels(hoveredOutputs) : [];
   const priceHold = hoveredOutputs.some(output => ['missing_price', 'missing_labor_rate'].includes(output.pricing_status));
-  const status = holds.length ? `Input hold · ${holds.join(', ')}` : priceHold ? 'Price missing' : 'Ready';
+  const statusKind: HoverStatus = holds.length ? 'hold' : priceHold ? 'warning' : 'ready';
+  const status = holds.length
+    ? holds.length === 1 ? `Needs ${holds[0]}` : `${holds.length} inputs required`
+    : priceHold ? 'Price missing' : 'Ready';
   const dimensions = hover ? dimensionSummary(hover.measurement) : null;
+  const context = [hoveredAssembly?.name || null, dimensions].filter(Boolean).join(' · ') || 'Takeoff measurement';
 
   return <>
     <g pointerEvents={tool === 'select' && !panning && !spaceHeld ? 'all' : 'none'}>
@@ -144,16 +133,17 @@ export function TakeoffMeasurementHoverOverlay({
         if (!geometry) return null;
         const pointerHandlers = {
           onPointerEnter: (event: React.PointerEvent<SVGGElement>) => show(event, measurement),
-          onPointerMove: (event: React.PointerEvent<SVGGElement>) => show(event, measurement),
           onPointerLeave: () => setHover(current => current?.measurement.id === measurement.id ? null : current),
           onClick: (event: React.MouseEvent<SVGGElement>) => {
             if (tool !== 'select') return;
             event.stopPropagation();
+            setHover(null);
             onSelectMeasurement(measurement);
           },
           onDoubleClick: (event: React.MouseEvent<SVGGElement>) => {
             if (tool !== 'select') return;
             event.stopPropagation();
+            setHover(null);
             onEditMeasurement(measurement);
           },
         };
@@ -163,7 +153,7 @@ export function TakeoffMeasurementHoverOverlay({
             fill="transparent"
             fillRule="evenodd"
             stroke="transparent"
-            strokeWidth="14"
+            strokeWidth="12"
             vectorEffect="non-scaling-stroke"
             pointerEvents="all"
           />}
@@ -171,7 +161,7 @@ export function TakeoffMeasurementHoverOverlay({
             points={geometry.points.map(point => `${point.x * pageWidth},${point.y * pageHeight}`).join(' ')}
             fill="none"
             stroke="transparent"
-            strokeWidth="14"
+            strokeWidth="12"
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
@@ -181,7 +171,7 @@ export function TakeoffMeasurementHoverOverlay({
             key={index}
             cx={point.x * pageWidth}
             cy={point.y * pageHeight}
-            r="14"
+            r="12"
             fill="transparent"
             pointerEvents="all"
           />)}
@@ -195,17 +185,16 @@ export function TakeoffMeasurementHoverOverlay({
       role="tooltip"
       aria-label={`${hover.measurement.name} takeoff details`}
     >
-      <div className={styles.head}>
-        <div><strong>{hover.measurement.name}</strong><span>{hoveredAssembly ? `${hoveredAssembly.code} · ${hoveredAssembly.name}` : 'Takeoff measurement'}</span></div>
+      <div className={styles.topline}>
+        <strong>{hover.measurement.name}</strong>
         <b>{formatTakeoffMeasurement(hover.measurement.raw_quantity, hover.measurement.raw_unit)}</b>
       </div>
-      {dimensions && <div className={styles.dimensions}>{dimensions}</div>}
-      <div className={styles.outputs}>
-        <span><small>Concrete</small><b>{categoryValue(hoveredOutputs, CONCRETE)}</b></span>
-        <span><small>Reinforcing</small><b>{categoryValue(hoveredOutputs, REINFORCING)}</b></span>
-        <span><small>Formwork</small><b>{categoryValue(hoveredOutputs, FORMWORK)}</b></span>
+      <div className={styles.context}>{context}</div>
+      <div className={`${styles.status} ${statusKind === 'ready' ? styles.statusReady : statusKind === 'warning' ? styles.statusWarning : styles.statusHold}`}>
+        <span aria-hidden="true" />
+        <strong>{status}</strong>
+        <small>Click for details</small>
       </div>
-      <div className={`${styles.status} ${holds.length || priceHold ? styles.statusHold : styles.statusReady}`}>{status}</div>
     </div>, document.body)}
   </>;
 }

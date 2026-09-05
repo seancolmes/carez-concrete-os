@@ -1,0 +1,128 @@
+.theme{
+  --takeoff-pane:color-mix(in oklch,var(--card) 56%,var(--background));
+  --takeoff-raised:color-mix(in oklch,var(--card) 72%,var(--background));
+  --takeoff-hover:color-mix(in oklch,var(--muted) 72%,transparent);
+  --takeoff-selected:color-mix(in oklch,var(--accent) 78%,transparent);
+  --takeoff-grid:color-mix(in oklch,var(--border) 55%,transparent);
+}
+
+/* Shared application surfaces */
+.theme :global([data-context-tab][data-view-mode]),
+.theme :global([class*="workstation"]),
+.theme :global([class*="workspace"]),
+.theme :global([class*="center"]){background:var(--background)!important;color:var(--foreground)!important;border-color:var(--border)!important}
+.theme :global([class*="sidebar"]),
+.theme :global([class*="inspector"]){background:var(--takeoff-pane)!important;color:var(--foreground)!important;border-color:var(--border)!important;scrollbar-color:color-mix(in oklch,var(--muted-foreground) 42%,transparent) transparent!important}
+.theme :global([class*="panelHeader"]){background:var(--takeoff-raised)!important;border-color:var(--border)!important}
+.theme :global([class*="panelTitle"]){color:var(--foreground)!important}
+.theme :global([class*="panelMeta"]){color:var(--muted-foreground)!important}
+
+/* Plans navigator — quiet ReUI/Joly-style selected rows instead of blue blocks. */
+.theme :global([class*="sheetList"]){background:transparent!important}
+.theme :global([class*="sheetButton"]){border-color:transparent!important;border-radius:var(--radius-sm)!important;background:transparent!important;color:var(--muted-foreground)!important;transition:background-color 140ms ease,color 140ms ease,border-color 140ms ease!important}
+.theme :global([class*="sheetButton"]:hover){background:var(--takeoff-hover)!important;color:var(--foreground)!important}
+.theme :global([class*="sheetButtonActive"]){background:var(--takeoff-selected)!important;border-color:color-mix(in oklch,var(--border) 72%,transparent)!important;color:var(--foreground)!important;box-shadow:inset 2px 0 var(--foreground)!important}
+.theme :global([class*="pageBadge"]){border-color:var(--border)!important;border-radius:var(--radius-sm)!important;background:color-mix(in oklch,var(--muted) 48%,transparent)!important;color:var(--muted-foreground)!important}
+.theme :global([class*="sheetButtonActive"] [class*="pageBadge"]){border-color:color-mix(in oklch,var(--foreground) 22%,var(--border))!important;background:var(--muted)!important;color:var(--foreground)!important}
+.theme :global([class*="sheetName"]){color:inherit!important}
+
+/* Drawing toolbar — source-owned shadcn token language. */
+.theme :global([class*="toolbar"]){background:color-mix(in oklch,var(--background) 94%,var(--card))!important;border-color:var(--border)!important}
+.theme :global([class*="toolGroup"]){border-color:var(--border)!important}
+.theme :global([class*="toolButton"]),
+.theme :global([class*="iconTool"]),
+.theme :global([class*="iconButton"]),
+.theme :global([class*="zoomLabel"]){border-color:transparent!important;border-radius:var(--radius-md)!important;background:transparent!important;color:var(--muted-foreground)!important;box-shadow:none!important;transition:background-color 140ms ease,color 140ms ease,border-color 140ms ease,transform 100ms ease!important}
+.theme :global([class*="toolButton"]:hover),
+.theme :global([class*="iconTool"]:hover),
+.theme :global([class*="iconButton"]:hover),
+.theme :global([class*="zoomLabel"]:hover){border-color:var(--border)!important;background:var(--muted)!important;color:var(--foreground)!important}
+.theme :global([class*="toolButton"]:active),
+.theme :global([class*="iconTool"]:active),
+.theme :global([class*="iconButton"]:active){transform:translateY(1px)!important}
+.theme :global([class*="toolButtonActive"]){border-color:color-mix(in oklch,var(--foreground) 30%,var(--border))!important;background:var(--accent)!important;color:var(--foreground)!important;box-shadow:inset 0 -2px var(--foreground)!important}
+.theme :global([class*="toggleActive"]){border-color:var(--border)!important;background:var(--muted)!important;color:var(--foreground)!important;box-shadow:none!important}
+.theme :global([class*="measureButton"]){color:var(--muted-foreground)!important}
+.theme :global([class*="finishButton"]){border-color:var(--primary)!important;background:var(--primary)!important;color:var(--primary-foreground)!important;box-shadow:none!important}
+.theme :global([class*="finishButton"]:hover){background:color-mix(in oklch,var(--primary) 88%,black)!important;color:var(--primary-foreground)!important}
+.theme :global([class*="currentAssembly"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;color:var(--muted-foreground)!important}
+.theme :global([class*="currentAssembly"] span),.theme :global([class*="currentAssembly"] strong){color:var(--foreground)!important}
+
+/* Drawing surface keeps geometry color authoritative; only chrome changes. */
+.theme :global([class*="canvasViewport"]){background-color:color-mix(in oklch,var(--background) 82%,var(--muted))!important;background-image:linear-gradient(var(--takeoff-grid) 1px,transparent 1px),linear-gradient(90deg,var(--takeoff-grid) 1px,transparent 1px)!important;scrollbar-color:color-mix(in oklch,var(--muted-foreground) 45%,transparent) transparent!important}
+.theme :global([class*="paper"]){border-color:color-mix(in oklch,var(--foreground) 20%,var(--border))!important;box-shadow:0 10px 28px rgb(0 0 0 / .32)!important}
+.theme :global([class*="statusbar"]){background:var(--background)!important;border-color:var(--border)!important;color:var(--muted-foreground)!important}
+.theme :global([class*="statusbar"] strong){color:var(--foreground)!important}
+.theme :global([class*="statusOk"]){color:var(--success)!important}
+.theme :global([class*="statusHold"]){color:var(--warning)!important}
+.theme :global([class*="statusHint"]),.theme :global([class*="statusMessage"]){color:var(--muted-foreground)!important}
+.theme :global([class*="liveReadout"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:color-mix(in oklch,var(--popover) 96%,transparent)!important;color:var(--popover-foreground)!important;box-shadow:0 8px 24px rgb(0 0 0 / .28)!important}
+
+/* Contextual Plans / Conditions / Zones navigation — Joly Vercel-tabs inspired. */
+.theme :global([class*="contextPortal"]),
+.theme :global([class*="contextTabs"]){background:var(--background)!important;border-color:var(--border)!important}
+.theme :global([class*="contextTab"]),
+.theme :global([class*="contextTabActive"]){position:relative!important;border:0!important;border-bottom:2px solid transparent!important;background:transparent!important;color:var(--muted-foreground)!important;transition:color 150ms ease,background-color 150ms ease,border-color 150ms ease!important}
+.theme :global([class*="contextTab"]:hover){background:color-mix(in oklch,var(--muted) 45%,transparent)!important;color:var(--foreground)!important}
+.theme :global([class*="contextTabActive"]){border-bottom-color:var(--foreground)!important;color:var(--foreground)!important;background:transparent!important}
+.theme :global([class*="contextTools"] label){border-color:var(--input)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;color:var(--muted-foreground)!important}
+.theme :global([class*="contextTools"] input){color:var(--foreground)!important}
+.theme :global([class*="paneLabel"]){color:var(--muted-foreground)!important}
+.theme :global([class*="zoneList"]>div){border-radius:var(--radius-sm)!important;color:var(--foreground)!important}
+.theme :global([class*="zoneList"]>div:hover){background:var(--muted)!important}
+.theme :global([class*="zoneList"] b){background:var(--muted)!important;color:var(--muted-foreground)!important}
+
+/* Condition Properties — semantic shadcn surfaces, restrained borders, no navy SaaS chrome. */
+.theme :global([class*="propertiesPane"]){background:var(--background)!important;border-color:var(--border)!important}
+.theme :global([class*="propertiesHeader"]),
+.theme :global([class*="propertiesFooter"]){background:color-mix(in oklch,var(--background) 92%,var(--card))!important;border-color:var(--border)!important}
+.theme :global([class*="propertiesHeader"] span),
+.theme :global([class*="propertiesHeader"] small),
+.theme :global([class*="propertiesFooter"]>span){color:var(--muted-foreground)!important}
+.theme :global([class*="propertiesHeader"] strong){color:var(--foreground)!important}
+.theme :global([class*="viewModeSwitch"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:var(--muted)!important}
+.theme :global([class*="viewModeSwitch"] button){border-radius:var(--radius-sm)!important;color:var(--muted-foreground)!important;transition:background-color 140ms ease,color 140ms ease!important}
+.theme :global([class*="viewModeSwitch"] button:hover){background:var(--accent)!important;color:var(--foreground)!important}
+.theme :global([class*="viewModeActive"]){background:var(--foreground)!important;color:var(--background)!important}
+.theme :global([class*="conditionSummary"]){border-color:var(--border)!important;background:var(--background)!important}
+.theme :global([class*="conditionSummary"] strong){color:var(--foreground)!important}
+.theme :global([class*="conditionSummary"] small){color:var(--muted-foreground)!important}
+.theme :global([class*="metrics"] span){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:transparent!important;color:var(--muted-foreground)!important;text-transform:none!important}
+.theme :global([class*="metrics"] b){color:var(--foreground)!important}
+.theme :global([class*="metricWarn"]){border-color:color-mix(in oklch,var(--warning) 35%,var(--border))!important;background:color-mix(in oklch,var(--warning) 8%,transparent)!important;color:var(--warning)!important}
+.theme :global([class*="tabsWrap"]){border-color:var(--border)!important;background:var(--background)!important}
+.theme :global([class*="tabsList"]){background:transparent!important}
+.theme :global([class*="tabsList"] button){color:var(--muted-foreground)!important}
+.theme :global([class*="tabsList"] button:hover),.theme :global([class*="tabsList"] button[data-active]){color:var(--foreground)!important}
+.theme :global([class*="propertiesScroll"]){scrollbar-color:color-mix(in oklch,var(--muted-foreground) 42%,transparent) transparent!important}
+.theme :global([class*="propertySection"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:transparent!important;box-shadow:none!important}
+.theme :global([class*="sectionHead"]){border-color:var(--border)!important;background:color-mix(in oklch,var(--muted) 34%,transparent)!important;color:var(--foreground)!important}
+.theme :global([class*="sectionHead"] svg){color:var(--muted-foreground)!important}
+.theme :global([class*="sectionHead"] small){color:var(--muted-foreground)!important}
+.theme :global([class*="roleRow"]>div small),.theme :global([class*="outputMeta"]),.theme :global([class*="compactEmpty"]),.theme :global([class*="gridEmpty"]){color:var(--muted-foreground)!important}
+.theme :global([class*="roleRow"] select),.theme :global([class*="field"] select),.theme :global([class*="field"] input),.theme :global([class*="checkLine"]){border-color:var(--input)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;color:var(--foreground)!important;box-shadow:none!important}
+.theme :global([class*="roleRow"] select:focus),.theme :global([class*="field"] select:focus),.theme :global([class*="field"] input:focus){border-color:var(--ring)!important;box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 15%,transparent)!important}
+.theme :global([class*="field"]>span){color:var(--muted-foreground)!important}
+.theme :global([class*="moduleToggles"] label){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;color:var(--foreground)!important}
+.theme :global([class*="moduleToggles"] input),.theme :global([class*="checkLine"] input){accent-color:var(--foreground)!important}
+.theme :global([class*="moduleReady"]){color:var(--success)!important}
+.theme :global([class*="holdSection"]){border-color:color-mix(in oklch,var(--warning) 34%,var(--border))!important;border-radius:var(--radius-md)!important;background:color-mix(in oklch,var(--warning) 6%,transparent)!important}
+.theme :global([class*="holdSection"] [class*="sectionHead"]){border-color:color-mix(in oklch,var(--warning) 28%,var(--border))!important;background:color-mix(in oklch,var(--warning) 8%,transparent)!important}
+.theme :global([class*="holdSection"] svg),.theme :global([class*="holdSection"] strong){color:var(--warning)!important}
+.theme :global([class*="holdSection"] small){color:var(--muted-foreground)!important}
+.theme :global([class*="familyButton"]),.theme :global([class*="familyActive"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;color:var(--foreground)!important;transition:background-color 140ms ease,border-color 140ms ease!important}
+.theme :global([class*="familyButton"]:hover){background:var(--muted)!important;border-color:color-mix(in oklch,var(--foreground) 20%,var(--border))!important}
+.theme :global([class*="familyActive"]){background:var(--accent)!important;border-color:color-mix(in oklch,var(--foreground) 28%,var(--border))!important}
+.theme :global([class*="familyButton"] b),.theme :global([class*="familyActive"] b){background:var(--muted)!important;color:var(--foreground)!important}
+
+/* Legacy inspector styles remain out of the integrated Condition path, but if surfaced during a guarded fallback they still inherit the semantic theme. */
+.theme :global([class*="group"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:transparent!important}
+.theme :global([class*="groupTitle"]){color:var(--foreground)!important;text-transform:none!important;letter-spacing:0!important}
+.theme :global([class*="groupHelp"]){color:var(--muted-foreground)!important}
+.theme :global([class*="objectButton"]),.theme :global([class*="assemblyCard"]){border-color:var(--border)!important;border-radius:var(--radius-md)!important;background:transparent!important;color:var(--muted-foreground)!important}
+.theme :global([class*="objectButton"]:hover),.theme :global([class*="assemblyCard"]:hover){background:var(--muted)!important;color:var(--foreground)!important}
+.theme :global([class*="objectSelected"]),.theme :global([class*="assemblyCardActive"]){background:var(--accent)!important;border-color:color-mix(in oklch,var(--foreground) 24%,var(--border))!important;color:var(--foreground)!important;box-shadow:inset 2px 0 var(--foreground)!important}
+
+@media(prefers-reduced-motion:reduce){
+  .theme :global([class*="toolButton"]),.theme :global([class*="iconTool"]),.theme :global([class*="iconButton"]),.theme :global([class*="contextTab"]),.theme :global([class*="contextTabActive"]),.theme :global([class*="sheetButton"]){transition:none!important}
+}

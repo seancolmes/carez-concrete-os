@@ -2,8 +2,10 @@
 
 import {useEffect,useState} from 'react';
 import {PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen} from 'lucide-react';
+import {Button} from '@/components/ui/button';
 import {IntegratedTakeoffConditionWorkspace} from './IntegratedTakeoffConditionWorkspace';
 import styles from './TakeoffConditionWorkflowShell.module.css';
+import themeStyles from './TakeoffShadcnTheme.module.css';
 
 type Props={
   setId:string;
@@ -24,10 +26,12 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
     return()=>window.removeEventListener('carez:open-conditions',openConditions);
   },[]);
 
-  return <div className={styles.shell} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
+  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData}/>
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon-sm"
       className={`${styles.paneToggle} ${navigatorCollapsed?styles.navigatorExpand:styles.navigatorCollapse}`}
       aria-label={navigatorCollapsed?'Expand Takeoff navigator':'Collapse Takeoff navigator'}
       aria-expanded={!navigatorCollapsed}
@@ -35,9 +39,11 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
       onClick={()=>setNavigatorCollapsed(value=>!value)}
     >
       {navigatorCollapsed?<PanelLeftOpen aria-hidden="true"/>:<PanelLeftClose aria-hidden="true"/>}
-    </button>
-    <button
+    </Button>
+    <Button
       type="button"
+      variant="outline"
+      size="icon-sm"
       className={`${styles.paneToggle} ${propertiesCollapsed?styles.propertiesExpand:styles.propertiesCollapse}`}
       aria-label={propertiesCollapsed?'Expand Condition Properties':'Collapse Condition Properties'}
       aria-expanded={!propertiesCollapsed}
@@ -45,6 +51,6 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
       onClick={()=>setPropertiesCollapsed(value=>!value)}
     >
       {propertiesCollapsed?<PanelRightOpen aria-hidden="true"/>:<PanelRightClose aria-hidden="true"/>}
-    </button>
+    </Button>
   </div>;
 }
