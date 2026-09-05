@@ -11,7 +11,8 @@ export type ConditionAuthoringMeasurement = {
   id: string;
   sheet_id: string | null;
   assembly_version_id: string;
-  measurement_type: string;
+  measurement_type?: string;
+  geometry?: { type?: string } | null;
   raw_quantity: number | string;
   raw_unit: string;
 };
@@ -29,6 +30,14 @@ export function conditionCodeFromName(name: string) {
     .slice(0, 36);
 }
 
+function normalizedMeasurementType(measurement: ConditionAuthoringMeasurement) {
+  if (measurement.measurement_type) return measurement.measurement_type;
+  if (measurement.geometry?.type === 'polyline') return 'linear';
+  if (measurement.geometry?.type === 'polygon') return 'area';
+  if (measurement.geometry?.type === 'count') return 'count';
+  return '';
+}
+
 export function conditionMeasurementMatchesRole(
   measurement: ConditionAuthoringMeasurement,
   role: ConditionRoleDefinition,
@@ -40,7 +49,7 @@ export function conditionMeasurementMatchesRole(
       ? 'linear'
       : 'area';
   if (!measurement.sheet_id
-      || measurement.measurement_type !== expectedType
+      || normalizedMeasurementType(measurement) !== expectedType
       || String(measurement.raw_unit).toUpperCase() !== role.unit) return false;
   if (role.primary && compatibilityAssemblyVersionId) {
     return measurement.assembly_version_id === compatibilityAssemblyVersionId;
