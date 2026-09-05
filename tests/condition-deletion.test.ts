@@ -41,5 +41,8 @@ test('Condition-first UI exposes guarded draft deletion with explicit linked-tak
   assert.match(shell, /ConditionDeletionManager/);
   assert.match(manager, /Delete Condition \+ takeoffs/);
   assert.match(manager, /Takeoffs shared with another Condition are preserved/);
-  assert.match(manager, /row\.version_status !== 'draft'/);
+  assert.match(manager, /row\.version_status === 'draft'/);
+  assert.match(manager, /Delete draft Condition\?/);
+  assert.match(manager, /<select/);
+  assert.doesNotMatch(manager, /DropdownMenu/);
 });
