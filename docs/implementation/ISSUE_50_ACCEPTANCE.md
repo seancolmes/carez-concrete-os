@@ -10,6 +10,6 @@ Accepted by Nik on authenticated stable `staging` browser QA on 2026-09-04 local
 - Remaining Condition-first cutover checks passed.
 - The separate Assemblies destination under Estimating remains only as preserved compatibility/history and does not restore active legacy Takeoff authoring.
 
-Issue #50 is closed as completed based on this authenticated browser acceptance.
+This acceptance satisfies the browser-verification gate for Issue #50. The issue is closed as completed.
 
 This closes Issue #50's active-UI retirement scope. It does not authorize destructive deletion of historical assembly/formula/method/measurement/output/estimate lineage.
