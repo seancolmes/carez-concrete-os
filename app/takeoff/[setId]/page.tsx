@@ -7,6 +7,7 @@ import { CONDITION_ARCHETYPE_KEYS } from '@/lib/takeoff/conditions/types';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
 import pageStyles from './TakeoffDrawingPage.module.css';
+import { resolveDerived3DSnapshot } from '@/lib/takeoff/conditions/derived3d/resolve.server';
 
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
@@ -56,7 +57,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('takeoff_sheets').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('page_number'),
     supabase.from('takeoff_scale_regions').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('is_default', { ascending: false }).order('created_at'),
-    supabase.from('takeoff_measurements').select('id,sheet_id,scale_region_id,method_profile_id,estimate_section_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,geometry_anchor,geometry_offset_in,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
+    supabase.from('takeoff_measurements').select('id,sheet_id,scale_region_id,method_profile_id,estimate_section_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,geometry_anchor,geometry_offset_in,updated_at,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
     supabase.from('concrete_assemblies').select('id,code,name,category,primary_measurement,description,display_style').eq('company_id', companyId).eq('active', true).eq('direct_takeoff_enabled', true).order('category').order('name'),
     supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,default_risk_class_code,source_label,source_reference,render_config').eq('company_id', companyId).eq('status', 'published').order('version_no', { ascending: false }),
     supabase.from('concrete_assembly_variables').select('id,assembly_version_id,variable_key,label,value_type,unit,default_value,options,min_value,max_value,required,help_text,sort_order,activation_rule,input_role,requires_verification,expose_in_takeoff').eq('company_id', companyId).order('sort_order'),
@@ -167,11 +168,11 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       { data: conditionReconciliation },
     ] = await Promise.all([
       supabase.from('project_concrete_condition_versions')
-        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,updated_at')
+        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at')
         .eq('company_id', companyId)
         .in('id', conditionVersionIds),
       supabase.from('company_condition_template_versions')
-        .select('id,archetype_version_id,legacy_assembly_version_id')
+        .select('id,archetype_version_id,legacy_assembly_version_id,input_defaults,input_provenance')
         .eq('company_id', companyId)
         .in('id', conditionTemplateVersionIds),
       supabase.from('project_condition_module_instances')
@@ -224,6 +225,8 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     };
   }
 
+  conditionData.derived3DSnapshot = resolveDerived3DSnapshot(companyId, setId, conditionData, measurements || [], sheets || [], scaleRegions || []);
+
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
       <header className={pageStyles.identityStrip}>
@@ -248,3 +251,4 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     </div>
   </AppShell>;
 }
+

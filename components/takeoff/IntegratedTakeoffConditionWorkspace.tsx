@@ -40,6 +40,8 @@ import {
   buildDerived3DScene,
   type Derived3DIssue,
   type Derived3DSolid,
+  type BuildDerived3DSceneInput,
+  type Derived3DGeometryCache,
 } from '@/lib/takeoff/conditions/derived3d';
 import {
   buildConditionIssues,
@@ -60,7 +62,8 @@ import type {
 } from '@/lib/takeoff/conditions/types';
 import {ConditionModuleEditor} from './ConditionModuleEditor';
 import {ConditionRolePicker} from './ConditionRolePicker';
-import {TakeoffDerived3DView} from './TakeoffDerived3DView';
+import {TakeoffDerived3DView, TakeoffDerived3DBoundary, type Derived3DViewState, type Derived3DViewMemory} from './TakeoffDerived3DView';
+import {resolvedPhysicalInputs} from '@/lib/takeoff/conditions/derived3d/sources';
 import {TakeoffDrawingWorkspace} from './TakeoffDrawingWorkspace';
 import direction from './ConditionPropertiesDirectionA.module.css';
 import styles from './IntegratedTakeoffConditionWorkspace.module.css';
@@ -84,9 +87,10 @@ type ConditionOutputRow={
 };
 type ConditionHoldRow={id:string;condition_version_id:string;output_id:string|null;hold_code:string;status:string;message:string};
 type ConditionData={
+  derived3DSnapshot?:BuildDerived3DSceneInput;
   conditions:ConditionSummary[];
   versions:ConditionVersion[];
-  templateVersions:Array<{id:string;archetype_version_id:string;legacy_assembly_version_id:string|null}>;
+  templateVersions:Array<{id:string;archetype_version_id:string;legacy_assembly_version_id:string|null;input_defaults?:any;input_provenance?:any}>;
   archetypeVersions:Array<{id:string;version_no:number;archetype_code_snapshot:string;status:string;engine_key:string}>;
   modules:ConditionModule[];
   roles:Array<{condition_version_id:string;measurement_id:string;role_key:string;role_instance_key:string;sort_order:number}>;
@@ -98,7 +102,7 @@ type Props={setId:string;workspaceProps:any;conditionData:ConditionData};
 type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
-type PendingSwitch={versionId:string;focusPlan:boolean};
+type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode};
 
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
   concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',
@@ -165,6 +169,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [pendingSwitch,setPendingSwitch]=useState<PendingSwitch|null>(null);
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
+  const [derivedViewState,setDerivedViewState]=useState<Derived3DViewState>({hidden:[],isolated:null,zone:'all',elevation:'all'});
+  const derivedMemory=useRef<Derived3DViewMemory>(new Map());
+  const derivedCache=useRef<Derived3DGeometryCache>(new Map());
   const [outputsOpen,setOutputsOpen]=useState(false);
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
@@ -198,7 +205,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const stripV3=stripContractVersion>=3;
   const templateVersion=selectedVersion?conditionData.templateVersions.find(row=>row.id===selectedVersion.template_version_id)||null:null;
   const compatibilityAssemblyVersionId=templateVersion?.legacy_assembly_version_id||null;
-  const selectedModules=selectedVersionId?conditionData.modules.filter(row=>row.condition_version_id===selectedVersionId).sort((a,b)=>a.sort_order-b.sort_order):[];
+  const selectedModules=useMemo(()=>selectedVersionId?conditionData.modules.filter(row=>row.condition_version_id===selectedVersionId).sort((a,b)=>a.sort_order-b.sort_order):[],[conditionData.modules,selectedVersionId]);
   const definition=selectedSummary?(stripV3?STRIP_FOOTING_V3_DEFINITION:stripModern?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(selectedSummary.archetype_code)):null;
   const selectedOutputs=selectedVersionId?conditionData.outputs.filter(row=>row.condition_version_id===selectedVersionId):[];
   const selectedHolds=selectedVersionId?conditionData.holds.filter(row=>row.condition_version_id===selectedVersionId&&row.status==='open'):[];
@@ -273,18 +280,29 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     return()=>window.removeEventListener('carez:condition-worksheet-request',send);
   },[conditionWorksheetAuthorities]);
 
-  const derived3DScene=useMemo(()=>buildDerived3DScene({
-    conditions:conditions.flatMap(summary=>{
-      const version=conditionData.versions.find(row=>row.id===summary.condition_version_id);if(!version)return[];
-      const persisted=draftFromVersion(version);const isSelected=summary.condition_version_id===selectedVersionId;
-      const planFacts={...(persisted.planFacts||{}),...(isSelected?(draft.planFacts||{}):{})};const drawingInputs={...(persisted.drawing||{}),...(isSelected?(draft.drawing||{}):{})};
-      const roleMap=new Map<string,string>(conditionData.roles.filter(row=>row.condition_version_id===summary.condition_version_id).map(row=>[row.role_key,row.measurement_id]));
-      if(isSelected)for(const [roleKey,measurementId] of Object.entries(roleSelections)){if(measurementId)roleMap.set(roleKey,measurementId);else roleMap.delete(roleKey);}
-      return[{conditionId:summary.condition_id,conditionVersionId:summary.condition_version_id,code:summary.code,name:summary.name,archetypeKey:summary.archetype_code,color:conditionColor(summary.archetype_code),planFacts,drawingInputs,roles:[...roleMap].map(([roleKey,measurementId])=>({roleKey,measurementId}))}];
-    }),
-    measurements:measurements.map((measurement:any)=>{const region=scaleRegionMap.get(measurement.scale_region_id);const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,sheet_id:measurement.sheet_id,name:measurement.name,location:measurement.location,raw_quantity:measurement.raw_quantity,raw_unit:measurement.raw_unit,geometry:measurement.geometry,calibration:region?.calibration||sheet?.calibration||null};}),
-    sheets:sheets.map((sheet:any)=>({id:sheet.id,page_width:sheet.page_width,page_height:sheet.page_height,calibration:sheet.calibration})),
-  }),[conditions,conditionData.versions,conditionData.roles,measurements,sheets,scaleRegionMap,selectedVersionId,draft,roleSelections]);
+  const derived3DScene=useMemo(()=>{
+    const saved=conditionData.derived3DSnapshot;
+    if(!saved)return buildDerived3DScene({scopeKey:setId,conditions:[],measurements:[],sheets:[]});
+    if(!dirty||!selectedVersion)return buildDerived3DScene(saved,derivedCache.current);
+    const {inputs,provenance}=prepareConditionAuthoringInputs(draft);
+    const effective=resolvedPhysicalInputs({companyDefaults:templateVersion?.input_defaults,companyProvenance:templateVersion?.input_provenance,projectValues:inputs,projectProvenance:provenance});
+    const concrete=currentModulesForSignature.find(module=>module.moduleKey==='concrete'&&(module.instanceKey||'default')==='default');
+    const preview={...saved,state:'preview' as const,conditions:saved.conditions.map(source=>{
+      if(source.conditionVersionId!==selectedVersion.id)return source;
+      return{...source,...effective,concreteProfile:concrete?{enabled:Boolean(concrete.enabled),profile:concrete.inputValues?.profile,topWidthFt:concrete.inputValues?.top_width_ft}:source.concreteProfile,roles:Object.entries(roleSelections).filter(([,id])=>id).map(([roleKey,measurementId])=>({roleKey,measurementId,roleInstanceKey:source.roles.find(role=>role.roleKey===roleKey)?.roleInstanceKey||`${roleKey}-1`}))};
+    })};
+    return buildDerived3DScene(preview,derivedCache.current);
+  },[conditionData.derived3DSnapshot,setId,dirty,selectedVersion,draft,templateVersion,currentModulesForSignature,roleSelections]);
+  const drawingPresentation=useMemo(()=>{
+    const hidden=new Set<string>();const colors:Record<string,string>={};
+    for(const source of conditionData.derived3DSnapshot?.conditions||[])for(const role of source.roles){
+      const measurement=measurements.find((m:any)=>m.id===role.measurementId);
+      colors[role.measurementId]=source.color;
+      const shapes=derived3DScene.solids.filter(solid=>solid.measurementId===role.measurementId);
+      if(derivedViewState.hidden.includes(source.conditionVersionId)||(derivedViewState.isolated&&derivedViewState.isolated!==source.conditionVersionId)||(derivedViewState.zone!=='all'&&String(measurement?.location||'').trim()!==derivedViewState.zone)||(derivedViewState.elevation!=='all'&&shapes.length>0&&!shapes.some(solid=>String(solid.shape.top)===derivedViewState.elevation)))hidden.add(role.measurementId);
+    }
+    return{hiddenMeasurementIds:[...hidden],colors};
+  },[conditionData.derived3DSnapshot,measurements,derived3DScene,derivedViewState]);
 
   const treeNodes=useMemo<CarezConditionTreeNode[]>(()=>{
     const query=conditionQuery.trim().toLowerCase();
@@ -294,31 +312,42 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       const rowHolds=conditionData.holds.filter(hold=>hold.condition_version_id===row.condition_version_id&&hold.status==='open');
       const issueCount=buildConditionIssues(rowHolds,rowOutputs).length;
       const isDirty=row.condition_version_id===selectedVersionId&&dirty;
-      return{id:row.condition_version_id,label:row.name,status:isDirty?'Unsaved':issueCount?`${issueCount} issue${issueCount===1?'':'s'}`:rowOutputs.length?'Ready':'Not calculated',color:conditionColor(row.archetype_code)};
+      return{id:row.condition_version_id,label:row.name,status:isDirty?'Unsaved':issueCount?`${issueCount} issue${issueCount===1?'':'s'}`:rowOutputs.length?'Ready':'Not calculated',color:conditionData.derived3DSnapshot?.conditions.find(source=>source.conditionVersionId===row.condition_version_id)?.color||conditionColor(row.archetype_code),hidden:derivedViewState.hidden.includes(row.condition_version_id)};
     };
     return[{id:'condition-group-footings',label:'Footings',children:visible.filter(row=>row.archetype_code!=='slab_on_grade').map(child)},{id:'condition-group-slabs',label:'Slabs',children:visible.filter(row=>row.archetype_code==='slab_on_grade').map(child)}];
-  },[conditions,conditionQuery,conditionData.outputs,conditionData.holds,selectedVersionId,dirty]);
+  },[conditions,conditionQuery,conditionData.outputs,conditionData.holds,conditionData.derived3DSnapshot,selectedVersionId,dirty,derivedViewState.hidden]);
 
   const zones=useMemo(()=>{const counts=new Map<string,number>();for(const measurement of measurements){const label=String(measurement.location||'').trim();if(label)counts.set(label,(counts.get(label)||0)+1);}return[...counts].map(([label,count])=>({label,count})).sort((a,b)=>a.label.localeCompare(b.label));},[measurements]);
-  const focusMeasurement=(measurementId:string|null)=>{if(!measurementId)return;setSelectedMeasurementId(measurementId);window.dispatchEvent(new CustomEvent('carez:select-takeoff-measurement',{detail:{measurementId}}));};
-  const applyConditionSelection=(versionId:string,focusPlan=true)=>{
-    setSelectedVersionId(versionId);setCreating(false);if(!focusPlan)return;
+  const focusMeasurement=(measurementId:string|null)=>{setSelectedMeasurementId(measurementId);};
+  const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
+    setSelectedVersionId(versionId);setCreating(false);
+    if(nextTab)setPropertyTab(nextTab);if(nextMode)setViewMode(nextMode);
+    if(measurementId!==undefined){focusMeasurement(measurementId);return;}
+    if(!focusPlan)return;
     const contract=contractForVersion(versionId).definition;if(!contract)return;
     const primary=contract.roles.find(role=>role.primary);const assigned=primary?conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key):null;
-    if(assigned?.measurement_id)focusMeasurement(assigned.measurement_id);
+    focusMeasurement(assigned?.measurement_id||null);
   };
-  const requestConditionSelection=(versionId:string,focusPlan=true)=>{if(versionId===selectedVersionId){if(focusPlan)applyConditionSelection(versionId,true);return;}if(dirty){setPendingSwitch({versionId,focusPlan});return;}applyConditionSelection(versionId,focusPlan);};
-  const selectDerivedSolid=(solid:Derived3DSolid)=>{requestConditionSelection(solid.conditionVersionId,false);focusMeasurement(solid.measurementId);};
-  const jumpToDerivedIssue=(entry:Derived3DIssue)=>{requestConditionSelection(entry.conditionVersionId,false);if(entry.measurementId)focusMeasurement(entry.measurementId);setViewMode('split');};
+  const requestConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
+    if(versionId!==selectedVersionId&&dirty){setPendingSwitch({versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode});return;}
+    applyConditionSelection(versionId,focusPlan,measurementId,nextTab,nextMode);
+  };
+  const requestMeasurementSelection=(measurementId:string|null)=>{
+    const role=conditionData.roles.find(role=>role.measurement_id===measurementId&&conditions.some(row=>row.condition_version_id===role.condition_version_id));
+    if(role){requestConditionSelection(role.condition_version_id,false,measurementId);return;}
+    focusMeasurement(measurementId);
+  };
+  const selectDerivedSolid=(solid:Derived3DSolid)=>requestConditionSelection(solid.conditionVersionId,false,solid.measurementId);
+  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','split');
 
   useEffect(()=>{const findSidebar=()=>setSidebarHost(drawingHostRef.current?.querySelector('aside') as HTMLElement|null);findSidebar();const id=window.setTimeout(findSidebar,0);return()=>window.clearTimeout(id);},[]);
   useEffect(()=>{const host=drawingHostRef.current;if(!host)return;let observer:ResizeObserver|null=null;let timer=0;const attach=()=>{const dock=host.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');if(!dock)return false;const update=()=>setDockHeight(Math.max(38,Math.round(dock.getBoundingClientRect().height)));update();observer=new ResizeObserver(update);observer.observe(dock);return true;};if(!attach())timer=window.setTimeout(()=>{attach();},0);return()=>{if(timer)window.clearTimeout(timer);observer?.disconnect();};},[]);
   useEffect(()=>{if(!selectedVersionId&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);if(selectedVersionId&&!conditions.some(row=>row.condition_version_id===selectedVersionId)&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);},[conditions,selectedVersionId]);
   useEffect(()=>{if(!selectedVersion)return;setDraft(draftFromVersion(selectedVersion));setModuleEnabled(Object.fromEntries(selectedModules.map(module=>[module.module_key,Boolean(module.enabled)])));setModuleDraft(Object.fromEntries(selectedModules.filter(module=>module.instance_key==='default').map(module=>[module.module_key,{...(module.input_values||{})}])));setModuleConfigurations(selectedModules.map(toModuleConfiguration));const assigned=conditionData.roles.filter(row=>row.condition_version_id===selectedVersion.id);setRoleSelections(Object.fromEntries(assigned.map(role=>[role.role_key,role.measurement_id])));setLoadedVersionId(selectedVersion.id);setOutputsOpen(false);setMessage('');},[selectedVersion?.id,selectedVersion?.updated_at]);
-  useEffect(()=>{if(stripModern&&viewMode!=='2d')setViewMode('2d');},[stripModern,viewMode]);
   useEffect(()=>{if(!availableTabs.includes(propertyTab))setPropertyTab('general');},[availableTabs,propertyTab]);
   useEffect(()=>{const open=()=>{setContextTab('conditions');setCreating(false);};window.addEventListener('carez:open-conditions',open);return()=>window.removeEventListener('carez:open-conditions',open);},[]);
-  useEffect(()=>{const selection=(event:Event)=>{const measurementId=String((event as CustomEvent<{measurementId?:string|null}>).detail?.measurementId||'')||null;setSelectedMeasurementId(measurementId);if(!measurementId)return;const currentIds=new Set(conditions.map(row=>row.condition_version_id));const role=conditionData.roles.find(row=>row.measurement_id===measurementId&&currentIds.has(row.condition_version_id));if(role&&role.condition_version_id!==selectedVersionId){if(dirty)setPendingSwitch({versionId:role.condition_version_id,focusPlan:false});else{setSelectedVersionId(role.condition_version_id);setCreating(false);}}};const sheet=(event:Event)=>{const sheetId=String((event as CustomEvent<{sheetId?:string|null}>).detail?.sheetId||'')||null;setActiveSheetId(sheetId);};window.addEventListener('carez:takeoff-selection-change',selection as EventListener);window.addEventListener('carez:takeoff-sheet-change',sheet as EventListener);return()=>{window.removeEventListener('carez:takeoff-selection-change',selection as EventListener);window.removeEventListener('carez:takeoff-sheet-change',sheet as EventListener);};},[conditionData.roles,conditions,dirty,selectedVersionId]);
+  useEffect(()=>{const sheet=(event:Event)=>{const sheetId=String((event as CustomEvent<{sheetId?:string|null}>).detail?.sheetId||'')||null;setActiveSheetId(sheetId);};window.addEventListener('carez:takeoff-sheet-change',sheet as EventListener);return()=>window.removeEventListener('carez:takeoff-sheet-change',sheet as EventListener);},[]);
+
 
   const updateInput=(input:ConditionInputDefinition,value:string)=>{const parsed=input.valueType==='number'||input.valueType==='integer'?(value===''?'':Number(value)):input.valueType==='boolean'?value==='true':value;setDraft(current=>({...current,[input.group]:{...(current[input.group]||{}),[input.key]:parsed}}));setMessage('');};
   const setRole=(roleKey:string,measurementId:string)=>setRoleSelections(current=>{const next={...current};if(measurementId)for(const key of Object.keys(next))if(key!==roleKey&&next[key]===measurementId)next[key]='';next[roleKey]=measurementId;setMessage('');return next;});
@@ -375,14 +404,14 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const summaryText=dirty?`${workingRoleCount} takeoff${workingRoleCount===1?'':'s'} assigned · unsaved`:`${selectedSummary?.measurement_count||0} takeoff${Number(selectedSummary?.measurement_count||0)===1?'':'s'} · ${activeOutputCount} outputs`;
   const emptyOutputMessage=primaryMeasurementId?'Save & recalculate to calculate outputs.':'Assign the primary takeoff and save to calculate outputs.';
 
-  const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}><div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">{(['plans','conditions','zones'] as ContextTab[]).map(tab=><button key={tab} type="button" role="tab" aria-selected={contextTab===tab} className={contextTab===tab?styles.contextTabActive:styles.contextTab} onClick={()=>setContextTab(tab)}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>{contextTab==='conditions'?<div className={styles.contextBody}><div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>{conditions.length?<CarezConditionTree searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}</div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}</div>,sidebarHost):null;
+  const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}><div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">{(['plans','conditions','zones'] as ContextTab[]).map(tab=><button key={tab} type="button" role="tab" aria-selected={contextTab===tab} className={contextTab===tab?styles.contextTabActive:styles.contextTab} onClick={()=>setContextTab(tab)}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>{contextTab==='conditions'?<div className={styles.contextBody}><div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>{conditions.length?<CarezConditionTree onVisibilityChange={(node,hidden)=>{const ids=node.children?.map(child=>child.id)||[node.id];setDerivedViewState(current=>({...current,hidden:hidden?[...new Set([...current.hidden,...ids])]:current.hidden.filter(id=>!ids.includes(id))}));}} searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}</div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}</div>,sidebarHost):null;
 
   return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
-      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds}/>
+      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation}/>
       {contextPortal}
-      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripModern&&mode!=='2d'} title={stripModern&&mode!=='2d'?'3D verification remains gated until the Strip Condition model is accepted.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
-      {viewMode!=='2d'&&!stripModern&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}><TakeoffDerived3DView scene={derived3DScene} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/></div>}
+      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
+      {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}><TakeoffDerived3DBoundary><TakeoffDerived3DView scene={derived3DScene} viewState={derivedViewState} onViewStateChange={setDerivedViewState} memory={derivedMemory.current} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/></TakeoffDerived3DBoundary></div>}
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}><div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
@@ -412,6 +441,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       </>}
     </aside>
 
-    <Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>
   </div>;
 }
+

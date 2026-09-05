@@ -16,6 +16,10 @@ Nik must not be asked to select among feature branches, PR previews, or commit-s
 
 Historical development evidence remains available through Git history, merged/closed PRs, issues, ADRs, module specs, tags, and releases rather than stale archive branches/files.
 
+## Derived 3D verification implementation
+
+The Issue #41 source update applies the accepted [3D implementation architecture](takeoff-3d-implementation-architecture.md): server-resolved facts, deterministic validated projections, shared plan/model selection and visibility, modern footing profiles, scoped quantity references, and explicit partial/unavailable states. Signed-in staging browser acceptance is pending. Cross-sheet registration and governed segment/instance overrides remain unsupported.
+
 ## Architecture already established
 
 Preserve the existing Carez modernization and digital thread. Key accepted foundation includes:

@@ -28,7 +28,7 @@ const slabMeasurement = {
   sheet_id: 'sheet-1',
   name: 'Slab Area A',
   location: 'Area A',
-  raw_quantity: 720,
+  raw_quantity: 700,
   raw_unit: 'SF',
   geometry: {
     type: 'polygon',
@@ -51,11 +51,11 @@ test('derived 3D scene is deterministic and invalidates when governed dimensions
     assert.equal(first.solids[0].shape.holes.length, 1);
     assert.equal(Number((first.solids[0].shape.top - first.solids[0].shape.bottom).toFixed(6)), Number((4 / 12).toFixed(6)));
   }
-  assert.deepEqual(first.solids[0].sourceQuantity, { value: 720, unit: 'SF' });
+  assert.equal(first.sourceQuantities[first.solids[0].sourceQuantityKey].value, 700);
   assert.equal('volume' in first.solids[0], false);
 });
 
-test('strip footing projects one deterministic box per authoritative run segment', () => {
+test('strip footing projects the shared continuous run footprint', () => {
   const scene = buildDerived3DScene({
     conditions: [{
       conditionId: 'condition-strip', conditionVersionId: 'version-strip', code: 'FTG-1', name: 'Strip Footing',
@@ -64,14 +64,14 @@ test('strip footing projects one deterministic box per authoritative run segment
       roles: [{ roleKey: 'run', measurementId: 'measurement-strip' }],
     }],
     measurements: [{
-      id: 'measurement-strip', sheet_id: 'sheet-1', name: 'Strip Footing', raw_quantity: 20, raw_unit: 'LF',
+      id: 'measurement-strip', sheet_id: 'sheet-1', name: 'Strip Footing', raw_quantity: 18, raw_unit: 'LF',
       geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.1 }, { x: 0.2, y: 0.2 }] },
     }],
     sheets: [sheet],
   });
 
-  assert.equal(scene.solids.length, 2);
-  assert.ok(scene.solids.every(solid => solid.shape.kind === 'box'));
+  assert.equal(scene.solids.length, 1);
+  assert.equal(scene.solids[0].shape.kind, 'prism');
   assert.equal(scene.solids[0].shape.bottom, 10);
   assert.equal(scene.solids[0].shape.top, 11);
 });
@@ -92,7 +92,9 @@ test('pad footing count points project independently without becoming quantity a
   });
 
   assert.equal(scene.solids.length, 2);
-  assert.deepEqual(scene.solids.map(solid => solid.sourceQuantity.value), [2, 2]);
+  assert.equal(Object.keys(scene.sourceQuantities).length, 1);
+  assert.equal(Object.values(scene.sourceQuantities)[0].value, 2);
+  assert.ok(scene.solids.every(solid => !('sourceQuantity' in solid)));
   assert.equal(scene.solids[0].shape.bottom, 49.25);
   assert.equal(scene.solids[0].shape.top, 50.75);
 });
@@ -132,5 +134,90 @@ test('invalid slab cutouts and cross-condition physical overlaps surface verific
   const scene = buildDerived3DScene({ conditions: [slabCondition(), secondCondition], measurements: [badSlab, secondMeasurement], sheets: [sheet] });
 
   assert.ok(scene.issues.some(entry => entry.code === 'cutout_inconsistency'));
-  assert.ok(scene.issues.some(entry => entry.code === 'potential_overlap'));
+  const valid = buildDerived3DScene({ conditions: [slabCondition(), secondCondition], measurements: [slabMeasurement, secondMeasurement], sheets: [sheet] });
+  assert.ok(valid.issues.some(entry => entry.code === 'geometric_overlap' || entry.code === 'duplicate_placement'));
+  assert.equal(scene.solids.length, 1);
+});
+
+
+import { resolvedPhysicalInputs, prepareDerived3DSources } from '../lib/takeoff/conditions/derived3d/sources.ts';
+import { footprintsOverlap } from '../lib/takeoff/conditions/derived3d/checks.ts';
+import { elevationRange } from '../lib/takeoff/conditions/derived3d/coordinates.ts';
+import type { Derived3DGeometryCache } from '../lib/takeoff/conditions/derived3d.ts';
+
+test('effective physical inputs preserve template defaults and explicit project zero', () => {
+  const result = resolvedPhysicalInputs({ companyDefaults: { planFacts: { thickness_in: 6 }, drawing: { elevation_ft: 100, elevation_reference: 'top' } }, projectValues: { drawing: { elevation_ft: 0 } } });
+  assert.equal(result.planFacts.thickness_in, 6);
+  assert.equal(result.drawingInputs.elevation_ft, 0);
+  assert.equal(result.drawingInputs.elevation_reference, 'top');
+  assert.deepEqual(elevationRange(-2, 2, 'top'), { bottom: -4, top: -2 });
+  assert.deepEqual(elevationRange(0, 2, 'bottom'), { bottom: 0, top: 2 });
+  assert.deepEqual(elevationRange(0, 2, 'centerline'), { bottom: -1, top: 1 });
+});
+
+test('missing assigned scale region cannot silently inherit the sheet scale', () => {
+  const prepared = prepareDerived3DSources('company', 'set', { conditions: [] }, [{ ...slabMeasurement, scale_region_id: 'missing-region' }], [sheet], []);
+  const scene = buildDerived3DScene({ ...prepared, conditions: [slabCondition()] });
+  assert.equal(scene.solids.length, 0);
+  assert.match(scene.issues[0].message, /scale/);
+});
+
+test('all primary assignments project with sheet scope and deduplicated source references', () => {
+  const scene = buildDerived3DScene({ scopeKey: 'tenant:set', conditions: [{ ...slabCondition(), roles: [{ roleKey: 'area', roleInstanceKey: 'area-1', measurementId: slabMeasurement.id }, { roleKey: 'area', roleInstanceKey: 'area-2', measurementId: 'second' }] }], measurements: [slabMeasurement, { ...slabMeasurement, id: 'second', sheet_id: 'sheet-2' }], sheets: [sheet, { ...sheet, id: 'sheet-2' }] });
+  assert.equal(scene.solids.length, 2);
+  assert.equal(scene.coverage.projected, 2);
+  assert.equal(scene.issues.length, 0, 'unregistered sheets must not be tested as coincident');
+  assert.equal(Object.keys(scene.sourceQuantities).length, 2);
+  assert.ok(scene.solids.every(s => s.id.includes('tenant:set') && s.calibrationKey));
+});
+
+test('cache reuses unchanged shapes and evicts removed placements', () => {
+  const cache: Derived3DGeometryCache = new Map();
+  const input = { conditions: [slabCondition()], measurements: [slabMeasurement], sheets: [sheet] };
+  const first = buildDerived3DScene(input, cache);
+  const second = buildDerived3DScene(input, cache);
+  assert.equal(second.solids[0].shape, first.solids[0].shape);
+  const changed = buildDerived3DScene({ ...input, conditions: [slabCondition({ planFacts: { thickness_in: 8 } })], state: 'preview' }, cache);
+  assert.equal(changed.solids[0].id, first.solids[0].id);
+  assert.notEqual(changed.solids[0].shape, first.solids[0].shape);
+  assert.equal(changed.state, 'preview');
+  buildDerived3DScene({ ...input, conditions: [] }, cache);
+  assert.equal(cache.size, 0);
+});
+
+const rectangle = (x: number, z: number, width: number, depth: number) => [{ x, z }, { x: x + width, z }, { x: x + width, z: z + depth }, { x, z: z + depth }];
+test('material intersection excludes holes, touching faces and empty concave bounds', () => {
+  const ring = { outer: rectangle(0, 0, 10, 10), holes: [rectangle(2, 2, 6, 6)] };
+  assert.equal(footprintsOverlap(ring, { outer: rectangle(3, 3, 2, 2), holes: [] }), false);
+  assert.equal(footprintsOverlap(ring, { outer: rectangle(10, 0, 2, 2), holes: [] }), false);
+  assert.equal(footprintsOverlap(ring, { outer: rectangle(1, 3, 2, 2), holes: [] }), true);
+  const concave = { outer: [{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: 10, z: 2 }, { x: 2, z: 2 }, { x: 2, z: 10 }, { x: 0, z: 10 }], holes: [] };
+  assert.equal(footprintsOverlap(concave, { outer: rectangle(3, 3, 2, 2), holes: [] }), false);
+});
+
+test('unsupported contracts, segment overrides and source discrepancies are explicit holds', () => {
+  const input = { conditions: [slabCondition()], measurements: [slabMeasurement], sheets: [sheet] };
+  for (const [scene, code] of [
+    [buildDerived3DScene({ ...input, conditions: [{ ...slabCondition(), contractVersion: 99 }] }), 'unsupported_projection'],
+    [buildDerived3DScene({ ...input, measurements: [{ ...slabMeasurement, geometry: { ...slabMeasurement.geometry, steps: [{}] } }] }), 'unsupported_projection'],
+    [buildDerived3DScene({ ...input, measurements: [{ ...slabMeasurement, sourceIssue: 'Quantity is stale' }] }), 'quantity_mismatch'],
+  ] as const) {
+    assert.equal(scene.solids.length, 0);
+    assert.equal(scene.issues[0].code, code);
+    assert.equal(scene.coverage.held, 1);
+  }
+});
+
+test('modern strip contracts project governed trapezoid profiles', () => {
+  for (const contractVersion of [2, 3]) {
+    const scene = buildDerived3DScene({ conditions: [{ ...slabCondition(), archetypeKey: 'strip_wall_footing', contractVersion, engineKey: 'concrete_condition_v1', planFacts: { width_ft: 4, depth_ft: 2 }, concreteProfile: { enabled: true, profile: 'trapezoid', topWidthFt: 2 }, roles: [{ roleKey: 'run', measurementId: 'strip' }] }], measurements: [{ id: 'strip', sheet_id: sheet.id, name: 'Strip', raw_quantity: 10, raw_unit: 'LF', geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.1 }] } }], sheets: [sheet] });
+    assert.equal(scene.issues.length, 0);
+    const shape = scene.solids[0].shape;
+    assert.equal(shape.kind, 'prism');
+    if (shape.kind === 'prism') {
+      assert.ok(shape.topOuter);
+      assert.equal(Math.max(...shape.outer.map(p => p.z)) - Math.min(...shape.outer.map(p => p.z)), 4);
+      assert.equal(Math.max(...shape.topOuter!.map(p => p.z)) - Math.min(...shape.topOuter!.map(p => p.z)), 2);
+    }
+  }
 });

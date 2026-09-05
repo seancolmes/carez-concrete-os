@@ -117,3 +117,8 @@ This decision does not change 2D/vector geometry authority, calculation authorit
 - docs/ARCHITECTURE.md
 - docs/modules/takeoff.md
 - docs/concrete-condition-3d-workstation-target.md
+
+
+## Implementation detail
+
+The accepted [3D implementation architecture](../takeoff-3d-implementation-architecture.md) records the source contracts, delivered core, explicit capability limits, and pending browser acceptance for Issue #41.

@@ -47,6 +47,9 @@ type Props={
   locked:boolean;
   conditionAuthoringActive?:boolean;
   conditionMeasurementIds?:string[];
+  conditionSelectedMeasurementId?:string|null;
+  onConditionMeasurementSelect?:(measurementId:string|null)=>void;
+  conditionPresentation?:{hiddenMeasurementIds:string[];colors:Record<string,string>};
 };
 type RenderBox={width:number;height:number;pdfWidth:number;pdfHeight:number};
 type ResolvedPoint={point:NormalizedPoint;snapped:boolean};
@@ -110,7 +113,9 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [scaleRegionPoints,setScaleRegionPoints]=useState<NormalizedPoint[]>([]);
   const [pendingScaleCandidate,setPendingScaleCandidate]=useState<ScaleCandidate|null>(null);
   const [pendingManualCalibration,setPendingManualCalibration]=useState<ScaleCalibration|null>(null);
-  const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
+  const [localSelectedMeasurementId,setLocalSelectedMeasurementId]=useState<string|null>(null);
+  const selectedMeasurementId=props.onConditionMeasurementSelect?props.conditionSelectedMeasurementId??null:localSelectedMeasurementId;
+  const setSelectedMeasurementId=useCallback((id:string|null)=>{if(props.onConditionMeasurementSelect)props.onConditionMeasurementSelect(id);else setLocalSelectedMeasurementId(id);},[props.onConditionMeasurementSelect]);
   const [editGeometry,setEditGeometry]=useState<DrawingGeometry|null>(null);
   const [historySnapshot,setHistorySnapshot]=useState<CommandHistorySnapshot>(()=>historyRef.current.snapshot());
   const conditionDrawRef=useRef<{name:string;roleLabel:string}|null>(null);
@@ -155,6 +160,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   const {candidates:scaleCandidates,status:scaleDetectionStatus}=usePdfScaleDetection(pdfRef,pdfReady,pageNumber);
   const visibleScaleCandidates=useMemo(()=>scaleCandidates.filter(candidate=>!currentScaleRegions.some(region=>region.is_default&&region.source_type==='pdf_text'&&region.scale_label===candidate.label)),[scaleCandidates,currentScaleRegions]);
   const selectedMeasurement=initialMeasurements.find((m:any)=>m.id===selectedMeasurementId)||null;
+  useEffect(()=>{if(!props.onConditionMeasurementSelect||!selectedMeasurement)return;const sheet=initialSheets.find((s:any)=>s.id===selectedMeasurement.sheet_id);if(sheet&&Number(sheet.page_number)!==pageNumber)setPageNumber(Number(sheet.page_number));},[selectedMeasurementId,selectedMeasurement?.sheet_id]);
   const selectedGeometry=useMemo(()=>selectedMeasurement?drawingGeometry(selectedMeasurement.geometry):null,[selectedMeasurement]);
   const selectedScaleRegion=selectedMeasurement?scaleRegionMap.get(selectedMeasurement.scale_region_id):null;
   const selectedCalibration=selectedScaleRegion?.calibration||currentSheet?.calibration||null;
@@ -587,7 +593,8 @@ export function TakeoffDrawingWorkspace(props:Props){
           {renderBox&&<svg className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
             <TakeoffScaleOverlay regions={currentScaleRegions} pendingCandidate={pendingScaleCandidate} regionPoints={scaleRegionPoints} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight}/>
             {currentMeasurements.map((measurement:any)=>{
-              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
+              if(props.conditionPresentation?.hiddenMeasurementIds.includes(measurement.id))return null;
+              const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=props.conditionPresentation?.colors[measurement.id]||style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
               return <g key={measurement.id} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
                 {geometry.type==='polygon'&&<path d={geometryPath(geometry,renderBox.pdfWidth,renderBox.pdfHeight)} fill={`${color}24`} fillRule="evenodd" stroke={color} strokeWidth={selected?3.2:2} vectorEffect="non-scaling-stroke"/>}
                 {physical.length>=3&&<polygon points={physicalCoords} fill={`${style.color}${Math.round(style.opacity*255).toString(16).padStart(2,'0')}`} stroke={style.borderColor} strokeWidth={selected?style.borderWidth+1:style.borderWidth} strokeDasharray={style.pattern==='dashed'?'6 4':undefined} vectorEffect="non-scaling-stroke"/>}{geometry.type==='polyline'&&<polyline points={coords} fill="none" stroke={color} strokeWidth={selected?4:2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
@@ -736,3 +743,4 @@ export function TakeoffDrawingWorkspace(props:Props){
   />
   </div>;
 }
+
