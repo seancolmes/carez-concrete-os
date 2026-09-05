@@ -68,8 +68,10 @@ Permanent branches are only `staging` and `main`.
 
 ADR-015 is the Carez-wide dark shadcn presentation authority. ADR-016 owns the desktop shell.
 
-- Desktop uses the compact top application header + animated global category navigation + module-specific contextual panes.
-- The previous permanent global desktop left app rail is superseded and must not be reintroduced.
+- Desktop uses the accepted ADR-016 **Option D compact application menubar**: one global 40–46 px top bar with tenant/company identity, inline categories, search/command, restrained quick-create, notifications, and account controls.
+- Global categories open compact anchored animated menus; there is no permanent second global category row and no permanent global desktop left rail.
+- Module-specific contextual panes remain inside the active workspace when they serve the task, such as Plans/Conditions/Zones in Takeoff.
+- Mobile remains field-first and may use the accepted left-side Sheet/drawer navigation instead of reproducing the desktop menubar.
 - Use the shared source-owned shadcn workspace and `docs/design-system/CAREZ_COMPONENT_PACK.md`.
 - Do not revive B2/light styling, legacy route-local design systems, compatibility layers, alternate palettes, or parallel component libraries.
 - Use normal sentence/title case for ordinary headings, statuses, actions, and helper text.
