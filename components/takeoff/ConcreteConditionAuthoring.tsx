@@ -221,6 +221,12 @@ export function ConcreteConditionAuthoring({
   const resizeRef = useRef<ResizeState | null>(null);
   const [open, setOpen] = useState(true);
   const [floating, setFloating] = useState(false);
+
+  useEffect(() => {
+    const openConditions = () => setOpen(true);
+    window.addEventListener('carez:open-conditions', openConditions);
+    return () => window.removeEventListener('carez:open-conditions', openConditions);
+  }, []);
   const [windowState, setWindowState] = useState(DEFAULT_WINDOW);
   const [creating, setCreating] = useState(false);
   const [family, setFamily] = useState<ConditionArchetypeKey>('strip_wall_footing');
@@ -553,7 +559,7 @@ export function ConcreteConditionAuthoring({
                       })}
                     </select>
                     <Button type="button" size="sm" variant="outline" onClick={() => startTakeoff(role)} disabled={locked || isPending}>Draw {role.unit}</Button>
-                    {!choices.length && <small className={styles.roleHint}>Draw a {role.unit} takeoff with the matching Concrete Condition recipe, then assign it here.</small>}
+                    {!choices.length && <small className={styles.roleHint}>Draw a {role.unit} takeoff with the required Concrete Condition geometry, then assign it here.</small>}
                   </div>;
                 })}
               </div>
