@@ -2,7 +2,7 @@
 
 Status: Accepted design-system contract
 Owner: 95 — UX & Design System
-Related decisions: ADR-015, ADR-016
+Related decisions: ADR-015, ADR-016, ADR-018
 Implementation owner: Issue #44 while the Carez-wide shadcn conversion remains open
 
 ## Purpose
@@ -18,6 +18,7 @@ This pattern is global and applies across Carez modules when the page has two or
 - Use the Carez-owned shadcn/Base UI dropdown-menu composition already proven on Schedule as the default desktop implementation.
 - Each menu item uses a concise label and a restrained Lucide icon when the icon improves scan speed.
 - Do not add explanatory sentence text inside ordinary menu rows.
+- Do not use the menu to narrate roadmap, implementation, migration, or future-feature intent; ADR-018 applies to the menu and the surrounding page.
 - Order items by workflow relevance, not alphabetically.
 - Separate destructive or materially different actions from navigation; `Related tools` is primarily navigation/context switching, not a dumping ground for every action.
 - Keep one-off page actions outside the menu when they are part of the user's immediate task.
@@ -35,9 +36,9 @@ Do not create a `Related tools` menu when:
 
 ## Shared composition target
 
-The Schedule implementation is the first accepted reference. During Issue #44 conversion, extract/reuse a shared Carez composition (for example `CarezRelatedToolsMenu`) rather than duplicating page-local dropdown code when multiple routes adopt the pattern.
+The Schedule implementation is the first accepted reference. During Issue #44 conversion, extract/reuse the shared Carez `CarezRelatedToolsMenu` composition rather than duplicating page-local dropdown code when multiple routes adopt the pattern.
 
-The shared composition should accept route items containing at least `href`, `label`, and optional icon/shortcut metadata while preserving route/domain ownership outside the generic component.
+The shared composition accepts route items containing at least `href`, `label`, and optional icon metadata while preserving route/domain ownership outside the generic component.
 
 ## Examples
 
