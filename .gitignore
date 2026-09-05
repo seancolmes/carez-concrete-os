@@ -6,3 +6,4 @@ node_modules/
 *.log
 *.tsbuildinfo
 public/pdf.worker.min.mjs
+.pnpm-store/
