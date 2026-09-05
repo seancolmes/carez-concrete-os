@@ -4,6 +4,7 @@ Status: accepted on authenticated stable `staging` browser QA; Issue #50 is comp
 
 Canonical decision: `docs/decisions/ADR-012-concrete-condition-engine.md`.
 Implementation issue: #50.
+Acceptance record: `docs/implementation/ISSUE_50_ACCEPTANCE.md`.
 Validated implementation SHA: `84e24f4d5cc6984b0a7b3c2f8d5c21d3525985a8`.
 Final launcher-leak fix SHA: `c9889f746f0ed6fad8a286b90f8c11456679afa8`.
 
