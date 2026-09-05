@@ -31,10 +31,11 @@ export const CONDITION_MODULE_KEYS = [
   'miscellaneous',
 ] as const;
 export type KnownConditionModuleKey = (typeof CONDITION_MODULE_KEYS)[number];
-// Module keys are owned by the immutable archetype schema. Keep known Carez
-// keys typed/autocompletable while permitting future published module families
-// without forcing every compatibility surface to be recompiled as an exhaustive map.
-export type ConditionModuleKey = KnownConditionModuleKey | (string & {});
+// Module identity is owned by each immutable platform archetype version, so the
+// runtime key remains schema-extensible. KnownConditionModuleKey provides the
+// first-party Carez vocabulary without making every compatibility surface an
+// exhaustive compile-time registry.
+export type ConditionModuleKey = string;
 
 export type ConditionOutputStatus = 'ready' | 'held' | 'inactive';
 export type ConditionHoldCode =
