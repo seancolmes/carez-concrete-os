@@ -3,6 +3,8 @@
 Status: implemented on `staging`; browser acceptance is required before this is treated as fully verified.
 
 Canonical decision: `docs/decisions/ADR-012-concrete-condition-engine.md`.
+Implementation issue: #50.
+Validated implementation SHA: `84e24f4d5cc6984b0a7b3c2f8d5c21d3525985a8`.
 
 ## Dependency gate
 
@@ -24,8 +26,8 @@ When the gate passes:
 - the Takeoff toolbar and `M` shortcut open Concrete Conditions instead of starting a direct legacy assembly measurement;
 - the Inspector no longer exposes the legacy concrete assembly selector, Build Plan tab/workbench, TakeoffAssemblyInputEditor, or new legacy assembly-property authoring;
 - Condition-required geometry is started from the Condition role and uses the hidden compatibility assembly/version only as an internal measurement/output bridge;
-- the compatibility selection is one-shot and is cleared on completion, cancellation, or page change;
-- direct duplication is not exposed in Condition-first mode because it would create geometry outside Condition role lineage;
+- the compatibility selection is one-shot and is cleared on completion, Escape/cancellation, or page change;
+- direct duplication is not exposed in Condition-first mode through either the visible Duplicate action or the `D` keyboard shortcut because it would create geometry outside Condition role lineage;
 - existing legacy takeoffs remain visible and editable as geometry/history but are labeled as legacy and do not regain legacy authoring controls.
 
 ## Preserved compatibility
@@ -41,6 +43,23 @@ This cutover intentionally does **not** delete:
 
 Physical schema/data retirement requires separate dependency proof and migration work after historical references and active runtime dependencies are proven safe.
 
+## Validation checkpoint
+
+QA dependency evidence confirms all three governed pilot archetypes are active and each has a published `concrete_condition_v1` version. Authenticated RLS permits reading the platform archetypes and published/retired archetype versions required by the server gate.
+
+GitHub Actions run `33943617700` validated the final shortcut/lifecycle state with:
+
+- dependency-safe source patch application;
+- TypeScript typecheck;
+- the domain suite including `condition-first-cutover.test.ts`;
+- full Next.js production build;
+- cleanup of the one-shot patch assets; and
+- successful final push to `staging`.
+
+The temporary validation workflow and patch script are absent from the resulting staging tree.
+
 ## Verification contract
 
-Automated validation must include typecheck, domain tests, production build, and the `condition-first-cutover.test.ts` contract test. Final acceptance additionally requires browser verification on the single stable `staging` Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
+Automated validation must include typecheck, domain tests, production build, and the `condition-first-cutover.test.ts` contract test. Final acceptance additionally requires authenticated browser verification on the single stable `staging` Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
+
+Do not mark this cutover browser-verified merely because source, QA dependency data, tests, or deployment builds are green.
