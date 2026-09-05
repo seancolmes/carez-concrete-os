@@ -1,14 +1,36 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
+import {AlertTriangle,CalendarDays,CircleMinus,Users} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {ScheduleGrid,type AssignedCrew,type ScheduleCrewMember,type ScheduleGridDay,type ScheduleGridItem} from '@/components/schedule/ScheduleGrid';
+import {ScheduleHeaderActions} from '@/components/schedule/ScheduleHeaderActions';
+import {buttonVariants} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Input} from '@/components/ui/input';
+import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
+import {Textarea} from '@/components/ui/textarea';
 import {createClient} from '@/lib/supabase/server';
+import {cn} from '@/lib/utils';
 import {createScheduleItem} from './actions';
 
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const addDays=(date:string,days:number)=>{const value=new Date(`${date}T12:00:00`);value.setDate(value.getDate()+days);return value.toISOString().slice(0,10);};
 const formatDay=(value:string)=>new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date(`${value}T12:00:00`));
 const joined=<T,>(value:T|T[]|null|undefined):T|null=>Array.isArray(value)?value[0]||null:value||null;
+
+function ScheduleMetric({label,value,help,tone='neutral',Icon}:{label:string;value:string;help:string;tone?:'neutral'|'success'|'danger';Icon:any}){
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='success'&&'border-success/25')}>
+    <CardHeader className="grid grid-cols-[1fr_auto] gap-2 px-4">
+      <div><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='danger'&&'text-destructive',tone==='success'&&'text-success')}>{value}</CardTitle></div>
+      <Icon className="mt-0.5 size-4 text-muted-foreground"/>
+    </CardHeader>
+    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
+  </Card>;
+}
+
+function FormField({label,help,children}:{label:string;help?:string;children:React.ReactNode}){
+  return <label className="grid min-w-0 gap-1.5"><span className="text-xs font-medium text-foreground">{label}</span>{children}{help?<span className="text-[11px] leading-4 text-muted-foreground">{help}</span>:null}</label>;
+}
 
 export default async function SchedulePage(){
   const supabase=await createClient();
@@ -114,14 +136,46 @@ export default async function SchedulePage(){
   const blockedWeek=weekItems.filter(item=>item.blocked);
   const crewMembers:ScheduleCrewMember[]=(crew||[]).map((member:any)=>({id:member.id,name:member.name,role:member.role||'Crew'}));
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="contractor-page schedule-page-v4">
-    <div className="command-hero"><div><div className="section-kicker">JOBS & FIELD</div><h1>Schedule</h1><p>Plan the work, see crew loading, and separate a calendar commitment from actual permission to start.</p></div><div className="command-actions"><Link className="button secondary" href="/look-ahead">21-Day Look-Ahead</Link><Link className="button secondary" href="/readiness">Work Readiness</Link><Link className="button secondary" href="/readiness/resources">Resources</Link><Link className="button secondary" href="/production/work-packages">Work Packages</Link><details className="controls-disclosure create-disclosure"><summary>Add Work</summary><div className="controls-body"><form action={createScheduleItem} className="form"><div className="grid grid2"><label className="field"><span>Job</span><select name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((project:any)=>{const readiness:any=projectReadinessMap.get(project.id),held=Boolean(readiness?.award_setup_applies&&!readiness?.job_ready);return <option key={project.id} value={project.id} disabled={held}>{project.job_number} — {project.name}{held?` — HOLD: ${readiness.readiness_reason}`:''}</option>;})}</select></label><label className="field"><span>Date</span><input type="date" name="schedule_date" defaultValue={start} required/></label></div><div className="grid grid2"><label className="field"><span>Type of Work</span><select name="item_type" defaultValue="work"><option value="work">Crew Work</option><option value="pour">Concrete Pour</option><option value="inspection">Inspection</option><option value="delivery">Material Delivery</option><option value="equipment">Equipment</option><option value="meeting">Meeting</option><option value="other">Other</option></select></label><label className="field"><span>What Are We Doing?</span><input name="title" placeholder="Optional when a work package is selected"/></label></div><label className="field"><span>Work Package / Readiness Gate</span><select name="work_package_operation_id" defaultValue=""><option value="">No package — use unplanned work below</option>{(operations||[]).map((operation:any)=>{const readiness:any=operationReadinessMap.get(operation.operation_id);return <option key={operation.operation_id} value={operation.operation_id}>{operation.job_number} — {operation.package_name} — {operation.field_label||operation.task_name} — {Number(operation.planned_quantity).toLocaleString(undefined,{maximumFractionDigits:2})} {operation.unit}{readiness?` — ${readiness.ready_to_start_all?'READY':`HOLD: ${readiness.start_next_action}`}`:''}</option>;})}</select><small>Carez checks predecessors, inspections, materials, equipment, outside vendors, and pour controls.</small></label><div className="grid grid2"><label className="field"><span>Start</span><input type="time" name="start_time"/></label><label className="field"><span>Finish / Expected End</span><input type="time" name="end_time"/></label></div><div className="grid grid2"><label className="field"><span>Unplanned Work (fallback)</span><select name="production_task_id" defaultValue=""><option value="">None</option>{(tasks||[]).map((task:any)=><option key={task.id} value={task.id}>{task.name} ({task.production_unit})</option>)}</select></label><label className="field"><span>Pour Plan</span><select name="pour_plan_id" defaultValue=""><option value="">None</option>{(pours||[]).map((pour:any)=><option key={pour.id} value={pour.id}>{pour.name} · {pour.scheduled_date||'date not set'} · {Number(pour.expected_concrete_yards||0).toFixed(1)} CY</option>)}</select></label></div><label className="field"><span>Workers Needed</span><input type="number" name="crew_needed" min="0" step="1" defaultValue="0"/></label><div className="field"><span>Assign Crew</span><div className="schedule-crew-checks">{crewMembers.map(member=><label key={member.id}><input type="checkbox" name="crew_member_ids" value={member.id}/><span>{member.name}</span><small>{member.role}</small></label>)}</div></div><label className="field"><span>Notes</span><textarea name="notes" rows={3} placeholder="Field notes, inspector details, delivery instructions..."/></label><button className="button safety-orange">Add to Schedule</button></form></div></details></div></div>
+  const addWorkForm=<form action={createScheduleItem} className="grid gap-4">
+    <div className="grid gap-3 md:grid-cols-2">
+      <FormField label="Job"><NativeSelect name="project_id" required defaultValue=""><NativeSelectOption value="" disabled>Choose job</NativeSelectOption>{(projects||[]).map((project:any)=>{const readiness:any=projectReadinessMap.get(project.id),held=Boolean(readiness?.award_setup_applies&&!readiness?.job_ready);return <NativeSelectOption key={project.id} value={project.id} disabled={held}>{project.job_number} — {project.name}{held?` — HOLD: ${readiness.readiness_reason}`:''}</NativeSelectOption>;})}</NativeSelect></FormField>
+      <FormField label="Date"><Input type="date" name="schedule_date" defaultValue={start} required className="h-8"/></FormField>
+    </div>
+    <div className="grid gap-3 md:grid-cols-2">
+      <FormField label="Type of work"><NativeSelect name="item_type" defaultValue="work"><NativeSelectOption value="work">Crew work</NativeSelectOption><NativeSelectOption value="pour">Concrete pour</NativeSelectOption><NativeSelectOption value="inspection">Inspection</NativeSelectOption><NativeSelectOption value="delivery">Material delivery</NativeSelectOption><NativeSelectOption value="equipment">Equipment</NativeSelectOption><NativeSelectOption value="meeting">Meeting</NativeSelectOption><NativeSelectOption value="other">Other</NativeSelectOption></NativeSelect></FormField>
+      <FormField label="Work description"><Input name="title" placeholder="Optional when a work package is selected" className="h-8"/></FormField>
+    </div>
+    <FormField label="Work package / readiness gate" help="Carez checks predecessors, inspections, materials, equipment, outside vendors, and pour controls."><NativeSelect name="work_package_operation_id" defaultValue=""><NativeSelectOption value="">No package — use unplanned work below</NativeSelectOption>{(operations||[]).map((operation:any)=>{const readiness:any=operationReadinessMap.get(operation.operation_id);return <NativeSelectOption key={operation.operation_id} value={operation.operation_id}>{operation.job_number} — {operation.package_name} — {operation.field_label||operation.task_name} — {Number(operation.planned_quantity).toLocaleString(undefined,{maximumFractionDigits:2})} {operation.unit}{readiness?` — ${readiness.ready_to_start_all?'READY':`HOLD: ${readiness.start_next_action}`}`:''}</NativeSelectOption>;})}</NativeSelect></FormField>
+    <div className="grid gap-3 md:grid-cols-2">
+      <FormField label="Start"><Input type="time" name="start_time" className="h-8"/></FormField>
+      <FormField label="Expected finish"><Input type="time" name="end_time" className="h-8"/></FormField>
+    </div>
+    <div className="grid gap-3 md:grid-cols-2">
+      <FormField label="Unplanned work"><NativeSelect name="production_task_id" defaultValue=""><NativeSelectOption value="">None</NativeSelectOption>{(tasks||[]).map((task:any)=><NativeSelectOption key={task.id} value={task.id}>{task.name} ({task.production_unit})</NativeSelectOption>)}</NativeSelect></FormField>
+      <FormField label="Pour plan"><NativeSelect name="pour_plan_id" defaultValue=""><NativeSelectOption value="">None</NativeSelectOption>{(pours||[]).map((pour:any)=><NativeSelectOption key={pour.id} value={pour.id}>{pour.name} · {pour.scheduled_date||'date not set'} · {Number(pour.expected_concrete_yards||0).toFixed(1)} CY</NativeSelectOption>)}</NativeSelect></FormField>
+    </div>
+    <FormField label="Workers needed"><Input type="number" name="crew_needed" min="0" step="1" defaultValue="0" className="h-8"/></FormField>
+    <fieldset className="grid gap-2"><legend className="text-xs font-medium text-foreground">Assign crew</legend><div className="grid gap-2 sm:grid-cols-2">{crewMembers.map(member=><label key={member.id} className="flex items-center gap-2 rounded-md border border-border bg-muted/15 px-3 py-2 text-sm"><input type="checkbox" name="crew_member_ids" value={member.id} className="size-4 rounded border border-input accent-current"/><span className="min-w-0"><span className="block truncate text-xs font-medium">{member.name}</span><span className="block truncate text-[11px] text-muted-foreground">{member.role}</span></span></label>)}</div></fieldset>
+    <FormField label="Notes"><Textarea name="notes" rows={3} placeholder="Inspector details, delivery instructions, or field coordination notes"/></FormField>
+    <div className="flex justify-end border-t border-border pt-3"><button type="submit" className={buttonVariants({size:'sm'})}>Add to schedule</button></div>
+  </form>;
 
-    {setupHolds>0&&<div className="alert warning"><strong>{setupHolds} awarded job{setupHolds===1?' is':'s are'} on setup hold.</strong> Held jobs remain disabled until agreement, billing setup, and required pre-start payment are clear. <Link className="industrial-grid-link" href="/job-setup">Open Job Setup</Link></div>}
-    {blockedWeek.length>0&&<div className="alert danger"><strong>{blockedWeek.length} crew-work item{blockedWeek.length===1?' is':'s are'} scheduled this week but not ready to start.</strong> Planning stays visible, but Carez blocks confirmation and employee start until the constraint clears. <Link className="industrial-grid-link" href="/readiness">Clear Work Holds</Link></div>}
+  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="carez-page">
+    <header className="carez-page-header">
+      <div><div className="carez-kicker">Jobs & field</div><h1 className="carez-page-title">Schedule</h1><p className="carez-page-description">Plan the work, see crew loading, and manage readiness across active projects.</p></div>
+      <ScheduleHeaderActions>{addWorkForm}</ScheduleHeaderActions>
+    </header>
 
-    <div className="command-grid"><div className="command-card"><div className="command-label">Today</div><div className="command-value">{todayItems.length}</div><div className="command-help">Scheduled items today.</div></div><div className="command-card"><div className="command-label">This Week</div><div className="command-value">{weekItems.length}</div><div className="command-help">Work, deliveries, inspections, and pours.</div></div><div className={`command-card ${blockedWeek.length?'bad':'good'}`}><div className="command-label">Blocked</div><div className="command-value">{blockedWeek.length}</div><div className="command-help">Crew work failing an automatic gate.</div></div><div className={`command-card ${unassigned?'watch':'good'}`}><div className="command-label">Crew Demand / Short</div><div className="command-value">{crewNeeded} / {unassigned}</div><div className="command-help">Worker-days and items still short.</div></div></div>
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <ScheduleMetric label="Today" value={String(todayItems.length)} help="Scheduled items today." Icon={CalendarDays}/>
+      <ScheduleMetric label="This week" value={String(weekItems.length)} help="Work, deliveries, inspections, and pours." Icon={CalendarDays}/>
+      <ScheduleMetric label="Blocked" value={String(blockedWeek.length)} help="Items waiting on a dependency." tone={blockedWeek.length?'danger':'success'} Icon={CircleMinus}/>
+      <ScheduleMetric label="Crew demand / short" value={`${crewNeeded} / ${unassigned}`} help="Worker-days and items still short." tone={unassigned?'danger':'success'} Icon={Users}/>
+    </div>
 
-    <section className="section"><div className="section-heading"><div><div className="section-kicker">NEXT 14 DAYS</div><div className="section-title">Crew & Readiness Workstation</div><div className="section-heading-meta">Use Work Grid for operational detail and Crew Matrix for resource loading. Date, job, work, crew identity, and matrix names stay frozen during horizontal scroll.</div></div></div><ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers}/></section>
+    {setupHolds>0?<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong>{setupHolds} awarded job{setupHolds===1?' is':'s are'} on setup hold.</strong><div className="text-xs text-muted-foreground">Agreement, billing setup, and required pre-start payment must clear before scheduling.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/job-setup">Open job setup</Link></div>:null}
+    {blockedWeek.length>0?<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><strong>{blockedWeek.length} scheduled work item{blockedWeek.length===1?' is':'s are'} not ready to start.</strong><div className="text-xs text-muted-foreground">The schedule stays visible, but confirmation and employee start remain blocked until the constraint clears.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/readiness">Clear work holds</Link></div>:null}
+
+    <ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers}/>
   </div></AppShell>;
 }
