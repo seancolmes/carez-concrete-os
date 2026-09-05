@@ -47,6 +47,10 @@ Recommended tabs are General, Rebar, Forms, Excavation, Labor, Drawing, and More
 
 The property window exposes typed inputs, toggles, dropdowns, governed overrides, source/provenance, holds, and immediate output summaries. It does not expose Formula Composer during normal Takeoff.
 
+Boolean Condition values and module enabled/disabled states use source-owned shadcn-compatible `Switch` controls rather than checkbox UI. `Toggle`/`Toggle Group` remain reserved for pressed/unpressed workstation actions and modes rather than persistent boolean properties.
+
+`Calculated Outputs` uses progressive disclosure as a collapsible section. Its header and concise output/hold/reconciliation summary remain visible while collapsed; expanding reveals the detailed calculated-output grid without changing any calculation, persistence, or lineage behavior.
+
 Advanced custom logic is administered outside the normal Takeoff workflow by authorized company users and uses the same server-authoritative calculation engine.
 
 ## Measurement roles
