@@ -3,7 +3,7 @@
 import {createPortal} from 'react-dom';
 import {useEffect,useMemo,useRef,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
-import {AlertTriangle,CheckCircle2,Layers3,Plus,RefreshCw,Ruler,Save,Search} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ChevronDown,Layers3,Plus,RefreshCw,Ruler,Save,Search} from 'lucide-react';
 import {
   createProjectConcreteConditionPilot,
   saveAndRecalculateConcreteConditionPilot,
@@ -20,7 +20,11 @@ import {
   CarezDataGridTable,
 } from '@/components/carez/data-grid';
 import {Button} from '@/components/ui/button';
+import {Collapsible,CollapsibleContent,CollapsibleTrigger} from '@/components/ui/collapsible';
+import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
+import {Switch} from '@/components/ui/switch';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {CONDITION_ARCHETYPES,conditionArchetype} from '@/lib/takeoff/conditions/catalog';
 import {
@@ -44,8 +48,10 @@ import type {
   ConditionModuleKey,
 } from '@/lib/takeoff/conditions/types';
 import {ConditionModuleEditor} from './ConditionModuleEditor';
+import {ConditionRolePicker} from './ConditionRolePicker';
 import {TakeoffDerived3DView} from './TakeoffDerived3DView';
 import {TakeoffDrawingWorkspace} from './TakeoffDrawingWorkspace';
+import direction from './ConditionPropertiesDirectionA.module.css';
 import styles from './IntegratedTakeoffConditionWorkspace.module.css';
 
 type ConditionSummary={
@@ -72,6 +78,7 @@ type Props={setId:string;workspaceProps:any;conditionData:ConditionData};
 type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'rebar'|'forms'|'excavation'|'labor'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
+type PendingSwitch={versionId:string;focusPlan:boolean};
 
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
   concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',
@@ -101,6 +108,28 @@ const toModuleConfiguration=(module:ConditionModule):ConditionModuleConfiguratio
   moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:Boolean(module.enabled),
   inputValues:{...(module.input_values||{})},inputProvenance:{...(module.input_provenance||{})},legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order,
 });
+const moduleSignature=(modules:ConditionModuleConfiguration[])=>modules
+  .map(module=>({
+    moduleKey:module.moduleKey,
+    instanceKey:module.instanceKey||'',
+    label:module.label||'',
+    enabled:Boolean(module.enabled),
+    inputValues:module.inputValues||{},
+    legacyChildKey:module.legacyChildKey||null,
+    sortOrder:Number(module.sortOrder||0),
+  }))
+  .sort((a,b)=>`${a.moduleKey}:${a.instanceKey}`.localeCompare(`${b.moduleKey}:${b.instanceKey}`));
+const roleSignature=(roles:Record<string,string>)=>Object.entries(roles).sort(([a],[b])=>a.localeCompare(b));
+const tabForHold=(hold:{hold_code:string;message:string}):PropertyTab=>{
+  const text=`${hold.hold_code} ${hold.message}`.toLowerCase();
+  if(/rebar|reinforc/.test(text))return'rebar';
+  if(/form/.test(text))return'forms';
+  if(/excavat|backfill/.test(text))return'excavation';
+  if(/labor|production|hour|crew/.test(text))return'labor';
+  if(/3d|draw|elev/.test(text))return'drawing';
+  if(/anchor|embed|price|procure|equipment|finish|cure|misc/.test(text))return'more';
+  return'general';
+};
 
 export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
   const router=useRouter();
@@ -109,8 +138,11 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [contextTab,setContextTab]=useState<ContextTab>('plans');
   const [conditionQuery,setConditionQuery]=useState('');
   const [selectedVersionId,setSelectedVersionId]=useState<string|null>(null);
+  const [loadedVersionId,setLoadedVersionId]=useState<string|null>(null);
+  const [pendingSwitch,setPendingSwitch]=useState<PendingSwitch|null>(null);
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
+  const [outputsOpen,setOutputsOpen]=useState(false);
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
   const [dockHeight,setDockHeight]=useState(228);
@@ -144,10 +176,55 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const definition=selectedSummary?(stripV2?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(selectedSummary.archetype_code)):null;
   const selectedOutputs=selectedVersionId?conditionData.outputs.filter(row=>row.condition_version_id===selectedVersionId):[];
   const selectedHolds=selectedVersionId?conditionData.holds.filter(row=>row.condition_version_id===selectedVersionId&&row.status==='open'):[];
-  const selectedReconciliation=selectedVersionId?conditionData.reconciliation.filter(row=>row.condition_version_id===selectedVersionId):[];
-  const reconciledCount=selectedReconciliation.filter(row=>['exact','held','inactive'].includes(row.reconciliation_status)).length;
+  const totalDirectCost=selectedOutputs.reduce((sum,row)=>sum+Number(row.direct_cost||0),0);
   const activeSheet=sheets.find((sheet:any)=>sheet.id===activeSheetId)||sheets[0]||null;
   const activeSheetLabel=activeSheet?.sheet_number||`Page ${activeSheet?.page_number||'—'}`;
+
+  const supportsModule=(moduleKey:ConditionModuleKey)=>Boolean(
+    selectedModules.some(module=>module.module_key===moduleKey)
+    ||definition?.modules?.some(module=>module.key===moduleKey)
+    ||definition?.defaultModules.includes(moduleKey)
+  );
+  const availableTabs=useMemo<PropertyTab[]>(()=>{
+    if(!definition)return['general'];
+    const tabs:PropertyTab[]=['general'];
+    if(supportsModule('reinforcing'))tabs.push('rebar');
+    if(supportsModule('forms'))tabs.push('forms');
+    if(supportsModule('excavation_backfill'))tabs.push('excavation');
+    if(definition.inputs.some(input=>input.group==='production')||supportsModule('labor'))tabs.push('labor');
+    if(definition.inputs.some(input=>input.group==='drawing'))tabs.push('drawing');
+    const hasMore=definition.inputs.some(input=>input.group==='methods'||input.group==='commercial')
+      ||['concrete','anchors_embeds','slab_systems','placement_equipment','finish_cure_protection','miscellaneous'].some(key=>supportsModule(key));
+    if(hasMore)tabs.push('more');
+    return tabs;
+  // supportsModule derives only from these two sources.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[definition,selectedModules]);
+
+  const persistedRoles=useMemo(()=>Object.fromEntries(
+    conditionData.roles
+      .filter(row=>row.condition_version_id===selectedVersionId)
+      .map(role=>[role.role_key,role.measurement_id])
+  ),[conditionData.roles,selectedVersionId]);
+  const currentModulesForSignature=useMemo<ConditionModuleConfiguration[]>(()=>{
+    if(stripV2)return moduleConfigurations;
+    return selectedModules.map(module=>({
+      ...toModuleConfiguration(module),
+      enabled:moduleEnabled[module.module_key]!==false,
+      inputValues:module.instance_key==='default'?(moduleDraft[module.module_key]||module.input_values):module.input_values,
+    }));
+  },[stripV2,moduleConfigurations,selectedModules,moduleEnabled,moduleDraft]);
+  const persistedSignature=useMemo(()=>selectedVersion?JSON.stringify({
+    draft:draftFromVersion(selectedVersion),
+    modules:moduleSignature(selectedModules.map(toModuleConfiguration)),
+    roles:roleSignature(persistedRoles),
+  }):'',[selectedVersion,selectedModules,persistedRoles]);
+  const currentSignature=useMemo(()=>selectedVersion?JSON.stringify({
+    draft,
+    modules:moduleSignature(currentModulesForSignature),
+    roles:roleSignature(roleSelections),
+  }):'',[selectedVersion,draft,currentModulesForSignature,roleSelections]);
+  const dirty=Boolean(selectedVersion&&loadedVersionId===selectedVersion.id&&currentSignature!==persistedSignature);
 
   const derived3DScene=useMemo(()=>buildDerived3DScene({
     conditions:conditions.flatMap(summary=>{
@@ -186,7 +263,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const zones=useMemo(()=>{
     const counts=new Map<string,number>();
     for(const measurement of measurements){const label=String(measurement.location||'').trim();if(label)counts.set(label,(counts.get(label)||0)+1);}
-    return [...counts].map(([label,count])=>({label,count})).sort((a,b)=>a.label.localeCompare(b.label));
+    return[...counts].map(([label,count])=>({label,count})).sort((a,b)=>a.label.localeCompare(b.label));
   },[measurements]);
 
   const focusMeasurement=(measurementId:string|null)=>{
@@ -194,8 +271,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     setSelectedMeasurementId(measurementId);
     window.dispatchEvent(new CustomEvent('carez:select-takeoff-measurement',{detail:{measurementId}}));
   };
-  const focusCondition=(versionId:string,focusPlan=true)=>{
-    setSelectedVersionId(versionId);setCreating(false);
+  const applyConditionSelection=(versionId:string,focusPlan=true)=>{
+    setSelectedVersionId(versionId);
+    setCreating(false);
     if(!focusPlan)return;
     const row=conditions.find(item=>item.condition_version_id===versionId);
     if(!row)return;
@@ -204,8 +282,13 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const assigned=primary?conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key):null;
     if(assigned?.measurement_id)focusMeasurement(assigned.measurement_id);
   };
-  const selectDerivedSolid=(solid:Derived3DSolid)=>{setSelectedVersionId(solid.conditionVersionId);setCreating(false);focusMeasurement(solid.measurementId);};
-  const jumpToDerivedIssue=(entry:Derived3DIssue)=>{setSelectedVersionId(entry.conditionVersionId);setCreating(false);if(entry.measurementId)focusMeasurement(entry.measurementId);setViewMode('split');};
+  const requestConditionSelection=(versionId:string,focusPlan=true)=>{
+    if(versionId===selectedVersionId){if(focusPlan)applyConditionSelection(versionId,true);return;}
+    if(dirty){setPendingSwitch({versionId,focusPlan});return;}
+    applyConditionSelection(versionId,focusPlan);
+  };
+  const selectDerivedSolid=(solid:Derived3DSolid)=>{requestConditionSelection(solid.conditionVersionId,false);focusMeasurement(solid.measurementId);};
+  const jumpToDerivedIssue=(entry:Derived3DIssue)=>{requestConditionSelection(entry.conditionVersionId,false);if(entry.measurementId)focusMeasurement(entry.measurementId);setViewMode('split');};
 
   useEffect(()=>{
     const findSidebar=()=>setSidebarHost(drawingHostRef.current?.querySelector('aside') as HTMLElement|null);
@@ -232,9 +315,12 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     setModuleConfigurations(selectedModules.map(toModuleConfiguration));
     const assigned=conditionData.roles.filter(row=>row.condition_version_id===selectedVersion.id);
     setRoleSelections(Object.fromEntries(assigned.map(role=>[role.role_key,role.measurement_id])));
+    setLoadedVersionId(selectedVersion.id);
+    setOutputsOpen(false);
     setMessage('');
   },[selectedVersion?.id,selectedVersion?.updated_at]);
   useEffect(()=>{if(stripV2&&viewMode!=='2d')setViewMode('2d');},[stripV2,viewMode]);
+  useEffect(()=>{if(!availableTabs.includes(propertyTab))setPropertyTab('general');},[availableTabs,propertyTab]);
   useEffect(()=>{
     const open=()=>{setContextTab('conditions');setCreating(false);};
     window.addEventListener('carez:open-conditions',open);
@@ -247,22 +333,26 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       if(!measurementId)return;
       const currentIds=new Set(conditions.map(row=>row.condition_version_id));
       const role=conditionData.roles.find(row=>row.measurement_id===measurementId&&currentIds.has(row.condition_version_id));
-      if(role){setSelectedVersionId(role.condition_version_id);setCreating(false);}
+      if(role&&role.condition_version_id!==selectedVersionId){
+        if(dirty)setPendingSwitch({versionId:role.condition_version_id,focusPlan:false});
+        else{setSelectedVersionId(role.condition_version_id);setCreating(false);}
+      }
     };
     const sheet=(event:Event)=>{const sheetId=String((event as CustomEvent<{sheetId?:string|null}>).detail?.sheetId||'')||null;setActiveSheetId(sheetId);};
     window.addEventListener('carez:takeoff-selection-change',selection as EventListener);
     window.addEventListener('carez:takeoff-sheet-change',sheet as EventListener);
     return()=>{window.removeEventListener('carez:takeoff-selection-change',selection as EventListener);window.removeEventListener('carez:takeoff-sheet-change',sheet as EventListener);};
-  },[conditionData.roles,conditions]);
+  },[conditionData.roles,conditions,dirty,selectedVersionId]);
 
   const updateInput=(input:ConditionInputDefinition,value:string)=>{
     const parsed=input.valueType==='number'||input.valueType==='integer'?(value===''?'':Number(value)):input.valueType==='boolean'?value==='true':value;
     setDraft(current=>({...current,[input.group]:{...(current[input.group]||{}),[input.key]:parsed}}));
+    setMessage('');
   };
   const setRole=(roleKey:string,measurementId:string)=>setRoleSelections(current=>{
     const next={...current};if(measurementId)for(const key of Object.keys(next))if(key!==roleKey&&next[key]===measurementId)next[key]='';next[roleKey]=measurementId;return next;
   });
-  const updateModuleInput=(moduleKey:string,key:string,value:unknown)=>setModuleDraft(current=>({...current,[moduleKey]:{...(current[moduleKey]||{}),[key]:value}}));
+  const updateModuleInput=(moduleKey:string,key:string,value:unknown)=>{setModuleDraft(current=>({...current,[moduleKey]:{...(current[moduleKey]||{}),[key]:value}}));setMessage('');};
 
   const assemblyVersionForRole=(role:any)=>{
     if(role.primary&&compatibilityAssemblyVersionId)return compatibilityAssemblyVersionId;
@@ -284,10 +374,10 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     setMessage('Creating condition…');
     startTransition(async()=>{try{
       const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});
-      setSelectedVersionId(result.condition_version_id);setCreating(false);setContextTab('conditions');setMessage('Condition created.');router.refresh();
+      setSelectedVersionId(result.condition_version_id);setCreating(false);setContextTab('conditions');setMessage('');router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not create condition.');}});
   };
-  const saveCondition=()=>{
+  const saveCondition=(afterSave?:()=>void)=>{
     if(!selectedVersion||!definition)return;
     const roles=prepareConditionRoleAssignments(definition.roles,roleSelections);
     const primary=definition.roles.find(role=>role.primary);
@@ -301,35 +391,55 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     }));
     setMessage('Saving…');
     startTransition(async()=>{try{
-      const result=await saveAndRecalculateConcreteConditionPilot({
+      await saveAndRecalculateConcreteConditionPilot({
         conditionVersionId:selectedVersion.id,inputs,inputProvenance:provenance,modules:modulesForSave,
         measurementRoles:roles,compatibilityAnchorMeasurementId:anchorId,
       });
-      setMessage(`Saved · ${result?.output_count||0} outputs`);router.refresh();
+      setMessage('');
+      afterSave?.();
+      router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not save condition.');}});
   };
 
   const renderInputGroup=(group:ConditionInputGroup)=>{
     const inputs=definition?.inputs.filter(input=>input.group===group)||[];
     if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
-    return <div className={styles.fieldGrid}>{inputs.map(input=><label className={styles.field} key={`${group}-${input.key}`}><span>{input.label}</span>
-      {input.valueType==='boolean'?<label className={styles.checkLine}><input type="checkbox" checked={Boolean(draft[group]?.[input.key])} onChange={event=>updateInput(input,event.target.checked?'true':'false')} disabled={locked||isPending}/><span>Enabled</span></label>
-      :input.valueType==='select'?<select value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}><option value="">Select…</option>{(input.options||['top','bottom','centerline']).map(option=><option key={option} value={option}>{humanize(option)}</option>)}</select>
-      :input.valueType==='text'?<Input value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
-      :<CarezNumberField value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>}</label>)}</div>;
+    return <div className={styles.fieldGrid}>{inputs.map(input=>input.valueType==='boolean'
+      ?<Field key={`${group}-${input.key}`} orientation="horizontal" className={direction.switchField}>
+        <FieldLabel className={direction.switchFieldLabel}>{input.label}</FieldLabel>
+        <Switch checked={Boolean(draft[group]?.[input.key])} onCheckedChange={checked=>updateInput(input,checked?'true':'false')} disabled={locked||isPending} aria-label={input.label}/>
+      </Field>
+      :<Field key={`${group}-${input.key}`} className={direction.propertyField}>
+        <FieldLabel className={direction.propertyFieldLabel}>{input.label}</FieldLabel>
+        {input.valueType==='select'?<select value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}><option value="">Select…</option>{(input.options||['top','bottom','centerline']).map(option=><option key={option} value={option}>{humanize(option)}</option>)}</select>
+        :input.valueType==='text'?<Input value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
+        :<CarezNumberField value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>} 
+      </Field>)}</div>;
   };
 
   const renderModule=(moduleKey:ConditionModuleKey)=>{
     const module=selectedModules.find(row=>row.module_key===moduleKey);
-    if(!module||moduleEnabled[moduleKey]===false)return <div className={styles.compactEmpty}>{MODULE_LABELS[moduleKey]} is not active for this condition.</div>;
+    if(!module)return <div className={styles.compactEmpty}>{MODULE_LABELS[moduleKey]} is not available for this condition.</div>;
+    const enabled=moduleEnabled[moduleKey]!==false;
     const entries=Object.entries(moduleDraft[moduleKey]||{});
-    if(!entries.length)return <div className={styles.moduleReady}><CheckCircle2/> <span>{MODULE_LABELS[moduleKey]} enabled</span></div>;
-    return <div className={styles.fieldGrid}>{entries.map(([key,value])=><label className={styles.field} key={`${moduleKey}-${key}`}><span>{humanize(key)}</span>
-      {typeof value==='boolean'?<label className={styles.checkLine}><input type="checkbox" checked={value} onChange={event=>updateModuleInput(moduleKey,key,event.target.checked)} disabled={locked||isPending}/><span>Enabled</span></label>
-      :typeof value==='number'?<CarezNumberField value={String(value)} onChange={event=>updateModuleInput(moduleKey,key,event.target.value===''?'':Number(event.target.value))} step="any" disabled={locked||isPending}/>
-      :<Input value={String(value??'')} onChange={event=>updateModuleInput(moduleKey,key,event.target.value)} disabled={locked||isPending}/>}</label>)}</div>;
+    return <>
+      <div className={direction.moduleControlRow}>
+        <div><strong>{MODULE_LABELS[moduleKey]||module.label}</strong><small>{enabled?'Included in this Condition':'Excluded from this Condition'}</small></div>
+        <Switch checked={enabled} onCheckedChange={checked=>{setModuleEnabled(current=>({...current,[moduleKey]:checked}));setMessage('');}} disabled={locked||isPending} aria-label={`${MODULE_LABELS[moduleKey]||module.label} module`}/>
+      </div>
+      {enabled?(entries.length?<div className={styles.fieldGrid}>{entries.map(([key,value])=>typeof value==='boolean'
+        ?<Field key={`${moduleKey}-${key}`} orientation="horizontal" className={direction.switchField}>
+          <FieldLabel className={direction.switchFieldLabel}>{humanize(key)}</FieldLabel>
+          <Switch checked={value} onCheckedChange={checked=>updateModuleInput(moduleKey,key,checked)} disabled={locked||isPending} aria-label={humanize(key)}/>
+        </Field>
+        :<Field key={`${moduleKey}-${key}`} className={direction.propertyField}>
+          <FieldLabel className={direction.propertyFieldLabel}>{humanize(key)}</FieldLabel>
+          {typeof value==='number'?<CarezNumberField value={String(value)} onChange={event=>updateModuleInput(moduleKey,key,event.target.value===''?'':Number(event.target.value))} step="any" disabled={locked||isPending}/>
+          :<Input value={String(value??'')} onChange={event=>updateModuleInput(moduleKey,key,event.target.value)} disabled={locked||isPending}/>} 
+        </Field>)}</div>:<div className={styles.moduleReady}><CheckCircle2/><span>Included</span></div>):null}
+    </>;
   };
-  const moduleEditor=(moduleKey:ConditionModuleKey)=>stripV2&&definition?<ConditionModuleEditor definition={definition} moduleKey={moduleKey} modules={moduleConfigurations} onChange={setModuleConfigurations} disabled={locked||isPending}/>:renderModule(moduleKey);
+  const moduleEditor=(moduleKey:ConditionModuleKey)=>stripV2&&definition?<ConditionModuleEditor definition={definition} moduleKey={moduleKey} modules={moduleConfigurations} onChange={modules=>{setModuleConfigurations(modules);setMessage('');}} disabled={locked||isPending}/>:renderModule(moduleKey);
 
   const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}>
     <div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">
@@ -337,60 +447,92 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     </div>
     {contextTab==='conditions'?<div className={styles.contextBody}>
       <div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>
-      {conditions.length?<CarezConditionTree nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))focusCondition(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}
+      {conditions.length?<CarezConditionTree nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}
     </div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}
   </div>,sidebarHost):null;
+
+  const firstHoldTab=selectedHolds.length?tabForHold(selectedHolds[0]):'general';
+  const safeHoldTab=(hold:ConditionData['holds'][number])=>{const tab=tabForHold(hold);return availableTabs.includes(tab)?tab:'general';};
 
   return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds}/>
       {contextPortal}
+      <div className={direction.drawingViewModes}>
+        <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripV2&&mode!=='2d'} title={stripV2&&mode!=='2d'?'Strip Footing v2 is being completed before additional derived-3D work.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
+      </div>
       {viewMode!=='2d'&&!stripV2&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <TakeoffDerived3DView scene={derived3DScene} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}>
-        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no}{stripV2?' · Module v2':''}</small>:null}</div>
-        <div className={styles.propertiesHeaderActions}>
-          <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripV2&&mode!=='2d'} title={stripV2&&mode!=='2d'?'Strip Footing v2 is being completed before additional derived-3D work.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
-          <Button size="sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked||isPending}><Plus/>New</Button>
-        </div>
+        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · {humanize(selectedSummary.version_status)}{stripV2?' · Module v2':''}</small>:null}</div>
       </header>
 
       {creating?<div className={styles.createPane}>
         <div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <button type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></button>;})}</div>
-        <label className={styles.field}><span>Condition name</span><Input value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></label>
-        <label className={styles.field}><span>Code</span><Input value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></label>
+        <Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Condition name</FieldLabel><Input value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></Field>
+        <Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Code</FieldLabel><Input value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></Field>
         <div className={styles.createActions}><Button variant="outline" onClick={()=>setCreating(false)}>Cancel</Button><Button onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</Button></div>
         <div className={styles.statusLine} role="status">{message}</div>
       </div>:!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
-        <div className={styles.conditionSummary}>
-          <div><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><div><strong>{selectedSummary.archetype_name}</strong><small>{selectedSummary.version_status}{stripV2?' · Full modules':''}</small></div></div>
-          <div className={styles.metrics}><span><b>{selectedSummary.measurement_count}</b>Takeoffs</span><span><b>{selectedSummary.output_count}</b>Outputs</span><span className={Number(selectedSummary.open_hold_count)?styles.metricWarn:''}><b>{selectedSummary.open_hold_count}</b>Holds</span></div>
+        <div className={direction.conditionSummaryLine}>
+          <span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/>
+          <strong>{selectedSummary.archetype_name}</strong>
+          <span className={direction.summaryMeta}>{selectedSummary.measurement_count} takeoffs · {selectedSummary.output_count} outputs</span>
+          {selectedHolds.length?<button type="button" className={direction.summaryHold} onClick={()=>setPropertyTab(availableTabs.includes(firstHoldTab)?firstHoldTab:'general')}>{selectedHolds.length} hold{selectedHolds.length===1?'':'s'}</button>:null}
         </div>
+        {selectedHolds.length?<div className={direction.holdsDock} aria-label="Open Condition holds">{selectedHolds.map(hold=><button key={hold.id} type="button" className={direction.holdRow} onClick={()=>setPropertyTab(safeHoldTab(hold))}><AlertTriangle/><span className={direction.holdText}><strong>{humanize(hold.hold_code)}</strong><small>{hold.message}</small></span><span className={direction.holdJump}>{humanize(safeHoldTab(hold))} →</span></button>)}</div>:null}
         <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}>
-          <TabsList variant="line" className={styles.tabsList}>{(['general','rebar','forms','excavation','labor','drawing','more'] as PropertyTab[]).map(tab=><TabsTrigger key={tab} value={tab}>{tab[0].toUpperCase()+tab.slice(1)}</TabsTrigger>)}</TabsList>
+          <TabsList variant="line" className={styles.tabsList}>{availableTabs.map(tab=><TabsTrigger key={tab} value={tab}>{tab[0].toUpperCase()+tab.slice(1)}</TabsTrigger>)}</TabsList>
         </Tabs>
         <div className={styles.propertiesScroll}>
           {propertyTab==='general'?<>
-            <section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Takeoff roles</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><select value={roleSelections[role.key]||''} onChange={event=>setRole(role.key,event.target.value)} disabled={locked||isPending}><option value="">{role.required?'Select takeoff…':'Not used'}</option>{choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return <option key={measurement.id} value={measurement.id}>{measurement.name} · {quantity(measurement.raw_quantity,measurement.raw_unit)} · {sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}</option>;})}</select><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending}>Draw {role.unit}</Button></div>;})}</div></section>
-            {!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><Layers3/><strong>Modules</strong></div><div className={styles.moduleToggles}>{selectedModules.map(module=><label key={module.module_key}><input type="checkbox" checked={moduleEnabled[module.module_key]!==false} onChange={event=>setModuleEnabled(current=>({...current,[module.module_key]:event.target.checked}))} disabled={locked||isPending}/><span>{MODULE_LABELS[module.module_key]||module.label}</span></label>)}</div></section>:null}
+            <section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Takeoff roles</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><ConditionRolePicker value={roleSelections[role.key]||''} choices={choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,label:measurement.name,meta:`${quantity(measurement.raw_quantity,measurement.raw_unit)} · ${sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}`};})} placeholder={role.required?'Select takeoff…':'Not used'} emptyLabel={role.required?'No takeoff selected':'Not used'} disabled={locked||isPending} onChange={value=>setRole(role.key,value)}/><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending}>Draw {role.unit}</Button></div>;})}</div></section>
             <section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong></div>{renderInputGroup('planFacts')}</section>
             {stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong><small>Profile · mix · placement</small></div>{moduleEditor('concrete')}</section>:null}
           </>:null}
-          {propertyTab==='rebar'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Rebar</strong><small>{stripV2?'Repeatable sets':''}</small></div>{moduleEditor('reinforcing')}</section>:null}
-          {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong><small>{stripV2?'Sides · material · stakes':''}</small></div>{moduleEditor('forms')}</section>:null}
-          {propertyTab==='excavation'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Excavation / backfill</strong></div>{stripV2?moduleEditor('excavation_backfill'):<div className={styles.compactEmpty}>No excavation inputs for this Condition version.</div>}</section>:null}
-          {propertyTab==='labor'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Production</strong></div>{renderInputGroup('production')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Labor outputs</strong></div>{moduleEditor('labor')}</section></>:null}
+          {propertyTab==='rebar'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Rebar</strong>{stripV2?<small>Repeatable sets</small>:null}</div>{moduleEditor('reinforcing')}</section>:null}
+          {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong>{stripV2?<small>Sides · material · stakes</small>:null}</div>{moduleEditor('forms')}</section>:null}
+          {propertyTab==='excavation'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Excavation / backfill</strong></div>{moduleEditor('excavation_backfill')}</section>:null}
+          {propertyTab==='labor'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Production</strong></div>{renderInputGroup('production')}</section>{supportsModule('labor')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Labor outputs</strong></div>{moduleEditor('labor')}</section>:null}</>:null}
           {propertyTab==='drawing'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Drawing</strong></div>{renderInputGroup('drawing')}{stripV2?<div className={styles.compactEmpty}>Additional Strip Footing 3D projection stays intentionally gated until this module model passes browser QA.</div>:null}</section>:null}
-          {propertyTab==='more'?<>{!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Methods</strong></div>{renderInputGroup('methods')}</section>:null}<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Commercial / procurement</strong></div>{renderInputGroup('commercial')}</section>{!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{renderModule('concrete')}</section>:null}<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Anchors / embeds</strong>{stripV2?<small>Repeatable sets</small>:null}</div>{moduleEditor('anchors_embeds')}</section>{stripV2?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Placement / equipment</strong></div>{moduleEditor('placement_equipment')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Finish / cure / protection</strong></div>{moduleEditor('finish_cure_protection')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Miscellaneous</strong><small>Repeatable items</small></div>{moduleEditor('miscellaneous')}</section></>:selectedModules.some(module=>module.module_key==='slab_systems')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Slab systems</strong></div>{renderModule('slab_systems')}</section>:null}</>:null}
+          {propertyTab==='more'?<>
+            {definition.inputs.some(input=>input.group==='methods')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Methods</strong></div>{renderInputGroup('methods')}</section>:null}
+            {definition.inputs.some(input=>input.group==='commercial')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Commercial / procurement</strong></div>{renderInputGroup('commercial')}</section>:null}
+            {!stripV2&&supportsModule('concrete')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{moduleEditor('concrete')}</section>:null}
+            {supportsModule('anchors_embeds')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Anchors / embeds</strong>{stripV2?<small>Repeatable sets</small>:null}</div>{moduleEditor('anchors_embeds')}</section>:null}
+            {supportsModule('slab_systems')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Slab systems</strong></div>{moduleEditor('slab_systems')}</section>:null}
+            {supportsModule('placement_equipment')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Placement / equipment</strong></div>{moduleEditor('placement_equipment')}</section>:null}
+            {supportsModule('finish_cure_protection')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Finish / cure / protection</strong></div>{moduleEditor('finish_cure_protection')}</section>:null}
+            {supportsModule('miscellaneous')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Miscellaneous</strong>{stripV2?<small>Repeatable items</small>:null}</div>{moduleEditor('miscellaneous')}</section>:null}
+          </>:null}
 
-          <section className={styles.propertySection}><div className={styles.sectionHead}><CheckCircle2/><strong>Calculated outputs</strong><small>{selectedReconciliation.length?`${reconciledCount}/${selectedReconciliation.length} reconciled`:'—'}</small></div><CarezDataGrid isEmpty={!selectedOutputs.length} empty={<div className={styles.gridEmpty}>Assign the primary takeoff and save to calculate outputs.</div>}><CarezDataGridTable><CarezDataGridHead><CarezDataGridRow><CarezDataGridHeaderCell>Output</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Quantity</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Cost</CarezDataGridHeaderCell></CarezDataGridRow></CarezDataGridHead><CarezDataGridBody>{selectedOutputs.map(output=><CarezDataGridRow key={output.id}><CarezDataGridCell><strong>{output.label}</strong><small className={styles.outputMeta}>{humanize(output.status)}</small></CarezDataGridCell><CarezDataGridCell numeric>{quantity(output.production_quantity,output.production_unit)}</CarezDataGridCell><CarezDataGridCell numeric>{money(output.direct_cost)}</CarezDataGridCell></CarezDataGridRow>)}</CarezDataGridBody></CarezDataGridTable></CarezDataGrid></section>
-          {selectedHolds.length?<section className={styles.holdSection}><div className={styles.sectionHead}><AlertTriangle/><strong>Open holds</strong></div>{selectedHolds.map(hold=><div key={hold.id}><AlertTriangle/><span><strong>{humanize(hold.hold_code)}</strong><small>{hold.message}</small></span></div>)}</section>:null}
+          <Collapsible open={outputsOpen} onOpenChange={setOutputsOpen} className={styles.propertySection}>
+            <CollapsibleTrigger className={`${styles.sectionHead} ${direction.collapsibleTrigger}`}>
+              <CheckCircle2/><strong>Calculated outputs</strong>
+              <span className={`${direction.outputSummary} ${Number(selectedSummary.held_output_count)?direction.outputSummaryHeld:''}`}>{selectedOutputs.length} outputs · {money(totalDirectCost)}{Number(selectedSummary.held_output_count)?` · ${selectedSummary.held_output_count} held`:''}</span>
+              <ChevronDown className={`${direction.outputChevron} ${outputsOpen?direction.outputChevronOpen:''}`}/>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CarezDataGrid isEmpty={!selectedOutputs.length} empty={<div className={styles.gridEmpty}>Assign the primary takeoff and save to calculate outputs.</div>}><CarezDataGridTable><CarezDataGridHead><CarezDataGridRow><CarezDataGridHeaderCell>Output</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Quantity</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Cost</CarezDataGridHeaderCell></CarezDataGridRow></CarezDataGridHead><CarezDataGridBody>{selectedOutputs.map(output=><CarezDataGridRow key={output.id}><CarezDataGridCell><strong>{output.label}</strong><small className={styles.outputMeta}>{humanize(output.status)}</small></CarezDataGridCell><CarezDataGridCell numeric>{quantity(output.production_quantity,output.production_unit)}</CarezDataGridCell><CarezDataGridCell numeric>{money(output.direct_cost)}</CarezDataGridCell></CarezDataGridRow>)}</CarezDataGridBody></CarezDataGridTable></CarezDataGrid>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
-        <footer className={styles.propertiesFooter}><span role="status">{message}</span><Button onClick={saveCondition} disabled={locked||isPending||selectedVersion.status!=='draft'}>{isPending?<RefreshCw className={styles.spin}/>:<Save/>}Save & recalculate</Button></footer>
+        <footer className={styles.propertiesFooter}><span className={dirty&&!message?direction.dirtyStatus:undefined} role="status">{message||(dirty?'Unsaved changes':'')}</span><Button onClick={()=>saveCondition()} disabled={locked||isPending||selectedVersion.status!=='draft'||!dirty}>{isPending?<RefreshCw className={styles.spin}/>:<Save/>}Save & recalculate</Button></footer>
       </>}
     </aside>
+
+    <Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}>
+      <DialogContent showCloseButton={false}>
+        <DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button>
+          <Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan);}} disabled={isPending}>Discard</Button>
+          <Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan);});}} disabled={isPending}>Save & switch</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>;
 }
