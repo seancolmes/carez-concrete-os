@@ -160,6 +160,7 @@ select
     {"key":"miscellaneous.item_ea","module_key":"miscellaneous","label":"Miscellaneous items","resource_class":"other","unit":"EA","algorithm":"repeatable-count-v2","legacy_component_key":"misc"},
     {"key":"reinforcing.installed_lb","module_key":"reinforcing","label":"Reinforcing steel — installed","resource_class":"material","unit":"LB","algorithm":"strip-rebar-installed-v3","legacy_component_key":"rebar_installed","estimate_visible":false},
     {"key":"reinforcing.procurement_lb","module_key":"reinforcing","label":"Reinforcing steel — procurement","resource_class":"material","unit":"LB","algorithm":"strip-rebar-procurement-v3","legacy_component_key":"rebar"},
+    {"key":"reinforcing.stock_bars_ea","module_key":"reinforcing","label":"Reinforcing stock bars — order guide","resource_class":"material","unit":"EA","algorithm":"strip-rebar-stock-bars-v3","legacy_component_key":"rebar_stock_bars","estimate_visible":false},
     {"key":"labor.place_concrete_mh","module_key":"labor","label":"Place concrete labor","resource_class":"labor","unit":"HR","algorithm":"labor-productivity-v3","legacy_component_key":"labor_place"},
     {"key":"labor.forms_mh","module_key":"labor","label":"Form labor","resource_class":"labor","unit":"HR","algorithm":"labor-productivity-v3","legacy_component_key":"labor_forms"},
     {"key":"labor.reinforcing_mh","module_key":"labor","label":"Reinforcing labor","resource_class":"labor","unit":"HR","algorithm":"labor-productivity-v3","legacy_component_key":"labor_rebar"},
@@ -171,7 +172,7 @@ select
     {"key":"labor.misc_mh","module_key":"labor","label":"Miscellaneous labor","resource_class":"labor","unit":"HR","algorithm":"labor-productivity-v3","legacy_component_key":"labor_misc"}
   ]$json$::jsonb,
   $json${"shape":"rectangular_or_trapezoid_profile_sweep","required_inputs":["width_ft","depth_ft","elevation_ft","elevation_reference"],"quantity_authority":"2d_measurement","derived_3d_status":"gated_until_strip_v3_acceptance","estimating_model":"edge_style_module_summary_v1"}$json$::jsonb,
-  'Issue #55 Strip / Wall Footing v3. Construction-native reinforcing, installed/procurement separation, finish/cure labor, and factor/crew productivity. Structural design remains estimator/engineer-confirmed.',
+  'Issue #55 Strip / Wall Footing v3. Construction-native reinforcing, installed/procurement separation, finish/cure labor, factor/crew productivity, and stock-bar logistics guidance. Structural design remains estimator/engineer-confirmed.',
   now()
 from public.platform_condition_archetypes archetype
 where archetype.code='strip_wall_footing'
