@@ -35,7 +35,7 @@ test('deleting a Condition-linked takeoff invalidates stale Condition projection
   assert.match(measurementFunction, /compatibility_projection_version_id = null/);
 });
 
-test('Condition-first UI exposes guarded draft deletion with explicit linked-takeoff confirmation', () => {
+test('Condition-first UI exposes guarded draft deletion and resets stale drawing selection after cascade delete', () => {
   assert.match(actions, /export async function deleteProjectConcreteCondition/);
   assert.match(actions, /carez_delete_project_concrete_condition/);
   assert.match(shell, /ConditionDeletionManager/);
@@ -43,6 +43,8 @@ test('Condition-first UI exposes guarded draft deletion with explicit linked-tak
   assert.match(manager, /Takeoffs shared with another Condition are preserved/);
   assert.match(manager, /row\.version_status === 'draft'/);
   assert.match(manager, /Delete draft Condition\?/);
-  assert.match(manager, /<select/);
+  assert.match(manager, /<Select /);
+  assert.match(manager, /window\.location\.reload\(\)/);
   assert.doesNotMatch(manager, /DropdownMenu/);
+  assert.doesNotMatch(manager, /<select/);
 });

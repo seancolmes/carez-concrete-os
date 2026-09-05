@@ -43,15 +43,45 @@ Initial families are Pad/Column Footing, Strip/Wall Footing, and Slab on Grade. 
 
 The primary property surface docks right in the normal workstation and collapses/restores as a unit. The docked pane uses a stable responsive width rather than horizontal drag-resizing. An explicit future floating-properties mode may support drag/resize/maximize without reintroducing draggable dock boundaries.
 
-Recommended tabs are General, Rebar, Forms, Excavation, Labor, Drawing, and More. A family may hide irrelevant tabs. Common inputs appear first and advanced detail stays behind disclosures.
+The baseline tabs are General, Rebar, Forms, Excavation, Labor, Drawing, and More. A mature family may replace that generic grouping with a concrete-native estimator sequence. Strip / Wall Footing uses Scope, Concrete, Forms, Rebar, Embeds, Excavation, Placement, Finish / cure, Labor, Review, and Drawing. A family hides irrelevant tabs. Common inputs appear first and advanced detail stays behind disclosures.
 
 The property window exposes typed inputs, toggles, dropdowns, governed overrides, source/provenance, holds, and immediate output summaries. It does not expose Formula Composer during normal Takeoff.
 
 Boolean Condition values and module enabled/disabled states use source-owned shadcn-compatible `Switch` controls rather than checkbox UI. `Toggle`/`Toggle Group` remain reserved for pressed/unpressed workstation actions and modes rather than persistent boolean properties.
 
-`Calculated Outputs` uses progressive disclosure as a collapsible section. Its header and concise output/hold/reconciliation summary remain visible while collapsed; expanding reveals the detailed calculated-output grid without changing any calculation, persistence, or lineage behavior.
+`Calculated Outputs` uses progressive disclosure as a collapsible section. Its header and concise output/issue/pricing summary remain visible while collapsed; expanding reveals the detailed calculated-output grid without changing any calculation, persistence, or lineage behavior.
 
 Advanced custom logic is administered outside the normal Takeoff workflow by authorized company users and uses the same server-authoritative calculation engine.
+
+### Estimator state truth
+
+For a measurement linked to an active Concrete Condition, the worksheet presents the current Condition as authority rather than a legacy compatibility projection.
+
+- Before the first Condition calculation, calculated worksheet columns remain blank and the row reports **Not calculated**.
+- When a saved Condition has unsaved edits, stale calculated values are not presented as current truth; the row reports **Pending recalculation** until the next server calculation.
+- A calculated quantity and a complete price are separate states. The UI distinguishes **Ready**, **Qty ready · Price missing**, **Calculation hold**, and **Not included**.
+- Direct-cost totals are explicitly partial while active outputs remain unpriced.
+- Working-state role counts distinguish `assigned · unsaved` from persisted takeoff/output counts.
+- Calculation, scope, production, commercial, and pricing exceptions are presented through one categorized issue surface rather than unrelated counters all called “holds.”
+
+### EDGE-style estimating workbench
+
+Concrete Conditions should be workable in the sequence an estimator uses to understand the physical work:
+
+1. Scope / geometry
+2. Concrete
+3. Forms
+4. Reinforcing
+5. Embeds
+6. Excavation
+7. Placement
+8. Finish / cure
+9. Labor / productivity
+10. Pricing / review
+
+The review surface provides compact module summaries so an estimator can see included scope, installed/order quantities, labor, price readiness, and issues without opening every module. Repeatable physical objects such as reinforcing sets, anchors/embeds, and miscellaneous items are shown as intentional instances; required disabled database placeholder rows are not estimator-facing concepts.
+
+The primary takeoff may be assigned to an existing estimate section from Review. Carez may suggest a likely project section, but the estimator remains authoritative and can accept or override it.
 
 ## Measurement roles
 
@@ -119,7 +149,7 @@ Plans/sheets/revisions, calibration, measurement geometry/roles, published Compa
 
 ## Outputs
 
-Measurements, role-linked geometry facts, Condition module outputs, 3D projection facts, holds/review issues, and exact estimate-item lineage.
+Measurements, role-linked geometry facts, Condition module outputs, 3D projection facts, categorized issues, calculation/pricing readiness, and exact estimate-item lineage.
 
 ## Award and execution lineage
 

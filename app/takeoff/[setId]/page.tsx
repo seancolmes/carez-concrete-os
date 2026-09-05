@@ -148,6 +148,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     conditions: conditionSummaries || [],
     versions: [],
     templateVersions: [],
+    archetypeVersions: [],
     modules: [],
     roles: [],
     outputs: [],
@@ -166,11 +167,11 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       { data: conditionReconciliation },
     ] = await Promise.all([
       supabase.from('project_concrete_condition_versions')
-        .select('id,template_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,updated_at')
+        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,updated_at')
         .eq('company_id', companyId)
         .in('id', conditionVersionIds),
       supabase.from('company_condition_template_versions')
-        .select('id,legacy_assembly_version_id')
+        .select('id,archetype_version_id,legacy_assembly_version_id')
         .eq('company_id', companyId)
         .in('id', conditionTemplateVersionIds),
       supabase.from('project_condition_module_instances')
@@ -200,10 +201,21 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         .order('output_key'),
     ]);
 
+    const archetypeVersionIds = [...new Set((conditionVersions || []).map((row: any) => row.archetype_version_id).filter(Boolean))] as string[];
+    let conditionArchetypeVersions: any[] = [];
+    if (archetypeVersionIds.length) {
+      const { data, error } = await supabase.from('platform_condition_archetype_versions')
+        .select('id,version_no,archetype_code_snapshot,status,engine_key')
+        .in('id', archetypeVersionIds);
+      if (error) throw new Error(error.message);
+      conditionArchetypeVersions = data || [];
+    }
+
     conditionData = {
       conditions: conditionSummaries || [],
       versions: conditionVersions || [],
       templateVersions: conditionTemplateVersions || [],
+      archetypeVersions: conditionArchetypeVersions,
       modules: conditionModules || [],
       roles: conditionRoles || [],
       outputs: conditionOutputs || [],

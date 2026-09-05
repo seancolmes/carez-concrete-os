@@ -141,9 +141,17 @@ Safety-critical form-system layouts require a verified source/envelope and human
 
 ### Reinforcing
 
-Supports repeated sets for continuous bars, transverse bars, vertical/horizontal wall steel, mats/grids, dowels/starters, ties/stirrups, cages, WWR/WWF, fiber, and governed custom scheduled steel.
+Supports repeated construction-native sets for bottom longitudinal, top longitudinal, transverse bars, vertical/horizontal wall steel, mats/grids, dowels/starters, ties/stirrups, cages, WWR/WWF, fiber, and governed custom scheduled steel.
 
-Inputs may include size/unit weight, count/spacing, cover, layers/faces, stock length, lap policy, standard hooks/shapes, location range, waste, and placement labor. Carez never invents structural design.
+For Strip / Wall Footing, longitudinal count is the total bar count in the named set. Carez does not apply an implicit face/layer multiplier to that count. Structural requirements remain estimator/engineer-confirmed; Carez never invents reinforcing design.
+
+Reinforcing outputs preserve separate meanings:
+
+- installed steel includes physically required splice length and drives placement labor/production;
+- procurement steel applies the explicit purchasing allowance without changing installed production quantity;
+- stock-bar/piece counts are procurement/logistics guidance and do not create a second priced estimate demand.
+
+Inputs may include size/unit weight, count/spacing, cover, stock length, lap policy, standard hooks/shapes, location range, waste, and placement labor.
 
 ### Anchors / embeds
 
@@ -161,9 +169,34 @@ Uses explicit cut profile, working room, over-excavation, export, reuse, and bac
 
 Separates physical demand from commercial fulfillment. Pump, chute, conveyor, crane/bucket, owned equipment, rental, and subcontract paths remain distinct where applicable.
 
+### Finish / cure / protection
+
+Finish and cure/protection generate physical surface quantities and, when included, explicit labor demand. Float/trowel/broom finishing and curing/protection methods do not silently create a zero-labor scope.
+
 ### Labor operations
 
 Each operation preserves physical basis/unit, immutable company baseline and source, estimator-reviewed job rate, resulting man-hours, labor cost basis, and output lineage. Changing labor production does not change physical material quantity.
+
+Labor can be expressed by either:
+
+- direct factor, such as MH/CY, MH/SF, MH/LB, or MH/EA; or
+- crew-rate productivity with crew size and production per crew-hour.
+
+For crew-rate productivity the server derives crew-hours, total man-hours, and effective MH/unit. Provenance remains attached so a company standard, historical actual, estimator override, or reference benchmark remains distinguishable.
+
+## Calculation, pricing, and issue semantics
+
+Calculation readiness and commercial readiness are separate.
+
+- **Ready** means a current quantity exists and the required commercial value is available.
+- **Qty ready · Price missing** means physical calculation succeeded but pricing remains incomplete.
+- **Calculation hold** means a required calculation input is unresolved.
+- **Not included** means the relevant module/output is intentionally inactive.
+- **Not calculated / Pending recalculation** identifies working-state authority before a current server calculation.
+
+Direct-cost summaries are marked partial while active outputs lack required pricing.
+
+Estimator-facing exception categories include calculation, scope, production, commercial, and pricing. These may be summarized in one issue queue while the underlying persisted Condition holds and pricing states remain distinct records.
 
 ## Holds
 
@@ -245,4 +278,4 @@ Consume accepted scope and resource/production assumptions through immutable lin
 
 ## Initial acceptance
 
-The engine is accepted when the three pilot families can be created, measured, edited, recalculated, priced, traced, migrated, and verified in 2D/3D without formula UI in the daily workflow, with representative RLS, refresh, undo/redo, deletion, cross-sheet, hold, and output-reconciliation tests.
+The engine is accepted when the three pilot families can be created, measured, edited, recalculated, priced, traced, migrated, and verified in 2D/3D without formula UI in the daily workflow, with representative RLS, refresh, undo/redo, deletion, cross-sheet, hold, output-reconciliation, installed/procurement, productivity, and pricing-readiness tests.
