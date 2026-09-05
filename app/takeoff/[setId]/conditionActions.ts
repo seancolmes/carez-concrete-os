@@ -84,10 +84,10 @@ export async function createProjectConcreteConditionPilot(input: {
 
   let template: any = null;
   for (const pilotKey of CONDITION_ARCHETYPE_KEYS) {
-    const { data, error: templateError } = await supabase.rpc(
-      'carez_ensure_pilot_condition_template',
-      { p_archetype_code: pilotKey },
-    );
+    const isStripV2 = pilotKey === 'strip_wall_footing';
+    const { data, error: templateError } = isStripV2
+      ? await supabase.rpc('carez_ensure_strip_footing_v2_template')
+      : await supabase.rpc('carez_ensure_pilot_condition_template', { p_archetype_code: pilotKey });
     if (templateError) throw new Error(templateError.message);
     if (pilotKey === archetypeKey) template = data;
   }
