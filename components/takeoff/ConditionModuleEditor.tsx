@@ -27,21 +27,24 @@ type Props = {
 
 const titleCase = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 
+// Presets select only the calculation pattern. Structural size/count/spacing,
+// procurement allowance, and other job-specific facts remain visibly blank
+// until the estimator enters or accepts them.
 const PRESETS: Partial<Record<ConditionModuleKey, Array<{ label: string; values: Record<string, ConditionScalar> }>>> = {
   reinforcing: [
-    { label: 'Continuous', values: { kind: 'continuous', bar_size: '#4', bars_per_run: 2, layers: 1, faces: 1, splice_policy: 'none', waste_pct: 0 } },
-    { label: 'Transverse', values: { kind: 'transverse', bar_size: '#4', spacing_in: 18, pieces_per_location: 1, layers: 1, faces: 1, waste_pct: 0 } },
-    { label: 'Dowel / starter', values: { kind: 'dowel', bar_size: '#4', spacing_in: 18, pieces_per_location: 1, layers: 1, faces: 1, waste_pct: 0 } },
-    { label: 'Stirrup / tie', values: { kind: 'stirrup', bar_size: '#3', spacing_in: 12, pieces_per_location: 1, layers: 1, faces: 1, waste_pct: 0 } },
-    { label: 'Custom', values: { kind: 'custom', bar_size: '#4', layers: 1, faces: 1, waste_pct: 0 } },
+    { label: 'Continuous', values: { kind: 'continuous', layers: 1, faces: 1 } },
+    { label: 'Transverse', values: { kind: 'transverse', layers: 1, faces: 1 } },
+    { label: 'Dowel / starter', values: { kind: 'dowel', layers: 1, faces: 1 } },
+    { label: 'Stirrup / tie', values: { kind: 'stirrup', layers: 1, faces: 1 } },
+    { label: 'Custom', values: { kind: 'custom', layers: 1, faces: 1 } },
   ],
   anchors_embeds: [
-    { label: 'Measured anchors', values: { kind: 'anchor_bolt', count_mode: 'measured_role' } },
-    { label: 'Anchors @ spacing', values: { kind: 'anchor_bolt', count_mode: 'spacing', per_location: 1, extra_count: 0 } },
-    { label: 'Fixed count', values: { kind: 'embed', count_mode: 'fixed_count' } },
+    { label: 'Measured anchors', values: { count_mode: 'measured_role' } },
+    { label: 'Anchors @ spacing', values: { count_mode: 'spacing' } },
+    { label: 'Fixed count', values: { count_mode: 'fixed_count' } },
   ],
   miscellaneous: [
-    { label: 'Item', values: { category: 'other', quantity_ea: 1 } },
+    { label: 'Item', values: {} },
   ],
 };
 
