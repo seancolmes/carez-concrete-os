@@ -127,7 +127,6 @@ function ReadinessBadge({item}:{item:ScheduleGridItem}){
     state==='planned'&&'text-muted-foreground',
   )}>{readinessLabel(item)}</Badge>;
 }
-
 function WorkStatusBadge({item}:{item:ScheduleGridItem}){
   const completed=item.status==='completed';
   const active=['confirmed','in_progress'].includes(item.status);
@@ -257,7 +256,6 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
     if(sortKey===key){setSortDirection(direction=>direction==='asc'?'desc':'asc');return;}
     setSortKey(key);setSortDirection('asc');
   }
-
   function resizeColumn(event:ReactPointerEvent<HTMLSpanElement>,key:ColumnKey,min:number,max:number){
     event.preventDefault();event.stopPropagation();
     const startX=event.clientX;
@@ -355,13 +353,13 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
     </div>
   </div>;
 
-  const actualToolbar=<div className="w-full space-y-2 py-0.5">
-    <div className="flex flex-wrap items-center gap-2">
+  const actualToolbar=<div className="w-full space-y-3.5 py-1">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 lg:gap-x-4">
       <ToggleGroup value={[view]} onValueChange={values=>{const next=values[0] as ViewMode|undefined;if(next)setView(next)}} size="sm" aria-label="Schedule view">
         <ToggleGroupItem value="work"><Rows3 className="size-3.5"/> Work plan</ToggleGroupItem>
         <ToggleGroupItem value="crew"><Users className="size-3.5"/> Crew loading</ToggleGroupItem>
       </ToggleGroup>
-      <div className="relative min-w-[220px] flex-1 lg:max-w-sm">
+      <div className="relative min-w-[260px] flex-1 lg:ml-auto lg:w-[340px] lg:flex-none">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
         <Input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search work, job, package, or crew" className="h-8 pl-8 text-xs" aria-label="Search schedule"/>
       </div>
@@ -383,8 +381,8 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
         {rangePreset==='custom'?<NativeSelectOption value="custom">Custom range</NativeSelectOption>:null}
       </NativeSelect>
     </div>
-    <div className="overflow-x-auto pb-0.5">
-      <div className="flex min-w-max gap-1.5" role="group" aria-label="Select schedule day or date range">
+    <div className="overflow-x-auto pb-1 pt-0.5">
+      <div className="flex min-w-max gap-2.5" role="group" aria-label="Select schedule day or date range">
         {days.map(day=>{
           const dayItems=items.filter(item=>item.scheduleDate===day.date);
           const blocked=dayItems.some(item=>item.blocked);
@@ -394,7 +392,7 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
           const weekday=new Intl.DateTimeFormat('en-US',{weekday:'short'}).format(date);
           const monthDay=new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).format(date);
           return <button key={day.date} type="button" aria-pressed={selected} title="Click for one day. Shift+click to extend the selected range." onClick={event=>chooseDate(day.date,event.shiftKey)} className={cn(
-            'flex h-14 w-[82px] shrink-0 flex-col items-center justify-center rounded-md border border-border bg-background text-[11px] text-muted-foreground outline-none transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none',
+            'flex h-16 w-[96px] shrink-0 flex-col items-center justify-center rounded-md border border-border bg-background text-[11px] text-muted-foreground outline-none transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none',
             day.isToday&&'border-ring/60',
             selected&&'border-foreground/45 bg-accent/55 text-foreground',
           )}>
