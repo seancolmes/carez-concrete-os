@@ -21,6 +21,90 @@ Carez should distinguish three scheduling layers instead of treating one editabl
 
 Field variance can change the rolling lookahead and daily executable plan while retaining the original/committed schedule and change history. Actual execution is a fourth, historical layer and never replaces any of the three planned layers.
 
+## Schedule workstation UX
+
+The accepted desktop Schedule surface is a dense **Operations Grid** rather than a generic calendar board or card wall.
+
+### Primary composition
+
+- Retain the compact ADR-016 Option D global menubar above the module workspace.
+- The Schedule page header remains compact and operational.
+- `+ Add work` is the primary page action.
+- Related operational destinations such as 21-Day Look-Ahead, Work Readiness, Resources, and Work Packages move into a compact secondary/related-tools menu or toolbar instead of competing as equal primary buttons.
+- The four high-level summaries remain concise: Today, This Week, Blocked, and Crew Demand / Short. Semantic color is restrained and communicates operational state rather than decoration.
+
+### Work plan / crew loading modes
+
+The main workstation uses a compact shadcn/Base UI segmented/toggle control for:
+
+- **Work plan** — primary dense operational grid;
+- **Crew loading** — crew/resource allocation view over the same governed schedule facts.
+
+Switching views must not duplicate or fork schedule truth. Both views derive from the same schedule/readiness/assignment records.
+
+### 14-day date strip
+
+Directly above the grid, provide a compact interactive 14-day strip.
+
+- Each day is a small, scan-friendly control rather than a large calendar column.
+- Users can select one day or a bounded range to filter/focus the grid.
+- Today receives restrained emphasis.
+- Days may expose compact operational counts/exception indicators only when useful; do not turn the strip into a second dashboard.
+- The strip is navigation/filter context, not schedule authority.
+- It must remain keyboard accessible and usable with horizontal overflow on smaller widths.
+
+### Operations Grid
+
+The Work plan view should consume the shared Carez Data Grid pattern and preserve dense professional behavior.
+
+Preferred columns:
+
+- Date / Time
+- Job
+- Work
+- Type
+- Package / Quantity
+- Readiness / Constraint
+- Crew
+- Status
+- Notes
+- Actions
+
+Required behavior:
+
+- sticky/pinned Date, Job, and Work columns where helpful;
+- resizable columns;
+- compact search and filters for readiness, work type, and active date/range;
+- row selection and keyboard navigation;
+- restrained row hover/selected state;
+- semantic readiness treatment: BLOCKED/destructive, AT RISK/warning, READY/success, ordinary planned work neutral;
+- row actions consolidated into compact menu/action controls where practical instead of wide button clusters;
+- proper loading, error, empty, and no-result states from the shared Carez Loading/Empty patterns;
+- horizontal scrolling must not hide essential frozen context;
+- no legacy `industrial-grid-*` visual system in the accepted implementation.
+
+### Empty state
+
+When the active view/range has no schedule items, show one clear bounded empty state inside the grid area with concise text such as `Nothing scheduled in this view` and relevant actions such as `Add work` or `View 21-day look-ahead`.
+
+Do not render nearly invisible placeholder rows or explanatory filler text.
+
+### Component-system requirements
+
+The Schedule conversion must use the active dark shadcn/Base UI Carez workspace and the shared Carez component pack where interaction matches, including:
+
+- Carez Data Grid;
+- Carez Toolbar;
+- shadcn/Base UI Toggle Group or equivalent source-owned segmented control;
+- shared search/filter inputs, dropdown menus, buttons, badges/status indicators, tooltips, and loading/empty states;
+- Carez Motion rules for short functional transitions only.
+
+ReUI data-grid behavior is an approved interaction/reference source for dense table capabilities such as sticky scrolling, column resizing/pinning, selection, filtering, and empty/loading treatment, but accepted implementation remains Carez-owned source under the shared shadcn system.
+
+### Mobile / narrow screens
+
+Do not force the desktop grid into a card wall. Preserve the same schedule truth with a compact responsive table/list treatment, horizontally scrollable date strip, and the accepted mobile navigation Sheet. Field-first mobile actions should prioritize what the user can do now: view readiness, crew, blockers, and open the governing work item.
+
 ## Production work units
 
 Operations should be divisible into measurable, assignable production work units wherever practical. Work units receive exact physical quantity lineage through versioned Scope Allocations from authorized scope; they do not have to equal an entire Takeoff measurement.
