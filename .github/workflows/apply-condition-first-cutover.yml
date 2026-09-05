@@ -22,10 +22,11 @@ jobs:
           node-version: 22
       - name: Apply guarded source changes
         run: |
-          node scripts/retire-active-legacy-takeoff-authoring.mjs
+          python3 scripts/retire-active-legacy-takeoff-authoring.py
           node scripts/activate-condition-first-takeoff-shell.mjs
       - name: Remove one-shot patch assets
         run: |
+          rm scripts/retire-active-legacy-takeoff-authoring.py
           rm scripts/retire-active-legacy-takeoff-authoring.mjs
           rm scripts/activate-condition-first-takeoff-shell.mjs
           rm .github/workflows/apply-condition-first-cutover.yml
