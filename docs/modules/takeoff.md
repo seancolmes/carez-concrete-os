@@ -41,7 +41,7 @@ Initial families are Pad/Column Footing, Strip/Wall Footing, and Slab on Grade. 
 
 ### Condition Properties boundary
 
-The primary property window can dock right, float, drag, resize, maximize/focus, restore, and remember a safe local layout.
+The primary property surface docks right in the normal workstation and collapses/restores as a unit. The docked pane uses a stable responsive width rather than horizontal drag-resizing. An explicit future floating-properties mode may support drag/resize/maximize without reintroducing draggable dock boundaries.
 
 Recommended tabs are General, Rebar, Forms, Excavation, Labor, Drawing, and More. A family may hide irrelevant tabs. Common inputs appear first and advanced detail stays behind disclosures.
 
@@ -100,11 +100,11 @@ Available facts include count, location, supported shape/profile, per-instance d
 
 - Global navigation lives above the workstation in the ADR-016 compact application header + animated category navigation shell; Takeoff does not spend permanent horizontal width on a global app rail.
 - Visual priority is plan/geometry → active Condition decision → quantity/hold state.
-- The resizable contextual left pane uses Plans, Conditions, and Zones tabs and is module-specific rather than global navigation.
+- The contextual left pane uses Plans, Conditions, and Zones tabs, has a stable expanded width, and collapses to a compact edge rail; it is not horizontally drag-resizable.
 - The drawing surface owns the largest area.
-- Condition Properties is the one governed dockable/floatable work window; Carez does not create a pile of overlapping dialogs.
-- The bottom worksheet remains a readable estimator grid with resizable columns and saved views.
-- Shared controls should use the accepted Carez component pack: Condition Tree, Number Field, Toolbar, Resizable Workspace, Data Grid, Loading States, File Upload, Date/Time where relevant, and the shared motion language.
+- Condition Properties is the one governed right-side work surface; in normal docked mode it uses a stable responsive width and collapses/restores instead of horizontal drag-resizing. Carez does not create a pile of overlapping dialogs.
+- The bottom worksheet remains a readable estimator grid with vertical dock resizing, resizable columns, and saved views.
+- Shared controls should use the accepted Carez component pack: Condition Tree, Number Field, Toolbar, Resizable Workspace where resizing remains purposeful, Data Grid, Loading States, File Upload, Date/Time where relevant, and the shared motion language.
 - Persistent text must identify an object, communicate actionable state/problem, or enable a decision.
 - Provenance remains stored but appears through drill-down instead of permanent narration.
 - Minimize stacked horizontal chrome and duplicate status/tool state inside the module workspace; the compact global header/category rows remain outside the Takeoff work area.

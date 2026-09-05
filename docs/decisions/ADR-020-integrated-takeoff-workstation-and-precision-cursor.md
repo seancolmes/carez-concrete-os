@@ -31,7 +31,7 @@ When Condition authoring is active, Carez must not preserve a second competing l
 
 ## Contextual navigator
 
-The left pane is a resizable module-specific navigator with:
+The left pane is a fixed-width, module-specific navigator when expanded, with:
 
 - **Plans** — sheet list/search, thumbnails/list where supported, revision identity, and quiet document navigation;
 - **Conditions** — shared Carez Condition Tree with search/filter, visibility, status/hold indication, quick create/duplicate, and synchronized selection;
@@ -40,6 +40,8 @@ The left pane is a resizable module-specific navigator with:
 The pane is contextual only; global application navigation stays in the ADR-016 top shell.
 
 For drawing-focused work, the navigator is independently collapsible to a compact edge rail. Collapse/expand state may persist locally for the workstation. Expanding the Conditions workflow explicitly restores the navigator when needed. The collapse treatment must preserve current tab/selection state and may not obscure or mutate drawing geometry.
+
+Horizontal drag-resizing of the docked navigator is not part of the accepted interaction model. Carez uses a stable expanded width plus collapse/restore because this produces a more predictable drawing workspace and a simpler target for users.
 
 ## Drawing workspace
 
@@ -69,7 +71,9 @@ The current architecture-oriented labels such as `Plan facts`, `Methods`, `Produ
 
 Common job inputs appear first. Advanced or uncommon inputs remain behind disclosure. Provenance, lineage, and implementation detail remain available through drill-down, not permanent narration.
 
-The docked Condition Properties pane is independently collapsible to a compact edge rail so the estimator can temporarily maximize drawing width without losing the active Condition or property state. Its expanded width and collapse state may persist locally. On touch/mobile layouts, the native responsive property presentation remains authoritative rather than reproducing desktop collapse rails.
+The docked Condition Properties pane uses a stable responsive width and is independently collapsible to a compact edge rail so the estimator can temporarily maximize drawing width without losing the active Condition or property state. Collapse state may persist locally. Horizontal drag-resizing of the docked pane is retired in favor of collapse/restore. If a future explicit floating-properties mode is enabled, that separate floating window may support drag/resize without reintroducing draggable dock boundaries.
+
+On touch/mobile layouts, the native responsive property presentation remains authoritative rather than reproducing desktop collapse rails.
 
 ## Quantity / Estimate Worksheet
 
@@ -83,7 +87,7 @@ The worksheet must remain readable at 100% desktop zoom. Column headers and seco
 
 The integrated workstation must reuse the Carez-owned shadcn/Base UI component system where the interaction matches:
 
-- Carez Resizable Workspace;
+- Carez Resizable Workspace where resizing remains purposeful, including the worksheet;
 - Carez Condition Tree;
 - Carez Toolbar;
 - Carez Number Field;
@@ -132,9 +136,9 @@ The visible glyph must remain smaller than the initial 28–32 px concept if bro
 - scale / calibration: precision crosshair;
 - pan: `grab` / `grabbing`;
 - vertex/detail editing: precision crosshair;
-- horizontal pane resizing: `ew-resize`;
-- vertical worksheet resizing: `ns-resize`;
-- floating window corner resizing: `nwse-resize`;
+- worksheet vertical resizing: `ns-resize`;
+- grid column resizing: native `col-resize` behavior;
+- floating window corner resizing, if enabled: `nwse-resize`;
 - text / number input: native text cursor;
 - disabled action: `not-allowed`.
 
@@ -159,8 +163,9 @@ This decision is a presentation and interaction redesign only. It does not chang
 The redesign is accepted in implementation only when:
 
 - the normal Condition workflow no longer presents duplicated overlapping inspector/authoring architecture;
-- left navigator, center drawing, right properties, and bottom worksheet resize predictably while preserving a useful drawing minimum;
-- left navigator and right Condition Properties can collapse independently and restore without losing selected work state;
+- left navigator and right Condition Properties use predictable expanded widths, collapse independently, and restore without losing selected work state;
+- no horizontal drag-resize affordance remains on those two docked side panes;
+- the bottom Quantity / Estimate Worksheet remains vertically resizable while preserving a useful drawing minimum;
 - selection is synchronized among navigator, drawing, Condition Properties, worksheet, and 3D where available;
 - cursor/tool states are clear, restrained, and non-distracting;
 - Quantity / Estimate Worksheet text is readable at 100% desktop zoom without reverting to oversized low-density rows;
