@@ -18,6 +18,11 @@ import {
   STRIP_FOOTING_V2_CONTRACT_VERSION,
   STRIP_FOOTING_V2_DEFINITION,
 } from './stripFootingV2.ts';
+import {
+  calculateStripFootingV3,
+  STRIP_FOOTING_V3_CONTRACT_VERSION,
+  STRIP_FOOTING_V3_DEFINITION,
+} from './stripFootingV3.ts';
 import type {
   ConditionArchetypeDefinition,
   ConditionArchetypeKey,
@@ -78,6 +83,9 @@ function storedInputGroups(version: any): ConditionRawInputGroups {
 }
 
 function deployedDefinition(archetypeKey: ConditionArchetypeKey, archetypeVersion: any): ConditionArchetypeDefinition {
+  if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V3_CONTRACT_VERSION) {
+    return STRIP_FOOTING_V3_DEFINITION;
+  }
   if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V2_CONTRACT_VERSION) {
     return STRIP_FOOTING_V2_DEFINITION;
   }
@@ -370,9 +378,12 @@ export async function prepareConcreteConditionPilotPersistence({
     legacyChildKey: module.legacy_child_key,
     sortOrder: module.sort_order,
   }));
-  const calculation = archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V2_CONTRACT_VERSION
-    ? calculateStripFootingV2({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
-    : calculateCondition({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides });
+  const versionNo = Number(archetypeVersion.version_no || 0);
+  const calculation = archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V3_CONTRACT_VERSION
+    ? calculateStripFootingV3({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+    : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V2_CONTRACT_VERSION
+      ? calculateStripFootingV2({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+      : calculateCondition({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides });
 
   const { data: mappings, error: mappingsError } = await supabase.from('condition_legacy_output_mappings')
     .select('output_key,legacy_assembly_component_id,legacy_component_key_snapshot,output_unit_snapshot')
