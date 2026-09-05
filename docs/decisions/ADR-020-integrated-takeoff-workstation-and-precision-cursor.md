@@ -39,6 +39,8 @@ The left pane is a resizable module-specific navigator with:
 
 The pane is contextual only; global application navigation stays in the ADR-016 top shell.
 
+For drawing-focused work, the navigator is independently collapsible to a compact edge rail. Collapse/expand state may persist locally for the workstation. Expanding the Conditions workflow explicitly restores the navigator when needed. The collapse treatment must preserve current tab/selection state and may not obscure or mutate drawing geometry.
+
 ## Drawing workspace
 
 The center drawing surface receives the largest share of available space.
@@ -67,11 +69,15 @@ The current architecture-oriented labels such as `Plan facts`, `Methods`, `Produ
 
 Common job inputs appear first. Advanced or uncommon inputs remain behind disclosure. Provenance, lineage, and implementation detail remain available through drill-down, not permanent narration.
 
+The docked Condition Properties pane is independently collapsible to a compact edge rail so the estimator can temporarily maximize drawing width without losing the active Condition or property state. Its expanded width and collapse state may persist locally. On touch/mobile layouts, the native responsive property presentation remains authoritative rather than reproducing desktop collapse rails.
+
 ## Quantity / Estimate Worksheet
 
 The bottom dock remains permanently available on desktop and is vertically resizable.
 
 It uses the shared Carez Data Grid and synchronized selection. Core views may include Quantities, Resources, Labor, Pricing, Holds, and Recap. The worksheet is a professional estimator grid, not a card stack.
+
+The worksheet must remain readable at 100% desktop zoom. Column headers and secondary metadata should generally remain around 10–12 px, while primary row values and measurement identity should generally remain around 11–13 px with enough row height to scan quantities, resources, labor, cost, and hold state without zooming the browser.
 
 ## Shared component policy
 
@@ -109,12 +115,14 @@ Carez adopts a desktop precision-cursor language for the estimator workstation.
 
 ### Default/select cursor
 
-On fine-pointer desktop devices, Carez may use a source-owned custom SVG cursor approximately 28–32 px with:
+On fine-pointer desktop devices, Carez uses a source-owned custom SVG cursor with an effective visible footprint of approximately **20–24 px** inside a browser-safe cursor canvas, with:
 
 - charcoal / black interior;
 - crisp off-white outer stroke for visibility on both dark chrome and white plan sheets;
 - bold, compact, modern pointer geometry with Mac-like visual weight without copying Apple assets;
 - explicit hotspot coordinates and a native CSS keyword fallback.
+
+The visible glyph must remain smaller than the initial 28–32 px concept if browser QA shows that larger footprint obscures plan geometry or feels visually heavy.
 
 ### Tool-state cursor mapping
 
@@ -152,8 +160,10 @@ The redesign is accepted in implementation only when:
 
 - the normal Condition workflow no longer presents duplicated overlapping inspector/authoring architecture;
 - left navigator, center drawing, right properties, and bottom worksheet resize predictably while preserving a useful drawing minimum;
+- left navigator and right Condition Properties can collapse independently and restore without losing selected work state;
 - selection is synchronized among navigator, drawing, Condition Properties, worksheet, and 3D where available;
 - cursor/tool states are clear, restrained, and non-distracting;
+- Quantity / Estimate Worksheet text is readable at 100% desktop zoom without reverting to oversized low-density rows;
 - keyboard/focus/reduced-motion behavior remains coherent;
 - typecheck, domain tests, and production build pass;
 - authenticated browser QA on the single stable staging URL confirms the workstation is readable and efficient at representative desktop sizes;

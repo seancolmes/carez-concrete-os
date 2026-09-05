@@ -1,0 +1,15 @@
+.shell{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}.shell>:global([data-context-tab][data-view-mode]){flex:1;min-width:0;min-height:0}.paneToggle{position:absolute;z-index:150;display:grid;width:20px;height:42px;place-items:center;border:1px solid #31404e;border-radius:5px;background:#0d151d;color:#7f91a2;box-shadow:0 4px 14px rgba(0,0,0,.24);cursor:pointer;transition:border-color 140ms ease,background 140ms ease,color 140ms ease,transform 140ms ease}.paneToggle:hover,.paneToggle:focus-visible{border-color:#566b7e;background:#15202b;color:#e6edf4;outline:none}.paneToggle svg{width:14px;height:14px}.navigatorCollapse{top:50%;left:248px;transform:translate(-50%,-50%)}.navigatorCollapse:hover,.navigatorCollapse:focus-visible{transform:translate(-50%,-50%) scale(1.04)}.navigatorExpand{top:50%;left:19px;transform:translate(-50%,-50%)}.navigatorExpand:hover,.navigatorExpand:focus-visible{transform:translate(-50%,-50%) scale(1.04)}.propertiesCollapse{top:50%;right:4px;transform:translateY(-50%)}.propertiesCollapse:hover,.propertiesCollapse:focus-visible{transform:translateY(-50%) scale(1.04)}.propertiesExpand{top:50%;right:9px;transform:translateY(-50%)}.propertiesExpand:hover,.propertiesExpand:focus-visible{transform:translateY(-50%) scale(1.04)}
+
+@media(min-width:861px){
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child{grid-template-columns:38px minmax(0,1fr)!important}
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child>*{display:none!important}
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlay3d"]{left:38px!important}
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:calc(50% + 19px)!important}
+  .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 0 38px!important}
+  .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>button{display:none!important}
+  .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>aside:last-child>*{display:none!important}
+}
+
+@media(max-width:1180px) and (min-width:861px){.navigatorCollapse{left:208px}}
+@media(max-width:860px){.paneToggle{display:none}}
+@media(prefers-reduced-motion:reduce){.paneToggle{transition:none}}
