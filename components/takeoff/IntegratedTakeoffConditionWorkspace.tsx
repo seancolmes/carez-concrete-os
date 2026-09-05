@@ -70,16 +70,12 @@ type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'rebar'|'forms'|'excavation'|'labor'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
 
-const PROPERTY_WIDTH_KEY='carez.takeoff.integrated.properties.width.v1';
-const PROPERTY_MIN=340;
-const PROPERTY_MAX=620;
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
   concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',labor:'Labor',
 };
 const money=(value:number|string)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
 const quantity=(value:number|string|null,unit:string)=>value===null?'—':`${Number(value).toLocaleString('en-US',{maximumFractionDigits:3})} ${unit}`;
 const humanize=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
-const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
 const conditionColor=(key:ConditionArchetypeKey)=>key==='slab_on_grade'?'#60a5fa':key==='pad_column_footing'?'#f59e0b':'#34d399';
 
 function currentConditionRows(rows:ConditionSummary[]){
@@ -101,11 +97,9 @@ function draftFromVersion(version:ConditionVersion|null):ConditionInputDraft{
 export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
   const router=useRouter();
   const drawingHostRef=useRef<HTMLDivElement|null>(null);
-  const resizeRef=useRef<{x:number;width:number}|null>(null);
   const [sidebarHost,setSidebarHost]=useState<HTMLElement|null>(null);
   const [contextTab,setContextTab]=useState<ContextTab>('plans');
   const [conditionQuery,setConditionQuery]=useState('');
-  const [propertiesWidth,setPropertiesWidth]=useState(390);
   const [selectedVersionId,setSelectedVersionId]=useState<string|null>(null);
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
@@ -214,16 +208,6 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const attach=()=>{const dock=host.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');if(!dock)return false;const update=()=>setDockHeight(Math.max(38,Math.round(dock.getBoundingClientRect().height)));update();observer=new ResizeObserver(update);observer.observe(dock);return true;};
     if(!attach())timer=window.setTimeout(()=>{attach();},0);
     return()=>{if(timer)window.clearTimeout(timer);observer?.disconnect();};
-  },[]);
-  useEffect(()=>{
-    try{const saved=Number(window.localStorage.getItem(PROPERTY_WIDTH_KEY));if(Number.isFinite(saved)&&saved>=PROPERTY_MIN)setPropertiesWidth(clamp(saved,PROPERTY_MIN,PROPERTY_MAX));}catch{}
-  },[]);
-  useEffect(()=>{try{window.localStorage.setItem(PROPERTY_WIDTH_KEY,String(propertiesWidth));}catch{}},[propertiesWidth]);
-  useEffect(()=>{
-    const move=(event:PointerEvent)=>{if(resizeRef.current)setPropertiesWidth(clamp(resizeRef.current.width+resizeRef.current.x-event.clientX,PROPERTY_MIN,PROPERTY_MAX));};
-    const end=()=>{resizeRef.current=null;document.body.style.cursor='';document.body.style.userSelect='';};
-    window.addEventListener('pointermove',move);window.addEventListener('pointerup',end);
-    return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end);end();};
   },[]);
   useEffect(()=>{
     if(!selectedVersionId&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);
@@ -342,7 +326,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     </div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}
   </div>,sidebarHost):null;
 
-  return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode} style={{gridTemplateColumns:`minmax(0,1fr) 5px ${propertiesWidth}px`}}>
+  return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds}/>
       {contextPortal}
@@ -350,7 +334,6 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
         <TakeoffDerived3DView scene={derived3DScene} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
-    <button type="button" className={styles.propertiesResize} aria-label="Resize Condition Properties" onPointerDown={event=>{resizeRef.current={x:event.clientX,width:propertiesWidth};document.body.style.cursor='ew-resize';document.body.style.userSelect='none';event.preventDefault();}}/>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}>
         <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no}</small>:null}</div>
