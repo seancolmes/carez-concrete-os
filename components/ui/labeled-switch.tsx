@@ -30,7 +30,7 @@ function LabeledSwitch({
       data-disabled={disabled ? "true" : undefined}
       data-checked={checked ? "true" : "false"}
       className={cn(
-        "flex min-h-10 items-center justify-between gap-3 rounded-md border border-input bg-background px-2.5 py-1.5 transition-[background-color,border-color] data-[checked=true]:border-success/45 data-[checked=true]:bg-success/5",
+        "flex min-h-10 items-center justify-between gap-3 rounded-md border border-input bg-background px-2.5 py-1.5",
         className
       )}
     >
