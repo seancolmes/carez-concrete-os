@@ -12,7 +12,7 @@
     "build": "node scripts/copy-pdf-worker.mjs && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/domain.test.ts tests/placement-v7.test.ts tests/scale-regions.test.ts tests/estimate-worksheet.test.ts tests/builder-methods.test.ts tests/sheet-metadata.test.ts tests/takeoff-holds.test.ts tests/length-format.test.ts tests/formula-expression.test.ts tests/formula-composer.test.ts tests/concrete-conditions.test.ts tests/concrete-condition-authoring.test.ts",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/domain.test.ts tests/placement-v7.test.ts tests/scale-regions.test.ts tests/estimate-worksheet.test.ts tests/builder-methods.test.ts tests/sheet-metadata.test.ts tests/takeoff-holds.test.ts tests/length-format.test.ts tests/formula-expression.test.ts tests/formula-composer.test.ts tests/concrete-conditions.test.ts tests/concrete-condition-authoring.test.ts tests/condition-first-cutover.test.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
