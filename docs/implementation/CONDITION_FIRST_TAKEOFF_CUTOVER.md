@@ -72,7 +72,7 @@ Nik completed authenticated browser acceptance on the single stable `staging` Ve
 - the remaining Condition-first workflow checks passed;
 - the separate Assemblies destination under Estimating remains available only as preserved compatibility/history and is not considered active Takeoff legacy authoring.
 
-Issue #50 may therefore remain closed as completed. This acceptance does not authorize destructive deletion of legacy tables, published versions, formula/method records, or historical commercial lineage.
+Issue #50 is closed as completed. This acceptance does not authorize destructive deletion of legacy tables, published versions, formula/method records, or historical commercial lineage.
 
 ## Verification contract
 
