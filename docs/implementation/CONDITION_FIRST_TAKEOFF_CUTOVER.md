@@ -1,10 +1,11 @@
 # Condition-first Takeoff cutover
 
-Status: implemented on `staging`; browser acceptance is required before this is treated as fully verified.
+Status: accepted on authenticated stable `staging` browser QA; Issue #50 is complete.
 
 Canonical decision: `docs/decisions/ADR-012-concrete-condition-engine.md`.
 Implementation issue: #50.
 Validated implementation SHA: `84e24f4d5cc6984b0a7b3c2f8d5c21d3525985a8`.
+Final launcher-leak fix SHA: `c9889f746f0ed6fad8a286b90f8c11456679afa8`.
 
 ## Dependency gate
 
@@ -25,6 +26,7 @@ When the gate passes:
 - full legacy builder-authoring data is not loaded for the active route;
 - the Takeoff toolbar and `M` shortcut open Concrete Conditions instead of starting a direct legacy assembly measurement;
 - the Inspector no longer exposes the legacy concrete assembly selector, Build Plan tab/workbench, TakeoffAssemblyInputEditor, or new legacy assembly-property authoring;
+- the Quantity Worksheet does not expose the legacy `Scope Recipes` launcher when the Condition-first shell is active;
 - Condition-required geometry is started from the Condition role and uses the hidden compatibility assembly/version only as an internal measurement/output bridge;
 - the compatibility selection is one-shot and is cleared on completion, Escape/cancellation, or page change;
 - direct duplication is not exposed in Condition-first mode through either the visible Duplicate action or the `D` keyboard shortcut because it would create geometry outside Condition role lineage;
@@ -41,7 +43,7 @@ This cutover intentionally does **not** delete:
 - accepted estimate/proposal references;
 - compatibility assemblies used internally by the Condition bridge.
 
-Physical schema/data retirement requires separate dependency proof and migration work after historical references and active runtime dependencies are proven safe.
+Physical schema/data retirement requires separate dependency proof and migration work after historical references and active runtime dependencies are proven safe. The read-only Assemblies destination outside the active Takeoff authoring workflow remains a compatibility/history surface until those later gates are satisfied.
 
 ## Validation checkpoint
 
@@ -58,8 +60,22 @@ GitHub Actions run `33943617700` validated the final shortcut/lifecycle state wi
 
 The temporary validation workflow and patch script are absent from the resulting staging tree.
 
+The final rendered QA exposed one remaining active-workflow leak: the Quantity Worksheet still rendered a `Scope Recipes` button even though the Condition-first shell did not mount the legacy Assembly Builder. Commit `c9889f746f0ed6fad8a286b90f8c11456679afa8` gates that launcher on actual Assembly Builder availability and adds regression coverage.
+
+## Browser acceptance
+
+Nik completed authenticated browser acceptance on the single stable `staging` Vercel URL after the final launcher fix. Accepted behavior:
+
+- no Build Plan / Build Method tab or workbench;
+- no direct legacy assembly creation in the active Condition-first Takeoff workflow;
+- no `Scope Recipes` launcher beside the Quantity Worksheet;
+- the remaining Condition-first workflow checks passed;
+- the separate Assemblies destination under Estimating remains available only as preserved compatibility/history and is not considered active Takeoff legacy authoring.
+
+Issue #50 may therefore remain closed as completed. This acceptance does not authorize destructive deletion of legacy tables, published versions, formula/method records, or historical commercial lineage.
+
 ## Verification contract
 
 Automated validation must include typecheck, domain tests, production build, and the `condition-first-cutover.test.ts` contract test. Final acceptance additionally requires authenticated browser verification on the single stable `staging` Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
 
-Do not mark this cutover browser-verified merely because source, QA dependency data, tests, or deployment builds are green.
+That acceptance has now been completed for Issue #50. Future changes that touch the Condition-first shell, Quantity Worksheet launcher gating, or legacy compatibility boundary must preserve the accepted behavior or explicitly reopen the relevant QA scope.
