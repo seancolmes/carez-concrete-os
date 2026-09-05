@@ -2,7 +2,6 @@
 
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { deleteProjectConcreteCondition } from '@/app/takeoff/[setId]/conditionActions';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ConditionRow = {
   condition_id: string;
@@ -40,7 +40,6 @@ function currentConditions(rows: ConditionRow[]) {
 }
 
 export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
-  const router = useRouter();
   const rows = useMemo(() => currentConditions(conditions), [conditions]);
   const draftRows = useMemo(() => rows.filter(row => row.version_status === 'draft'), [rows]);
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -81,9 +80,11 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
           conditionId: target.condition_id,
           deleteLinkedTakeoffs: true,
         });
-        setOpen(false);
-        setSelectedConditionId('');
-        router.refresh();
+        // The Condition delete can atomically remove the currently selected
+        // drawing measurement. A full same-route reload deliberately resets all
+        // client drawing selection/tool state before another action can submit
+        // the now-deleted measurement ID.
+        window.location.reload();
       } catch (caught: any) {
         setError(caught?.message || 'Could not delete Condition.');
       }
@@ -119,14 +120,12 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
 
         <label className="grid gap-1.5 text-xs">
           <span className="font-medium text-foreground">Condition</span>
-          <select
-            value={selectedConditionId}
-            onChange={event => { setSelectedConditionId(event.target.value); setError(''); }}
-            disabled={isPending || locked}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-          >
-            {draftRows.map(row => <option key={row.condition_id} value={row.condition_id}>{row.code} · {row.name}</option>)}
-          </select>
+          <Select value={selectedConditionId} onValueChange={value => { setSelectedConditionId(String(value || '')); setError(''); }} disabled={isPending || locked}>
+            <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Select Condition" /></SelectTrigger>
+            <SelectContent>
+              {draftRows.map(row => <SelectItem key={row.condition_id} value={row.condition_id}>{row.code} · {row.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </label>
 
         {target ? <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
