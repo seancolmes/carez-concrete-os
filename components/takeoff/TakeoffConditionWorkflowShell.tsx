@@ -23,12 +23,13 @@ export function TakeoffConditionWorkflowShell({ setId, workspaceProps, condition
       conditionMeasurementIds={conditionMeasurementIds}
     />
     <ConcreteConditionAuthoring
-      takeoffSetId={setId}
-      locked={workspaceProps.locked}
-      measurements={workspaceProps.initialMeasurements}
-      assemblies={workspaceProps.assemblies}
-      assemblyVersions={workspaceProps.versions}
-      conditionData={conditionData}
+      setId={setId}
+      locked={Boolean(workspaceProps.locked)}
+      data={conditionData}
+      measurements={workspaceProps.initialMeasurements || []}
+      sheets={workspaceProps.initialSheets || []}
+      assemblies={workspaceProps.assemblies || []}
+      assemblyVersions={workspaceProps.versions || []}
     />
   </>;
 }
