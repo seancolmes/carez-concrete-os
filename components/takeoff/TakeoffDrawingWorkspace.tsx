@@ -450,7 +450,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       if(event.key.toLowerCase()==='c'&&!locked){setCalibrationPoints([]);setTool('calibrate');}
       if(event.key.toLowerCase()==='m'&&!locked){if(conditionAuthoringActive){openConditions();return;}if(buildPlanReady)setTool('draw');else setMessage('Verify the current build method before starting takeoff.');}
       if(event.key.toLowerCase()==='e'&&!locked&&selectedGeometry)beginEdit();
-      if(event.key.toLowerCase()==='d'&&!locked&&selectedGeometry){event.preventDefault();void duplicateSelected();}
+      if(event.key.toLowerCase()==='d'&&!conditionAuthoringActive&&!locked&&selectedGeometry){event.preventDefault();void duplicateSelected();}
       if(event.key.toLowerCase()==='k'&&!locked&&selectedGeometry?.type==='polygon')beginCutout();
       if(event.key==='PageUp'){event.preventDefault();changePage(Math.max(1,pageNumber-1));}
       if(event.key==='PageDown'){event.preventDefault();changePage(Math.min(pdfPageCount||pageNumber,pageNumber+1));}

@@ -30,4 +30,5 @@ test('Condition-first workspace removes legacy assembly and Build Plan authoring
   assert.match(workspace, /conditionAuthoringActive\?<div className=\{styles\.statusWarn\}>/);
   assert.match(workspace, /:selectedVersionRecord&&selectedAssemblyRecord\?<TakeoffAssemblyInputEditor/);
   assert.match(workspace, /if\(conditionAuthoringActive\)\{openConditions\(\);return;\}/);
+  assert.match(workspace, /if\(event\.key\.toLowerCase\(\)==='d'&&!conditionAuthoringActive/);
 });
