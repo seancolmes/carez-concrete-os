@@ -108,7 +108,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
   const [editGeometry,setEditGeometry]=useState<DrawingGeometry|null>(null);
   const [historySnapshot,setHistorySnapshot]=useState<CommandHistorySnapshot>(()=>historyRef.current.snapshot());
-  const [selectedAssemblyId,setSelectedAssemblyId]=useState<string>(assemblies[0]?.id||'');
+  const conditionDrawRef=useRef<{name:string;roleLabel:string}|null>(null);
+  const [selectedAssemblyId,setSelectedAssemblyId]=useState<string>(assemblies.find((assembly:any)=>assembly.category!=='Concrete Conditions')?.id||assemblies[0]?.id||'');
   const [assemblySearch,setAssemblySearch]=useState('');
   const [objectName,setObjectName]=useState('');
   const [sectionId,setSectionId]=useState('');
@@ -169,10 +170,43 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedSummary=selectedMeasurement?summaryMap.get(selectedMeasurement.id):null;
 
   const filteredAssemblies=useMemo(()=>{
+    const visible=assemblies.filter((assembly:any)=>assembly.category!=='Concrete Conditions');
     const q=assemblySearch.trim().toLowerCase();
-    if(!q)return assemblies;
-    return assemblies.filter((a:any)=>[a.code,a.name,a.category,a.description].some(v=>String(v||'').toLowerCase().includes(q)));
+    if(!q)return visible;
+    return visible.filter((a:any)=>[a.code,a.name,a.category,a.description].some(v=>String(v||'').toLowerCase().includes(q)));
   },[assemblies,assemblySearch]);
+
+  useEffect(()=>{
+    const startConditionTakeoff=(event:Event)=>{
+      if(locked)return;
+      const detail=(event as CustomEvent<{assemblyVersionId?:string;name?:string;roleLabel?:string}>).detail||{};
+      const version:any=versionMap.get(String(detail.assemblyVersionId||''));
+      if(!version){setMessage('The Concrete Condition takeoff recipe is unavailable. Refresh and try again.');return;}
+      const request={
+        name:String(detail.name||'Concrete Condition'),
+        roleLabel:String(detail.roleLabel||'Condition takeoff'),
+      };
+      conditionDrawRef.current=request;
+      if(version.assembly_id===selectedAssemblyId){
+        setSelectedMeasurementId(null);
+        setEditGeometry(null);
+        editOriginalRef.current=null;
+        setObjectName(request.name);
+        setDraftPoints([]);
+        setDraftScaleRegionId(null);
+        setHoverPoint(null);
+        setTool('draw');
+        setInspectorOpen(true);
+        setInspectorTab('properties');
+        setMessage(`Draw ${request.roleLabel} on the plan. Double-click to finish LF; click the first point to close SF.`);
+        conditionDrawRef.current=null;
+      }else{
+        setSelectedAssemblyId(version.assembly_id);
+      }
+    };
+    window.addEventListener('carez:start-condition-takeoff',startConditionTakeoff as EventListener);
+    return()=>window.removeEventListener('carez:start-condition-takeoff',startConditionTakeoff as EventListener);
+  },[locked,selectedAssemblyId,versionMap]);
 
   useEffect(()=>{
     if(selectedMeasurementId&&!selectedMeasurement){setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;if(tool==='edit'||tool==='cutout')setTool('select');}
@@ -184,13 +218,24 @@ export function TakeoffDrawingWorkspace(props:Props){
     for(const variable of selectedVariables){if(variable.variable_key==='perimeter_lf'&&selectedAssembly?.primary_measurement==='SF')continue;next[variable.variable_key]=variable.default_value===null||variable.default_value===undefined?'':String(variable.default_value);}
     const profile=methodProfiles.find((entry:any)=>entry.assembly_version_id===selectedVersion.id&&entry.status==='verified')||null;
     if(profile){for(const [key,value] of Object.entries(profile.method_inputs||{}))next[key]=value===null||value===undefined?'':String(value);}
+    const pendingConditionDraw=conditionDrawRef.current;
     setVariableValues(next);
     setSelectedMethodProfileId(profile?.id||null);
     setRiskClassCode(selectedVersion.default_risk_class_code||'');
-    setObjectName('');
+    setObjectName(pendingConditionDraw?.name||'');
     setDraftPoints([]);
     setDraftScaleRegionId(null);
     setHoverPoint(null);
+    if(pendingConditionDraw){
+      setSelectedMeasurementId(null);
+      setEditGeometry(null);
+      editOriginalRef.current=null;
+      setTool('draw');
+      setInspectorOpen(true);
+      setInspectorTab('properties');
+      setMessage(`Draw ${pendingConditionDraw.roleLabel} on the plan. Double-click to finish LF; click the first point to close SF.`);
+      conditionDrawRef.current=null;
+    }
   },[selectedVersion?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{

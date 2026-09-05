@@ -100,6 +100,88 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     measurements: measurements || [],
   };
 
+  const { data: conditionSummaries } = await supabase.from('project_condition_summary')
+    .select('company_id,condition_id,takeoff_set_id,code,name,condition_version_id,revision_no,version_status,template_version_id,archetype_code,archetype_name,measurement_count,output_count,held_output_count,open_hold_count,direct_cost')
+    .eq('company_id', companyId)
+    .eq('takeoff_set_id', setId)
+    .order('code')
+    .order('revision_no', { ascending: false });
+
+  const conditionVersionIds = [...new Set((conditionSummaries || [])
+    .map((row: any) => row.condition_version_id)
+    .filter(Boolean))] as string[];
+  const conditionTemplateVersionIds = [...new Set((conditionSummaries || [])
+    .map((row: any) => row.template_version_id)
+    .filter(Boolean))] as string[];
+
+  let conditionData: any = {
+    conditions: conditionSummaries || [],
+    versions: [],
+    templateVersions: [],
+    modules: [],
+    roles: [],
+    outputs: [],
+    holds: [],
+    reconciliation: [],
+  };
+
+  if (conditionVersionIds.length) {
+    const [
+      { data: conditionVersions },
+      { data: conditionTemplateVersions },
+      { data: conditionModules },
+      { data: conditionRoles },
+      { data: conditionOutputs },
+      { data: conditionHolds },
+      { data: conditionReconciliation },
+    ] = await Promise.all([
+      supabase.from('project_concrete_condition_versions')
+        .select('id,template_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,updated_at')
+        .eq('company_id', companyId)
+        .in('id', conditionVersionIds),
+      supabase.from('company_condition_template_versions')
+        .select('id,legacy_assembly_version_id')
+        .eq('company_id', companyId)
+        .in('id', conditionTemplateVersionIds),
+      supabase.from('project_condition_module_instances')
+        .select('condition_version_id,module_key,instance_key,label,enabled,input_values,input_provenance,legacy_child_key,sort_order')
+        .eq('company_id', companyId)
+        .in('condition_version_id', conditionVersionIds)
+        .order('sort_order'),
+      supabase.from('project_condition_measurement_roles')
+        .select('condition_version_id,measurement_id,role_key,role_instance_key,sort_order')
+        .eq('company_id', companyId)
+        .in('condition_version_id', conditionVersionIds)
+        .order('sort_order'),
+      supabase.from('project_condition_outputs')
+        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id')
+        .eq('company_id', companyId)
+        .in('condition_version_id', conditionVersionIds)
+        .order('output_key'),
+      supabase.from('project_condition_holds')
+        .select('id,condition_version_id,output_id,hold_code,status,message')
+        .eq('company_id', companyId)
+        .in('condition_version_id', conditionVersionIds)
+        .order('created_at'),
+      supabase.from('condition_legacy_reconciliation')
+        .select('condition_version_id,output_key,reconciliation_status')
+        .eq('company_id', companyId)
+        .in('condition_version_id', conditionVersionIds)
+        .order('output_key'),
+    ]);
+
+    conditionData = {
+      conditions: conditionSummaries || [],
+      versions: conditionVersions || [],
+      templateVersions: conditionTemplateVersions || [],
+      modules: conditionModules || [],
+      roles: conditionRoles || [],
+      outputs: conditionOutputs || [],
+      holds: conditionHolds || [],
+      reconciliation: conditionReconciliation || [],
+    };
+  }
+
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
       <header className={pageStyles.identityStrip}>
@@ -117,7 +199,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
-      <TakeoffAssemblyBuilderShell setId={setId} workspaceProps={workspaceProps} builderData={builderData} />
+      <TakeoffAssemblyBuilderShell setId={setId} workspaceProps={workspaceProps} builderData={builderData} conditionData={conditionData} />
       </>}
     </div>
   </AppShell>;
