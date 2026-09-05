@@ -197,7 +197,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
   const count = Math.ceil(viewportHeight / ROW_HEIGHT) + overscan * 2;
   const visibleRows = filteredRows.slice(start, start + count);
 
-  return <section className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`} style={{ height: collapsed ? 38 : height }} aria-label="Takeoff quantity worksheet">
+  return <section className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`} style={{ height: collapsed ? 38 : height }} aria-label="Takeoff quantity worksheet" data-current-sheet-id={currentSheetId || ''}>
     {!collapsed && <button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" onPointerDown={event => {
       heightDragRef.current = { y: event.clientY, height };
       document.body.style.cursor = 'ns-resize';
@@ -234,7 +234,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
       <div ref={bodyRef} className={styles.body} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
         {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT, minWidth: gridWidth }}>
           <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
-            {visibleRows.map((row, index) => <button type="button" role="row" aria-rowindex={start + index + 2} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>
+            {visibleRows.map((row, index) => <button type="button" role="row" aria-rowindex={start + index + 2} aria-selected={selectedMeasurementId === row.measurement.id} data-takeoff-measurement-id={row.measurement.id} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>
               <span role="cell" className={styles.measurement}><strong>{row.measurement.name}</strong><small>{row.sheet}{row.measurement.location ? ` · ${row.measurement.location}` : ''}</small></span>
               <span role="cell" className={styles.numeric} title={`${row.measurement.raw_quantity} ${row.measurement.raw_unit}`}>{formatTakeoffQuantityValue(row.measurement.raw_quantity, row.measurement.raw_unit)}</span>
               <span role="cell">{row.measurement.raw_unit}</span>
