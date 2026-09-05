@@ -192,6 +192,24 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [scope, query, currentSheetId]);
 
+  useEffect(() => {
+    const selectMeasurement = (event: Event) => {
+      const measurementId = String((event as CustomEvent<{ measurementId?: string }>).detail?.measurementId || '');
+      const measurement = measurements.find(row => row.id === measurementId);
+      if (measurement) onOpenMeasurement(measurement);
+    };
+    window.addEventListener('carez:select-takeoff-measurement', selectMeasurement as EventListener);
+    return () => window.removeEventListener('carez:select-takeoff-measurement', selectMeasurement as EventListener);
+  }, [measurements, onOpenMeasurement]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('carez:takeoff-selection-change', { detail: { measurementId: selectedMeasurementId } }));
+  }, [selectedMeasurementId]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('carez:takeoff-sheet-change', { detail: { sheetId: currentSheetId } }));
+  }, [currentSheetId]);
+
   const overscan = 5;
   const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - overscan);
   const count = Math.ceil(viewportHeight / ROW_HEIGHT) + overscan * 2;
