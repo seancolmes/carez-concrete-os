@@ -35,12 +35,15 @@ import {
   type Derived3DIssue,
   type Derived3DSolid,
 } from '@/lib/takeoff/conditions/derived3d';
+import {STRIP_FOOTING_V2_DEFINITION} from '@/lib/takeoff/conditions/stripFootingV2';
 import type {
   ConditionArchetypeKey,
   ConditionInputDefinition,
   ConditionInputGroup,
+  ConditionModuleConfiguration,
   ConditionModuleKey,
 } from '@/lib/takeoff/conditions/types';
+import {ConditionModuleEditor} from './ConditionModuleEditor';
 import {TakeoffDerived3DView} from './TakeoffDerived3DView';
 import {TakeoffDrawingWorkspace} from './TakeoffDrawingWorkspace';
 import styles from './IntegratedTakeoffConditionWorkspace.module.css';
@@ -56,7 +59,7 @@ type ConditionVersion={
 };
 type ConditionModule={
   condition_version_id:string;module_key:ConditionModuleKey;instance_key:string;label:string;enabled:boolean;
-  input_values:Record<string,unknown>;input_provenance:Record<string,unknown>;legacy_child_key:string|null;sort_order:number;
+  input_values:Record<string,any>;input_provenance:Record<string,any>;legacy_child_key:string|null;sort_order:number;
 };
 type ConditionData={
   conditions:ConditionSummary[];versions:ConditionVersion[];templateVersions:Array<{id:string;legacy_assembly_version_id:string|null}>;
@@ -71,7 +74,8 @@ type PropertyTab='general'|'rebar'|'forms'|'excavation'|'labor'|'drawing'|'more'
 type ViewMode='2d'|'3d'|'split';
 
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
-  concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',labor:'Labor',
+  concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',
+  excavation_backfill:'Excavation / backfill',placement_equipment:'Placement / equipment',finish_cure_protection:'Finish / cure / protection',labor:'Labor',miscellaneous:'Miscellaneous',
 };
 const money=(value:number|string)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
 const quantity=(value:number|string|null,unit:string)=>value===null?'—':`${Number(value).toLocaleString('en-US',{maximumFractionDigits:3})} ${unit}`;
@@ -93,6 +97,10 @@ function draftFromVersion(version:ConditionVersion|null):ConditionInputDraft{
     drawing:{...(version.drawing_inputs||{})} as Record<string,any>,
   };
 }
+const toModuleConfiguration=(module:ConditionModule):ConditionModuleConfiguration=>({
+  moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:Boolean(module.enabled),
+  inputValues:{...(module.input_values||{})},inputProvenance:{...(module.input_provenance||{})},legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order,
+});
 
 export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
   const router=useRouter();
@@ -109,6 +117,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [draft,setDraft]=useState<ConditionInputDraft>({});
   const [moduleEnabled,setModuleEnabled]=useState<Record<string,boolean>>({});
   const [moduleDraft,setModuleDraft]=useState<Record<string,Record<string,unknown>>>({});
+  const [moduleConfigurations,setModuleConfigurations]=useState<ConditionModuleConfiguration[]>([]);
   const [roleSelections,setRoleSelections]=useState<Record<string,string>>({});
   const [message,setMessage]=useState('');
   const [creating,setCreating]=useState(false);
@@ -128,10 +137,11 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const conditions=useMemo(()=>currentConditionRows(conditionData.conditions||[]),[conditionData.conditions]);
   const selectedSummary=conditions.find(row=>row.condition_version_id===selectedVersionId)||null;
   const selectedVersion=conditionData.versions.find(row=>row.id===selectedVersionId)||null;
-  const definition=selectedSummary?conditionArchetype(selectedSummary.archetype_code):null;
   const templateVersion=selectedVersion?conditionData.templateVersions.find(row=>row.id===selectedVersion.template_version_id)||null:null;
   const compatibilityAssemblyVersionId=templateVersion?.legacy_assembly_version_id||null;
   const selectedModules=selectedVersionId?conditionData.modules.filter(row=>row.condition_version_id===selectedVersionId).sort((a,b)=>a.sort_order-b.sort_order):[];
+  const stripV2=selectedSummary?.archetype_code==='strip_wall_footing'&&selectedModules.some(module=>module.module_key==='excavation_backfill');
+  const definition=selectedSummary?(stripV2?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(selectedSummary.archetype_code)):null;
   const selectedOutputs=selectedVersionId?conditionData.outputs.filter(row=>row.condition_version_id===selectedVersionId):[];
   const selectedHolds=selectedVersionId?conditionData.holds.filter(row=>row.condition_version_id===selectedVersionId&&row.status==='open'):[];
   const selectedReconciliation=selectedVersionId?conditionData.reconciliation.filter(row=>row.condition_version_id===selectedVersionId):[];
@@ -189,7 +199,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     if(!focusPlan)return;
     const row=conditions.find(item=>item.condition_version_id===versionId);
     if(!row)return;
-    const primary=conditionArchetype(row.archetype_code).roles.find(role=>role.primary);
+    const rowDefinition=row.archetype_code==='strip_wall_footing'&&conditionData.modules.some(module=>module.condition_version_id===versionId&&module.module_key==='excavation_backfill')?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(row.archetype_code);
+    const primary=rowDefinition.roles.find(role=>role.primary);
     const assigned=primary?conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key):null;
     if(assigned?.measurement_id)focusMeasurement(assigned.measurement_id);
   };
@@ -217,11 +228,13 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     if(!selectedVersion)return;
     setDraft(draftFromVersion(selectedVersion));
     setModuleEnabled(Object.fromEntries(selectedModules.map(module=>[module.module_key,Boolean(module.enabled)])));
-    setModuleDraft(Object.fromEntries(selectedModules.map(module=>[module.module_key,{...(module.input_values||{})}])));
+    setModuleDraft(Object.fromEntries(selectedModules.filter(module=>module.instance_key==='default').map(module=>[module.module_key,{...(module.input_values||{})}])));
+    setModuleConfigurations(selectedModules.map(toModuleConfiguration));
     const assigned=conditionData.roles.filter(row=>row.condition_version_id===selectedVersion.id);
     setRoleSelections(Object.fromEntries(assigned.map(role=>[role.role_key,role.measurement_id])));
     setMessage('');
   },[selectedVersion?.id,selectedVersion?.updated_at]);
+  useEffect(()=>{if(stripV2&&viewMode!=='2d')setViewMode('2d');},[stripV2,viewMode]);
   useEffect(()=>{
     const open=()=>{setContextTab('conditions');setCreating(false);};
     window.addEventListener('carez:open-conditions',open);
@@ -243,7 +256,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   },[conditionData.roles,conditions]);
 
   const updateInput=(input:ConditionInputDefinition,value:string)=>{
-    const parsed=input.valueType==='number'||input.valueType==='integer'?(value===''?'':Number(value)):value;
+    const parsed=input.valueType==='number'||input.valueType==='integer'?(value===''?'':Number(value)):input.valueType==='boolean'?value==='true':value;
     setDraft(current=>({...current,[input.group]:{...(current[input.group]||{}),[input.key]:parsed}}));
   };
   const setRole=(roleKey:string,measurementId:string)=>setRoleSelections(current=>{
@@ -281,15 +294,15 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const anchorId=primary?roleSelections[primary.key]:'';
     if(!anchorId){setMessage(`Assign ${primary?.label||'the primary takeoff'} before calculating.`);return;}
     const {inputs,provenance}=prepareConditionAuthoringInputs(draft);
+    const modulesForSave=stripV2?moduleConfigurations:selectedModules.map((module,index)=>({
+      moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:moduleEnabled[module.module_key]!==false,
+      inputValues:(moduleDraft[module.module_key]||module.input_values) as Record<string,any>,inputProvenance:module.input_provenance as Record<string,any>,
+      legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order||(index+1)*10,
+    }));
     setMessage('Saving…');
     startTransition(async()=>{try{
       const result=await saveAndRecalculateConcreteConditionPilot({
-        conditionVersionId:selectedVersion.id,inputs,inputProvenance:provenance,
-        modules:selectedModules.map((module,index)=>({
-          moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:moduleEnabled[module.module_key]!==false,
-          inputValues:(moduleDraft[module.module_key]||module.input_values) as Record<string,any>,inputProvenance:module.input_provenance as Record<string,any>,
-          legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order||(index+1)*10,
-        })),
+        conditionVersionId:selectedVersion.id,inputs,inputProvenance:provenance,modules:modulesForSave,
         measurementRoles:roles,compatibilityAnchorMeasurementId:anchorId,
       });
       setMessage(`Saved · ${result?.output_count||0} outputs`);router.refresh();
@@ -300,8 +313,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const inputs=definition?.inputs.filter(input=>input.group===group)||[];
     if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
     return <div className={styles.fieldGrid}>{inputs.map(input=><label className={styles.field} key={`${group}-${input.key}`}><span>{input.label}</span>
-      {input.valueType==='boolean'?<label className={styles.checkLine}><input type="checkbox" checked={Boolean(draft[group]?.[input.key])} onChange={event=>updateInput(input,event.target.checked?'true':'')} disabled={locked||isPending}/><span>Enabled</span></label>
-      :input.valueType==='select'?<select value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}><option value="">Select…</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="centerline">Centerline</option></select>
+      {input.valueType==='boolean'?<label className={styles.checkLine}><input type="checkbox" checked={Boolean(draft[group]?.[input.key])} onChange={event=>updateInput(input,event.target.checked?'true':'false')} disabled={locked||isPending}/><span>Enabled</span></label>
+      :input.valueType==='select'?<select value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}><option value="">Select…</option>{(input.options||['top','bottom','centerline']).map(option=><option key={option} value={option}>{humanize(option)}</option>)}</select>
+      :input.valueType==='text'?<Input value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
       :<CarezNumberField value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>}</label>)}</div>;
   };
 
@@ -315,6 +329,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       :typeof value==='number'?<CarezNumberField value={String(value)} onChange={event=>updateModuleInput(moduleKey,key,event.target.value===''?'':Number(event.target.value))} step="any" disabled={locked||isPending}/>
       :<Input value={String(value??'')} onChange={event=>updateModuleInput(moduleKey,key,event.target.value)} disabled={locked||isPending}/>}</label>)}</div>;
   };
+  const moduleEditor=(moduleKey:ConditionModuleKey)=>stripV2&&definition?<ConditionModuleEditor definition={definition} moduleKey={moduleKey} modules={moduleConfigurations} onChange={setModuleConfigurations} disabled={locked||isPending}/>:renderModule(moduleKey);
 
   const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}>
     <div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">
@@ -330,15 +345,15 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds}/>
       {contextPortal}
-      {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
+      {viewMode!=='2d'&&!stripV2&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <TakeoffDerived3DView scene={derived3DScene} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}>
-        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no}</small>:null}</div>
+        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no}{stripV2?' · Module v2':''}</small>:null}</div>
         <div className={styles.propertiesHeaderActions}>
-          <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
+          <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripV2&&mode!=='2d'} title={stripV2&&mode!=='2d'?'Strip Footing v2 is being completed before additional derived-3D work.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
           <Button size="sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked||isPending}><Plus/>New</Button>
         </div>
       </header>
@@ -351,7 +366,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
         <div className={styles.statusLine} role="status">{message}</div>
       </div>:!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
         <div className={styles.conditionSummary}>
-          <div><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><div><strong>{selectedSummary.archetype_name}</strong><small>{selectedSummary.version_status}</small></div></div>
+          <div><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><div><strong>{selectedSummary.archetype_name}</strong><small>{selectedSummary.version_status}{stripV2?' · Full modules':''}</small></div></div>
           <div className={styles.metrics}><span><b>{selectedSummary.measurement_count}</b>Takeoffs</span><span><b>{selectedSummary.output_count}</b>Outputs</span><span className={Number(selectedSummary.open_hold_count)?styles.metricWarn:''}><b>{selectedSummary.open_hold_count}</b>Holds</span></div>
         </div>
         <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}>
@@ -360,15 +375,16 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
         <div className={styles.propertiesScroll}>
           {propertyTab==='general'?<>
             <section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Takeoff roles</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><select value={roleSelections[role.key]||''} onChange={event=>setRole(role.key,event.target.value)} disabled={locked||isPending}><option value="">{role.required?'Select takeoff…':'Not used'}</option>{choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return <option key={measurement.id} value={measurement.id}>{measurement.name} · {quantity(measurement.raw_quantity,measurement.raw_unit)} · {sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}</option>;})}</select><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending}>Draw {role.unit}</Button></div>;})}</div></section>
-            <section className={styles.propertySection}><div className={styles.sectionHead}><Layers3/><strong>Modules</strong></div><div className={styles.moduleToggles}>{selectedModules.map(module=><label key={module.module_key}><input type="checkbox" checked={moduleEnabled[module.module_key]!==false} onChange={event=>setModuleEnabled(current=>({...current,[module.module_key]:event.target.checked}))} disabled={locked||isPending}/><span>{MODULE_LABELS[module.module_key]||module.label}</span></label>)}</div></section>
-            <section className={styles.propertySection}><div className={styles.sectionHead}><strong>General</strong></div>{renderInputGroup('planFacts')}</section>
+            {!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><Layers3/><strong>Modules</strong></div><div className={styles.moduleToggles}>{selectedModules.map(module=><label key={module.module_key}><input type="checkbox" checked={moduleEnabled[module.module_key]!==false} onChange={event=>setModuleEnabled(current=>({...current,[module.module_key]:event.target.checked}))} disabled={locked||isPending}/><span>{MODULE_LABELS[module.module_key]||module.label}</span></label>)}</div></section>:null}
+            <section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong></div>{renderInputGroup('planFacts')}</section>
+            {stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong><small>Profile · mix · placement</small></div>{moduleEditor('concrete')}</section>:null}
           </>:null}
-          {propertyTab==='rebar'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Rebar</strong></div>{renderModule('reinforcing')}</section>:null}
-          {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong></div>{renderModule('forms')}</section>:null}
-          {propertyTab==='excavation'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Excavation</strong></div><div className={styles.compactEmpty}>No excavation inputs for this condition.</div></section>:null}
-          {propertyTab==='labor'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Production</strong></div>{renderInputGroup('production')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Labor</strong></div>{renderModule('labor')}</section></>:null}
-          {propertyTab==='drawing'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Drawing</strong></div>{renderInputGroup('drawing')}</section>:null}
-          {propertyTab==='more'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Methods</strong></div>{renderInputGroup('methods')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Commercial</strong></div>{renderInputGroup('commercial')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{renderModule('concrete')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Anchors / embeds</strong></div>{renderModule('anchors_embeds')}</section>{selectedModules.some(module=>module.module_key==='slab_systems')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Slab systems</strong></div>{renderModule('slab_systems')}</section>:null}</>:null}
+          {propertyTab==='rebar'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Rebar</strong><small>{stripV2?'Repeatable sets':''}</small></div>{moduleEditor('reinforcing')}</section>:null}
+          {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong><small>{stripV2?'Sides · material · stakes':''}</small></div>{moduleEditor('forms')}</section>:null}
+          {propertyTab==='excavation'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Excavation / backfill</strong></div>{stripV2?moduleEditor('excavation_backfill'):<div className={styles.compactEmpty}>No excavation inputs for this Condition version.</div>}</section>:null}
+          {propertyTab==='labor'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Production</strong></div>{renderInputGroup('production')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Labor outputs</strong></div>{moduleEditor('labor')}</section></>:null}
+          {propertyTab==='drawing'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Drawing</strong></div>{renderInputGroup('drawing')}{stripV2?<div className={styles.compactEmpty}>Additional Strip Footing 3D projection stays intentionally gated until this module model passes browser QA.</div>:null}</section>:null}
+          {propertyTab==='more'?<>{!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Methods</strong></div>{renderInputGroup('methods')}</section>:null}<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Commercial / procurement</strong></div>{renderInputGroup('commercial')}</section>{!stripV2?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{renderModule('concrete')}</section>:null}<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Anchors / embeds</strong>{stripV2?<small>Repeatable sets</small>:null}</div>{moduleEditor('anchors_embeds')}</section>{stripV2?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Placement / equipment</strong></div>{moduleEditor('placement_equipment')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Finish / cure / protection</strong></div>{moduleEditor('finish_cure_protection')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Miscellaneous</strong><small>Repeatable items</small></div>{moduleEditor('miscellaneous')}</section></>:selectedModules.some(module=>module.module_key==='slab_systems')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Slab systems</strong></div>{renderModule('slab_systems')}</section>:null}</>:null}
 
           <section className={styles.propertySection}><div className={styles.sectionHead}><CheckCircle2/><strong>Calculated outputs</strong><small>{selectedReconciliation.length?`${reconciledCount}/${selectedReconciliation.length} reconciled`:'—'}</small></div><CarezDataGrid isEmpty={!selectedOutputs.length} empty={<div className={styles.gridEmpty}>Assign the primary takeoff and save to calculate outputs.</div>}><CarezDataGridTable><CarezDataGridHead><CarezDataGridRow><CarezDataGridHeaderCell>Output</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Quantity</CarezDataGridHeaderCell><CarezDataGridHeaderCell numeric>Cost</CarezDataGridHeaderCell></CarezDataGridRow></CarezDataGridHead><CarezDataGridBody>{selectedOutputs.map(output=><CarezDataGridRow key={output.id}><CarezDataGridCell><strong>{output.label}</strong><small className={styles.outputMeta}>{humanize(output.status)}</small></CarezDataGridCell><CarezDataGridCell numeric>{quantity(output.production_quantity,output.production_unit)}</CarezDataGridCell><CarezDataGridCell numeric>{money(output.direct_cost)}</CarezDataGridCell></CarezDataGridRow>)}</CarezDataGridBody></CarezDataGridTable></CarezDataGrid></section>
           {selectedHolds.length?<section className={styles.holdSection}><div className={styles.sectionHead}><AlertTriangle/><strong>Open holds</strong></div>{selectedHolds.map(hold=><div key={hold.id}><AlertTriangle/><span><strong>{humanize(hold.hold_code)}</strong><small>{hold.message}</small></span></div>)}</section>:null}
