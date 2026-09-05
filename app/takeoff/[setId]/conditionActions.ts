@@ -124,6 +124,40 @@ export async function createProjectConcreteConditionPilot(input: {
   };
 }
 
+export async function deleteProjectConcreteCondition(input: {
+  takeoffSetId: string;
+  conditionId: string;
+  deleteLinkedTakeoffs?: boolean;
+}) {
+  const { supabase, companyId } = await conditionContext();
+  const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const conditionId = String(input?.conditionId || '').trim();
+  if (!takeoffSetId || !conditionId) throw new Error('Condition is required.');
+  await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: condition, error: conditionError } = await supabase.from('project_concrete_conditions')
+    .select('id,takeoff_set_id')
+    .eq('id', conditionId)
+    .eq('takeoff_set_id', takeoffSetId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (conditionError) throw new Error(conditionError.message);
+  if (!condition) throw new Error('Project Concrete Condition not found.');
+
+  const { data, error } = await supabase.rpc('carez_delete_project_concrete_condition', {
+    p_condition_id: conditionId,
+    p_delete_linked_measurements: input.deleteLinkedTakeoffs !== false,
+  });
+  if (error) throw new Error(error.message);
+  refreshConditionSurfaces(takeoffSetId);
+  return data as {
+    condition_id: string;
+    takeoff_set_id: string;
+    deleted_measurements: number;
+    preserved_measurements: number;
+  };
+}
+
 /**
  * The browser submits inputs and stable IDs only. Measurements, prices,
  * calculations, lineage, legacy projections, and reconciliation are resolved

@@ -3,6 +3,7 @@
 import {useEffect,useState} from 'react';
 import {PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen} from 'lucide-react';
 import {Button} from '@/components/ui/button';
+import {ConditionDeletionManager} from './ConditionDeletionManager';
 import {IntegratedTakeoffConditionWorkspace} from './IntegratedTakeoffConditionWorkspace';
 import styles from './TakeoffConditionWorkflowShell.module.css';
 import themeStyles from './TakeoffShadcnTheme.module.css';
@@ -28,6 +29,7 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
 
   return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData}/>
+    <ConditionDeletionManager setId={setId} locked={Boolean(workspaceProps.locked)} conditions={conditionData?.conditions||[]}/>
     <Button
       type="button"
       variant="outline"
