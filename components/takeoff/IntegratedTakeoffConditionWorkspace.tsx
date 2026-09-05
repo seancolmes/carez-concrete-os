@@ -24,7 +24,8 @@ import {Collapsible,CollapsibleContent,CollapsibleTrigger} from '@/components/ui
 import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
-import {Switch} from '@/components/ui/switch';
+import {LabeledSwitch} from '@/components/ui/labeled-switch';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {CONDITION_ARCHETYPES,conditionArchetype} from '@/lib/takeoff/conditions/catalog';
 import {
@@ -88,6 +89,7 @@ const money=(value:number|string)=>new Intl.NumberFormat('en-US',{style:'currenc
 const quantity=(value:number|string|null,unit:string)=>value===null?'—':`${Number(value).toLocaleString('en-US',{maximumFractionDigits:3})} ${unit}`;
 const humanize=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
 const conditionColor=(key:ConditionArchetypeKey)=>key==='slab_on_grade'?'#60a5fa':key==='pad_column_footing'?'#f59e0b':'#34d399';
+const switchId=(...parts:string[])=>`condition-${parts.join('-').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
 
 function currentConditionRows(rows:ConditionSummary[]){
   const latest=new Map<string,ConditionSummary>();
@@ -405,13 +407,21 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const inputs=definition?.inputs.filter(input=>input.group===group)||[];
     if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
     return <div className={styles.fieldGrid}>{inputs.map(input=>input.valueType==='boolean'
-      ?<Field key={`${group}-${input.key}`} orientation="horizontal" className={direction.switchField}>
-        <FieldLabel className={direction.switchFieldLabel}>{input.label}</FieldLabel>
-        <Switch checked={Boolean(draft[group]?.[input.key])} onCheckedChange={checked=>updateInput(input,checked?'true':'false')} disabled={locked||isPending} aria-label={input.label}/>
-      </Field>
+      ?<LabeledSwitch
+        key={`${group}-${input.key}`}
+        id={switchId(selectedVersionId||'draft',group,input.key)}
+        checked={Boolean(draft[group]?.[input.key])}
+        onCheckedChange={checked=>updateInput(input,checked?'true':'false')}
+        disabled={locked||isPending}
+        label={input.label}
+        className={direction.switchField}
+      />
       :<Field key={`${group}-${input.key}`} className={direction.propertyField}>
         <FieldLabel className={direction.propertyFieldLabel}>{input.label}</FieldLabel>
-        {input.valueType==='select'?<select value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}><option value="">Select…</option>{(input.options||['top','bottom','centerline']).map(option=><option key={option} value={option}>{humanize(option)}</option>)}</select>
+        {input.valueType==='select'?<Select value={String(draft[group]?.[input.key]??'')} onValueChange={value=>updateInput(input,String(value??''))} disabled={locked||isPending}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Select…"/></SelectTrigger>
+          <SelectContent align="start">{(input.options||['top','bottom','centerline']).map(option=><SelectItem key={option} value={option}>{humanize(option)}</SelectItem>)}</SelectContent>
+        </Select>
         :input.valueType==='text'?<Input value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
         :<CarezNumberField value={String(draft[group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>} 
       </Field>)}</div>;
@@ -424,14 +434,26 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const entries=Object.entries(moduleDraft[moduleKey]||{});
     return <>
       <div className={direction.moduleControlRow}>
-        <div><strong>{MODULE_LABELS[moduleKey]||module.label}</strong><small>{enabled?'Included in this Condition':'Excluded from this Condition'}</small></div>
-        <Switch checked={enabled} onCheckedChange={checked=>{setModuleEnabled(current=>({...current,[moduleKey]:checked}));setMessage('');}} disabled={locked||isPending} aria-label={`${MODULE_LABELS[moduleKey]||module.label} module`}/>
+        <LabeledSwitch
+          id={switchId(selectedVersionId||'draft',moduleKey,'enabled')}
+          checked={enabled}
+          onCheckedChange={checked=>{setModuleEnabled(current=>({...current,[moduleKey]:checked}));setMessage('');}}
+          disabled={locked||isPending}
+          label="Include in Condition"
+          description={enabled?'Included in this Condition':'Excluded from this Condition'}
+          className="min-h-0 flex-1 border-0 bg-transparent p-0 data-[checked=true]:border-0 data-[checked=true]:bg-transparent"
+        />
       </div>
       {enabled?(entries.length?<div className={styles.fieldGrid}>{entries.map(([key,value])=>typeof value==='boolean'
-        ?<Field key={`${moduleKey}-${key}`} orientation="horizontal" className={direction.switchField}>
-          <FieldLabel className={direction.switchFieldLabel}>{humanize(key)}</FieldLabel>
-          <Switch checked={value} onCheckedChange={checked=>updateModuleInput(moduleKey,key,checked)} disabled={locked||isPending} aria-label={humanize(key)}/>
-        </Field>
+        ?<LabeledSwitch
+          key={`${moduleKey}-${key}`}
+          id={switchId(selectedVersionId||'draft',moduleKey,key)}
+          checked={value}
+          onCheckedChange={checked=>updateModuleInput(moduleKey,key,checked)}
+          disabled={locked||isPending}
+          label={humanize(key)}
+          className={direction.switchField}
+        />
         :<Field key={`${moduleKey}-${key}`} className={direction.propertyField}>
           <FieldLabel className={direction.propertyFieldLabel}>{humanize(key)}</FieldLabel>
           {typeof value==='number'?<CarezNumberField value={String(value)} onChange={event=>updateModuleInput(moduleKey,key,event.target.value===''?'':Number(event.target.value))} step="any" disabled={locked||isPending}/>
@@ -447,7 +469,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     </div>
     {contextTab==='conditions'?<div className={styles.contextBody}>
       <div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>
-      {conditions.length?<CarezConditionTree nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}
+      {conditions.length?<CarezConditionTree searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}
     </div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}
   </div>,sidebarHost):null;
 
@@ -458,8 +480,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds}/>
       {contextPortal}
-      <div className={direction.drawingViewModes}>
-        <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripV2&&mode!=='2d'} title={stripV2&&mode!=='2d'?'Strip Footing v2 is being completed before additional derived-3D work.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
+      <div className={direction.drawingViewModes} aria-label="Takeoff view controls">
+        <div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} disabled={stripV2&&mode!=='2d'} title={stripV2&&mode!=='2d'?'3D verification is not available for this Condition version.':undefined} onClick={()=>setViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div>
       </div>
       {viewMode!=='2d'&&!stripV2&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <TakeoffDerived3DView scene={derived3DScene} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
@@ -467,7 +489,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}>
-        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · {humanize(selectedSummary.version_status)}{stripV2?' · Module v2':''}</small>:null}</div>
+        <div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · {humanize(selectedSummary.version_status)}</small>:null}</div>
       </header>
 
       {creating?<div className={styles.createPane}>
@@ -479,8 +501,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       </div>:!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
         <div className={direction.conditionSummaryLine}>
           <span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/>
-          <strong>{selectedSummary.archetype_name}</strong>
-          <span className={direction.summaryMeta}>{selectedSummary.measurement_count} takeoffs · {selectedSummary.output_count} outputs</span>
+          <span className={direction.summaryMeta}>{selectedSummary.measurement_count} takeoff{selectedSummary.measurement_count===1?'':'s'} · {selectedSummary.output_count} outputs</span>
           {selectedHolds.length?<button type="button" className={direction.summaryHold} onClick={()=>setPropertyTab(availableTabs.includes(firstHoldTab)?firstHoldTab:'general')}>{selectedHolds.length} hold{selectedHolds.length===1?'':'s'}</button>:null}
         </div>
         {selectedHolds.length?<div className={direction.holdsDock} aria-label="Open Condition holds">{selectedHolds.map(hold=><button key={hold.id} type="button" className={direction.holdRow} onClick={()=>setPropertyTab(safeHoldTab(hold))}><AlertTriangle/><span className={direction.holdText}><strong>{humanize(hold.hold_code)}</strong><small>{hold.message}</small></span><span className={direction.holdJump}>{humanize(safeHoldTab(hold))} →</span></button>)}</div>:null}
@@ -497,7 +518,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
           {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong>{stripV2?<small>Sides · material · stakes</small>:null}</div>{moduleEditor('forms')}</section>:null}
           {propertyTab==='excavation'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Excavation / backfill</strong></div>{moduleEditor('excavation_backfill')}</section>:null}
           {propertyTab==='labor'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Production</strong></div>{renderInputGroup('production')}</section>{supportsModule('labor')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Labor outputs</strong></div>{moduleEditor('labor')}</section>:null}</>:null}
-          {propertyTab==='drawing'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Drawing</strong></div>{renderInputGroup('drawing')}{stripV2?<div className={styles.compactEmpty}>Additional Strip Footing 3D projection stays intentionally gated until this module model passes browser QA.</div>:null}</section>:null}
+          {propertyTab==='drawing'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Drawing</strong></div>{renderInputGroup('drawing')}</section>:null}
           {propertyTab==='more'?<>
             {definition.inputs.some(input=>input.group==='methods')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Methods</strong></div>{renderInputGroup('methods')}</section>:null}
             {definition.inputs.some(input=>input.group==='commercial')?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Commercial / procurement</strong></div>{renderInputGroup('commercial')}</section>:null}

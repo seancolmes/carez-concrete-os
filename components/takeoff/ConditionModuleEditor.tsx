@@ -12,6 +12,7 @@ import {
 import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
 import {LabeledSwitch} from '@/components/ui/labeled-switch';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {
   conditionModuleDefinition,
   conditionModuleFieldVisible,
@@ -108,17 +109,18 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
       const values=module.inputValues||{};
       const visible=schema.inputs.filter(field=>conditionModuleFieldVisible(moduleKey,field,values));
       const label=module.label||schema.label;
+      const switchLabel=schema.repeatable?label:'Include in Condition';
       const moduleSwitchId=switchId(moduleKey,module.instanceKey||'default','enabled');
       return <section key={`${moduleKey}:${module.instanceKey||'default'}`} className="overflow-hidden rounded-md border border-border bg-card/35">
-        <header className="flex min-h-10 items-center gap-2 border-b border-border bg-muted/20 px-2.5 py-1.5">
+        <header className="flex min-h-11 items-center gap-2 border-b border-border bg-muted/20 px-2.5 py-1.5">
           <LabeledSwitch
             id={moduleSwitchId}
             checked={module.enabled}
             disabled={disabled}
             onCheckedChange={checked=>update(index,{enabled:checked})}
-            label={label}
+            label={switchLabel}
             description={module.enabled?'Included in this Condition':'Excluded from this Condition'}
-            className="min-h-0 flex-1 border-0 bg-transparent p-0"
+            className="min-h-0 flex-1 border-0 bg-transparent p-0 data-[checked=true]:border-0 data-[checked=true]:bg-transparent"
           />
           {schema.repeatable&&module.instanceKey!=='default'?<Button type="button" size="icon-sm" variant="ghost" onClick={()=>remove(index)} disabled={disabled} aria-label={`Remove ${label}`}><Trash2/></Button>:null}
         </header>
@@ -131,14 +133,17 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
               disabled={disabled}
               onCheckedChange={checked=>updateValue(index,field.key,checked)}
               label={field.label}
-              className="min-h-8"
+              className="min-h-9"
             />
             :<Field key={`${module.instanceKey}-${field.key}`} className="min-w-0 gap-1">
-              <FieldLabel className="text-[10px] font-semibold text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-[11px] font-semibold text-muted-foreground">{field.label}</FieldLabel>
               {field.valueType==='select'
-                ?<select className="h-8 w-full rounded-md border border-input bg-background px-2 text-[11px] outline-none focus:border-ring" value={String(values[field.key]??'')} disabled={disabled} onChange={event=>updateValue(index,field.key,event.target.value)}><option value="">Select…</option>{(field.options||[]).map(option=><option key={option} value={option}>{titleCase(option)}</option>)}</select>
+                ?<Select value={String(values[field.key]??'')} onValueChange={value=>updateValue(index,field.key,String(value??''))} disabled={disabled}>
+                  <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="Select…"/></SelectTrigger>
+                  <SelectContent align="start">{(field.options||[]).map(option=><SelectItem key={option} value={option}>{titleCase(option)}</SelectItem>)}</SelectContent>
+                </Select>
                 :field.valueType==='text'
-                  ?<Input className="h-8 text-[11px]" value={String(values[field.key]??'')} disabled={disabled} onChange={event=>updateValue(index,field.key,event.target.value)}/>
+                  ?<Input className="h-8 text-xs" value={String(values[field.key]??'')} disabled={disabled} onChange={event=>updateValue(index,field.key,event.target.value)}/>
                   :<CarezNumberField value={String(values[field.key]??'')} onChange={event=>updateValue(index,field.key,event.target.value===''?'':Number(event.target.value))} unit={field.unit} min={field.minimum} max={field.maximum} step={field.valueType==='integer'?1:'any'} disabled={disabled}/>} 
             </Field>)}
         </div>:null}
@@ -147,7 +152,7 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
 
     {schema.repeatable?<div className="flex justify-end">
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button type="button" size="sm" variant="outline" className="h-7 text-[10px]" disabled={disabled}/>}> 
+        <DropdownMenuTrigger render={<Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" disabled={disabled}/>}> 
           <Plus/>Add {schema.label.toLowerCase()}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
