@@ -76,10 +76,18 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
   const updateValue=(index:number,key:string,value:ConditionScalar)=>{
     const current=modules[index];
     const inputValues={...(current.inputValues||{}),[key]:value};
+    if(moduleKey==='forms'&&key==='form_method'){
+      const sideCount:Record<string,number>={earth_formed:0,one_side:1,two_sides:2};
+      const derived=sideCount[String(value)];
+      if(derived!==undefined)inputValues.formed_sides=derived;
+    }
     const inputProvenance={
       ...(current.inputProvenance||{}),
       [key]:{mode:'project_value' as const,sourceLabel:'Condition Properties'},
     };
+    if(moduleKey==='forms'&&key==='form_method'&&inputValues.formed_sides!==undefined){
+      inputProvenance.formed_sides={mode:'project_value' as const,sourceLabel:'Form method'};
+    }
     update(index,{inputValues,inputProvenance});
   };
   const add=(preset:Record<string,ConditionScalar>={},label?:string)=>{

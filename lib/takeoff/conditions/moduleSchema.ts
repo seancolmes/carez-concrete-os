@@ -23,6 +23,10 @@ export function conditionModuleFieldVisible(
   values: Record<string, ConditionScalar>,
 ) {
   const kind = String(values.kind || '');
+  if (moduleKey === 'concrete') {
+    if (field.key === 'top_width_ft') return values.profile === 'trapezoid';
+    if (field.key === 'placement_method' || field.key === 'top_finish') return false;
+  }
   if (moduleKey === 'reinforcing') {
     if (field.key === 'custom_unit_weight_lb_per_ft') return values.bar_size === 'Custom';
     if (['bars_per_run', 'splice_policy', 'stock_length_ft', 'lap_length_in'].includes(field.key)) {
@@ -41,6 +45,7 @@ export function conditionModuleFieldVisible(
     if (field.key === 'fixed_count') return mode === 'fixed_count';
   }
   if (moduleKey === 'forms') {
+    if (field.key === 'formed_sides') return !values.form_method || values.form_method === 'custom';
     if (field.key === 'form_material_factor_lf_per_lf') return Boolean(values.resource_tracking);
     if (field.key === 'stake_spacing_ft' || field.key === 'stakes_per_location') return Boolean(values.stakes_enabled);
   }
