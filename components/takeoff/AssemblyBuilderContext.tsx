@@ -10,13 +10,18 @@ type AssemblyBuilderContextValue = {
   closeBuilder: () => void;
 };
 
-const AssemblyBuilderContext = createContext<AssemblyBuilderContextValue>({
+const DEFAULT_ASSEMBLY_BUILDER_CONTEXT: AssemblyBuilderContextValue = {
   open: false,
   focus: false,
   openCreate: () => {},
   openLibrary: () => {},
   closeBuilder: () => {},
-});
+};
+
+const AssemblyBuilderContext = createContext<AssemblyBuilderContextValue>(DEFAULT_ASSEMBLY_BUILDER_CONTEXT);
 
 export const AssemblyBuilderProvider = AssemblyBuilderContext.Provider;
-export const useAssemblyBuilderContext = () => useContext(AssemblyBuilderContext);
+export const useAssemblyBuilderContext = () => {
+  const value = useContext(AssemblyBuilderContext);
+  return { ...value, available: value !== DEFAULT_ASSEMBLY_BUILDER_CONTEXT };
+};

@@ -5,6 +5,8 @@ import test from 'node:test';
 const page = readFileSync('app/takeoff/[setId]/page.tsx', 'utf8');
 const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
 const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
+const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
+const builderContext = readFileSync('components/takeoff/AssemblyBuilderContext.tsx', 'utf8');
 
 test('active Takeoff cuts over only after the governed Condition dependency gate passes', () => {
   assert.match(page, /const conditionAuthoringActive =/);
@@ -31,4 +33,9 @@ test('Condition-first workspace removes legacy assembly and Build Plan authoring
   assert.match(workspace, /:selectedVersionRecord&&selectedAssemblyRecord\?<TakeoffAssemblyInputEditor/);
   assert.match(workspace, /if\(conditionAuthoringActive\)\{openConditions\(\);return;\}/);
   assert.match(workspace, /if\(event\.key\.toLowerCase\(\)==='d'&&!conditionAuthoringActive/);
+});
+
+test('Condition-first quantity worksheet does not expose the legacy Scope Recipe launcher', () => {
+  assert.match(builderContext, /available:\s*value !== DEFAULT_ASSEMBLY_BUILDER_CONTEXT/);
+  assert.match(quantityDock, /builder\.available && <button[^>]+builderButton[^>]+onClick=\{builder\.openLibrary\}/);
 });
