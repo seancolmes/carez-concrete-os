@@ -5,9 +5,6 @@ import {PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen} from 'lucid
 import {IntegratedTakeoffConditionWorkspace} from './IntegratedTakeoffConditionWorkspace';
 import styles from './TakeoffConditionWorkflowShell.module.css';
 
-const NAV_COLLAPSED_KEY='carez.takeoff.navigator.collapsed.v1';
-const PROPERTIES_COLLAPSED_KEY='carez.takeoff.properties.collapsed.v1';
-
 type Props={
   setId:string;
   workspaceProps:any;
@@ -19,17 +16,12 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
   const [propertiesCollapsed,setPropertiesCollapsed]=useState(false);
 
   useEffect(()=>{
-    try{
-      setNavigatorCollapsed(window.localStorage.getItem(NAV_COLLAPSED_KEY)==='1');
-      setPropertiesCollapsed(window.localStorage.getItem(PROPERTIES_COLLAPSED_KEY)==='1');
-    }catch{}
-  },[]);
-  useEffect(()=>{try{window.localStorage.setItem(NAV_COLLAPSED_KEY,navigatorCollapsed?'1':'0');}catch{}},[navigatorCollapsed]);
-  useEffect(()=>{try{window.localStorage.setItem(PROPERTIES_COLLAPSED_KEY,propertiesCollapsed?'1':'0');}catch{}},[propertiesCollapsed]);
-  useEffect(()=>{
-    const openNavigator=()=>setNavigatorCollapsed(false);
-    window.addEventListener('carez:open-conditions',openNavigator);
-    return()=>window.removeEventListener('carez:open-conditions',openNavigator);
+    const openConditions=()=>{
+      setNavigatorCollapsed(false);
+      setPropertiesCollapsed(false);
+    };
+    window.addEventListener('carez:open-conditions',openConditions);
+    return()=>window.removeEventListener('carez:open-conditions',openConditions);
   },[]);
 
   return <div className={styles.shell} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
@@ -38,6 +30,7 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
       type="button"
       className={`${styles.paneToggle} ${navigatorCollapsed?styles.navigatorExpand:styles.navigatorCollapse}`}
       aria-label={navigatorCollapsed?'Expand Takeoff navigator':'Collapse Takeoff navigator'}
+      aria-expanded={!navigatorCollapsed}
       title={navigatorCollapsed?'Expand navigator':'Collapse navigator'}
       onClick={()=>setNavigatorCollapsed(value=>!value)}
     >
@@ -47,6 +40,7 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
       type="button"
       className={`${styles.paneToggle} ${propertiesCollapsed?styles.propertiesExpand:styles.propertiesCollapse}`}
       aria-label={propertiesCollapsed?'Expand Condition Properties':'Collapse Condition Properties'}
+      aria-expanded={!propertiesCollapsed}
       title={propertiesCollapsed?'Expand properties':'Collapse properties'}
       onClick={()=>setPropertiesCollapsed(value=>!value)}
     >
