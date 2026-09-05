@@ -7,16 +7,18 @@ import {CarezLoadingSkeleton} from './fields';
 export const CarezDataGrid=React.forwardRef<HTMLDivElement,React.ComponentProps<'div'>&{
   toolbar?:React.ReactNode;
   status?:React.ReactNode;
+  footer?:React.ReactNode;
   loading?:boolean;
   empty?:React.ReactNode;
   isEmpty?:boolean;
-}>(({className,toolbar,status,loading=false,empty,isEmpty=false,children,...props},ref)=>{
+}>(({className,toolbar,status,footer,loading=false,empty,isEmpty=false,children,...props},ref)=>{
   return <div ref={ref} data-slot="carez-data-grid" className={cn('min-w-0 overflow-hidden rounded-md border border-border bg-background shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring/30',className)} {...props}>
     {toolbar?<div data-slot="carez-data-grid-toolbar" className="flex min-h-10 flex-wrap items-center gap-2 border-b border-border px-3 py-1.5">{toolbar}</div>:null}
     {status?<div data-slot="carez-data-grid-status" className="flex min-h-8 items-center justify-between gap-3 border-b border-border bg-muted/15 px-3 py-1.5 text-xs text-muted-foreground">{status}</div>:null}
     <div data-slot="carez-data-grid-viewport" className="min-h-0 min-w-0 overflow-auto">
       {loading?<CarezLoadingSkeleton rows={6} className="p-3"/>:isEmpty?empty:children}
     </div>
+    {footer?<div data-slot="carez-data-grid-footer" className="flex min-h-9 flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/10 px-3 py-1.5 text-xs text-muted-foreground">{footer}</div>:null}
   </div>;
 });
 CarezDataGrid.displayName='CarezDataGrid';
