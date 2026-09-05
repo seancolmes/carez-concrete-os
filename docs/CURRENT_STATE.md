@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-04
+Last reconciled: 2026-09-05
 Canonical development / QA line: `staging`
 Production line: `main`
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -27,10 +27,11 @@ Preserve the existing Carez modernization and digital thread. Key accepted found
 - immutable published assembly/version/component lineage;
 - custom assembly authoring, nested assemblies, builder means/method profiles, and concrete resource outputs;
 - pricing override preservation;
-- permanent resizable Quantity Worksheet;
+- permanent vertically resizable Quantity Worksheet;
 - ADR-016 Option D compact desktop application menubar with module-specific contextual panes;
 - tenant-configurable company branding with immutable commercial-document branding snapshots;
 - accepted Concrete Condition / derived 2D+3D Takeoff target;
+- accepted ADR-020 integrated Takeoff workstation with fixed-width collapsible side panes and Carez precision cursor;
 - accepted Job Spine / bid-to-field commercial and execution lineage documented in Architecture/ADRs.
 
 Do not restart or replace this architecture without demonstrated need.
@@ -48,7 +49,7 @@ Staging QA isolation is verified and Issue #30 is closed:
 
 Issue #44 is the implementation and rendered-acceptance owner for the Carez-wide UI replacement.
 
-ADR-015 is the Carez-wide presentation authority. ADR-016 is the desktop shell authority and supersedes the permanent global desktop left rail and the earlier two-row top-navigation implementation. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack. ADR-014 remains useful for source-owned shadcn composition architecture where not superseded.
+ADR-015 is the Carez-wide presentation authority. ADR-016 is the desktop shell authority and supersedes the permanent global desktop left rail and the earlier two-row top-navigation implementation. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack. ADR-014 remains useful for source-owned shadcn component architecture where not superseded.
 
 Implemented on canonical staging:
 
@@ -68,6 +69,7 @@ Implemented on canonical staging:
 - `components/estimates/EstimateGrid.tsx` now consumes the shared Carez Data Grid while preserving estimate filtering, selection, keyboard navigation, pricing values, stage behavior, and estimate/proposal/job routing;
 - `components/documents/DocumentUpload.tsx` now consumes Carez File Upload, Date/Time Field, Number Field, Loading State, and shadcn controls while preserving Supabase upload/metadata behavior and cleanup on failure;
 - `components/takeoff/TakeoffPlanUpload.tsx` now consumes Carez File Upload and Loading State while preserving PDF-only intake, plan-attachment lineage, and the revision rule;
+- `/takeoff/[setId]` now implements the browser-accepted ADR-020 integrated estimator workstation under closed Issue #51: `Plans | Conditions | Zones` contextual navigation, dominant drawing surface, one Condition Properties pane, 2D/3D/Split coordination, readable Quantity Worksheet, fixed-width independently collapsible side panes, no horizontal dock drag affordance, normal-size Carez cursor/precision crosshair, compact takeoff hover treatment, and scoped semantic shadcn/Base UI theming while preserving PDF.js/vector geometry authority;
 - `/schedule` now implements the accepted Operations Grid presentation using the shared Carez Data Grid plus source-owned shadcn/Base UI Toggle Group, native select, dialog, dropdown menu, checkbox, input, badge, card, and empty-state primitives. It provides Work plan / Crew loading modes, a compact interactive 14-day date strip, search/readiness/type/range filtering, pinned Date/Job/Work context, resizable and sortable columns, row selection/keyboard navigation, semantic readiness treatment, consolidated row actions, a Related tools menu, and `+ Add work` as the primary action while preserving existing schedule/readiness/crew/domain records and server actions;
 - the accepted `/schedule` render path no longer depends on the legacy `contractor-page`, `command-card`, `section`, or `industrial-grid-*` markup systems. Legacy global CSS remains loaded elsewhere until Issue #44 dependency checks prove all remaining consumers are migrated;
 - Settings now includes a Company Branding control built from shared Carez File Upload and Loading State primitives. Authorized non-employee company users can upload PNG/JPEG/WebP branding up to 5 MB or reset to the repository Carez-wordmark fallback;
@@ -101,31 +103,35 @@ The following representative Takeoff behavior has already been browser-verified 
 - cross-sheet `This Sheet` / `All Sheets` worksheet isolation;
 - SF polygon + cutout calculation and exact downstream lineage;
 - missing method-input holds;
-- hover-only measurement detail behavior;
 - automatic PDF sheet naming/indexing;
 - authenticated Concrete Condition authoring/runtime acceptance for the three governed pilot families under closed Issue #40;
-- authenticated dependency-gated Condition-first Takeoff cutover acceptance under closed Issue #50: no Scope Recipes launcher in the active Quantity Worksheet, no Build Plan / Build Method authoring, no direct legacy assembly creation, and legacy compatibility/history preserved outside active authoring.
+- authenticated dependency-gated Condition-first Takeoff cutover acceptance under closed Issue #50: no Scope Recipes launcher in the active Quantity Worksheet, no Build Plan / Build Method authoring, no direct legacy assembly creation, and legacy compatibility/history preserved outside active authoring;
+- authenticated ADR-020 Direction A workstation acceptance under closed Issue #51: integrated contextual navigation + drawing + Condition Properties + Quantity Worksheet composition, fixed-width collapsible side panes, readable worksheet, compact hover treatment, normal-size Carez cursor, and scoped semantic shadcn/Base UI chrome;
+- accepted Takeoff UI pass showed no observed geometry/calculation/lineage regression; existing specialized measurement behavior remains authoritative unless a new regression is observed.
 
 The earlier permanent-app-rail containment verification is historical shell evidence and is superseded by ADR-016. It does not authorize reintroducing the rail.
 
 See Git history/issues for detailed acceptance evidence from earlier checkpoints.
 
-## Current Takeoff UX work
+## Integrated Takeoff workstation (Issue #51 — accepted)
 
-Issue #35 remains the bounded Takeoff presentation/behavior acceptance item and must be checked under the ADR-016 Option D menubar shell without reopening already verified measurement behavior.
+The flagship `/takeoff/[setId]` workstation is browser-accepted on canonical staging under ADR-020 and Issue #51 is closed as completed.
 
-Previously implemented behavior still required:
+Accepted presentation/interaction state:
 
-- sheet rows remain visually quiet regardless of scale state; the sheet pane does not show `Set scale`, `Not Scaled`, `Scaled`, scale-region counts, takeoff counts, warning boxes, or red status borders;
-- scale state/actions remain in the drawing toolbar/status area and Properties scale controls where they are actionable;
-- ordinary Carez UI headings/status/actions use sentence/title case;
-- assembly/condition provenance remains persisted for audit/lineage but is not permanently narrated in the Takeoff Inspector;
-- duplicate helper/selection/status text is removed through progressive disclosure;
-- Sheets and Inspector panes resize horizontally from their shared drawing boundaries while preserving a usable center drawing workspace;
-- the Takeoff-set identity strip uses a compact professional hierarchy rather than stacked microtext;
-- Quantity Worksheet LF quantities use decimal LF in the quantity column while architectural formatting remains available in drawing/detail contexts.
+- left contextual navigator is `Plans | Conditions | Zones`;
+- center drawing surface remains dominant and continues using PDF.js plus stable page-coordinate vector geometry as measurement authority;
+- right Condition Properties is the single normal property surface with estimator-facing tabs `General | Rebar | Forms | Excavation | Labor | Drawing | More`;
+- left navigator and right Condition Properties use stable expanded widths and collapse/restore independently; no horizontal draggable dock boundary or legacy body-level pane-resize hook remains;
+- Quantity Worksheet remains vertically resizable and its data-grid columns remain resizable;
+- Quantity Worksheet typography is in the readable workstation range rather than legacy 6–8 px microtext;
+- Carez arrow cursor is normal OS-scale, while measurement/calibration/editing uses the tighter precision crosshair and pan keeps native grab/grabbing behavior;
+- takeoff hover uses a compact tooltip-like summary rather than the previous large card;
+- specialized Takeoff chrome is scoped to Carez semantic shadcn/Base UI tokens rather than the older navy/bright-blue local palette;
+- ReUI, HextaUI, JolyUI, and beUI are reference sources only; source-owned Carez/shadcn components remain the implementation authority;
+- Issue #35 is closed with its remaining horizontal-resize criteria explicitly superseded by ADR-020 / Issue #51.
 
-The dark shadcn/ADR-016 redesign must not regress these behaviors or the newer Concrete Condition / derived 2D+3D workstation target.
+The final UX implementation checkpoint is `cfe406f2dbecfadea099ad4f1d3a01afd2cd5611`. Current staging is a descendant of that checkpoint, so the accepted workstation remains in the active development line.
 
 ## Concrete Condition foundation and persistence (Issue #40 — accepted)
 
@@ -163,7 +169,7 @@ The dependency-gated retirement of legacy Scope Recipe / Build Method authoring 
 
 The existing assembly/formula/measurement/output/estimate runtime remains preserved as the compatibility/history layer. No legacy table, published version, measurement, output, or estimate history was deleted. The separate Assemblies destination may remain readable as compatibility/history outside the active Takeoff authoring workflow. Remaining physical schema/data retirement is dependency-gated and requires explicit proof that historical references and compatibility runtime dependencies are safe to remove. Destructive schema rollback or deletion is not allowed without a dedicated preservation/recovery plan.
 
-Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated data/schema retirement continue under the roadmap and follow-on issues; they are not reopeners of Issue #40 or Issue #50.
+Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated data/schema retirement continue under the roadmap and follow-on issues; they are not reopeners of Issue #40, Issue #50, or the accepted Issue #51 UX baseline.
 
 ## Known bounded follow-up
 
@@ -174,9 +180,8 @@ Later 2D/derived-3D workstation work, broader Condition-family expansion, and de
 ## Current sequence
 
 1. Browser-QA the newly converted Schedule Operations Grid and continue ADR-016/company-branding acceptance on the single stable staging URL: Schedule Work plan/Crew loading, 14-day date strip, filters, pinned/resizable columns, row actions, Add work/Related tools, responsive behavior; plus one-row menubar behavior and Settings branding upload/reset/rendering.
-2. Continue Issue #44 route conversion using the shared Carez component pack, prioritizing Takeoff contextual panes/toolbar/workspace, Estimate Worksheet, Projects/Schedule-adjacent grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
-3. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the Option D shell without measurement regressions.
-4. Continue the P0.5 derived 2D/3D and migration/reconciliation sequence from `ROADMAP.md` using the accepted Issue #40 Condition baseline and closed Issue #50 active-authoring cutover. Remaining legacy data/schema retirement must stay dependency-gated and lineage-safe.
+2. Continue Issue #44 route conversion using the shared Carez component pack, treating `/takeoff/[setId]` as an accepted route baseline and prioritizing remaining Takeoff list/support routes, Estimate Worksheet, Projects/Schedule-adjacent grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
+3. Continue the P0.5 Condition-family / derived-3D sequence from `ROADMAP.md` using the accepted Issue #40 persistence baseline, closed Issue #50 active-authoring cutover, and closed Issue #51 workstation UX baseline. Remaining legacy data/schema retirement must stay dependency-gated and lineage-safe.
 
 ## Production rule
 
