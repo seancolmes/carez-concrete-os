@@ -40,6 +40,15 @@ async function editableTakeoffSet(supabase: any, companyId: string, takeoffSetId
   return set;
 }
 
+function nextAvailableConditionCode(requestedCode: string, existingCodes: string[]) {
+  const base = requestedCode.trim().toUpperCase();
+  const used = new Set(existingCodes.map(value => String(value || '').trim().toUpperCase()).filter(Boolean));
+  if (!used.has(base)) return base;
+  let suffix = 2;
+  while (used.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
 function refreshConditionSurfaces(takeoffSetId: string) {
   revalidatePath(`/takeoff/${takeoffSetId}`);
   revalidatePath('/takeoff');
@@ -57,14 +66,21 @@ export async function createProjectConcreteConditionPilot(input: {
 }) {
   const { supabase, companyId } = await conditionContext();
   const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const requestedCode = String(input?.code || '').trim().toUpperCase();
   const archetypeKey = String(input?.archetypeKey || '').trim() as ConditionArchetypeKey;
-  const code = String(input?.code || '').trim().toUpperCase();
   const name = String(input?.name || '').trim();
   const description = String(input?.description || '').trim() || null;
-  if (!takeoffSetId || !CONDITION_ARCHETYPE_KEYS.includes(archetypeKey) || !code || !name) {
+  if (!takeoffSetId || !CONDITION_ARCHETYPE_KEYS.includes(archetypeKey) || !requestedCode || !name) {
     throw new Error('Condition family, code, and name are required.');
   }
   await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: existingConditions, error: existingConditionsError } = await supabase.from('project_concrete_conditions')
+    .select('code')
+    .eq('company_id', companyId)
+    .eq('takeoff_set_id', takeoffSetId);
+  if (existingConditionsError) throw new Error(existingConditionsError.message);
+  const code = nextAvailableConditionCode(requestedCode, (existingConditions || []).map((row: any) => row.code));
 
   let template: any = null;
   for (const pilotKey of CONDITION_ARCHETYPE_KEYS) {
@@ -104,6 +120,7 @@ export async function createProjectConcreteConditionPilot(input: {
   return {
     condition_version_id: conditionVersionId as string,
     compatibility_assembly_version_id: compatibilityAssemblyVersionId,
+    condition_code: code,
   };
 }
 
