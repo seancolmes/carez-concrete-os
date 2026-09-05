@@ -24,7 +24,11 @@ export type ConditionModuleKey =
   | 'reinforcing'
   | 'anchors_embeds'
   | 'slab_systems'
-  | 'labor';
+  | 'excavation_backfill'
+  | 'placement_equipment'
+  | 'finish_cure_protection'
+  | 'labor'
+  | 'miscellaneous';
 
 export type ConditionOutputStatus = 'ready' | 'held' | 'inactive';
 export type ConditionHoldCode =
@@ -98,7 +102,7 @@ export type ConditionCalculationRequest = {
   conditionVersionId: string;
   inputs?: ConditionInputGroups;
   measurementRoles: ConditionMeasurementRole[];
-  modules?: ConditionModuleSelection[];
+  modules?: ConditionModuleConfiguration[];
   outputOverrides?: Record<string, ConditionOutputOverride>;
 };
 
@@ -132,7 +136,7 @@ export type ConditionOutput = {
   moduleKey: ConditionModuleKey;
   label: string;
   resourceClass: ConditionResourceClass;
-  unit: 'CY' | 'SF' | 'LB' | 'EA' | 'HR';
+  unit: 'CY' | 'SF' | 'LF' | 'LB' | 'EA' | 'HR';
   status: ConditionOutputStatus;
   quantity: number | null;
   quantityMode: 'derived' | 'explicit_override';
@@ -165,7 +169,26 @@ export type ConditionInputDefinition = {
   unit?: string;
   minimum?: number;
   maximum?: number;
+  options?: string[];
   requiredBy?: string[];
+};
+
+export type ConditionModuleInputDefinition = {
+  key: string;
+  label: string;
+  valueType: 'number' | 'integer' | 'boolean' | 'text' | 'select';
+  unit?: string;
+  minimum?: number;
+  maximum?: number;
+  options?: string[];
+};
+
+export type ConditionModuleDefinition = {
+  key: ConditionModuleKey;
+  label: string;
+  repeatable: boolean;
+  defaultEnabled: boolean;
+  inputs: ConditionModuleInputDefinition[];
 };
 
 export type ConditionRoleDefinition = {
@@ -190,9 +213,11 @@ export type ConditionOutputDefinition = {
 export type ConditionArchetypeDefinition = {
   key: ConditionArchetypeKey;
   name: string;
+  contractVersion?: number;
   primaryUnit: ConditionMeasurementUnit;
   roles: ConditionRoleDefinition[];
   inputs: ConditionInputDefinition[];
+  modules?: ConditionModuleDefinition[];
   defaultModules: ConditionModuleKey[];
   outputs: ConditionOutputDefinition[];
 };
