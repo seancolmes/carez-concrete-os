@@ -14,14 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 type ConditionRow = {
   condition_id: string;
@@ -50,8 +42,10 @@ function currentConditions(rows: ConditionRow[]) {
 export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
   const router = useRouter();
   const rows = useMemo(() => currentConditions(conditions), [conditions]);
+  const draftRows = useMemo(() => rows.filter(row => row.version_status === 'draft'), [rows]);
   const [host, setHost] = useState<HTMLElement | null>(null);
-  const [target, setTarget] = useState<ConditionRow | null>(null);
+  const [open, setOpen] = useState(false);
+  const [selectedConditionId, setSelectedConditionId] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
@@ -63,6 +57,20 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (selectedConditionId && draftRows.some(row => row.condition_id === selectedConditionId)) return;
+    setSelectedConditionId(draftRows[0]?.condition_id || '');
+  }, [draftRows, selectedConditionId]);
+
+  const target = draftRows.find(row => row.condition_id === selectedConditionId) || null;
+
+  const openDeleteDialog = () => {
+    if (locked || isPending || !draftRows.length) return;
+    setError('');
+    setSelectedConditionId(current => draftRows.some(row => row.condition_id === current) ? current : draftRows[0].condition_id);
+    setOpen(true);
+  };
+
   const confirmDelete = () => {
     if (!target || locked) return;
     setError('');
@@ -73,7 +81,8 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
           conditionId: target.condition_id,
           deleteLinkedTakeoffs: true,
         });
-        setTarget(null);
+        setOpen(false);
+        setSelectedConditionId('');
         router.refresh();
       } catch (caught: any) {
         setError(caught?.message || 'Could not delete Condition.');
@@ -84,41 +93,52 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
   if (!host) return null;
 
   return createPortal(<>
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button type="button" size="sm" variant="outline" disabled={locked || isPending} />}>
-        <Trash2 />Delete
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Delete draft Condition + takeoffs</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {rows.length ? rows.map(row => <DropdownMenuItem
-          key={row.condition_id}
-          variant="destructive"
-          disabled={row.version_status !== 'draft'}
-          onClick={() => { setError(''); setTarget(row); }}
-          className="items-start py-2"
-        >
-          <Trash2 className="mt-0.5" />
-          <span className="min-w-0">
-            <strong className="block truncate text-xs">{row.code} · {row.name}</strong>
-            <small className="block text-[10px] text-muted-foreground">{row.version_status === 'draft' ? 'Draft · linked takeoffs are removed unless shared' : 'Verified · immutable'}</small>
-          </span>
-        </DropdownMenuItem>) : <div className="px-2 py-3 text-xs text-muted-foreground">No Conditions to delete.</div>}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      disabled={locked || isPending || !draftRows.length}
+      onClick={openDeleteDialog}
+      title={draftRows.length ? 'Delete a draft Condition' : 'No draft Conditions can be deleted'}
+    >
+      <Trash2 />Delete
+    </Button>
 
-    <Dialog open={Boolean(target)} onOpenChange={open => { if (!open && !isPending) { setTarget(null); setError(''); } }}>
+    <Dialog open={open} onOpenChange={nextOpen => {
+      if (!nextOpen && isPending) return;
+      setOpen(nextOpen);
+      if (!nextOpen) setError('');
+    }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {target?.code}?</DialogTitle>
+          <DialogTitle>Delete draft Condition?</DialogTitle>
           <DialogDescription>
-            This permanently removes the draft Condition, its calculated outputs and generated estimate projection, plus takeoff geometry linked only to this Condition. Takeoffs shared with another Condition are preserved. Verified or issued history cannot be deleted.
+            This permanently removes the selected draft Condition, its calculated outputs and generated estimate projection, plus takeoff geometry linked only to this Condition. Takeoffs shared with another Condition are preserved. Verified or issued history cannot be deleted.
           </DialogDescription>
         </DialogHeader>
+
+        <label className="grid gap-1.5 text-xs">
+          <span className="font-medium text-foreground">Condition</span>
+          <select
+            value={selectedConditionId}
+            onChange={event => { setSelectedConditionId(event.target.value); setError(''); }}
+            disabled={isPending || locked}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+          >
+            {draftRows.map(row => <option key={row.condition_id} value={row.condition_id}>{row.code} · {row.name}</option>)}
+          </select>
+        </label>
+
+        {target ? <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <strong className="block text-foreground">{target.code} · {target.name}</strong>
+          <span>Draft revision R{target.revision_no} · linked takeoffs are removed unless another Condition still uses them.</span>
+        </div> : null}
+
         {error ? <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div> : null}
+
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => { setTarget(null); setError(''); }} disabled={isPending}>Cancel</Button>
-          <Button type="button" variant="destructive" onClick={confirmDelete} disabled={isPending || locked}>
+          <Button type="button" variant="outline" onClick={() => { setOpen(false); setError(''); }} disabled={isPending}>Cancel</Button>
+          <Button type="button" variant="destructive" onClick={confirmDelete} disabled={isPending || locked || !target}>
             {isPending ? <RefreshCw className="animate-spin" /> : <Trash2 />}
             Delete Condition + takeoffs
           </Button>
