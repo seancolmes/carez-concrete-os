@@ -13,7 +13,13 @@ import {
   buildConditionCommitOutputs,
   resolveConditionInputGroups,
 } from './persistence.ts';
+import {
+  calculateStripFootingV2,
+  STRIP_FOOTING_V2_CONTRACT_VERSION,
+  STRIP_FOOTING_V2_DEFINITION,
+} from './stripFootingV2.ts';
 import type {
+  ConditionArchetypeDefinition,
   ConditionArchetypeKey,
   ConditionInputProvenance,
   ConditionMeasurementRole,
@@ -71,14 +77,21 @@ function storedInputGroups(version: any): ConditionRawInputGroups {
   };
 }
 
+function deployedDefinition(archetypeKey: ConditionArchetypeKey, archetypeVersion: any): ConditionArchetypeDefinition {
+  if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V2_CONTRACT_VERSION) {
+    return STRIP_FOOTING_V2_DEFINITION;
+  }
+  return conditionArchetype(archetypeKey);
+}
+
 function assertDatabaseContract(archetypeKey: ConditionArchetypeKey, archetypeVersion: any) {
   if (archetypeVersion.engine_key !== 'concrete_condition_v1') {
     throw new Error(`Unsupported Condition calculation engine: ${archetypeVersion.engine_key || 'unknown'}.`);
   }
-  const definition = conditionArchetype(archetypeKey);
+  const definition = deployedDefinition(archetypeKey, archetypeVersion);
   const roles = new Map(asArray(archetypeVersion.role_schema).map(role => [role.key, role]));
   const outputs = new Map(asArray(archetypeVersion.output_schema).map(output => [output.key, output]));
-  const modules = new Set(asArray(archetypeVersion.module_schema).map(module => module.key));
+  const modules = new Map(asArray(archetypeVersion.module_schema).map(module => [module.key, module]));
 
   if (roles.size !== definition.roles.length || outputs.size !== definition.outputs.length) {
     throw new Error('Published Condition archetype schema does not match the deployed server engine.');
@@ -104,6 +117,12 @@ function assertDatabaseContract(archetypeKey: ConditionArchetypeKey, archetypeVe
     }
     if (!modules.has(output.moduleKey)) throw new Error(`Published module ${output.moduleKey} is missing.`);
   }
+  for (const module of definition.modules || []) {
+    const stored = modules.get(module.key);
+    if (!stored || Boolean(stored.repeatable) !== module.repeatable) {
+      throw new Error(`Published module ${module.key} does not match the deployed server engine.`);
+    }
+  }
 }
 
 function normalizeModules(
@@ -121,18 +140,21 @@ function normalizeModules(
     legacyChildKey: module.legacy_child_key,
     sortOrder: module.sort_order,
   }));
-  const schema = asArray(archetypeVersion.module_schema);
-  const allowed = new Set(schema.map(module => module.key));
-  if (source.length !== schema.length) throw new Error('Pilot persistence requires one module instance for every archetype module.');
-
+  const schemaRows = asArray(archetypeVersion.module_schema);
+  const schema = new Map(schemaRows.map(module => [String(module.key), module]));
   const seen = new Set<string>();
-  return source.map((module, index) => {
-    const moduleKey = String(module.moduleKey || '');
-    const instanceKey = String(module.instanceKey || 'default');
-    if (!allowed.has(moduleKey)) throw new Error(`Unsupported Condition module: ${moduleKey || 'unknown'}.`);
-    if (instanceKey !== 'default') throw new Error('Pilot persistence currently supports one default instance per module.');
-    if (seen.has(moduleKey)) throw new Error(`Condition module ${moduleKey} is configured more than once.`);
-    seen.add(moduleKey);
+  const defaultCounts = new Map<string, number>();
+
+  const normalized = source.map((module, index) => {
+    const moduleKey = String(module.moduleKey || '').trim();
+    const instanceKey = String(module.instanceKey || 'default').trim() || 'default';
+    const definition = schema.get(moduleKey);
+    if (!definition) throw new Error(`Unsupported Condition module: ${moduleKey || 'unknown'}.`);
+    if (!Boolean(definition.repeatable) && instanceKey !== 'default') throw new Error(`${moduleLabel(moduleKey)} is not repeatable.`);
+    const identity = `${moduleKey}:${instanceKey}`;
+    if (seen.has(identity)) throw new Error(`Condition module instance ${identity} is configured more than once.`);
+    seen.add(identity);
+    if (instanceKey === 'default') defaultCounts.set(moduleKey, (defaultCounts.get(moduleKey) || 0) + 1);
     return {
       module_key: moduleKey,
       instance_key: instanceKey,
@@ -144,6 +166,13 @@ function normalizeModules(
       sort_order: Number.isInteger(module.sortOrder) ? Number(module.sortOrder) : (index + 1) * 10,
     };
   });
+
+  for (const definition of schemaRows) {
+    if ((defaultCounts.get(String(definition.key)) || 0) !== 1) {
+      throw new Error(`${moduleLabel(String(definition.key))} requires exactly one default module instance.`);
+    }
+  }
+  return normalized;
 }
 
 function normalizeRoleAssignments(supplied: PersistConcreteConditionPilotInput['measurementRoles'] | undefined, existing: any[]) {
@@ -189,8 +218,6 @@ function suppressedOutputs(
     unit_cost: 0,
     direct_cost: 0,
     pricing_status: 'not_priced',
-    // Keep the legacy row active so its manual price state survives while this
-    // role measurement is hidden behind the Condition's single projection.
     is_active: true,
     estimate_visible: false,
     formula_trace: {
@@ -237,7 +264,7 @@ export async function prepareConcreteConditionPilotPersistence({
       .select('id,status,input_defaults,input_provenance,legacy_assembly_version_id')
       .eq('id', version.template_version_id).eq('company_id', companyId).maybeSingle(),
     supabase.from('platform_condition_archetype_versions')
-      .select('id,status,archetype_code_snapshot,engine_key,role_schema,module_schema,output_schema')
+      .select('id,version_no,status,archetype_code_snapshot,engine_key,role_schema,module_schema,output_schema')
       .eq('id', version.archetype_version_id).maybeSingle(),
   ]);
   if (conditionError) throw new Error(conditionError.message);
@@ -250,7 +277,7 @@ export async function prepareConcreteConditionPilotPersistence({
   if (!archetypeVersion || archetypeVersion.status !== 'published') throw new Error('Published Platform Condition Archetype version not found.');
 
   const archetypeKey = String(archetypeVersion.archetype_code_snapshot) as ConditionArchetypeKey;
-  const archetype = conditionArchetype(archetypeKey);
+  const archetype = deployedDefinition(archetypeKey, archetypeVersion);
   assertDatabaseContract(archetypeKey, archetypeVersion);
 
   const [{ data: existingModules, error: modulesError }, { data: existingRoles, error: rolesError }] = await Promise.all([
@@ -327,23 +354,25 @@ export async function prepareConcreteConditionPilotPersistence({
   const outputOverrides = input.outputOverrides === undefined
     ? asRecord(version.output_overrides)
     : input.outputOverrides;
-  const calculation = calculateCondition({
-    archetypeKey,
-    conditionVersionId,
-    inputs: resolveConditionInputGroups({
-      companyDefaults: asRecord(templateVersion.input_defaults) as ConditionRawInputGroups,
-      companyProvenance: asRecord(templateVersion.input_provenance) as ConditionInputProvenance,
-      projectValues,
-      projectProvenance,
-    }),
-    measurementRoles: calculationRoles,
-    modules: modules.map(module => ({
-      moduleKey: module.module_key as ConditionModuleKey,
-      instanceKey: module.instance_key,
-      enabled: module.enabled,
-    })),
-    outputOverrides,
+  const resolvedInputs = resolveConditionInputGroups({
+    companyDefaults: asRecord(templateVersion.input_defaults) as ConditionRawInputGroups,
+    companyProvenance: asRecord(templateVersion.input_provenance) as ConditionInputProvenance,
+    projectValues,
+    projectProvenance,
   });
+  const calculationModules: ConditionModuleConfiguration[] = modules.map(module => ({
+    moduleKey: module.module_key as ConditionModuleKey,
+    instanceKey: module.instance_key,
+    label: module.label,
+    enabled: module.enabled,
+    inputValues: module.input_values,
+    inputProvenance: module.input_provenance,
+    legacyChildKey: module.legacy_child_key,
+    sortOrder: module.sort_order,
+  }));
+  const calculation = archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V2_CONTRACT_VERSION
+    ? calculateStripFootingV2({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+    : calculateCondition({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides });
 
   const { data: mappings, error: mappingsError } = await supabase.from('condition_legacy_output_mappings')
     .select('output_key,legacy_assembly_component_id,legacy_component_key_snapshot,output_unit_snapshot')
