@@ -81,6 +81,7 @@ export type Derived3DMeasurementSource = {
   raw_quantity: number | string;
   raw_unit: string;
   geometry: unknown;
+  calibration?: unknown;
 };
 
 export type Derived3DSheetSource = {
@@ -138,8 +139,8 @@ function normalizedGeometry(value: unknown): NormalizedGeometry | null {
   return { type: source.type as NormalizedGeometry['type'], points, holes };
 }
 
-function sheetScale(sheet: Derived3DSheetSource): number | null {
-  const calibration = asRecord(sheet.calibration);
+function calibrationScale(value: unknown): number | null {
+  const calibration = asRecord(value);
   const direct = positiveNumber(calibration.ft_per_pdf_unit);
   if (direct) return direct;
   const known = positiveNumber(calibration.known_distance_ft);
@@ -280,7 +281,7 @@ export function buildDerived3DScene(input: BuildDerived3DSceneInput): Derived3DS
       continue;
     }
     const sheet = sheets.get(measurement.sheet_id);
-    const scale = sheet ? sheetScale(sheet) : null;
+    const scale = sheet ? calibrationScale(measurement.calibration ?? sheet.calibration) : null;
     if (!sheet || !positiveNumber(sheet.page_width) || !positiveNumber(sheet.page_height) || !scale) {
       addInputIssue(issues, condition, measurement.id, measurement.sheet_id, 'Set a valid sheet scale before 3D verification.');
       continue;
