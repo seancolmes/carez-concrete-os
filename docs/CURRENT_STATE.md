@@ -28,7 +28,7 @@ Preserve the existing Carez modernization and digital thread. Key accepted found
 - custom assembly authoring, nested assemblies, builder means/method profiles, and concrete resource outputs;
 - pricing override preservation;
 - permanent resizable Quantity Worksheet;
-- ADR-016 compact top application header + global category navigation shell with module-specific contextual panes;
+- ADR-016 Option D compact desktop application menubar with module-specific contextual panes;
 - tenant-configurable company branding with immutable commercial-document branding snapshots;
 - accepted Concrete Condition / derived 2D+3D Takeoff target;
 - accepted Job Spine / bid-to-field commercial and execution lineage documented in Architecture/ADRs.
@@ -48,7 +48,7 @@ Staging QA isolation is verified and Issue #30 is closed:
 
 Issue #44 is the implementation and rendered-acceptance owner for the Carez-wide UI replacement.
 
-ADR-015 is the Carez-wide presentation authority. ADR-016 is the desktop shell authority and supersedes the permanent global desktop left rail. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack. ADR-014 remains useful for source-owned shadcn composition architecture where not superseded.
+ADR-015 is the Carez-wide presentation authority. ADR-016 is the desktop shell authority and supersedes the permanent global desktop left rail and the earlier two-row top-navigation implementation. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack. ADR-014 remains useful for source-owned shadcn composition architecture where not superseded.
 
 Implemented on canonical staging:
 
@@ -57,11 +57,12 @@ Implemented on canonical staging:
 - `app/globals.css` now uses dark-first black/graphite semantic tokens for the authenticated application, neutral high-contrast primary actions, restrained semantic success/warning/destructive color, compact radii, and reduced-motion handling;
 - the old B2/light visual override stack remains removed from the active `app/layout.tsx` import chain and the superseded B2/light presentation files remain absent from the active staging tree;
 - `app/carez-shadcn-compat.css` and legacy global structural CSS imports still exist as a temporary migration bridge for unmigrated routes. They are not accepted final architecture and must be removed before Issue #44 closes;
-- `components/AppShell.tsx` now implements the ADR-016 desktop shell: compact top application header, tenant-configurable company logo with repository Carez-wordmark fallback, global category navigation row, wide animated category panels, global command/search, notifications/account controls, and mobile Sheet navigation;
-- the permanent global desktop left app rail is removed from the current shell source. Module-specific contextual panes remain allowed inside module workspaces;
-- mobile navigation remains the accepted left-side Sheet/drawer pattern from ADR-016 rather than reproducing the desktop category row on narrow screens;
-- global category navigation currently groups Today, Preconstruction, Estimating, Projects, Field, Finance, and Documents; Settings remains under system/account navigation;
-- category panels use a shared container with approximately 180 ms functional motion, pointer-intent delay, outside-click close, Escape close/focus return, keyboard left/right category traversal, ArrowDown panel entry, animated chevrons/indicators, and reduced-motion support;
+- `components/AppShell.tsx` now implements ADR-016 Option D on desktop: one compact 44 px application menubar with tenant-configurable company logo / repository Carez fallback, inline Today / Preconstruction / Estimating / Projects / Field / Finance / Documents categories, global command/search, notifications/account controls, and no permanently stacked second global category row;
+- global desktop categories now open compact anchored shadcn/Base UI dropdown menus rather than full-width mega-panels. Menus use dense destination rows without persistent explanatory copy; long categories use a bounded two-column treatment, and active categories/routes receive restrained emphasis;
+- menubar/menu motion uses short functional transitions in the accepted ADR-016 range, while Base UI menu behavior supplies outside-click, Escape/focus handling, and keyboard menu navigation. Left/right category trigger traversal is retained and switching an already-open category by pointer reuses the same compact navigation scope;
+- the permanent global desktop left app rail remains removed. Module-specific contextual panes remain allowed inside module workspaces;
+- mobile navigation remains the accepted left-side Sheet/drawer pattern from ADR-016 rather than reproducing the desktop menubar on narrow screens;
+- Settings remains under system/account navigation;
 - Ctrl/Cmd+K continues to open the Carez command palette;
 - `components/carez/` now contains the first shared source foundation: Carez Data Grid, Number Field, Date/Time Field/Range, Condition Tree, Toolbar, Resizable Workspace, File Upload, Loading States, and Motion helpers;
 - `components/estimates/EstimateGrid.tsx` now consumes the shared Carez Data Grid while preserving estimate filtering, selection, keyboard navigation, pricing values, stage behavior, and estimate/proposal/job routing;
@@ -75,9 +76,11 @@ Implemented on canonical staging:
 - the previous literal shadcn migrations for Login, Dashboard/Today, Owner Reports, Projects, Leads/Lead Inbox, Estimates, Proposals, Takeoff list/workbench, Assembly Library, Field Control, Cashflow, Billing, and Settings remain in place and will continue moving from page-local compositions toward the shared Carez pack when the interaction matches;
 - specialized Takeoff drawing geometry/calculation code has not been rewritten. PDF visual reference, stable page-coordinate vector geometry, calibration, scale regions, geometry editing, quantity authority, and downstream lineage remain protected while presentation conversion proceeds.
 
-Company-branding code checkpoint `00f4808d5f90e1a42b66071e9b655259d044ec26` passed repository Typecheck, Domain tests, and the full Next.js production Build in GitHub Actions run 837. Vercel produced a READY `staging` deployment for the same SHA with no alias error on the canonical staging branch alias. The additive company-branding migration is applied to the isolated QA Supabase project; `company_branding` has RLS enabled and the `carez-branding` bucket is limited to PNG/JPEG/WebP at 5 MB with tenant-scoped write/delete policies.
+Option D code checkpoint `1fd1b95662cc17c58dddfd9081cb079d07332463` passed repository Typecheck, Domain tests, and the full Next.js production Build in GitHub Actions run 853. Vercel produced a READY `staging` deployment for the same SHA and associated it with the canonical staging branch alias. A fetch of the stable staging URL returned HTTP 200 and the matching `1fd1b95` build identity before the unauthenticated application routed to Login.
 
-This is an implementation/build/deployment checkpoint, not rendered authenticated acceptance. Browser QA is still required for Settings upload/reset, Settings preview, desktop shell logo rendering, mobile drawer logo rendering, top-shell pointer/keyboard/focus behavior, category-panel motion, contrast, overflow, responsive behavior, route presentation, and Takeoff workstation interactions. Issue #44 remains open. Some legacy commercial-route branding assumptions also remain part of the broader Issue #44 route-conversion cleanup and must not be treated as final until those surfaces are migrated and browser-verified.
+Company-branding code checkpoint `00f4808d5f90e1a42b66071e9b655259d044ec26` passed repository Typecheck, Domain tests, and the full Next.js production Build in GitHub Actions run 837. The additive company-branding migration is applied to the isolated QA Supabase project; `company_branding` has RLS enabled and the `carez-branding` bucket is limited to PNG/JPEG/WebP at 5 MB with tenant-scoped write/delete policies.
+
+These are implementation/build/deployment checkpoints, not rendered authenticated acceptance. Browser QA is still required for the Option D desktop menubar proportions, anchored-menu positioning, pointer/keyboard/focus/Escape behavior, motion, contrast, overflow, responsive transition to the accepted mobile Sheet, Settings upload/reset, Settings preview, desktop/mobile logo rendering, route presentation, and Takeoff workstation interactions. Automated browser verification was unavailable in the connected execution environment, and the stable deployment redirects unauthenticated requests to Login. Issue #44 remains open. Some legacy commercial-route branding assumptions also remain part of the broader Issue #44 route-conversion cleanup and must not be treated as final until those surfaces are migrated and browser-verified.
 
 ## Verified Takeoff baseline
 
@@ -103,7 +106,7 @@ See Git history/issues for detailed acceptance evidence from earlier checkpoints
 
 ## Current Takeoff UX work
 
-Issue #35 remains the bounded Takeoff presentation/behavior acceptance item and must be checked under the ADR-016 top-navigation shell without reopening already verified measurement behavior.
+Issue #35 remains the bounded Takeoff presentation/behavior acceptance item and must be checked under the ADR-016 Option D menubar shell without reopening already verified measurement behavior.
 
 Previously implemented behavior still required:
 
@@ -149,9 +152,9 @@ Still open under Issue #40: pilot Template/Condition authoring UI, authenticated
 
 ## Current sequence
 
-1. Browser-QA ADR-016 and company branding on the single stable staging URL: Settings → Branding upload/reset, Settings preview, desktop top-shell logo, accepted mobile left Sheet/drawer logo, category pointer intent, keyboard traversal, focus return, Escape/outside-click behavior, command menu, contrast, and overflow.
+1. Browser-QA ADR-016 Option D and company branding on the single stable staging URL: one-row desktop menubar proportions, compact anchored menus, active-category treatment, pointer/keyboard/focus/Escape/outside-click behavior, command menu, contrast/overflow, responsive transition to the accepted mobile Sheet, Settings → Branding upload/reset, Settings preview, and desktop/mobile logo rendering.
 2. Continue Issue #44 route conversion using the shared Carez component pack, prioritizing Takeoff contextual panes/toolbar/workspace, Estimate Worksheet, Projects/Schedule grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
-3. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the new shell without measurement regressions.
+3. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the Option D shell without measurement regressions.
 4. Continue the accepted Concrete Condition / derived 2D+3D Takeoff implementation sequence and remaining controlled acceptance gates from `ROADMAP.md`.
 
 ## Production rule
