@@ -28,12 +28,10 @@ export function conditionModuleFieldVisible(
     if (field.key === 'placement_method' || field.key === 'top_finish') return false;
   }
   if (moduleKey === 'reinforcing') {
+    const longitudinal = ['continuous', 'bottom_longitudinal', 'top_longitudinal'].includes(kind);
     if (field.key === 'custom_unit_weight_lb_per_ft') return values.bar_size === 'Custom';
-    if (['bars_per_run', 'splice_policy', 'stock_length_ft', 'lap_length_in'].includes(field.key)) {
-      if (kind !== 'continuous') return false;
-      if (['stock_length_ft', 'lap_length_in'].includes(field.key)) return values.splice_policy === 'stock_lap';
-      return true;
-    }
+    if (field.key === 'bars_per_run' || field.key === 'bar_count' || field.key === 'splice_policy') return longitudinal;
+    if (field.key === 'stock_length_ft' || field.key === 'lap_length_in') return longitudinal && values.splice_policy === 'stock_lap';
     if (['spacing_in', 'pieces_per_location', 'piece_length_ft', 'extra_locations'].includes(field.key)) {
       return ['transverse', 'dowel', 'stirrup'].includes(kind);
     }
