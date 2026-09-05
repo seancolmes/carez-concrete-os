@@ -2,6 +2,8 @@
 
 Use only the stable staging URL from `docs/BRANCH_AND_RELEASE_MODEL.md`.
 
+Before beginning QA, confirm the stable staging deployment is built from the current `staging` line at or after the Issue #55 implementation checkpoint. Do not use a commit-specific or alternate Vercel URL as the acceptance target.
+
 ## Setup
 
 - Open an editable QA Takeoff set with a calibrated footing sheet.
