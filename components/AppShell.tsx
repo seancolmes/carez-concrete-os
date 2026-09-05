@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {Fragment,useEffect,useMemo,useRef,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
 import {
   Banknote,BarChart3,Bell,BriefcaseBusiness,Calculator,CalendarDays,ChevronDown,ClipboardCheck,
@@ -13,14 +13,16 @@ import {BankSyncPulse} from '@/components/PlaidBankControls';
 import {OutlookSyncPulse} from '@/components/OutlookSyncPulse';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Command,CommandDialog,CommandEmpty,CommandGroup,CommandInput,CommandItem,CommandList} from '@/components/ui/command';
+import {
+  DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator,DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 import {Tooltip,TooltipContent,TooltipTrigger} from '@/components/ui/tooltip';
 import {cn} from '@/lib/utils';
-import {carezMotion} from '@/components/carez/motion';
 import {createClient} from '@/lib/supabase/client';
 import {COMPANY_BRANDING_CHANGED_EVENT,FALLBACK_COMPANY_LOGO,companyLogoPublicUrl} from '@/lib/companyBranding';
 
-type NavItem={href:string;label:string;Icon:any;hint?:string};
+type NavItem={href:string;label:string;Icon:any;hint?:string;separatorBefore?:boolean};
 type NavGroup={label:string;items:NavItem[]};
 
 const navGroups:NavGroup[]=[
@@ -36,8 +38,8 @@ const navGroups:NavGroup[]=[
   {label:'Estimating',items:[
     {href:'/takeoff',label:'Takeoff',Icon:Ruler,hint:'Plans, conditions and quantities'},
     {href:'/estimates',label:'Estimates',Icon:Calculator,hint:'Scope, pricing and review'},
-    {href:'/estimates/audit',label:'Estimate audit',Icon:ShieldCheck,hint:'Scope, pricing and risk review'},
     {href:'/proposals',label:'Proposals',Icon:FileText,hint:'Customer proposal workflow'},
+    {href:'/estimates/audit',label:'Estimate audit',Icon:ShieldCheck,hint:'Scope, pricing and risk review',separatorBefore:true},
     {href:'/takeoff/assemblies',label:'Assemblies',Icon:LibraryBig,hint:'Concrete scope recipes and resources'},
     {href:'/takeoff/intelligence',label:'Production intelligence',Icon:Gauge,hint:'Actual production evidence'},
   ]},
@@ -99,82 +101,87 @@ export function CarezProjectSwitcher({label='Carez workspace',detail='Company'}:
   </Button>;
 }
 
-export function CarezTopShell({userName,logoUrl,onOpenCommand,onOpenMobile}:{userName:string;logoUrl:string;onOpenCommand:()=>void;onOpenMobile:()=>void}){
+export function CarezCategoryNav({pathname,onNavigate}:{pathname:string;onNavigate:(href:string)=>void}){
+  const activeGroup=navGroups.find(group=>group.items.some(item=>matchesPath(pathname,item.href)))?.label||null;
+  const [openLabel,setOpenLabel]=useState<string|null>(null);
+  const buttonRefs=useRef<Array<HTMLButtonElement|null>>([]);
+
+  useEffect(()=>setOpenLabel(null),[pathname]);
+
+  const focusAdjacent=(index:number,delta:number)=>{
+    const next=(index+delta+navGroups.length)%navGroups.length;
+    buttonRefs.current[next]?.focus();
+    if(openLabel)setOpenLabel(navGroups[next].label);
+  };
+
+  return <nav aria-label="Global Carez navigation" className="hidden min-w-0 flex-1 items-stretch lg:flex">
+    {navGroups.map((group,index)=>{
+      const open=openLabel===group.label;
+      const active=activeGroup===group.label;
+      const twoColumns=group.items.length>7;
+      return <DropdownMenu key={group.label} open={open} onOpenChange={next=>setOpenLabel(next?group.label:null)}>
+        <DropdownMenuTrigger
+          ref={node=>{buttonRefs.current[index]=node}}
+          onPointerEnter={()=>{if(openLabel&&openLabel!==group.label)setOpenLabel(group.label)}}
+          onKeyDown={event=>{
+            if(event.key==='ArrowRight'){event.preventDefault();focusAdjacent(index,1)}
+            if(event.key==='ArrowLeft'){event.preventDefault();focusAdjacent(index,-1)}
+          }}
+          className={cn(
+            'relative flex h-11 shrink-0 items-center gap-1 px-2.5 text-xs font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:bg-muted/45 focus-visible:text-foreground motion-reduce:transition-none xl:px-3',
+            (active||open)&&'text-foreground',
+          )}
+        >
+          {group.label}
+          {group.items.length>1?<ChevronDown className={cn('size-3 opacity-60 transition-transform duration-150 motion-reduce:transition-none',open&&'rotate-180')}/>:null}
+          <span aria-hidden="true" className={cn('absolute inset-x-2 bottom-0 h-px origin-center bg-foreground transition-transform duration-150 motion-reduce:transition-none',(active||open)?'scale-x-100':'scale-x-0')}/>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          sideOffset={1}
+          className={cn(
+            'w-auto min-w-56 rounded-md border border-border/80 bg-popover/95 p-1.5 shadow-xl shadow-black/35 backdrop-blur-xl duration-150 data-[side=bottom]:slide-in-from-top-1',
+            twoColumns&&'grid min-w-[420px] grid-cols-2 gap-0.5',
+          )}
+        >
+          {group.items.map(({href,label,Icon,separatorBefore})=><Fragment key={href}>
+            {separatorBefore&&!twoColumns?<DropdownMenuSeparator/>:null}
+            <DropdownMenuItem
+              onClick={()=>{setOpenLabel(null);onNavigate(href)}}
+              className={cn(
+                'h-8 cursor-pointer gap-2 px-2.5 text-[13px]',
+                matchesPath(pathname,href)&&'bg-accent/55 text-accent-foreground',
+              )}
+            >
+              <Icon className="size-3.5 text-muted-foreground"/>
+              <span className="truncate">{label}</span>
+            </DropdownMenuItem>
+          </Fragment>)}
+        </DropdownMenuContent>
+      </DropdownMenu>;
+    })}
+  </nav>;
+}
+
+export function CarezTopShell({userName,logoUrl,pathname,onNavigate,onOpenCommand,onOpenMobile}:{userName:string;logoUrl:string;pathname:string;onNavigate:(href:string)=>void;onOpenCommand:()=>void;onOpenMobile:()=>void}){
   const initial=userName.trim().charAt(0).toUpperCase()||'C';
-  return <div className="flex h-12 items-center gap-2 border-b border-border bg-background px-3">
-    <Button type="button" variant="ghost" size="icon-sm" className="md:hidden" onClick={onOpenMobile} aria-label="Open navigation"><Menu/></Button>
-    <Link href="/" prefetch={false} className="flex shrink-0 items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+  return <header className="flex h-11 items-center border-b border-border bg-background/96 px-2.5 backdrop-blur-xl md:px-3">
+    <Button type="button" variant="ghost" size="icon-sm" className="mr-1 lg:hidden" onClick={onOpenMobile} aria-label="Open navigation"><Menu/></Button>
+    <Link href="/" prefetch={false} className="flex h-11 shrink-0 items-center rounded-sm pr-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
       <img src={logoUrl} alt="Company logo" className="h-5 max-w-32 object-contain object-left"/>
-      <span className="hidden text-[10px] font-medium tracking-wide text-muted-foreground xl:inline">Concrete OS</span>
     </Link>
-    <span className="mx-1 hidden h-5 w-px bg-border md:block"/>
-    <CarezProjectSwitcher/>
-    <div className="ml-auto flex items-center gap-1.5">
-      <Button type="button" variant="outline" size="sm" onClick={onOpenCommand} className="hidden min-w-48 justify-start gap-2 border-border/80 bg-muted/20 text-muted-foreground lg:inline-flex"><Search className="size-3.5"/><span>Search Carez</span><kbd className="ml-auto rounded-sm border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">Ctrl K</kbd></Button>
-      <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" onClick={onOpenCommand}/> } className="lg:hidden"><Search/></TooltipTrigger><TooltipContent>Search Carez</TooltipContent></Tooltip>
+    <span className="hidden h-5 w-px shrink-0 bg-border lg:block"/>
+    <CarezCategoryNav pathname={pathname} onNavigate={onNavigate}/>
+    <div className="ml-auto flex shrink-0 items-center gap-1">
+      <Button type="button" variant="outline" size="sm" onClick={onOpenCommand} className="hidden h-8 min-w-44 justify-start gap-2 border-border/80 bg-muted/15 px-2.5 text-muted-foreground xl:inline-flex"><Search className="size-3.5"/><span>Search Carez</span><kbd className="ml-auto rounded-sm border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">Ctrl K</kbd></Button>
+      <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" onClick={onOpenCommand}/> } className="xl:hidden"><Search/></TooltipTrigger><TooltipContent>Search Carez</TooltipContent></Tooltip>
       <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm"/>}><Bell/></TooltipTrigger><TooltipContent>Notifications</TooltipContent></Tooltip>
       <Link href="/settings" prefetch={false} className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-8 gap-2 px-1.5')}>
         <span className="flex size-6 items-center justify-center rounded-full border border-border bg-muted text-[10px] font-semibold">{initial}</span>
-        <span className="hidden max-w-32 truncate text-xs xl:inline">{userName}</span>
+        <span className="hidden max-w-28 truncate text-xs 2xl:inline">{userName}</span>
       </Link>
     </div>
-  </div>;
-}
-
-export function CarezNavPanel({group,open,panelRef}:{group:NavGroup;open:boolean;panelRef:React.RefObject<HTMLDivElement|null>}){
-  const columns=group.items.length>7?'grid-cols-3':group.items.length>3?'grid-cols-2':'grid-cols-1';
-  return <div ref={panelRef} id="carez-global-nav-panel" aria-hidden={!open} className={cn('absolute inset-x-0 top-full z-50 origin-top border-b border-border bg-popover shadow-2xl shadow-black/35',carezMotion.overlay,open?'pointer-events-auto translate-y-0 scale-100 opacity-100':'pointer-events-none -translate-y-1 scale-[.995] opacity-0')}>
-    <div className="mx-auto max-w-[1480px] px-4 py-4">
-      <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{group.label}</div>
-      <div className={cn('grid gap-1',columns)}>{group.items.map(({href,label,Icon,hint})=><Link key={href} href={href} prefetch={false} className="group flex min-h-12 items-start gap-3 rounded-md px-3 py-2.5 outline-none transition-colors duration-150 hover:bg-muted/55 focus-visible:bg-muted/55 focus-visible:ring-2 focus-visible:ring-ring/30 motion-reduce:transition-none">
-        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground group-hover:text-foreground"/>
-        <span className="min-w-0"><span className="block text-sm font-medium text-foreground">{label}</span>{hint?<span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{hint}</span>:null}</span>
-      </Link>)}</div>
-    </div>
-  </div>;
-}
-
-export function CarezCategoryNav({pathname}:{pathname:string}){
-  const activeGroup=navGroups.find(group=>group.items.some(item=>matchesPath(pathname,item.href)))?.label||null;
-  const [openLabel,setOpenLabel]=useState<string|null>(null);
-  const [lastLabel,setLastLabel]=useState<string>(activeGroup||navGroups[0].label);
-  const rootRef=useRef<HTMLDivElement|null>(null);
-  const panelRef=useRef<HTMLDivElement|null>(null);
-  const buttonRefs=useRef<Array<HTMLButtonElement|null>>([]);
-  const closeTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
-
-  const openGroup=(label:string,focusPanel=false)=>{
-    if(closeTimer.current)clearTimeout(closeTimer.current);
-    setLastLabel(label);setOpenLabel(label);
-    if(focusPanel)setTimeout(()=>panelRef.current?.querySelector<HTMLAnchorElement>('a')?.focus(),0);
-  };
-  const scheduleClose=()=>{if(closeTimer.current)clearTimeout(closeTimer.current);closeTimer.current=setTimeout(()=>setOpenLabel(null),170)};
-  const close=()=>{if(closeTimer.current)clearTimeout(closeTimer.current);setOpenLabel(null)};
-
-  useEffect(()=>close(),[pathname]);
-  useEffect(()=>{
-    if(!openLabel)return;
-    const outside=(event:PointerEvent)=>{if(rootRef.current&&!rootRef.current.contains(event.target as Node))close()};
-    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){close();const index=navGroups.findIndex(group=>group.label===openLabel);buttonRefs.current[index]?.focus()}};
-    document.addEventListener('pointerdown',outside);window.addEventListener('keydown',escape);
-    return()=>{document.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',escape)};
-  },[openLabel]);
-  useEffect(()=>()=>{if(closeTimer.current)clearTimeout(closeTimer.current)},[]);
-
-  const panelGroup=navGroups.find(group=>group.label===(openLabel||lastLabel))||navGroups[0];
-
-  return <div ref={rootRef} className="relative hidden md:block" onPointerEnter={()=>{if(closeTimer.current)clearTimeout(closeTimer.current)}} onPointerLeave={scheduleClose}>
-    <nav aria-label="Global Carez navigation" className="flex h-9 items-stretch gap-0.5 bg-background px-3">
-      {navGroups.map((group,index)=>{const open=openLabel===group.label,active=activeGroup===group.label;return <button key={group.label} ref={node=>{buttonRefs.current[index]=node}} type="button" aria-expanded={open} aria-controls="carez-global-nav-panel" onClick={()=>open?close():openGroup(group.label)} onKeyDown={event=>{
-        if(event.key==='ArrowDown'){event.preventDefault();openGroup(group.label,true)}
-        if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();const delta=event.key==='ArrowRight'?1:-1;const next=(index+delta+navGroups.length)%navGroups.length;buttonRefs.current[next]?.focus();if(openLabel)openGroup(navGroups[next].label)}
-      }} className={cn('relative flex h-full items-center gap-1 rounded-none px-3 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:bg-muted/50 focus-visible:text-foreground',carezMotion.micro,(active||open)&&'text-foreground')}>
-        {group.label}<ChevronDown className={cn('size-3 transition-transform duration-[180ms] motion-reduce:transition-none',open&&'rotate-180')}/>
-        <span aria-hidden="true" className={cn('absolute inset-x-2 bottom-0 h-0.5 origin-center bg-foreground transition-transform duration-[180ms] motion-reduce:transition-none',(active||open)?'scale-x-100':'scale-x-0')}/>
-      </button>})}
-    </nav>
-    <CarezNavPanel group={panelGroup} open={Boolean(openLabel)} panelRef={panelRef}/>
-  </div>;
+  </header>;
 }
 
 export function CarezCommandMenu({open,onOpenChange,onNavigate}:{open:boolean;onOpenChange:(open:boolean)=>void;onNavigate:(href:string)=>void}){
@@ -236,8 +243,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
   return <div className="flex min-h-svh flex-col bg-background text-foreground">
     <BankSyncPulse/><OutlookSyncPulse/>
     <div className="relative z-40 shrink-0 bg-background">
-      <CarezTopShell userName={userName} logoUrl={logoUrl} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/>
-      <CarezCategoryNav pathname={pathname}/>
+      <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/>
     </div>
     <main aria-label={current.label} className={workstation?'min-h-0 min-w-0 flex-1 overflow-hidden':'min-h-0 min-w-0 flex-1 overflow-auto bg-background p-4 md:p-5'}>{children}</main>
     <CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate}/>
