@@ -51,6 +51,14 @@ Use the shared Carez Toolbar composition for high-frequency actions: selection, 
 
 `2D`, `3D`, and `Split` are explicit view modes. 2D remains authoritative; 3D remains a derived synchronized verification view under ADR-013.
 
+### View-control rail
+
+View-level controls must not float over measurement, zoom, drawing navigation, or other high-frequency tools. `2D / 3D / Split` therefore live in a dedicated compact **View rail** immediately above the drawing workspace rather than as an absolute overlay.
+
+The View rail is reserved for controls that change how authoritative Takeoff data is viewed rather than edited. Future layers, compare/revision visualization, AI overlays, derived-3D controls, or similar view-only integrations may share this rail. Measurement tools, scale, snap/ortho, editing controls, undo/redo, and zoom remain in their existing drawing-tool context and may not be obscured by the View rail.
+
+View-mode state uses the Carez-owned neutral shadcn/Base UI interaction language. The selected view is high-contrast without introducing a parallel blue accent system; unavailable views use a muted disabled state and durable product language rather than implementation or QA narration.
+
 Contextual drawing actions such as edit, duplicate, cutout, hide/isolate, properties, and lineage navigation should use Carez-owned shadcn/Base UI context-menu/dropdown patterns instead of permanently occupying inspector space when progressive disclosure is clearer.
 
 ## Condition Properties
@@ -167,6 +175,7 @@ The redesign is accepted in implementation only when:
 - no horizontal drag-resize affordance remains on those two docked side panes;
 - the bottom Quantity / Estimate Worksheet remains vertically resizable while preserving a useful drawing minimum;
 - selection is synchronized among navigator, drawing, Condition Properties, worksheet, and 3D where available;
+- the View rail never obscures zoom, measurement, or drawing navigation controls and remains available for future view-only integrations without creating another floating toolbar;
 - cursor/tool states are clear, restrained, and non-distracting;
 - Quantity / Estimate Worksheet text is readable at 100% desktop zoom without reverting to oversized low-density rows;
 - keyboard/focus/reduced-motion behavior remains coherent;
