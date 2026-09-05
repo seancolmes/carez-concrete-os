@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { ASSEMBLY_TEMPLATES, assemblyTemplateById } from '@/lib/takeoff/assemblyTemplates';
+import { assemblyTemplateById } from '@/lib/takeoff/assemblyTemplates';
 import { compileFormulaExpression } from '@/lib/takeoff/formulaExpression';
 import { analyzeFormulaComposer, type FormulaComposerStep } from '@/lib/takeoff/formulaComposer';
 
@@ -457,5 +457,3 @@ export async function publishAssemblyDraft(setId: string, versionId: string) {
   refresh(setId);
   return { assembly_version_id: data as string };
 }
-
-export { ASSEMBLY_TEMPLATES };
