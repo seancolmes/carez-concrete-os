@@ -159,6 +159,49 @@ export async function deleteProjectConcreteCondition(input: {
   };
 }
 
+export async function assignConditionPrimaryTakeoffSection(input: {
+  takeoffSetId: string;
+  measurementId: string;
+  sectionId: string | null;
+}) {
+  const { supabase, companyId } = await conditionContext();
+  const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const measurementId = String(input?.measurementId || '').trim();
+  const sectionId = input?.sectionId ? String(input.sectionId).trim() : null;
+  if (!takeoffSetId || !measurementId) throw new Error('Condition takeoff is required.');
+  const set = await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: measurement, error: measurementError } = await supabase.from('takeoff_measurements')
+    .select('id,estimate_id,takeoff_set_id')
+    .eq('id', measurementId)
+    .eq('takeoff_set_id', takeoffSetId)
+    .eq('company_id', companyId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (measurementError) throw new Error(measurementError.message);
+  if (!measurement || measurement.estimate_id !== set.estimate_id) throw new Error('Active Condition takeoff not found.');
+
+  if (sectionId) {
+    const { data: section, error: sectionError } = await supabase.from('estimate_sections')
+      .select('id')
+      .eq('id', sectionId)
+      .eq('estimate_id', set.estimate_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (sectionError) throw new Error(sectionError.message);
+    if (!section) throw new Error('Estimate section not found for this revision.');
+  }
+
+  const { error } = await supabase.from('takeoff_measurements')
+    .update({ estimate_section_id: sectionId })
+    .eq('id', measurementId)
+    .eq('takeoff_set_id', takeoffSetId)
+    .eq('company_id', companyId);
+  if (error) throw new Error(error.message);
+  refreshConditionSurfaces(takeoffSetId);
+  return { measurement_id: measurementId, estimate_section_id: sectionId };
+}
+
 /**
  * The browser submits inputs and stable IDs only. Measurements, prices,
  * calculations, lineage, legacy projections, and reconciliation are resolved
