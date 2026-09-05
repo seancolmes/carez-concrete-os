@@ -98,7 +98,8 @@ The following representative Takeoff behavior has already been browser-verified 
 - SF polygon + cutout calculation and exact downstream lineage;
 - missing method-input holds;
 - hover-only measurement detail behavior;
-- automatic PDF sheet naming/indexing.
+- automatic PDF sheet naming/indexing;
+- authenticated Concrete Condition authoring/runtime acceptance for the three governed pilot families under closed Issue #40.
 
 The earlier permanent-app-rail containment verification is historical shell evidence and is superseded by ADR-016. It does not authorize reintroducing the rail.
 
@@ -121,9 +122,9 @@ Previously implemented behavior still required:
 
 The dark shadcn/ADR-016 redesign must not regress these behaviors or the newer Concrete Condition / derived 2D+3D workstation target.
 
-## Concrete Condition foundation and persistence (Issue #40 — in progress)
+## Concrete Condition foundation and persistence (Issue #40 — accepted)
 
-This checkpoint continues the accepted Concrete Condition runtime without replacing working Takeoff behavior:
+The Concrete Condition domain and three governed pilot families are now an authenticated stable-staging browser-accepted baseline:
 
 - an additive, versioned Platform Archetype → Company Template → Project Concrete Condition domain is present;
 - module instances, typed input compartments, independent primary/secondary measurement roles, outputs, holds, provenance, and legacy IDs are explicit records;
@@ -131,18 +132,20 @@ This checkpoint continues the accepted Concrete Condition runtime without replac
 - Pad / Column Footing, Strip / Wall Footing, and Slab on Grade are seeded as the first governed pilot families;
 - the deterministic Condition kernel produces EA, LF, SF, CY, LB, and HR outputs, including cutout-adjusted slab area, isolated dependent holds, and traceable explicit overrides;
 - the authenticated server-only persistence path loads measurement quantity/unit/geometry facts from Supabase rather than accepting calculated quantities from the browser;
-- one transaction now persists Condition inputs, module state, primary/secondary role assignments, outputs, holds, the legacy Takeoff compatibility projection, and generated estimate-item lineage;
+- one transaction persists Condition inputs, module state, primary/secondary role assignments, outputs, holds, the legacy Takeoff compatibility projection, and generated estimate-item lineage;
 - each projected Condition designates one compatibility anchor measurement; non-anchor role measurements keep their own geometry while their duplicate estimate lines are hidden, and detached role measurements restore their legacy output projection;
 - optimistic concurrency rejects stale Condition or measurement snapshots;
 - current versus superseded compatibility lineage and exact/held/inactive/mismatch states are exposed through reconciliation views;
-- verification now requires the current projected revision, every governed output, explicit holds, and a reconciled compatibility projection;
+- verification requires the current projected revision, every governed output, explicit holds, and a reconciled compatibility projection;
 - source migration `20260904135826_condition_persistence_reconciliation.sql` is applied to the isolated QA Supabase project;
 - deterministic pilot fixtures pass 10 tests;
-- a rolled-back authenticated QA fixture passed exact projection, held-output persistence, stale-write rejection, multi-sheet secondary suppression, detach restoration, and zero orphan/duplicate estimate-line checks.
+- a rolled-back authenticated QA fixture passed exact projection, held-output persistence, stale-write rejection, multi-sheet secondary suppression, detach restoration, and zero orphan/duplicate estimate-line checks;
+- the Condition authoring UI and server-action boundary are deployed on canonical `staging`; runtime defect `A "use server" file can only export async functions, found object` was resolved by `d179675e124a137df92d18fba1483af60a2c585f`, with GitHub Actions run 856 passing install/typecheck/domain tests/build and the matching Vercel deployment reaching `READY`;
+- Nik accepted Issue #40 authenticated browser QA on the stable staging URL, and Issue #40 is closed as completed.
 
-The existing assembly/formula/measurement/output/estimate runtime remains active as the compatibility layer. No legacy table, published version, measurement, output, or estimate history was deleted. Operational recovery is therefore a code-path rollback to the existing runtime; the additive schema can remain dormant. Destructive schema rollback is not allowed after real Condition data exists without a dedicated preservation migration.
+The existing assembly/formula/measurement/output/estimate runtime remains preserved as the compatibility/history layer. No legacy table, published version, measurement, output, or estimate history was deleted. Scope Recipe, Build Method/System Block, Formula Composer, and legacy Assembly Library concepts are no longer the primary model for new standard Condition work, but active UI/data retirement remains dependency-gated: supported legacy records must remain readable/reconcilable until migration and follow-on removal gates are complete. Destructive schema rollback or deletion is not allowed without explicit dependency proof and a dedicated preservation/recovery plan.
 
-Still open under Issue #40: pilot Template/Condition authoring UI, authenticated browser CRUD and cross-sheet acceptance, representative real-project old/new reconciliation, undo/redo/delete workflow acceptance, and the later 2D/derived-3D workstation transition coordinated with Issues #39 and #44.
+Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated retirement of legacy authoring surfaces continue under the roadmap and follow-on issues; they are not reopeners of Issue #40.
 
 ## Known bounded follow-up
 
@@ -155,7 +158,7 @@ Still open under Issue #40: pilot Template/Condition authoring UI, authenticated
 1. Browser-QA ADR-016 Option D and company branding on the single stable staging URL: one-row desktop menubar proportions, compact anchored menus, active-category treatment, pointer/keyboard/focus/Escape/outside-click behavior, command menu, contrast/overflow, responsive transition to the accepted mobile Sheet, Settings → Branding upload/reset, Settings preview, and desktop/mobile logo rendering.
 2. Continue Issue #44 route conversion using the shared Carez component pack, prioritizing Takeoff contextual panes/toolbar/workspace, Estimate Worksheet, Projects/Schedule grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
 3. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the Option D shell without measurement regressions.
-4. Continue the accepted Concrete Condition / derived 2D+3D Takeoff implementation sequence and remaining controlled acceptance gates from `ROADMAP.md`.
+4. Continue the P0.5 derived 2D/3D, migration/reconciliation, and dependency-gated legacy-authoring retirement sequence from `ROADMAP.md` using the now-accepted Issue #40 Condition baseline.
 
 ## Production rule
 
