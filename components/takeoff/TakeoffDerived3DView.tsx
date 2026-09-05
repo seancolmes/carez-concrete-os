@@ -170,6 +170,7 @@ export function TakeoffDerived3DView({
   const dragRef = useRef<Drag>(null);
   const [size, setSize] = useState({ width: 900, height: 600 });
   const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
+  const [viewCenter, setViewCenter] = useState<Point3 | null>(null);
   const [zone, setZone] = useState('all');
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [isolated, setIsolated] = useState<string | null>(null);
@@ -189,6 +190,7 @@ export function TakeoffDerived3DView({
     setHidden(new Set());
     setIsolated(null);
     setCamera(DEFAULT_CAMERA);
+    setViewCenter(null);
   }, [activeSheetId]);
 
   const sheetSolids = useMemo(
@@ -209,7 +211,19 @@ export function TakeoffDerived3DView({
     [scene.issues, activeSheetId],
   );
 
-  const center = useMemo(() => sceneCenter(visibleSolids.length ? visibleSolids : sheetSolids), [visibleSolids, sheetSolids]);
+  const framingKey = useMemo(() => [
+    activeSheetId || 'all',
+    zone,
+    isolated || '',
+    [...hidden].sort().join(','),
+    visibleSolids.map(solid => solid.id).sort().join('|'),
+  ].join('::'), [activeSheetId, zone, isolated, hidden, visibleSolids]);
+
+  useEffect(() => {
+    setViewCenter(sceneCenter(visibleSolids.length ? visibleSolids : sheetSolids));
+  }, [framingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const center = viewCenter ?? sceneCenter(visibleSolids.length ? visibleSolids : sheetSolids);
   const fitScale = useMemo(() => {
     const points = (visibleSolids.length ? visibleSolids : sheetSolids).flatMap(solidPoints);
     if (!points.length) return 1;
@@ -230,7 +244,10 @@ export function TakeoffDerived3DView({
   }, [center, camera, fitScale, size]);
   const faces = useMemo(() => renderFaces(visibleSolids, project), [visibleSolids, project]);
 
-  const resetView = () => setCamera(DEFAULT_CAMERA);
+  const resetView = () => {
+    setViewCenter(sceneCenter(visibleSolids.length ? visibleSolids : sheetSolids));
+    setCamera(DEFAULT_CAMERA);
+  };
   const toggleSelected = () => {
     if (!selectedConditionVersionId) return;
     setIsolated(null);
