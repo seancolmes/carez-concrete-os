@@ -1,4 +1,4 @@
-.drawingViewModes{position:absolute;z-index:110;top:8px;right:8px;display:flex;align-items:center;padding:2px;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--background) 90%,transparent);box-shadow:0 6px 18px rgb(0 0 0 / .18);backdrop-filter:blur(8px)}
+.drawingViewModes{position:absolute;z-index:110;top:8px;right:8px;display:flex;width:auto!important;align-items:center;padding:2px;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--background) 90%,transparent);box-shadow:0 6px 18px rgb(0 0 0 / .18);backdrop-filter:blur(8px)}
 .conditionSummaryLine{display:flex;min-height:36px;align-items:center;gap:7px;padding:6px 10px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--muted) 8%);font-size:10px;color:var(--muted-foreground)}
 .conditionSummaryLine strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);font-size:11px;font-weight:650}
 .summaryMeta{margin-left:auto;flex:none;white-space:nowrap;color:var(--muted-foreground);font-variant-numeric:tabular-nums}
@@ -13,7 +13,7 @@
 .holdText small{margin-top:1px;font-size:9px;color:var(--muted-foreground)}
 .holdJump{color:var(--muted-foreground);font-size:9px}
 .switchField{min-height:32px;align-items:center!important;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);padding:0 8px}
-.switchFieldLabel{min-width:0;flex:1;color:var(--foreground)!important;font-size:10px!important;font-weight:650!important}
+.switchFieldLabel{min-width:0;flex:1;cursor:pointer;color:var(--foreground)!important;font-size:10px!important;font-weight:650!important}
 .propertyField{gap:4px!important;min-width:0}
 .propertyFieldLabel{color:var(--muted-foreground)!important;font-size:10px!important;font-weight:650!important}
 .moduleControlRow{display:flex;min-height:40px;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--muted) 20%,transparent)}
