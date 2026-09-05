@@ -12,7 +12,6 @@ import type {
   ConditionOutput,
   ConditionOutputDefinition,
   ConditionOutputTrace,
-  ConditionScalar,
   ConditionTraceValue,
   ConditionValue,
 } from './types.ts';
@@ -76,7 +75,7 @@ const moduleInput = (
 
 const output = (
   outputKey: string,
-  moduleKey: string,
+  moduleKey: ConditionOutputDefinition['moduleKey'],
   label: string,
   resourceClass: ConditionOutputDefinition['resourceClass'],
   unit: ConditionOutputDefinition['unit'],
@@ -120,9 +119,7 @@ const reinforcingModule: ConditionModuleDefinition = {
 
 const modules = (STRIP_FOOTING_V2_DEFINITION.modules || []).map((item): ConditionModuleDefinition => {
   if (item.key === 'reinforcing') return reinforcingModule;
-  if (item.key === 'concrete') {
-    return { ...item, inputs: item.inputs.filter(field => field.key !== 'placement_method' && field.key !== 'top_finish') };
-  }
+  if (item.key === 'concrete') return { ...item, inputs: item.inputs.filter(field => field.key !== 'placement_method' && field.key !== 'top_finish') };
   if (item.key === 'labor') return { ...item, label: 'Labor / productivity' };
   return item;
 });
@@ -145,12 +142,13 @@ export const STRIP_FOOTING_V3_DEFINITION: ConditionArchetypeDefinition = {
     ...v2NonLaborOutputs,
     output('reinforcing.installed_lb', 'reinforcing', 'Reinforcing steel — installed', 'material', 'LB', 'strip-rebar-installed-v3', 'rebar_installed'),
     output('reinforcing.procurement_lb', 'reinforcing', 'Reinforcing steel — procurement', 'material', 'LB', 'strip-rebar-procurement-v3', 'rebar'),
+    output('reinforcing.stock_bars_ea', 'reinforcing', 'Reinforcing stock bars — order guide', 'material', 'EA', 'strip-rebar-stock-bars-v3', 'rebar_stock_bars'),
     ...laborOutputs,
   ],
 };
 
 type NumericRead = { value: number | null; holds: ConditionHold[]; trace: ConditionTraceValue[] };
-type RebarTotals = { installed: number | null; procurement: number | null; holds: ConditionHold[]; trace: ConditionTraceValue[]; measurementIds: string[] };
+type RebarTotals = { installed: number | null; procurement: number | null; stockPieces: number | null; holds: ConditionHold[]; trace: ConditionTraceValue[]; measurementIds: string[] };
 
 const round = (value: number, precision = 4) => Math.round((value + Number.EPSILON) * 10 ** precision) / 10 ** precision;
 const hold = (key: string, label: string, code: ConditionHold['code'] = 'input_required'): ConditionHold => ({ code, message: `${label} is required for this output.`, requiredInputs: [key] });
@@ -188,10 +186,11 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
   const run = runRoles.reduce((sum, role) => sum + Number(role.quantity || 0), 0);
   const measurementIds = runRoles.map(role => role.measurementId);
   const sets = (request.modules || []).filter(module => module.moduleKey === 'reinforcing' && module.enabled);
-  if (!sets.length) return { installed: 0, procurement: 0, holds: [], trace: [{ key: 'role.run', value: run }], measurementIds };
+  if (!sets.length) return { installed: 0, procurement: 0, stockPieces: 0, holds: [], trace: [{ key: 'role.run', value: run }], measurementIds };
 
   let installed = 0;
   let procurement = 0;
+  let stockPieces = 0;
   const holds: ConditionHold[] = [];
   const trace: ConditionTraceValue[] = [{ key: 'role.run', value: run }];
   for (const set of sets) {
@@ -203,6 +202,7 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
     let setHolds = [...kind.holds, ...barSize.holds, ...customWeight.holds];
     if (!unitWeight) setHolds.push(hold(`reinforcing.${set.instanceKey || 'default'}.bar_size`, `${label} bar size / unit weight`));
     let length = 0;
+    let stockPieceBase = 0;
 
     if (kind.value === 'bottom_longitudinal' || kind.value === 'top_longitudinal') {
       const count = moduleNumber(set, 'bar_count', `${label} bars total`, { positive: true, integer: true });
@@ -215,7 +215,15 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
         const lap = moduleNumber(set, 'lap_length_in', `${label} lap length`);
         setHolds.push(...stock.holds, ...lap.holds);
         trace.push(...stock.trace, ...lap.trace);
-        if (!stock.holds.length && !lap.holds.length) lapAdded = Math.max(0, Math.ceil(run / Number(stock.value)) - 1) * Number(lap.value) / 12;
+        if (!stock.holds.length && !lap.holds.length) {
+          const stockFt = Number(stock.value);
+          const lapFt = Number(lap.value) / 12;
+          if (stockFt <= lapFt && run > stockFt) throw new Error(`${label} stock length must exceed lap length.`);
+          const piecesPerLine = run <= stockFt ? 1 : Math.ceil((run - lapFt) / (stockFt - lapFt));
+          lapAdded = Math.max(0, piecesPerLine - 1) * lapFt;
+          stockPieceBase = piecesPerLine * Number(count.value || 0);
+          trace.push({ key: `reinforcing.${set.instanceKey || 'default'}.stock_pieces_before_allowance`, value: stockPieceBase });
+        }
       }
       if (!setHolds.length) length = (run + lapAdded) * Number(count.value);
     } else if (kind.value === 'transverse' || kind.value === 'dowel' || kind.value === 'stirrup') {
@@ -238,13 +246,15 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
     trace.push(...kind.trace, ...barSize.trace, ...customWeight.trace, ...waste.trace);
     holds.push(...setHolds);
     if (!setHolds.length) {
+      const allowance = 1 + Number(waste.value || 0) / 100;
       const installedSet = length * Number(unitWeight);
       installed += installedSet;
-      procurement += installedSet * (1 + Number(waste.value || 0) / 100);
+      procurement += installedSet * allowance;
+      if (stockPieceBase > 0) stockPieces += Math.ceil(stockPieceBase * allowance);
     }
   }
 
-  return { installed: holds.length ? null : round(installed), procurement: holds.length ? null : round(procurement), holds: uniqueHolds(holds), trace, measurementIds };
+  return { installed: holds.length ? null : round(installed), procurement: holds.length ? null : round(procurement), stockPieces: holds.length ? null : stockPieces, holds: uniqueHolds(holds), trace, measurementIds };
 }
 
 function v2CompatibleModules(modules: ConditionModuleConfiguration[] | undefined): ConditionModuleConfiguration[] {
@@ -256,14 +266,7 @@ function v2CompatibleModules(modules: ConditionModuleConfiguration[] | undefined
       const mappedKind = kind === 'bottom_longitudinal' || kind === 'top_longitudinal' ? 'continuous' : kind;
       return {
         ...module,
-        inputValues: {
-          ...values,
-          kind: mappedKind,
-          bars_per_run: values.bar_count ?? '',
-          layers: 1,
-          faces: 1,
-          waste_pct: 0,
-        },
+        inputValues: { ...values, kind: mappedKind, bars_per_run: values.bar_count ?? '', layers: 1, faces: 1, waste_pct: 0 },
       };
     }
     return module;
@@ -271,10 +274,7 @@ function v2CompatibleModules(modules: ConditionModuleConfiguration[] | undefined
 }
 
 function v2CompatibleInputs(request: ConditionCalculationRequest) {
-  return {
-    ...request.inputs,
-    production: {},
-  } as ConditionCalculationRequest['inputs'];
+  return { ...request.inputs, production: {} } as ConditionCalculationRequest['inputs'];
 }
 
 function buildOutput(definition: ConditionOutputDefinition, request: ConditionCalculationRequest, draft: { quantity: number | null; holds?: ConditionHold[]; traceValues?: ConditionTraceValue[]; measurementIds?: string[] }): ConditionOutput {
@@ -322,8 +322,8 @@ function calculateLaborOutput(key: LaborKey, request: ConditionCalculationReques
     return buildOutput(definition, request, { quantity: null, holds: [{ code: 'input_required', message: `Resolve ${meta.dependencyKeys.join(', ')} before calculating ${meta.label.toLowerCase()} labor.`, dependencyOutputKeys: meta.dependencyKeys }], traceValues, measurementIds });
   }
 
-  const quantity = dependencies.reduce((sum, dep) => sum + Number(dep?.quantity || 0), 0);
-  if (quantity === 0) return buildOutput(definition, request, { quantity: 0, traceValues, measurementIds });
+  const drivenQuantity = dependencies.reduce((sum, dep) => sum + Number(dep?.quantity || 0), 0);
+  if (drivenQuantity === 0) return buildOutput(definition, request, { quantity: 0, traceValues, measurementIds });
 
   const methodKey = `${key}_labor_method`;
   const method = productionValue(request, methodKey);
@@ -339,7 +339,7 @@ function calculateLaborOutput(key: LaborKey, request: ConditionCalculationReques
       return buildOutput(definition, request, { quantity: null, holds: [hold(factorKey, `${meta.label} labor factor`, 'labor_rate_required')], traceValues, measurementIds });
     }
     traceValues.push({ key: factorKey, value: factor.value, group: 'production', mode: factor.mode, sourceId: factor.sourceId, sourceLabel: factor.sourceLabel });
-    return buildOutput(definition, request, { quantity: quantity * factor.value, traceValues, measurementIds });
+    return buildOutput(definition, request, { quantity: drivenQuantity * factor.value, traceValues, measurementIds });
   }
 
   if (method.value === 'crew_rate') {
@@ -351,13 +351,13 @@ function calculateLaborOutput(key: LaborKey, request: ConditionCalculationReques
     if (!crew || typeof crew.value !== 'number' || !Number.isFinite(crew.value) || crew.value <= 0) holds.push(hold(crewKey, `${meta.label} crew size`, 'labor_rate_required'));
     if (!production || typeof production.value !== 'number' || !Number.isFinite(production.value) || production.value <= 0) holds.push(hold(productionKey, `${meta.label} production per crew hour`, 'labor_rate_required'));
     if (holds.length) return buildOutput(definition, request, { quantity: null, holds, traceValues, measurementIds });
-    const crewHours = quantity / Number(production!.value);
+    const crewHours = drivenQuantity / Number(production!.value);
     const totalMh = crewHours * Number(crew!.value);
     traceValues.push(
       { key: crewKey, value: Number(crew!.value), group: 'production', mode: crew!.mode, sourceId: crew!.sourceId, sourceLabel: crew!.sourceLabel },
       { key: productionKey, value: Number(production!.value), group: 'production', mode: production!.mode, sourceId: production!.sourceId, sourceLabel: production!.sourceLabel },
       { key: `${key}.crew_hours`, value: round(crewHours) },
-      { key: `${key}.effective_mh_per_unit`, value: round(totalMh / quantity) },
+      { key: `${key}.effective_mh_per_unit`, value: round(totalMh / drivenQuantity) },
     );
     return buildOutput(definition, request, { quantity: totalMh, traceValues, measurementIds });
   }
@@ -373,7 +373,7 @@ export function calculateStripFootingV3(request: ConditionCalculationRequest): C
     ...request,
     inputs: v2CompatibleInputs(request),
     modules: v2CompatibleModules(request.modules),
-    outputOverrides: Object.fromEntries(Object.entries(request.outputOverrides || {}).filter(([key]) => key !== 'reinforcing.installed_lb' && key !== 'reinforcing.procurement_lb' && !key.startsWith('labor.'))),
+    outputOverrides: Object.fromEntries(Object.entries(request.outputOverrides || {}).filter(([key]) => !['reinforcing.installed_lb','reinforcing.procurement_lb','reinforcing.stock_bars_ea'].includes(key) && !key.startsWith('labor.'))),
   };
   const base = calculateStripFootingV2(v2Request);
   const outputs = new Map<string, ConditionOutput>();
@@ -383,14 +383,14 @@ export function calculateStripFootingV3(request: ConditionCalculationRequest): C
   }
 
   const rebar = calculateRebar(request);
-  for (const key of ['reinforcing.installed_lb', 'reinforcing.procurement_lb'] as const) {
+  const rebarQuantities: Record<string, number | null> = {
+    'reinforcing.installed_lb': rebar.installed,
+    'reinforcing.procurement_lb': rebar.procurement,
+    'reinforcing.stock_bars_ea': rebar.stockPieces,
+  };
+  for (const key of Object.keys(rebarQuantities)) {
     const definition = STRIP_FOOTING_V3_DEFINITION.outputs.find(item => item.outputKey === key)!;
-    outputs.set(key, buildOutput(definition, request, {
-      quantity: key === 'reinforcing.installed_lb' ? rebar.installed : rebar.procurement,
-      holds: rebar.holds,
-      traceValues: rebar.trace,
-      measurementIds: rebar.measurementIds,
-    }));
+    outputs.set(key, buildOutput(definition, request, { quantity: rebarQuantities[key], holds: rebar.holds, traceValues: rebar.trace, measurementIds: rebar.measurementIds }));
   }
 
   for (const key of LABOR_KEYS) {
