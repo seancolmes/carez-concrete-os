@@ -103,7 +103,8 @@ The following representative Takeoff behavior has already been browser-verified 
 - missing method-input holds;
 - hover-only measurement detail behavior;
 - automatic PDF sheet naming/indexing;
-- authenticated Concrete Condition authoring/runtime acceptance for the three governed pilot families under closed Issue #40.
+- authenticated Concrete Condition authoring/runtime acceptance for the three governed pilot families under closed Issue #40;
+- authenticated dependency-gated Condition-first Takeoff cutover acceptance under closed Issue #50: no Scope Recipes launcher in the active Quantity Worksheet, no Build Plan / Build Method authoring, no direct legacy assembly creation, and legacy compatibility/history preserved outside active authoring.
 
 The earlier permanent-app-rail containment verification is historical shell evidence and is superseded by ADR-016. It does not authorize reintroducing the rail.
 
@@ -147,9 +148,22 @@ The Concrete Condition domain and three governed pilot families are now an authe
 - the Condition authoring UI and server-action boundary are deployed on canonical `staging`; runtime defect `A "use server" file can only export async functions, found object` was resolved by `d179675e124a137df92d18fba1483af60a2c585f`, with GitHub Actions run 856 passing install/typecheck/domain tests/build and the matching Vercel deployment reaching `READY`;
 - Nik accepted Issue #40 authenticated browser QA on the stable staging URL, and Issue #40 is closed as completed.
 
-The existing assembly/formula/measurement/output/estimate runtime remains preserved as the compatibility/history layer. No legacy table, published version, measurement, output, or estimate history was deleted. Scope Recipe, Build Method/System Block, Formula Composer, and legacy Assembly Library concepts are no longer the primary model for new standard Condition work, but active UI/data retirement remains dependency-gated: supported legacy records must remain readable/reconcilable until migration and follow-on removal gates are complete. Destructive schema rollback or deletion is not allowed without explicit dependency proof and a dedicated preservation/recovery plan.
+## Condition-first active-authoring cutover (Issue #50 — accepted)
 
-Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated retirement of legacy authoring surfaces continue under the roadmap and follow-on issues; they are not reopeners of Issue #40.
+The dependency-gated retirement of legacy Scope Recipe / Build Method authoring from the active governed Takeoff workflow is now browser-accepted on canonical staging:
+
+- when every governed pilot archetype is active and has a published `concrete_condition_v1` version, active Takeoff mounts the Condition-first shell instead of `TakeoffAssemblyBuilderShell`;
+- the active Condition-first workflow does not mount Scope Recipe / Formula Composer authoring;
+- the Inspector does not expose Build Plan / Build Method authoring or direct legacy assembly creation;
+- Measure / `M` routes through Concrete Conditions;
+- direct duplicate paths that would bypass Condition role lineage remain blocked;
+- the Quantity Worksheet no longer renders the legacy `Scope Recipes` launcher in Condition-first mode; the final launcher-leak fix is `c9889f746f0ed6fad8a286b90f8c11456679afa8`;
+- Nik completed authenticated browser QA on the stable staging URL and accepted the final launcher fix;
+- Issue #50 is closed as completed.
+
+The existing assembly/formula/measurement/output/estimate runtime remains preserved as the compatibility/history layer. No legacy table, published version, measurement, output, or estimate history was deleted. The separate Assemblies destination may remain readable as compatibility/history outside the active Takeoff authoring workflow. Remaining physical schema/data retirement is dependency-gated and requires explicit proof that historical references and compatibility runtime dependencies are safe to remove. Destructive schema rollback or deletion is not allowed without a dedicated preservation/recovery plan.
+
+Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated data/schema retirement continue under the roadmap and follow-on issues; they are not reopeners of Issue #40 or Issue #50.
 
 ## Known bounded follow-up
 
@@ -162,7 +176,7 @@ Later 2D/derived-3D workstation work, broader Condition-family expansion, and de
 1. Browser-QA the newly converted Schedule Operations Grid and continue ADR-016/company-branding acceptance on the single stable staging URL: Schedule Work plan/Crew loading, 14-day date strip, filters, pinned/resizable columns, row actions, Add work/Related tools, responsive behavior; plus one-row menubar behavior and Settings branding upload/reset/rendering.
 2. Continue Issue #44 route conversion using the shared Carez component pack, prioritizing Takeoff contextual panes/toolbar/workspace, Estimate Worksheet, Projects/Schedule-adjacent grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
 3. Re-verify and close Issue #35 when Takeoff pane/header/readability behavior is confirmed under the Option D shell without measurement regressions.
-4. Continue the P0.5 derived 2D/3D, migration/reconciliation, and dependency-gated legacy-authoring retirement sequence from `ROADMAP.md` using the now-accepted Issue #40 Condition baseline.
+4. Continue the P0.5 derived 2D/3D and migration/reconciliation sequence from `ROADMAP.md` using the accepted Issue #40 Condition baseline and closed Issue #50 active-authoring cutover. Remaining legacy data/schema retirement must stay dependency-gated and lineage-safe.
 
 ## Production rule
 
