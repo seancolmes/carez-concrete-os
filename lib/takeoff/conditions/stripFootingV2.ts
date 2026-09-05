@@ -315,10 +315,10 @@ export function calculateStripFootingV2(request: ConditionCalculationRequest): C
   const depth = numberInput('planFacts', 'depth_ft', { positive: true });
   const concreteModule = defaultModule('concrete');
   const profile = moduleText(concreteModule, 'profile', 'Section profile');
-  const topWidth = profile.value === 'trapezoid' ? moduleNumber(concreteModule, 'top_width_ft', 'Top width', { positive: true }) : { value: width.value, holds: [] as ConditionHold[], trace: [] as ConditionTraceValue[] };
-  const concreteHolds = [...run.holds, ...width.holds, ...depth.holds, ...profile.holds, ...topWidth.holds];
-  const sectionWidth = profile.value === 'trapezoid' ? (Number(width.value) + Number(topWidth.value)) / 2 : Number(width.value);
-  emit('concrete.installed_cy', { quantity: concreteHolds.length ? null : Number(run.value) * sectionWidth * Number(depth.value) / 27, holds: concreteHolds, values: [...run.trace, ...width.trace, ...depth.trace, ...profile.trace, ...topWidth.trace], measurementIds: run.measurementIds });
+  const profileTopWidth = profile.value === 'trapezoid' ? moduleNumber(concreteModule, 'top_width_ft', 'Top width', { positive: true }) : { value: width.value, holds: [] as ConditionHold[], trace: [] as ConditionTraceValue[] };
+  const concreteHolds = [...run.holds, ...width.holds, ...depth.holds, ...profile.holds, ...profileTopWidth.holds];
+  const sectionWidth = profile.value === 'trapezoid' ? (Number(width.value) + Number(profileTopWidth.value)) / 2 : Number(width.value);
+  emit('concrete.installed_cy', { quantity: concreteHolds.length ? null : Number(run.value) * sectionWidth * Number(depth.value) / 27, holds: concreteHolds, values: [...run.trace, ...width.trace, ...depth.trace, ...profile.trace, ...profileTopWidth.trace], measurementIds: run.measurementIds });
   const installed = dependency('concrete.installed_cy');
   const concreteWaste = numberInput('commercial', 'concrete_waste_pct', { maximum: 100 });
   const procurementHolds = [...installed.holds, ...concreteWaste.holds];
@@ -426,8 +426,8 @@ export function calculateStripFootingV2(request: ConditionCalculationRequest): C
   const slope = moduleNumber(excavation, 'side_slope_h_to_v', 'Excavation side slope H:V');
   const excavationHolds = [...run.holds, ...width.holds, ...excavationDepth.holds, ...bottomMode.holds, ...workingRoom.holds, ...explicitBottom.holds, ...slope.holds];
   const bottomWidth = bottomMode.value === 'explicit' ? Number(explicitBottom.value) : Number(width.value) + 2 * Number(workingRoom.value);
-  const topWidth = bottomWidth + 2 * Number(excavationDepth.value) * Number(slope.value);
-  const excavationCy = excavationHolds.length ? null : Number(run.value) * ((bottomWidth + topWidth) / 2) * Number(excavationDepth.value) / 27;
+  const excavationTopWidth = bottomWidth + 2 * Number(excavationDepth.value) * Number(slope.value);
+  const excavationCy = excavationHolds.length ? null : Number(run.value) * ((bottomWidth + excavationTopWidth) / 2) * Number(excavationDepth.value) / 27;
   emit('excavation_backfill.excavation_cy', { quantity: excavationCy, holds: excavationHolds, values: [...run.trace, ...width.trace, ...excavationDepth.trace, ...bottomMode.trace, ...workingRoom.trace, ...explicitBottom.trace, ...slope.trace], measurementIds: run.measurementIds });
   const excavationDependency = dependency('excavation_backfill.excavation_cy');
   const swell = moduleNumber(excavation, 'swell_pct', 'Excavation swell', { maximum: 200 });
