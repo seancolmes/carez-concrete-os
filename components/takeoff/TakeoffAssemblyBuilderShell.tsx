@@ -14,6 +14,7 @@ import { AssemblyBuilderProvider } from './AssemblyBuilderContext';
 import { AssemblyBuilderComposer } from './AssemblyBuilderComposer';
 import { AssemblySystemPresetBar } from './AssemblySystemPresetBar';
 import { TakeoffDrawingWorkspace } from './TakeoffDrawingWorkspace';
+import { ConcreteConditionAuthoring } from './ConcreteConditionAuthoring';
 import styles from './TakeoffAssemblyBuilderShell.module.css';
 
 type BuilderData = {
@@ -27,7 +28,7 @@ type BuilderData = {
   measurements: any[];
 };
 
-type Props = { setId: string; workspaceProps: any; builderData: BuilderData };
+type Props = { setId: string; workspaceProps: any; builderData: BuilderData; conditionData: any };
 type DialogMode = 'blank' | 'templates' | 'existing';
 type DialogDrag = { startX: number; startY: number; originX: number; originY: number; left: number; right: number; top: number; bottom: number };
 type PaneDrag = { kind: 'palette' | 'test'; startX: number; width: number };
@@ -53,7 +54,7 @@ const latestByAssembly = (versions: any[]) => {
 
 const codeFromName = (name: string) => name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28);
 
-export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData }: Props) {
+export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData, conditionData }: Props) {
   const router = useRouter();
   const shellRef = useRef<HTMLDivElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
@@ -268,6 +269,16 @@ export function TakeoffAssemblyBuilderShell({ setId, workspaceProps, builderData
   return <AssemblyBuilderProvider value={{ open, focus, openCreate, openLibrary, closeBuilder }}>
     <div ref={shellRef} className={`${styles.shell} ${focus ? styles.focusShell : ''}`}>
       <TakeoffDrawingWorkspace {...workspaceProps} />
+
+      <ConcreteConditionAuthoring
+        setId={setId}
+        locked={Boolean(workspaceProps.locked)}
+        data={conditionData}
+        measurements={workspaceProps.initialMeasurements || []}
+        sheets={workspaceProps.initialSheets || []}
+        assemblies={workspaceProps.assemblies || []}
+        assemblyVersions={workspaceProps.versions || []}
+      />
 
       {open && activeVersionId && <section className={`${styles.recipeWindow} ${focus ? styles.recipeWindowFocus : ''}`} style={recipeStyle} aria-label={`${activeName} Scope Recipe Editor`}>
         <header className={styles.recipeWindowBar} onPointerDown={startRecipeDrag} title={focus ? 'Focus Builder' : 'Drag to move Scope Recipe Editor'}>
