@@ -33,10 +33,16 @@ export function CarezDateTimeRange({startName,endName,startValue,endValue,onStar
   onStartChange?:(value:string)=>void;onEndChange?:(value:string)=>void;
   mode?:CarezDateTimeMode;className?:string;
 }){
+  const startProps=onStartChange
+    ? {value:startValue,onChange:(event:React.ChangeEvent<HTMLInputElement>)=>onStartChange(event.target.value)}
+    : {defaultValue:startValue};
+  const endProps=onEndChange
+    ? {value:endValue,onChange:(event:React.ChangeEvent<HTMLInputElement>)=>onEndChange(event.target.value)}
+    : {defaultValue:endValue};
   return <div className={cn('grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2',className)}>
-    <CarezDateTimeField name={startName} mode={mode} value={startValue} onChange={event=>onStartChange?.(event.target.value)}/>
+    <CarezDateTimeField name={startName} mode={mode} {...startProps}/>
     <span className="text-xs text-muted-foreground">to</span>
-    <CarezDateTimeField name={endName} mode={mode} value={endValue} onChange={event=>onEndChange?.(event.target.value)}/>
+    <CarezDateTimeField name={endName} mode={mode} {...endProps}/>
   </div>;
 }
 
