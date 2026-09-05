@@ -18,17 +18,23 @@ export type ConditionInputGroup = (typeof CONDITION_INPUT_GROUPS)[number];
 export type ConditionValueMode = 'platform_default' | 'company_default' | 'project_value' | 'explicit_override';
 export type ConditionMeasurementUnit = 'EA' | 'LF' | 'SF';
 export type ConditionGeometryType = 'count' | 'polyline' | 'polygon';
-export type ConditionModuleKey =
-  | 'concrete'
-  | 'forms'
-  | 'reinforcing'
-  | 'anchors_embeds'
-  | 'slab_systems'
-  | 'excavation_backfill'
-  | 'placement_equipment'
-  | 'finish_cure_protection'
-  | 'labor'
-  | 'miscellaneous';
+export const CONDITION_MODULE_KEYS = [
+  'concrete',
+  'forms',
+  'reinforcing',
+  'anchors_embeds',
+  'slab_systems',
+  'excavation_backfill',
+  'placement_equipment',
+  'finish_cure_protection',
+  'labor',
+  'miscellaneous',
+] as const;
+export type KnownConditionModuleKey = (typeof CONDITION_MODULE_KEYS)[number];
+// Module keys are owned by the immutable archetype schema. Keep known Carez
+// keys typed/autocompletable while permitting future published module families
+// without forcing every compatibility surface to be recompiled as an exhaustive map.
+export type ConditionModuleKey = KnownConditionModuleKey | (string & {});
 
 export type ConditionOutputStatus = 'ready' | 'held' | 'inactive';
 export type ConditionHoldCode =
