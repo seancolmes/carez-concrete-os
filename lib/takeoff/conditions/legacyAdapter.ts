@@ -45,7 +45,9 @@ const moneyRound = (value: number) => Math.round((value + Number.EPSILON) * 100)
 
 function pricingState(output: ConditionOutput, mapping: LegacyConditionOutputMapping) {
   if (output.status === 'held') return { status: 'missing_input' as const, unitCost: 0, directCost: 0 };
-  if (output.status === 'inactive' || output.quantity === 0) return { status: 'not_priced' as const, unitCost: 0, directCost: 0 };
+  if (output.status === 'inactive' || output.quantity === 0 || mapping.estimateVisible === false) {
+    return { status: 'not_priced' as const, unitCost: 0, directCost: 0 };
+  }
   const unitCost = Number(mapping.unitCost || 0);
   if (!(unitCost > 0)) return { status: 'missing_price' as const, unitCost: 0, directCost: 0 };
   return { status: 'priced' as const, unitCost, directCost: moneyRound(Number(output.quantity) * unitCost) };
@@ -101,7 +103,8 @@ export function adaptConditionOutputsToLegacy(
       pricing_status: pricing.status,
       // Compatibility rows stay active so an existing manual unit-price override
       // survives module disable/enable. Estimate visibility controls whether the
-      // projection produces a commercial line.
+      // projection produces a commercial line. Non-visible reference outputs are
+      // deliberately not treated as missing-price issues.
       is_active: true,
       estimate_visible: output.status !== 'inactive' && mapping.estimateVisible !== false,
       resource_behavior: mapping.resourceBehavior || '',
