@@ -45,6 +45,12 @@ export function conditionModuleFieldVisible(
   if (moduleKey === 'forms') {
     if (field.key === 'formed_sides') return !values.form_method || values.form_method === 'custom';
     if (field.key === 'bulkhead_explicit_count') return values.bulkhead_count_source === 'explicit_count';
+    if (field.key === 'form_resource_model') return false;
+    if (field.key === 'resource_tracking' && field.label === 'Track form boards') return values.form_system === 'wood_lumber';
+    if (field.key === 'form_board_size') return values.form_system === 'wood_lumber' && Boolean(values.resource_tracking);
+    if (field.key === 'form_board_custom_course_height_in') {
+      return values.form_system === 'wood_lumber' && Boolean(values.resource_tracking) && values.form_board_size === 'custom';
+    }
     if (field.key === 'form_material_factor_lf_per_lf') return Boolean(values.resource_tracking);
     if (field.key === 'stake_spacing_ft' || field.key === 'stakes_per_location') return Boolean(values.stakes_enabled);
   }
