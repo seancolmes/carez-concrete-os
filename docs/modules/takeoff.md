@@ -8,7 +8,7 @@ Convert plan geometry into authoritative physical measurements, concrete-specifi
 
 ## Core workflow
 
-Plans → calibrate/verify scale → select or create Project Concrete Condition → measure primary/secondary roles → resolve module holds → verify in 2D/3D → worksheet review → estimate outputs.
+Plans → calibrate/verify scale → select or create Project Concrete Condition → measure primary/independently located secondary roles → derive deterministic geometry facts → resolve module holds → verify in 2D/3D → worksheet review → estimate outputs.
 
 ## Invariants
 
@@ -81,20 +81,22 @@ Concrete Conditions should be workable in the sequence an estimator uses to unde
 
 The review surface provides compact module summaries so an estimator can see included scope, installed/order quantities, labor, price readiness, and issues without opening every module. Repeatable physical objects such as reinforcing sets, anchors/embeds, and miscellaneous items are shown as intentional instances; required disabled database placeholder rows are not estimator-facing concepts.
 
+For Strip / Wall Footing, Forms uses authoritative run geometry plus estimator-approved form method/system choices. End bulkheads / pour stops use an estimator-controlled count source whose run-endpoint option is derived from the saved run geometry rather than a duplicate EA drawing. When wood form boards are tracked, the estimator selects the physical board and Carez derives installed board LF from formed-edge geometry, footing depth, and board courses; the run LF is never re-entered as a form-material input.
+
 The primary takeoff may be assigned to an existing estimate section from Review. Carez may suggest a likely project section, but the estimator remains authoritative and can accept or override it.
 
 ## Measurement roles
 
-Every Project Concrete Condition declares one primary measurement role and may have multiple named secondary roles.
+Every Project Concrete Condition declares one primary measurement role and may have multiple named secondary roles or deterministic secondary facts.
 
 Examples:
 
-- Slab: primary area; secondary edge form, thickened edge, joints, blockouts, penetrations.
-- Strip footing: primary centerline/run; secondary steps, end forms, keyway, dowels, embeds.
+- Slab: primary area; secondary edge form, thickened edge, joints, blockouts, penetrations where independent geometry is required.
+- Strip footing: primary centerline/run; derived open-run endpoint candidates for end bulkheads / pour stops; independently located steps, keyways, dowels, and embeds as secondary roles where required.
 - Wall: primary wall run; secondary openings, pilasters, construction joints, waterstop.
 - Pad/pier: primary count/locations; secondary pedestals, anchor groups, varying-dimension instances.
 
-Each role is a persisted measurement record with its own geometry, unit, sheet/revision, and stable Condition link. Secondary measurements are not hidden manual values.
+A secondary object with independent plan location, extent, shape, or quantity authority is a persisted measurement record with its own geometry, unit, sheet/revision, and stable Condition link. A deterministic fact already contained in authoritative primary geometry is derived rather than redrawn as a duplicate measurement. The estimator remains authoritative where a geometric fact does not by itself determine means/methods; for example, a Strip run endpoint is only a candidate bulkhead location until the estimator chooses Run endpoints, Explicit count, or None.
 
 ### Area / polygon
 
@@ -102,7 +104,7 @@ Available deterministic facts include gross area, cutout area, net area, gross p
 
 ### Linear / polyline
 
-Available facts include total length, segment lengths, segment count, open/closed state, and governed section/profile facts. Stepped runs may carry segment elevation/profile overrides.
+Available facts include total length, segment lengths, segment count, open/closed state, open-run endpoint count, and governed section/profile facts. Stepped runs may carry segment elevation/profile overrides.
 
 ### Count / locations
 
