@@ -60,6 +60,7 @@ type BulkheadResolution = {
   source: string;
   holds: ConditionHold[];
   measurementRoles: ConditionMeasurementRole[];
+  measurementIdAliases: Record<string, string>;
   trace: ConditionTraceValue[];
 };
 
@@ -83,22 +84,31 @@ function defaultFormsModule(request: ConditionCalculationRequest): ConditionModu
   return (request.modules || []).find(module => module.moduleKey === 'forms' && (module.instanceKey || 'default') === 'default');
 }
 
-function lineageRole(request: ConditionCalculationRequest, quantity: number): ConditionMeasurementRole[] {
+const syntheticBulkheadMeasurementId = (measurementId: string) => `__derived_bulkheads__${measurementId}`;
+
+function lineageRole(request: ConditionCalculationRequest, quantity: number) {
   const run = request.measurementRoles.find(role => role.roleKey === 'run');
-  if (!run) return [];
-  return [{
-    roleKey: 'end_forms',
-    measurementId: run.measurementId,
-    sheetId: run.sheetId,
-    quantity,
-    unit: 'EA',
-    geometryType: 'count',
-  }];
+  if (!run) return { measurementRoles: [] as ConditionMeasurementRole[], measurementIdAliases: {} as Record<string, string> };
+  const syntheticId = syntheticBulkheadMeasurementId(run.measurementId);
+  return {
+    measurementRoles: [{
+      roleKey: 'end_forms',
+      measurementId: syntheticId,
+      sheetId: run.sheetId,
+      quantity,
+      unit: 'EA',
+      geometryType: 'count',
+    } satisfies ConditionMeasurementRole],
+    measurementIdAliases: { [syntheticId]: run.measurementId },
+  };
 }
 
 function resolveBulkheads(request: ConditionCalculationRequest): BulkheadResolution {
   const forms = defaultFormsModule(request);
-  if (!forms?.enabled) return { quantity: 0, source: 'none', holds: [], measurementRoles: lineageRole(request, 0), trace: [] };
+  if (!forms?.enabled) {
+    const lineage = lineageRole(request, 0);
+    return { quantity: 0, source: 'none', holds: [], ...lineage, trace: [] };
+  }
 
   const source = String(forms.inputValues?.bulkhead_count_source || '').trim();
   const sourceTrace: ConditionTraceValue[] = source ? [{
@@ -114,12 +124,14 @@ function resolveBulkheads(request: ConditionCalculationRequest): BulkheadResolut
       source,
       holds: [hold('forms.default.bulkhead_count_source', 'End bulkheads / pour stops count source')],
       measurementRoles: [],
+      measurementIdAliases: {},
       trace: [],
     };
   }
 
   if (source === 'none') {
-    return { quantity: 0, source, holds: [], measurementRoles: lineageRole(request, 0), trace: sourceTrace };
+    const lineage = lineageRole(request, 0);
+    return { quantity: 0, source, holds: [], ...lineage, trace: sourceTrace };
   }
 
   if (source === 'explicit_count') {
@@ -130,6 +142,7 @@ function resolveBulkheads(request: ConditionCalculationRequest): BulkheadResolut
         source,
         holds: [hold('forms.default.bulkhead_explicit_count', 'Explicit bulkhead count')],
         measurementRoles: [],
+        measurementIdAliases: {},
         trace: sourceTrace,
       };
     }
@@ -137,11 +150,12 @@ function resolveBulkheads(request: ConditionCalculationRequest): BulkheadResolut
     if (!Number.isFinite(quantity) || quantity < 0 || !Number.isInteger(quantity)) {
       throw new Error('Explicit bulkhead count must be a nonnegative whole number.');
     }
+    const lineage = lineageRole(request, quantity);
     return {
       quantity,
       source,
       holds: [],
-      measurementRoles: lineageRole(request, quantity),
+      ...lineage,
       trace: [...sourceTrace, {
         key: 'forms.default.bulkhead_explicit_count',
         value: quantity,
@@ -159,15 +173,23 @@ function resolveBulkheads(request: ConditionCalculationRequest): BulkheadResolut
         source,
         holds: [hold('role.run.geometry.endpoints', 'Footing run endpoint geometry')],
         measurementRoles: [],
+        measurementIdAliases: {},
         trace: sourceTrace,
       };
     }
     const quantity = endpointFacts.reduce((sum, role) => sum + Number(role.quantity || 0), 0);
+    const measurementIdAliases: Record<string, string> = {};
+    const measurementRoles = endpointFacts.map(role => {
+      const syntheticId = syntheticBulkheadMeasurementId(role.measurementId);
+      measurementIdAliases[syntheticId] = role.measurementId;
+      return { ...role, roleKey: 'end_forms', measurementId: syntheticId, unit: 'EA' as const, geometryType: 'count' as const };
+    });
     return {
       quantity,
       source,
       holds: [],
-      measurementRoles: endpointFacts.map(role => ({ ...role, roleKey: 'end_forms', unit: 'EA', geometryType: 'count' })),
+      measurementRoles,
+      measurementIdAliases,
       trace: [...sourceTrace, { key: 'geometry.run_open_endpoints', value: quantity }],
     };
   }
@@ -185,6 +207,10 @@ function remapTraceValues(values: ConditionTraceValue[], resolution: BulkheadRes
   return replaced ? [...retained, ...resolution.trace] : retained;
 }
 
+function remapMeasurementIds(measurementIds: string[], resolution: BulkheadResolution) {
+  return [...new Set(measurementIds.map(id => resolution.measurementIdAliases[id] || id))];
+}
+
 function mapOutput(output: ConditionOutput, definition: ConditionOutputDefinition, resolution: BulkheadResolution, formsEnabled: boolean): ConditionOutput {
   const mapped: ConditionOutput = {
     ...output,
@@ -192,6 +218,7 @@ function mapOutput(output: ConditionOutput, definition: ConditionOutputDefinitio
     trace: {
       ...output.trace,
       algorithm: definition.algorithm,
+      measurementIds: remapMeasurementIds(output.trace.measurementIds, resolution),
       values: remapTraceValues(output.trace.values, resolution),
     },
   };
