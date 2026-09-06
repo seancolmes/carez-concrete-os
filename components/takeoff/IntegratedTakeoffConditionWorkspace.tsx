@@ -104,6 +104,7 @@ type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
 type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode};
+type PendingRoleDraw={conditionVersionId:string;roleKey:string;existingMeasurementIds:Set<string>};
 
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
   concrete:'Concrete',forms:'Forms',reinforcing:'Reinforcing',anchors_embeds:'Anchors / embeds',slab_systems:'Slab systems',
@@ -162,6 +163,7 @@ const tabForHold=(hold:{hold_code?:string;message:string}):PropertyTab=>{
 export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
   const router=useRouter();
   const drawingHostRef=useRef<HTMLDivElement|null>(null);
+  const pendingRoleDrawRef=useRef<PendingRoleDraw|null>(null);
   const [sidebarHost,setSidebarHost]=useState<HTMLElement|null>(null);
   const [contextTab,setContextTab]=useState<ContextTab>('plans');
   const [conditionQuery,setConditionQuery]=useState('');
@@ -354,12 +356,32 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   useEffect(()=>{if(!availableTabs.includes(propertyTab))setPropertyTab('general');},[availableTabs,propertyTab]);
   useEffect(()=>{const open=()=>{setContextTab('conditions');setCreating(false);};window.addEventListener('carez:open-conditions',open);return()=>window.removeEventListener('carez:open-conditions',open);},[]);
   useEffect(()=>{const sheet=(event:Event)=>{const sheetId=String((event as CustomEvent<{sheetId?:string|null}>).detail?.sheetId||'')||null;setActiveSheetId(sheetId);};window.addEventListener('carez:takeoff-sheet-change',sheet as EventListener);return()=>window.removeEventListener('carez:takeoff-sheet-change',sheet as EventListener);},[]);
+  useEffect(()=>{
+    const pending=pendingRoleDrawRef.current;
+    if(!pending)return;
+    if(pending.conditionVersionId!==selectedVersionId){pendingRoleDrawRef.current=null;return;}
+    const role=definition?.roles.find(entry=>entry.key===pending.roleKey);
+    if(!role)return;
+    const candidates=measurements.filter((measurement:any)=>!pending.existingMeasurementIds.has(String(measurement.id))&&conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId));
+    if(candidates.length!==1)return;
+    const measurementId=String(candidates[0].id);
+    setRoleSelections(current=>{
+      const next={...current};
+      for(const key of Object.keys(next))if(key!==role.key&&next[key]===measurementId)next[key]='';
+      next[role.key]=measurementId;
+      return next;
+    });
+    focusMeasurement(measurementId);
+    pendingRoleDrawRef.current=null;
+    setContextTab('conditions');
+    setMessage(`${role.label} assigned · save & recalculate.`);
+  },[measurements,selectedVersionId,definition,compatibilityAssemblyVersionId]);
 
   const updateInput=(input:ConditionInputDefinition,value:string)=>{const parsed=input.valueType==='number'||input.valueType==='integer'?(value===''?'':Number(value)):input.valueType==='boolean'?value==='true':value;setDraft(current=>({...current,[input.group]:{...(current[input.group]||{}),[input.key]:parsed}}));setMessage('');};
   const setRole=(roleKey:string,measurementId:string)=>setRoleSelections(current=>{const next={...current};if(measurementId)for(const key of Object.keys(next))if(key!==roleKey&&next[key]===measurementId)next[key]='';next[roleKey]=measurementId;setMessage('');return next;});
   const updateModuleInput=(moduleKey:string,key:string,value:unknown)=>{setModuleDraft(current=>({...current,[moduleKey]:{...(current[moduleKey]||{}),[key]:value}}));setMessage('');};
   const assemblyVersionForRole=(role:any)=>{if(role.primary&&compatibilityAssemblyVersionId)return compatibilityAssemblyVersionId;const ids=new Set(assemblies.filter((row:any)=>row.category==='Concrete Conditions'&&row.primary_measurement===role.unit).map((row:any)=>row.id));return assemblyVersions.find((version:any)=>ids.has(version.assembly_id))?.id||assemblyVersions.find((version:any)=>assemblies.some((assembly:any)=>assembly.id===version.assembly_id&&assembly.primary_measurement===role.unit))?.id||null;};
-  const startTakeoff=(role:any)=>{const assemblyVersionId=assemblyVersionForRole(role);if(!assemblyVersionId){setMessage(`No ${role.unit} takeoff is available for this role.`);return;}setViewMode('2d');window.dispatchEvent(new CustomEvent('carez:start-condition-takeoff',{detail:{assemblyVersionId,name:selectedSummary?.name||definition?.name||'Concrete Condition',roleLabel:role.label}}));setContextTab('plans');setMessage(`Drawing ${role.label}.`);};
+  const startTakeoff=(role:any)=>{const assemblyVersionId=assemblyVersionForRole(role);if(!assemblyVersionId||!selectedVersion){setMessage(`No ${role.unit} takeoff is available for this role.`);return;}pendingRoleDrawRef.current={conditionVersionId:selectedVersion.id,roleKey:role.key,existingMeasurementIds:new Set(measurements.map((measurement:any)=>String(measurement.id)))};setViewMode('2d');window.dispatchEvent(new CustomEvent('carez:start-condition-takeoff',{detail:{assemblyVersionId,name:selectedSummary?.name||definition?.name||'Concrete Condition',roleLabel:role.label}}));setContextTab('plans');setMessage(`Drawing ${role.label}.`);};
   const chooseFamily=(key:ConditionArchetypeKey)=>{const next=CONDITION_ARCHETYPES[key];setFamily(key);setCreateName(next.name);setCreateCode(conditionCodeFromName(next.name));setCodeTouched(false);};
   const createCondition=()=>{setMessage('Creating condition…');startTransition(async()=>{try{const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});setSelectedVersionId(result.condition_version_id);setCreating(false);setContextTab('conditions');setMessage('');router.refresh();}catch(error:any){setMessage(error?.message||'Could not create condition.');}});};
   const saveCondition=(afterSave?:()=>void)=>{if(!selectedVersion||!definition)return;const roles=prepareConditionRoleAssignments(definition.roles,roleSelections);const primary=definition.roles.find(role=>role.primary);const anchorId=primary?roleSelections[primary.key]:'';if(!anchorId){setMessage(`Assign ${primary?.label||'the primary takeoff'} before calculating.`);return;}const {inputs,provenance}=prepareConditionAuthoringInputs(draft);const modulesForSave=stripModern?moduleConfigurations:selectedModules.map((module,index)=>({moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:moduleEnabled[module.module_key]!==false,inputValues:(moduleDraft[module.module_key]||module.input_values) as Record<string,any>,inputProvenance:module.input_provenance as Record<string,any>,legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order||(index+1)*10}));setMessage('Saving…');startTransition(async()=>{try{await saveAndRecalculateConcreteConditionPilot({conditionVersionId:selectedVersion.id,inputs,inputProvenance:provenance,modules:modulesForSave,measurementRoles:roles,compatibilityAnchorMeasurementId:anchorId});setMessage('');afterSave?.();router.refresh();}catch(error:any){setMessage(error?.message||'Could not save condition.');}});};
