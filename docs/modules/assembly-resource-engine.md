@@ -137,6 +137,10 @@ Calculates theoretical volume from authoritative geometry and governed dimension
 
 Calculates form contact area plus explicit consumed/reusable form resources from visible formed-face and system choices. It does not hide unknown resources behind a generic allowance.
 
+For Strip / Wall Footing Contract v5, wood-lumber tracking uses the authoritative footing run rather than an estimator-entered LF/LF factor. The estimator selects the physical form board; the server derives run formed-edge LF from run LF × formed sides, adds approved bulkhead formed-edge LF from bulkhead count × footing width, derives board courses from footing depth and the selected effective course height, and returns installed form-board LF. Standard board choices are 2x4, 2x6, 2x8, 2x10, and 2x12, with a governed custom course-height option. Carez does not choose the board size because that remains an estimator means-and-methods decision.
+
+Installed form-board LF is a production/material demand, not a procurement quantity. Stock lengths, cutting optimization, reuse/inventory availability, purchasing allowances, and pieces-to-buy remain separate logistics/procurement concerns. Panel or other form systems continue to use authoritative contact-area facts and do not fabricate an LF board demand before an explicit panel/resource model exists.
+
 Safety-critical form-system layouts require a verified source/envelope and human approval. Carez counts a selected safe method; it does not engineer formwork.
 
 ### Reinforcing
@@ -257,25 +261,3 @@ The migration is additive and dependency-safe.
 7. Preserve historical legacy views as read-only where needed.
 8. Remove active Recipe Editor/Formula Composer/Assembly Library routes and components after dependency checks.
 9. Never delete a referenced published or accepted record. Any physical schema retirement requires a separate approved recoverable migration.
-
-## Integration boundaries
-
-### Takeoff
-
-Owns plan/revision/calibration, vector geometry, measurement roles, selection/editing, 2D/3D/Split interaction, and the estimator workstation.
-
-### Estimating
-
-Owns scope organization, pricing review, production-rate review, Direct Cost/Sell strategy, commercial holds, recap, and Proposal revisions.
-
-### Resource catalog and procurement
-
-Own product/supplier/rental/inventory identity, quotes/cost history, package/stock optimization, fulfillment, commitments, and receipts. Condition outputs express physical demand.
-
-### Project and field
-
-Consume accepted scope and resource/production assumptions through immutable lineage. Actual evidence may inform future templates but never silently rewrites them.
-
-## Initial acceptance
-
-The engine is accepted when the three pilot families can be created, measured, edited, recalculated, priced, traced, migrated, and verified in 2D/3D without formula UI in the daily workflow, with representative RLS, refresh, undo/redo, deletion, cross-sheet, hold, output-reconciliation, installed/procurement, productivity, and pricing-readiness tests.
