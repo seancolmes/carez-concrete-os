@@ -30,8 +30,7 @@ Historical implementation and superseded vision documents are excluded from the 
 
 | Document | Classification | Canonical owner / interpretation |
 | --- | --- | --- |
-| `b2-estimator-focus-redesign.md` | ACCEPTED DETAILED DESIGN | Carez-wide light visual system; Takeoff details defer to the newer Condition/3D target |
-| `concrete-condition-3d-workstation-target.md` | ACCEPTED DETAILED DESIGN | Active Concrete Condition, EDGE-inspired workstation, derived 3D, migration, and acceptance contract |
+| `concrete-condition-3d-workstation-target.md` | ACCEPTED DETAILED DESIGN | Active Concrete Condition and derived-3D target beneath Architecture/module specs. Presentation and docked-pane behavior defer to ADR-015, ADR-016, and ADR-020; current Strip estimating/form semantics defer to ADR-021 through ADR-023. |
 | `concrete-plan-intelligence-foundation.md` | ACCEPTED DETAILED DESIGN | Plan Intelligence domain/schema foundation supporting AI + Documents/Knowledge |
 | `p1-builder-method-acceptance.md` | ACCEPTED ACCEPTANCE CRITERIA | Focused P1 verification/resource acceptance rules |
 | `p1-method-research-contract.md` | RESEARCH CONTRACT | Source hierarchy/domain research contract for P1 means/methods |
@@ -40,6 +39,7 @@ Historical implementation and superseded vision documents are excluded from the 
 
 | Document | Classification | Replacement / retained value |
 | --- | --- | --- |
+| `b2-estimator-focus-redesign.md` | SUPERSEDED | Replaced by ADR-015 dark shadcn presentation, ADR-016 Option D desktop menubar, ADR-020 integrated Takeoff workstation, and current module specs. Retains historical UX rationale only. |
 | `takeoff-estimating-workstation-target.md` | SUPERSEDED | Replaced by the Condition/3D target; retains prior geometry, hold, and pricing rationale |
 | `custom-assembly-authoring-foundation.md` | SUPERSEDED | Replaced by ADR-012; retains current runtime and migration-compatibility evidence |
 | `builder-means-methods-resource-engine.md` | SUPERSEDED | Replaced by ADR-012; retains method/resource/safety rationale incorporated into the new engine |
