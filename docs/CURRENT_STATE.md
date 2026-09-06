@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-05
+Last reconciled: 2026-09-06
 Canonical development / QA line: `staging`
 Production line: `main`
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -27,9 +27,9 @@ Preserve the existing Carez modernization and digital thread. Key accepted found
 - Supabase/PostgreSQL tenant model and RLS;
 - stable page-coordinate Takeoff vector geometry with PDF as visual reference;
 - scale regions/calibration, LF/SF/EA geometry, polygon cutouts, editing, duplication, keyboard nudge, undo/redo;
-- atomic server-authoritative Takeoff → assembly/scope → estimate recalculation;
-- immutable published assembly/version/component lineage;
-- custom assembly authoring, nested assemblies, builder means/method profiles, and concrete resource outputs;
+- atomic server-authoritative Takeoff → Concrete Condition/module output → estimate recalculation, with legacy assembly/scope compatibility lineage preserved where still referenced;
+- immutable published legacy assembly/version/component history retained as compatibility/history rather than active standard authoring;
+- versioned Platform Condition Archetype → Company Condition Template → Project Concrete Condition ownership with typed modules, provenance, holds, and exact output lineage;
 - pricing override preservation;
 - permanent vertically resizable Quantity Worksheet;
 - ADR-016 Option D compact desktop application menubar with module-specific contextual panes;
@@ -177,6 +177,23 @@ The existing assembly/formula/measurement/output/estimate runtime remains preser
 
 Later 2D/derived-3D workstation work, broader Condition-family expansion, and dependency-gated data/schema retirement continue under the roadmap and follow-on issues; they are not reopeners of Issue #40, Issue #50, or the accepted Issue #51 UX baseline.
 
+## Strip / Wall Footing P0.5C.1 (Issue #55 — active)
+
+Issue #55 is the current pilot-parity owner for expanding the thin pilot Condition shell into a concrete-native estimating workstation while preserving the accepted Condition persistence and Takeoff workstation baselines.
+
+Current Strip state on canonical staging:
+
+- ADR-021 establishes current Condition output authority, construction-native reinforcing semantics, installed-versus-procurement separation, factor/crew-rate labor productivity, distinct calculation/commercial states, and categorized issues;
+- Strip Contract v4 implements ADR-022: the duplicate drawable `End forms` EA role is removed from normal authoring and replaced by **End bulkheads / pour stops** using estimator-selected `Run endpoints`, `Explicit count`, or `None`; the run-endpoint candidate is derived server-side from authoritative saved Strip geometry rather than redrawn;
+- Nik accepted the v4 End bulkheads / pour stops workflow in authenticated stable-staging browser QA;
+- Strip Contract v5 implements ADR-023 and is the newest immutable Strip contract on staging: the old abstract `form_material_factor_lf_per_lf` input is removed from normal wood-lumber authoring; the estimator chooses the physical form board and Carez derives installed form-board LF from saved run geometry, formed sides, approved bulkheads, footing width/depth, and board courses;
+- v5 does not fabricate board LF for Panel/Other systems; contact-area facts remain authoritative until an explicit panel/resource model exists;
+- the v5 upgrader does not silently translate an older abstract LF/LF factor into a physical board choice; estimator review is required;
+- published Strip v1-v4 history remains unchanged/readable and editable older drafts use governed upgrades rather than in-place contract mutation;
+- current v5 implementation/deployment checkpoint is `d6a4e19d8343881f1722876d931ace36dacbeb05`; GitHub Actions run `34044445544` passed Typecheck, domain tests, and production build, and the matching stable staging deployment reached READY;
+- rendered authenticated browser acceptance for Strip v5 is still pending, so Issue #55 remains open and v5 must not be called accepted yet;
+- remaining pilot parity, including Pad / Column Footing and Slab on Grade completion where still required by Issue #55, remains active; additional Strip derived-3D expansion stays gated behind the accepted estimating/Condition contract rather than reopening the older model.
+
 ## Known bounded follow-up
 
 - Issue #17 — optional free pan when the rendered PDF is smaller than the viewport.
@@ -185,9 +202,9 @@ Later 2D/derived-3D workstation work, broader Condition-family expansion, and de
 
 ## Current sequence
 
-1. Browser-QA the newly converted Schedule Operations Grid and continue ADR-016/company-branding acceptance on the single stable staging URL: Schedule Work plan/Crew loading, 14-day date strip, filters, pinned/resizable columns, row actions, Add work/Related tools, responsive behavior; plus one-row menubar behavior and Settings branding upload/reset/rendering.
-2. Continue Issue #44 route conversion using the shared Carez component pack, treating `/takeoff/[setId]` as an accepted route baseline and prioritizing remaining Takeoff list/support routes, Estimate Worksheet, Projects/Schedule-adjacent grids, Documents, and remaining secondary/detail routes; remove compatibility/legacy CSS and residual hardcoded branding assumptions only when no runtime consumer remains.
-3. Continue the P0.5 Condition-family / derived-3D sequence from `ROADMAP.md` using the accepted Issue #40 persistence baseline, closed Issue #50 active-authoring cutover, and closed Issue #51 workstation UX baseline. Remaining legacy data/schema retirement must stay dependency-gated and lineage-safe.
+1. Complete Issue #55 focused Strip Contract v5 authenticated browser QA and the remaining P0.5 pilot-family parity required by the issue. Do not advance Strip-specific derived 3D by bypassing unresolved Condition/estimating acceptance.
+2. Continue Issue #44 route conversion and the still-pending Schedule / ADR-016 / company-branding browser acceptance on the single stable staging URL, while treating the accepted `/takeoff/[setId]` workstation as a protected route baseline rather than redesigning it again.
+3. Continue the P0.5 derived-3D sequence only from accepted current Condition contracts and authoritative persisted 2D geometry. Remaining legacy data/schema retirement stays dependency-gated, recoverable, and lineage-safe.
 
 ## Production rule
 
