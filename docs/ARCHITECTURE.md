@@ -69,9 +69,9 @@ Every bid-to-closeout lifecycle is anchored by one persistent company-scoped **J
 - The primary daily object is a named Project Concrete Condition, not a formula or generic recipe.
 - One primary measurement role and optional secondary roles connect independently persisted geometry to the same Condition.
 - The permanent resizable bottom Quantity/Estimate Worksheet remains available during Condition setup, measuring, verification, and commercial review.
-- The estimator works through a resizable context pane with Plans, Conditions, and Zones tabs; a dominant drawing surface; a dockable/floatable/resizable Condition Properties window; and the worksheet.
+- The estimator works through an ADR-020 integrated workstation: a stable-width independently collapsible Plans/Conditions/Zones context pane; a dominant drawing surface; one stable-width independently collapsible docked Condition Properties pane; and the worksheet. The normal docked side panes are not horizontally drag-resizable. A future explicit floating-properties mode may be draggable/resizable without changing the docked contract.
 - Standard Takeoff uses concrete-readable tabs, toggles, dropdowns, typed dimensions, compact grids, derived values, and explicit overrides/holds. Normal users do not see or author formulas.
-- Window layout changes preserve sheet, viewport, zoom/pan, calibration, selection, active tool, and unsaved property state.
+- Window/pane layout changes preserve sheet, viewport, zoom/pan, calibration, selection, active tool, and unsaved property state.
 - Accepted Scope Snapshots preserve the exact measurement, role, Condition/template/archetype versions, outputs, and commercial lineage used by the awarded Proposal revision.
 
 ## Concrete Condition and resource engine
@@ -182,19 +182,18 @@ Desktop is a professional workstation. Mobile is field-first.
 ADR-016 defines the global desktop shell:
 
 ```text
-[ compact application header ]
-[ global category navigation + animated dropdown panels ]
+[ compact application menubar: identity | inline global categories | search/actions/account ]
 [ contextual module pane ][ primary workspace ][ optional governed properties/detail pane ]
                          [ persistent module dock/worksheet where applicable ]
 ```
 
-The permanent global desktop left app rail is retired from the accepted target. Contextual module panes remain part of the current workflow and are distinct from global navigation.
+The permanent global desktop left app rail and the superseded stacked second global category row are retired from the accepted target. Contextual module panes remain part of the current workflow and are distinct from global navigation.
 
-The compact application header owns authentic Carez identity, company/project context where useful, global command/search, notifications, restrained quick-create behavior where justified, and account controls. The category navigation row owns global module/category movement through keyboard-accessible animated navigation panels. Mobile may collapse global navigation into a Sheet/drawer rather than reproducing the desktop row.
+The compact application menubar owns authentic Carez/company identity, inline global categories, company/project context where useful, global command/search, notifications, restrained quick-create behavior where justified, and account controls. Category triggers open compact keyboard-accessible anchored menus beneath the same menubar. Mobile may collapse global navigation into a Sheet/drawer rather than reproducing the desktop menubar literally.
 
 Visual direction is governed by ADR-015: dark-first, black/graphite, modern, minimal, calm, precise, dense, high-readability, and concrete-native. Carez uses source-owned shadcn/ui React primitives, semantic tokens, the ADR-016 shell, and the accepted shared Carez component pack in `docs/design-system/CAREZ_COMPONENT_PACK.md`. Every route and module consumes that same system; route-level work may not define a competing light/B2/legacy theme, compatibility layer, hard-coded alternate palette, or parallel component framework. ADR-014 remains relevant for source-owned shadcn component/composition architecture only where ADR-015 does not supersede it.
 
-Use the Estimating EDGE interaction pattern only as a benchmark for clear condition organization, professional screen division, and estimator workflow—not as a visual theme. Prefer crisp separators, tabs, dropdowns, restrained semantic color, readable grids, compact tables, sheets/popovers/dialogs, contextual panes, and a small number of predictable dockable/floatable/resizable windows. Avoid tiny text, cramped tool chrome, generic SaaS card walls, giant rounded cards, glassmorphism, decorative UI, excessive unused whitespace, perpetual decorative motion, and uncontrolled overlapping dialogs.
+Use the Estimating EDGE interaction pattern only as a benchmark for clear condition organization, professional screen division, and estimator workflow—not as a visual theme. Prefer crisp separators, tabs, dropdowns, restrained semantic color, readable grids, compact tables, sheets/popovers/dialogs, contextual panes, and a small number of predictable governed overlays. Normal docked Takeoff side panes follow ADR-020 stable-width collapse/restore; any future explicit floating-properties mode may support drag/resize without turning the application into uncontrolled overlapping windows. Avoid tiny text, cramped tool chrome, generic SaaS card walls, giant rounded cards, glassmorphism, decorative UI, excessive unused whitespace, perpetual decorative motion, and uncontrolled overlapping dialogs.
 
 Shared visual patterns, tokens, global navigation behaviors, shell compositions, and reusable components are owned by `95 — UX & Design System`. Domain modules may compose their own screens from the shared shadcn workspace without waiting on 95 for every local layout decision, but they may not create a second design system. When an interaction matches the shared component pack, modules reuse or extend that component instead of creating a local equivalent.
 
@@ -202,7 +201,7 @@ Shared visual patterns, tokens, global navigation behaviors, shell compositions,
 
 The authenticated desktop home surface is the **Today** operating dashboard. It is an operations command surface rather than a generic analytics dashboard.
 
-- Render Today beneath the compact top application header and global category navigation; it does not use a permanent global left rail.
+- Render Today beneath the compact ADR-016 application menubar; it does not use a permanent global left rail or a second persistent global navigation row.
 - The primary hierarchy is current operating position → management attention → scheduled production → active jobs, with estimating pipeline and cash attention as secondary operating context.
 - Existing dashboard metrics and domain meaning remain intact: Ready to Move, Hard Holds, Field Active, Customers Owe, 7-Day Cash, management attention, scheduled production, active jobs, bid pipeline, and operational cash attention.
 - Management exceptions gain stronger hierarchy when present; healthy/zero states remain visually quiet.
