@@ -86,7 +86,7 @@ export async function createProjectConcreteConditionPilot(input: {
   for (const pilotKey of CONDITION_ARCHETYPE_KEYS) {
     const isStrip = pilotKey === 'strip_wall_footing';
     const { data, error: templateError } = isStrip
-      ? await supabase.rpc('carez_ensure_strip_footing_v4_template')
+      ? await supabase.rpc('carez_ensure_strip_footing_v5_template')
       : await supabase.rpc('carez_ensure_pilot_condition_template', { p_archetype_code: pilotKey });
     if (templateError) throw new Error(templateError.message);
     if (pilotKey === archetypeKey) template = data;
@@ -228,7 +228,7 @@ export async function upgradeProjectConcreteConditionDraftToLatest(input: {
   if (conditionError) throw new Error(conditionError.message);
   if (!condition || condition.takeoff_set_id !== takeoffSetId) throw new Error('Condition does not belong to this takeoff set.');
 
-  const { data, error } = await supabase.rpc('carez_upgrade_strip_condition_draft_to_v4', {
+  const { data, error } = await supabase.rpc('carez_upgrade_strip_condition_draft_to_v5', {
     p_condition_version_id: conditionVersionId,
   });
   if (error) throw new Error(error.message);
