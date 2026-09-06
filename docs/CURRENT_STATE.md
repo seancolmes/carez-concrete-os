@@ -49,6 +49,15 @@ Staging QA isolation is verified and Issue #30 is closed:
 - the staging UI/browser has been verified with QA-only identity/data;
 - mutation-heavy QA may occur on the stable staging QA deployment.
 
+The Supabase migration baseline is now verified on the canonical development / QA line:
+
+- repository Supabase migration history is reconciled to the isolated QA project as a 30-migration canonical replay chain, including the self-contained QA bootstrap and authenticated-only identity-helper RPC privilege reconciliation;
+- a clean local Supabase reset/replay succeeds through all 30 migrations, and the replayed local `public` schema SHA-256 matches live QA exactly (`222FE00A31FDCD50657F181B78B5A1F5055E993936A3A9C86E5505E715441E44`);
+- migration SQL is normalized to LF through repository `.gitattributes` so exact-source migration guards behave consistently across Windows and CI;
+- repository validation passes `pnpm check`, including typecheck, the complete configured test suite, and the production build; the separately verified repeatable-role-linkage contract test also passes;
+- a linked-QA `supabase db push --dry-run` reports `Remote database is up to date`;
+- production Supabase was not modified by this reconciliation. Its migration registry remains historically divergent from QA/local and requires an explicit production bridge plan before any production migration promotion.
+
 ## Dark shadcn application redesign + ADR-016 shell
 
 Issue #44 is the implementation and rendered-acceptance owner for the Carez-wide UI replacement.
