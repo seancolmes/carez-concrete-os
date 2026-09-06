@@ -15,6 +15,14 @@ import type {
 
 export const STRIP_FOOTING_V4_CONTRACT_VERSION = 4;
 export const STRIP_FOOTING_V4_ENDPOINT_ROLE = '__run_endpoints';
+const PHYSICAL_FORM_BOARD_RESOURCE_MODEL = 'physical_boards_v5';
+const BOARD_COURSE_HEIGHT_IN: Record<string, number> = {
+  '2x4': 4,
+  '2x6': 6,
+  '2x8': 8,
+  '2x10': 10,
+  '2x12': 12,
+};
 
 const moduleInput = (
   key: string,
@@ -79,6 +87,8 @@ const uniqueHolds = (holds: ConditionHold[]) => {
     return true;
   });
 };
+
+const round = (value: number, precision = 4) => Math.round((value + Number.EPSILON) * 10 ** precision) / 10 ** precision;
 
 function defaultFormsModule(request: ConditionCalculationRequest): ConditionModuleConfiguration | undefined {
   return (request.modules || []).find(module => module.moduleKey === 'forms' && (module.instanceKey || 'default') === 'default');
@@ -244,6 +254,117 @@ function mapOutput(output: ConditionOutput, definition: ConditionOutputDefinitio
   return mapped;
 }
 
+function physicalBoardRequest(request: ConditionCalculationRequest) {
+  const forms = defaultFormsModule(request);
+  if (forms?.inputValues?.form_resource_model !== PHYSICAL_FORM_BOARD_RESOURCE_MODEL) return request;
+  return {
+    ...request,
+    modules: (request.modules || []).map(module => module === forms
+      ? { ...module, inputValues: { ...(module.inputValues || {}), form_material_factor_lf_per_lf: 1 } }
+      : module),
+  };
+}
+
+function applyPhysicalFormBoardOutput(calculation: ConditionCalculation, request: ConditionCalculationRequest): ConditionCalculation {
+  const forms = defaultFormsModule(request);
+  if (forms?.inputValues?.form_resource_model !== PHYSICAL_FORM_BOARD_RESOURCE_MODEL) return calculation;
+
+  const outputs = calculation.outputs.map(output => {
+    if (output.outputKey !== 'forms.form_material_lf') return output;
+    const traceBase = output.trace.values.filter(value => !value.key.endsWith('.form_material_factor_lf_per_lf'));
+    const baseTrace: ConditionTraceValue[] = [
+      ...traceBase,
+      { key: 'forms.default.form_resource_model', value: PHYSICAL_FORM_BOARD_RESOURCE_MODEL },
+    ];
+    const mapped: ConditionOutput = {
+      ...output,
+      label: 'Form boards — installed',
+      trace: { ...output.trace, algorithm: 'strip-form-board-installed-v5', values: baseTrace },
+    };
+    if (!forms.enabled || output.quantityMode === 'explicit_override') return mapped;
+
+    const tracking = Boolean(forms.inputValues?.resource_tracking);
+    if (!tracking) return mapped;
+
+    const formSystem = String(forms.inputValues?.form_system || '').trim();
+    if (formSystem !== 'wood_lumber') {
+      return {
+        ...mapped,
+        status: 'inactive',
+        quantity: 0,
+        holds: [],
+        trace: {
+          ...mapped.trace,
+          derivedQuantity: 0,
+          values: [...baseTrace, { key: 'forms.default.form_system', value: formSystem || 'unspecified' }],
+        },
+      };
+    }
+
+    const board = String(forms.inputValues?.form_board_size || '').trim();
+    const boardHolds: ConditionHold[] = [];
+    if (!board) boardHolds.push(hold('forms.default.form_board_size', 'Form board'));
+    let courseHeightIn = BOARD_COURSE_HEIGHT_IN[board] || null;
+    if (board === 'custom') {
+      const raw = forms.inputValues?.form_board_custom_course_height_in;
+      if (raw === '' || raw === null || raw === undefined) {
+        boardHolds.push(hold('forms.default.form_board_custom_course_height_in', 'Custom board course height'));
+      } else {
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value <= 0) throw new Error('Custom board course height must be greater than zero.');
+        courseHeightIn = value;
+      }
+    } else if (board && !courseHeightIn) {
+      throw new Error(`Unsupported Strip form board: ${board}.`);
+    }
+
+    const depthRaw = request.inputs?.planFacts?.depth_ft?.value;
+    let depthFt: number | null = null;
+    if (depthRaw === undefined || depthRaw === null || depthRaw === '') {
+      boardHolds.push(hold('depth_ft', 'Footing depth'));
+    } else {
+      const value = Number(depthRaw);
+      if (!Number.isFinite(value) || value <= 0) throw new Error('Footing depth must be greater than zero.');
+      depthFt = value;
+    }
+
+    const dependencyHolds = output.status === 'held' ? output.holds : [];
+    const holds = uniqueHolds([...dependencyHolds, ...boardHolds]);
+    if (holds.length || output.quantity === null || courseHeightIn === null || depthFt === null) {
+      return {
+        ...mapped,
+        status: 'held',
+        quantity: null,
+        holds,
+        trace: { ...mapped.trace, derivedQuantity: null },
+      };
+    }
+
+    const formedEdgeLf = Number(output.quantity);
+    const courses = Math.max(1, Math.ceil((depthFt * 12) / courseHeightIn));
+    const installedBoardLf = round(formedEdgeLf * courses);
+    return {
+      ...mapped,
+      status: 'ready',
+      quantity: installedBoardLf,
+      holds: [],
+      trace: {
+        ...mapped.trace,
+        derivedQuantity: installedBoardLf,
+        values: [
+          ...baseTrace,
+          { key: 'forms.default.form_system', value: formSystem },
+          { key: 'forms.default.form_board_size', value: board },
+          { key: 'forms.default.form_board_course_height_in', value: courseHeightIn },
+          { key: 'forms.form_board_courses', value: courses },
+          { key: 'forms.formed_edge_lf', value: formedEdgeLf },
+        ],
+      },
+    };
+  });
+  return { ...calculation, outputs };
+}
+
 export function calculateStripFootingV4(request: ConditionCalculationRequest): ConditionCalculation {
   if (request.archetypeKey !== 'strip_wall_footing') throw new Error('Strip Footing v4 calculator requires strip_wall_footing.');
   if (!request.conditionVersionId.trim()) throw new Error('Condition version ID is required.');
@@ -252,8 +373,9 @@ export function calculateStripFootingV4(request: ConditionCalculationRequest): C
   }
 
   const resolution = resolveBulkheads(request);
+  const calculationRequest = physicalBoardRequest(request);
   const v3Request: ConditionCalculationRequest = {
-    ...request,
+    ...calculationRequest,
     measurementRoles: [
       ...request.measurementRoles.filter(role => role.roleKey !== STRIP_FOOTING_V4_ENDPOINT_ROLE),
       ...resolution.measurementRoles,
@@ -263,7 +385,7 @@ export function calculateStripFootingV4(request: ConditionCalculationRequest): C
   const formsEnabled = Boolean(defaultFormsModule(request)?.enabled);
   const definitions = new Map(STRIP_FOOTING_V4_DEFINITION.outputs.map(definition => [definition.outputKey, definition]));
 
-  return {
+  const calculation: ConditionCalculation = {
     archetypeKey: 'strip_wall_footing',
     conditionVersionId: request.conditionVersionId,
     outputs: base.outputs.map(output => {
@@ -272,4 +394,5 @@ export function calculateStripFootingV4(request: ConditionCalculationRequest): C
       return mapOutput(output, definition, resolution, formsEnabled);
     }),
   };
+  return applyPhysicalFormBoardOutput(calculation, request);
 }
