@@ -36,9 +36,10 @@ test('3D empty state identifies selected missing inputs and separates model chec
   assert.doesNotMatch(viewer, /Saved model/);
 });
 
-test('Condition contract version is visible and an older editable Strip draft has a governed upgrade action', () => {
+test('Condition contract version is visible and an older editable Strip draft has a governed latest-contract upgrade action', () => {
   assert.match(workstation, /Contract v\{contractVersion\}/);
   assert.match(workstation, /Upgrade to v\{latestContractVersion\}/);
-  assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v3/);
+  assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v4/);
+  assert.match(conditionActions, /carez_ensure_strip_footing_v4_template/);
   assert.match(workstation, /Verified Condition history is never changed/);
 });
