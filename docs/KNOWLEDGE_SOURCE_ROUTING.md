@@ -1,6 +1,20 @@
 # Carez Concrete OS — Knowledge Source Routing
 
-Use the source that owns the question.
+Use the source that owns the question. Retrieval should be bounded by the task, not by the size of the repository.
+
+## Agent retrieval discipline
+
+For coding-agent work, root `AGENTS.md` is the compact execution entrypoint. `docs/README.md` provides the task-based reading map.
+
+- Start with the minimum authoritative source set for the task.
+- When the user or implementation packet explicitly names source files, read those files first and do not broaden the search unless a concrete contradiction, missing dependency, or safety concern requires it.
+- Prefer a known owning file or bounded implementation area over recursive searches across `docs/`.
+- Do not reread unchanged sources merely to reconfirm conclusions already established in the same task.
+- Read `CURRENT_STATE.md` only for current implementation/verification state; do not use it as a substitute for module/architecture contracts.
+- Read `ROADMAP.md` only when sequence or priority matters.
+- Read `BRANCH_AND_RELEASE_MODEL.md` only when branch, QA target, deployment line, or production-promotion behavior matters.
+- Supporting and superseded documents classified in `DOCUMENT_STATUS.md` are read on demand only. They are not normal coding context and never override canonical owners.
+- If local inference is consuming its context window mainly through source retrieval, reduce retrieval scope before increasing the context window.
 
 ## Product / architecture
 Use, in order:
@@ -9,10 +23,12 @@ Use, in order:
 3. relevant ADRs
 4. repository implementation evidence
 
+For a bounded implementation packet that already states approved behavior, do not re-read this entire hierarchy unless implementation evidence exposes a contradiction.
+
 ## Current implementation / bug status
 Use:
 1. repository source on the active branch;
-2. `docs/CURRENT_STATE.md`;
+2. `docs/CURRENT_STATE.md` when a concise current-state checkpoint is needed;
 3. tests/build output;
 4. browser/Vercel evidence for rendered behavior.
 
@@ -20,14 +36,17 @@ Do not use an old chat, architecture snapshot, handoff PDF, or archived Project 
 
 ## Database / persisted behavior
 Use:
-1. `supabase/` migrations and current schema evidence;
-2. server/domain code;
-3. RLS/policy evidence.
+1. relevant `supabase/` migrations and current schema evidence;
+2. relevant server/domain code;
+3. RLS/policy evidence;
+4. applicable canonical ADR/module contract when interpretation is required.
+
+Do not scan unrelated migrations or database domains for a localized task.
 
 ## Active ChatGPT Project sources
 The active Project source set is intentionally small and is governed by `CAREZ_PROJECT_SOURCE_GUIDE.md` in the ChatGPT Project.
 
-For software-development work, only use the active Project source manifest unless the user explicitly requests historical/archive material.
+For software-development work, only use the active Project source manifest when external/domain evidence is actually required. Repository architecture and implementation remain canonical for Carez software state.
 
 If retrieval surfaces a deleted Project file, old File Library upload, obsolete handoff, historical accounting record, or other archived material, do not treat it as current development authority.
 
