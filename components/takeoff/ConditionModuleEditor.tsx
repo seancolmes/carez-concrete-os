@@ -18,6 +18,7 @@ import {
   conditionModuleFieldVisible,
   nextConditionModuleInstanceKey,
 } from '@/lib/takeoff/conditions/moduleSchema';
+import {STRIP_FOOTING_V5_DEFINITION,STRIP_FOOTING_V5_RESOURCE_MODEL} from '@/lib/takeoff/conditions/stripFootingV5';
 import type {
   ConditionArchetypeDefinition,
   ConditionModuleConfiguration,
@@ -87,7 +88,10 @@ function instanceSummary(moduleKey:ConditionModuleKey,values:Record<string,Condi
 }
 
 export function ConditionModuleEditor({definition,moduleKey,modules,onChange,disabled=false}:Props){
-  const schema=conditionModuleDefinition(definition,moduleKey);
+  const usesPhysicalFormBoards=moduleKey==='forms'&&modules.some(module=>
+    module.moduleKey==='forms'&&module.inputValues?.form_resource_model===STRIP_FOOTING_V5_RESOURCE_MODEL
+  );
+  const schema=conditionModuleDefinition(usesPhysicalFormBoards?STRIP_FOOTING_V5_DEFINITION:definition,moduleKey);
   if(!schema)return <div className="px-3 py-4 text-xs text-muted-foreground">This module is not available for this Condition version.</div>;
 
   const allIndexes=modules
