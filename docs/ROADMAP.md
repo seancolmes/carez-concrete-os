@@ -5,7 +5,7 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 ## P0.1 — Shell + Takeoff acceptance
 
 Outcome:
-- ADR-016 compact top application header + animated global category navigation replaces the permanent global desktop left rail;
+- ADR-016 Option D single compact desktop application menubar with inline global categories and anchored animated menus replaces both the permanent global desktop left rail and the superseded stacked second global navigation row;
 - module-specific contextual panes remain inside their owning workspaces;
 - first shared Carez component pack is introduced and reused across converted surfaces;
 - authenticated Takeoff visual QA complete;
@@ -16,11 +16,14 @@ Outcome:
 Outcome:
 - active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
 - additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- EDGE-inspired concrete estimating workstation uses the ADR-015 dark shadcn system plus ADR-016 top global navigation, with Plans/Conditions/Zones tabs, readable properties, a dominant plan, and a dockable/floatable/resizable Condition window;
+- the ADR-020 integrated estimator workstation uses the ADR-015 dark shadcn system plus the ADR-016 global menubar: stable-width independently collapsible Plans/Conditions/Zones and Condition Properties panes, a dominant drawing surface, explicit 2D/3D/Split view controls, and a permanently available vertically resizable Quantity/Estimate Worksheet;
+- an optional future explicit floating-properties mode may be draggable/resizable, but the normal docked side panes do not use horizontal drag-resizing;
 - the shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading States, File Upload and motion patterns are used where applicable instead of route-local equivalents;
 - Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
+- built-in authoritative geometry facts are derived before asking the estimator to redraw duplicate geometry; estimator authority remains explicit where geometry does not determine means/methods;
+- installed/theoretical demand, procurement quantity, reusable inventory demand, Production Quantity, Direct Cost, and Sell remain separately traceable;
 - 2D, 3D, and Split modes share selection and totals; read-only derived 3D exposes representative elevation, overlap/gap, step, and cutout errors;
-- supported legacy recipes/variants are migrated and reconciled before new-work entry switches;
+- supported legacy recipes/variants remain preserved through the compatibility/history layer while new standard authoring uses Conditions after verified parity;
 - old Recipe Editor/Formula Composer/Assembly Library UI is removed from the active workflow only after dependency and browser-verification gates;
 - no referenced published or accepted history is deleted.
 
@@ -32,52 +35,60 @@ Outcome:
 - builder means/method verification through Condition modules and explicit job overrides;
 - production-rate and labor build-up;
 - immutable Condition/template/archetype/output lineage, with legacy compatibility retained while referenced;
-- bid review and proposal handoff.
+- explicit Proposal Revision → Award Decision/Customer Acceptance → Accepted Scope Snapshot → Frozen Commercial Baseline/Budget handoff.
 
 ## P2 — CRM / Preconstruction
 
 Outcome:
-- opportunity-centered bid pipeline;
+- opportunity-centered bid pipeline on the persistent Job Spine;
 - ITB/plans/bid-date workflow;
 - estimator workload and bid calendar;
-- won/lost handoff into project creation without re-entry.
+- won/lost/rebid history remains distinct and traceable;
+- an authorized award action creates the immutable Accepted Scope Snapshot and distinct Project on the same Job Spine without re-entry; an Opportunity never mutates into a Project.
 
 ## P3 — Projects / Work Packages / Scheduling
 
 Outcome:
-- Project → Work Package → Operation execution model;
-- scope/budget/drawing/readiness linkage;
-- constraint-aware schedule and READY / AT RISK / BLOCKED states.
+- Project → Work Package → Operation → Production Work Unit execution model;
+- versioned Scope Allocations partition authorized Accepted Scope Snapshot or approved-change quantities without overlap/double counting;
+- scope/budget/drawing/readiness lineage remains exact through execution;
+- committed/baseline milestones, rolling lookahead, and daily executable READY work remain distinct scheduling layers;
+- Constraint remains a prospective readiness condition while Blocker Event records realized execution impact;
+- READY / AT RISK / BLOCKED states drive executable planning without silently rewriting commitments or frozen commercial baselines.
 
 ## P4 — Field / Production / Pour Control
 
 Outcome:
-- role-specific mobile field workflows;
-- crew/time/task capture;
-- production quantities and issues;
-- pour readiness, deliveries, placed/returned concrete, inspections, variance.
+- role-specific mobile field workflows with low-friction actual work context;
+- Timecard, Actual Work Context, Constraint, Blocker Event, Completion Evidence, and Production Evidence remain distinct linked records;
+- foremen operate as exception/resequence leaders rather than routine daily production-quantity data-entry workers;
+- trustworthy production learning derives from authorized measurable scope, attributable work context, completion evidence, method context, and confidence;
+- pour readiness, deliveries, placed/returned concrete, inspections, and variance preserve source evidence and work-package/scope lineage.
 
 ## P5 — Procurement / Finance / Changes / Billing
 
 Outcome:
-- project-need-driven procurement;
-- Budget / Committed / Actual / Forecast separation;
+- project-need-driven procurement retains exact authorized-scope lineage;
+- Budget / Committed / Actual / Forecast remain distinct;
 - vendor bill/PO matching;
-- change and billing lineage without mutating original baseline.
+- original frozen commercial baseline derives only from the immutable Accepted Scope Snapshot;
+- approved changes append authorized deltas and billing/forecast effects without mutating original accepted history.
 
 ## P6 — Documents / Search / Knowledge
 
 Outcome:
-- shared document/entity linking;
-- logical drawing identity + revisions;
-- project-wide retrieval with evidence-backed citations.
+- shared document/entity linking across the Job Spine and phase-specific records;
+- logical drawing identity remains separate from exact revision;
+- accepted scope retains exact source-document/drawing evidence where applicable;
+- project-wide retrieval with evidence-backed citations and immutable source documents.
 
 ## P7 — AI Plan Intelligence / Assisted Takeoff
 
 Outcome:
 - sheet naming/indexing, scale candidates, title-block extraction;
 - revision assistance;
-- evidence-backed suggestions and assisted Takeoff with human approval.
+- evidence-backed suggestions and assisted Takeoff with human approval;
+- AI does not silently become scope, means/method, quantity, production-rate, pricing, margin, or approval authority.
 
 ## P8 — Executive Intelligence + Hardening
 
