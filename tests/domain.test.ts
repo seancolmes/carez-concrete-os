@@ -369,45 +369,23 @@ test('committed command history branches safely and confirms durable undo/redo',
   assert.equal(history.snapshot().canRedo, false);
 });
 
-test('migration contract preserves takeoff-to-estimate-to-budget lineage', () => {
+test('canonical QA migration contract preserves takeoff-to-estimate lineage and governed assembly runtime', () => {
   const readMigration = (name: string) => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8');
-  const commit = readMigration('20260829_takeoff_atomic_hardening.sql');
-  const award = readMigration('20260829_award_to_operations_03_award_boundary.sql');
-  const foundation = readMigration('20260829_takeoff_assembly_foundation.sql');
-  const geometryUpdate = readMigration('20260829_takeoff_pro_geometry_update_hardening.sql');
-  const inputHolds = readMigration('20260829200913_takeoff_missing_input_holds.sql');
-  const customAssemblies = readMigration('20260830063109_custom_assembly_authoring_foundation.sql');
-  const nestedAssemblies = readMigration('20260830063312_nested_assembly_runtime_lineage.sql');
-  const formworkActivation = readMigration('20260830090000_footing_formwork_method_activation.sql');
-  const activationRootValidation = readMigration('20260830090100_activation_rule_root_validation.sql');
-  const reusableMethodModule = readMigration('20260830090200_reusable_formwork_method_module.sql');
+  const tables = readMigration('20260830235541_qa_takeoff_contract_tables.sql');
+  const rpcs = readMigration('20260830235636_qa_takeoff_contract_rpcs.sql');
+  const inputHolds = readMigration('20260901044057_takeoff_nested_activation_missing_input.sql');
 
-  assert.match(commit, /source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
-  assert.match(award, /i\.source_takeoff_output_id,i\.source_takeoff_measurement_id/);
-  assert.match(foundation, /source_takeoff_output_id uuid references public\.takeoff_measurement_outputs\(id\)/);
-  assert.match(foundation, /source_takeoff_measurement_id uuid references public\.takeoff_measurements\(id\)/);
-  assert.match(geometryUpdate, /v_output\.pricing_status='manual_override'/);
-  assert.match(geometryUpdate, /source_takeoff_measurement_id=v_measurement\.id/);
-  assert.match(inputHolds, /missing_input/);
-  assert.match(inputHolds, /security_invoker = true/);
-  assert.match(customAssemblies, /create table public\.concrete_assembly_folders/);
-  assert.match(customAssemblies, /create table public\.concrete_assembly_property_bindings/);
-  assert.match(customAssemblies, /create table public\.concrete_assembly_children/);
-  assert.match(customAssemblies, /carez_create_custom_assembly/);
-  assert.match(customAssemblies, /carez_create_assembly_revision/);
-  assert.match(customAssemblies, /carez_publish_assembly_version/);
-  assert.match(nestedAssemblies, /carez_assembly_component_paths/);
-  assert.match(nestedAssemblies, /component_path_key/);
-  assert.match(nestedAssemblies, /v_path_key/);
-  assert.match(formworkActivation, /is_active boolean not null default true/);
-  assert.match(formworkActivation, /resource_behavior text/);
-  assert.match(formworkActivation, /estimate_visible boolean not null default true/);
-  assert.match(formworkActivation, /carez_activation_rule_is_valid/);
-  assert.match(formworkActivation, /carez_sync_takeoff_measurement_outputs/);
-  assert.match(formworkActivation, /delete from public\.estimate_items/);
-  assert.match(activationRootValidation, /carez_activation_rule_value_is_valid/);
-  assert.match(reusableMethodModule, /direct_takeoff_enabled boolean not null default true/);
-  assert.match(reusableMethodModule, /concrete_assembly_children[\s\S]*activation_rule jsonb/);
-  assert.match(reusableMethodModule, /Every child assembly activation rule/);
-  assert.match(reusableMethodModule, /variable_bindings,activation_rule,sort_order/);
+  assert.match(tables, /source_takeoff_output_id uuid, source_takeoff_measurement_id uuid/);
+  assert.match(tables, /source_assembly_version_id uuid references public\.concrete_assembly_versions\(id\) on delete set null/);
+  assert.match(tables, /estimate_items_source_takeoff_output_id_fkey/);
+  assert.match(tables, /estimate_items_takeoff_output_uk/);
+  assert.match(tables, /direct_takeoff_enabled boolean not null default true/);
+
+  assert.match(rpcs, /create or replace function public\.carez_activation_rule_value_is_valid/);
+  assert.match(rpcs, /create or replace function public\.carez_assembly_component_paths/);
+  assert.match(rpcs, /insert into public\.estimate_items\([\s\S]*source_takeoff_output_id,source_takeoff_measurement_id,source_assembly_version_id/);
+  assert.match(rpcs, /delete from public\.estimate_items where company_id=v_company and source_takeoff_output_id=v_output\.id/);
+
+  assert.match(inputHolds, /when coalesce\(v_payload->>'pricing_status',''\)='missing_input' then 'missing_input'/);
+  assert.match(inputHolds, /if not v_active or not v_visible then[\s\S]*delete from public\.estimate_items/i);
 });

@@ -22,7 +22,7 @@ test('Strip v4 removes the end_forms drawing role and replaces unit-only EA look
 });
 
 test('Strip v4 migration preserves v1-v3 and publishes immutable bulkhead semantics', () => {
-  const source = read('supabase/migrations/20260906090000_strip_footing_bulkheads_v4.sql');
+  const source = read('supabase/migrations/20260906150633_strip_footing_bulkheads_v4.sql');
   assert.match(source, /version_no=3/);
   assert.match(source, /version_no=4/);
   assert.match(source, /role->>'key'<>'end_forms'/);

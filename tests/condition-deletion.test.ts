@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migration = readFileSync('supabase/migrations/20260905162500_condition_draft_deletion.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260905162324_condition_draft_deletion.sql', 'utf8');
 const actions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const manager = readFileSync('components/takeoff/ConditionDeletionManager.tsx', 'utf8');
 const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
@@ -21,7 +21,10 @@ test('Condition deletion removes dependent records in dependency-safe order and 
   const roleDelete = migration.indexOf('delete from public.project_condition_measurement_roles role', migration.indexOf('carez_delete_project_concrete_condition'));
   const versionDelete = migration.indexOf('delete from public.project_concrete_condition_versions version', migration.indexOf('carez_delete_project_concrete_condition'));
   assert.ok(outputDelete >= 0 && roleDelete > outputDelete && versionDelete > roleDelete);
-  assert.match(migration, /Never delete geometry still used by another Condition/);
+  assert.match(migration, /project_condition_measurement_roles role/);
+  assert.match(migration, /role\.measurement_id = v_measurement_id/);
+  assert.match(migration, /compatibility_anchor_measurement_id = v_measurement_id/);
+  assert.match(migration, /v_preserved_measurements := v_preserved_measurements \+ 1/);
   assert.match(migration, /preserved_measurements/);
   assert.match(migration, /carez_delete_takeoff_measurement\(v_measurement_id\)/);
 });

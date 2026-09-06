@@ -4,7 +4,7 @@ import test from 'node:test';
 import { conditionOutputStatus } from '../lib/takeoff/conditions/issues.ts';
 
 const estimateActions = readFileSync('app/estimates/actions.ts', 'utf8');
-const migration = readFileSync('supabase/migrations/20260906023000_condition_commercial_reconciliation_and_contract_upgrade.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260906030428_condition_commercial_reconciliation_and_contract_upgrade.sql', 'utf8');
 
 test('manual Condition price overrides are commercially ready', () => {
   assert.equal(conditionOutputStatus({ status: 'ready', pricing_status: 'manual_override' }), 'Ready');

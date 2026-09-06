@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migration = readFileSync('supabase/migrations/20260906102000_strip_footing_form_resources_v5.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260906160338_strip_footing_form_resources_v5.sql', 'utf8');
 const actions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const editor = readFileSync('components/takeoff/ConditionModuleEditor.tsx', 'utf8');
 const schema = readFileSync('lib/takeoff/conditions/moduleSchema.ts', 'utf8');

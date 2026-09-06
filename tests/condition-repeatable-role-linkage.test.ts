@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migration = readFileSync('supabase/migrations/20260906060000_condition_repeatable_module_commit.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260906054504_condition_repeatable_module_commit.sql', 'utf8');
 const workspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 
 test('atomic Condition commit keeps one default module while allowing governed repeatable instances', () => {

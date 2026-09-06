@@ -53,7 +53,7 @@ test('required method selectors remain explicit missing inputs until the estimat
 });
 
 test('sync migration preserves missing_input before inactive branches fall back to not_priced', () => {
-  const sql = readFileSync('supabase/migrations/20260901033500_takeoff_nested_activation_missing_input.sql', 'utf8');
+  const sql = readFileSync('supabase/migrations/20260901044057_takeoff_nested_activation_missing_input.sql', 'utf8');
   const missingInput = "when coalesce(v_payload->>'pricing_status','')='missing_input' then 'missing_input'";
   const inactiveFallback = "else 'not_priced'";
 
