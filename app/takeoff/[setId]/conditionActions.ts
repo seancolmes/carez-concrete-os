@@ -202,6 +202,49 @@ export async function assignConditionPrimaryTakeoffSection(input: {
   return { measurement_id: measurementId, estimate_section_id: sectionId };
 }
 
+export async function upgradeProjectConcreteConditionDraftToLatest(input: {
+  takeoffSetId: string;
+  conditionVersionId: string;
+}) {
+  const { supabase, companyId } = await conditionContext();
+  const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const conditionVersionId = String(input?.conditionVersionId || '').trim();
+  if (!takeoffSetId || !conditionVersionId) throw new Error('Condition version is required.');
+  await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: version, error: versionError } = await supabase.from('project_concrete_condition_versions')
+    .select('id,condition_id,status')
+    .eq('id', conditionVersionId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (versionError) throw new Error(versionError.message);
+  if (!version) throw new Error('Project Concrete Condition version not found.');
+
+  const { data: condition, error: conditionError } = await supabase.from('project_concrete_conditions')
+    .select('id,takeoff_set_id')
+    .eq('id', version.condition_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (conditionError) throw new Error(conditionError.message);
+  if (!condition || condition.takeoff_set_id !== takeoffSetId) throw new Error('Condition does not belong to this takeoff set.');
+
+  const { data, error } = await supabase.rpc('carez_upgrade_strip_condition_draft_to_v3', {
+    p_condition_version_id: conditionVersionId,
+  });
+  if (error) throw new Error(error.message);
+  refreshConditionSurfaces(takeoffSetId);
+  return data as {
+    condition_version_id: string;
+    from_contract_version: number;
+    to_contract_version: number;
+    upgraded: boolean;
+    requires_recalculation: boolean;
+    reset_modules?: string[];
+    reset_inputs?: string[];
+    message?: string;
+  };
+}
+
 /**
  * The browser submits inputs and stable IDs only. Measurements, prices,
  * calculations, lineage, legacy projections, and reconciliation are resolved
@@ -217,7 +260,6 @@ export async function saveAndRecalculateConcreteConditionPilot(
     prepared.rpcPayload,
   );
   if (error) throw new Error(error.message);
-
   refreshConditionSurfaces(prepared.takeoffSetId);
   return data;
 }

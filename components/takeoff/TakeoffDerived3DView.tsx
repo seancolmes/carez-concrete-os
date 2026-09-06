@@ -203,6 +203,9 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   const elevations = useMemo(() => [...new Set(sheetSolids.map(s => s.shape.top))].sort((a, b) => a - b), [sheetSolids]);
   const visibleSolids = useMemo(() => sheetSolids.filter(solid => !viewState.hidden.includes(solid.conditionVersionId) && (!viewState.isolated || solid.conditionVersionId === viewState.isolated) && (viewState.zone === 'all' || solid.zone === viewState.zone) && (viewState.elevation === 'all' || String(solid.shape.top) === viewState.elevation)), [sheetSolids, viewState]);
   const sheetIssues = useMemo(() => scene.issues.filter(entry => !entry.sheetId || entry.sheetId === activeSheetId), [scene.issues, activeSheetId]);
+  const selectedConditionIssues = useMemo(() => selectedConditionVersionId ? scene.issues.filter(entry => entry.conditionVersionId === selectedConditionVersionId) : [], [scene.issues, selectedConditionVersionId]);
+  const selectedInputIssue = useMemo(() => selectedConditionIssues.find(issue => issue.severity === 'hold' && issue.code === '3d_input_required') || selectedConditionIssues.find(issue => issue.severity === 'hold') || null, [selectedConditionIssues]);
+  const selectedHasSolid = useMemo(() => Boolean(selectedConditionVersionId && sheetSolids.some(solid => solid.conditionVersionId === selectedConditionVersionId)), [sheetSolids, selectedConditionVersionId]);
   const center = remembered?.center || sceneCenter(sheetSolids);
   const fitScale = useMemo(() => {
     const points = sheetSolids.flatMap(solidPoints); if (!points.length) return 1;
@@ -223,7 +226,8 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
     if (selection.length) { setCenter(sceneCenter(selection)); setCamera(current => ({ ...current, panX: 0, panY: 0 })); }
   };
   const holdCount = sheetIssues.filter(issue => issue.severity === 'hold').length;
-  const status = [scene.state === 'preview' ? 'Unsaved preview' : 'Saved model', holdCount ? 'Partial model' : '', !scene.coverage.checksComplete ? 'Checks incomplete' : ''].filter(Boolean).join(' · ');
+  const baseStatus = scene.state === 'preview' ? 'Unsaved preview' : selectedInputIssue && !selectedHasSolid ? 'Inputs required' : sheetSolids.length ? 'Current model' : 'No modeled scope';
+  const status = [baseStatus, holdCount && sheetSolids.length ? 'Partial model' : '', !scene.coverage.checksComplete ? 'Checks incomplete' : ''].filter(Boolean).join(' · ');
   const sheetLabel = activeSheetLabel || 'Current sheet';
   if (scene.unavailable) return <div className={styles.empty} role="status"><strong>3D view unavailable</strong><span>The drawing and worksheet remain available. Reload to retry the model.</span></div>;
   return <div className={styles.viewer} data-issues-open={issuesOpen} aria-label="3D concrete verification">
@@ -236,7 +240,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
       <Button variant="ghost" size="icon-sm" onClick={showAll} title="Show all" aria-label="Show all"><Eye size={16}/></Button>
       <Button variant="ghost" size="sm" onClick={focusSelected} disabled={!selectedMeasurementId}>Focus</Button>
       <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view" aria-label="Reset 3D view"><RotateCcw size={16}/></Button>
-      <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>Issues {sheetIssues.length}</Button>
+      <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>3D checks {sheetIssues.length}</Button>
     </div>
     <div ref={stageRef} className={styles.stage} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setCamera(current => ({ ...current, zoom: clamp(current.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), 0.1, 20) })); }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Read-only 3D concrete model" onPointerDown={event => {
@@ -263,11 +267,11 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
           return <path key={face.key} data-solid-id={face.solid.id} d={face.path} fill={face.solid.color} fillOpacity={selected ? Math.min(0.92, face.opacity + 0.16) : face.opacity} fillRule="evenodd" stroke={selected ? 'var(--foreground)' : face.solid.color} strokeOpacity={selected ? 0.95 : 0.7} strokeWidth={selected ? 1.8 : 1} vectorEffect="non-scaling-stroke" className={styles.face} tabIndex={face.top ? 0 : undefined} role={face.top ? 'button' : undefined} aria-label={face.top ? `${face.solid.conditionName} — ${face.solid.measurementName}` : undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectSolid(face.solid); } }} />;
         })}
       </svg>
-      {!visibleSolids.length && <div className={styles.empty}><strong>{sheetSolids.length ? 'No visible concrete' : holdCount ? '3D inputs required' : 'No 3D concrete on this sheet'}</strong><span>{sheetSolids.length ? 'Restore visibility to review this sheet.' : holdCount ? 'Open Issues to resolve the missing inputs.' : 'Select a measured concrete Condition with dimensions and elevation.'}</span>{sheetSolids.length ? <Button variant="outline" size="sm" onClick={showAll}>Show all</Button> : holdCount ? <Button variant="outline" size="sm" onClick={() => setIssuesOpen(true)}>Open issues</Button> : null}</div>}
+      {!visibleSolids.length && <div className={styles.empty}>{sheetSolids.length?<><strong>No visible concrete</strong><span>Restore visibility to review this sheet.</span><Button variant="outline" size="sm" onClick={showAll}>Show all</Button></>:selectedInputIssue?<><strong>3D input required</strong><span>{selectedInputIssue.message}</span><Button variant="outline" size="sm" onClick={()=>onJumpToIssue(selectedInputIssue)}>Resolve input</Button></>:holdCount?<><strong>3D inputs required</strong><span>{sheetIssues.find(issue=>issue.severity==='hold')?.message||'Resolve the current 3D checks before this scope can be modeled.'}</span><Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button></>:selectedConditionVersionId&&selectedMeasurementId?<><strong>No modeled scope on this sheet</strong><span>The selected measured Condition does not currently project a supported solid on {sheetLabel}.</span></>:<><strong>No 3D concrete on this sheet</strong><span>Select a measured concrete Condition to review its derived model.</span></>}</div>}
       <div className={styles.help}>Drag to orbit · Shift-drag to pan · Wheel to zoom</div>
     </div>
     {issuesOpen && <aside className={styles.issues} aria-label="3D verification issues">
-      <header><strong>Verification · {sheetIssues.length}</strong><span>Current sheet and unassigned Conditions</span></header>
+      <header><strong>3D checks · {sheetIssues.length}</strong><span>Current sheet and unassigned Conditions</span></header>
       <div className={styles.issueList}>{sheetIssues.length ? sheetIssues.map(entry => <button type="button" key={entry.id} onClick={() => onJumpToIssue(entry)} className={entry.severity === 'hold' ? styles.issueHold : styles.issueWarn}><AlertTriangle size={15}/><span><strong>{entry.code === '3d_input_required' ? '3D input required' : entry.code.replaceAll('_', ' ')}</strong><small>{entry.message}</small></span></button>) : <p className={styles.issueReady}>No issues found by supported checks on this sheet.</p>}</div>
     </aside>}
   </div>;
