@@ -46,7 +46,7 @@ export function conditionOutputStatus(output: OutputLike): string {
   if (output.status === 'inactive') return 'Not included';
   if (output.status === 'held') return 'Calculation hold';
   if (output.pricing_status === 'missing_price' || output.pricing_status === 'missing_labor_rate') return 'Qty ready · Price missing';
-  if (output.status === 'ready' && output.pricing_status === 'priced') return 'Ready';
+  if (output.status === 'ready' && (output.pricing_status === 'priced' || output.pricing_status === 'manual_override')) return 'Ready';
   if (output.status === 'ready') return 'Qty ready';
   return 'Not calculated';
 }
