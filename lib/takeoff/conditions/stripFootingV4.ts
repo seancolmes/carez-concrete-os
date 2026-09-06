@@ -269,7 +269,7 @@ function applyPhysicalFormBoardOutput(calculation: ConditionCalculation, request
   const forms = defaultFormsModule(request);
   if (forms?.inputValues?.form_resource_model !== PHYSICAL_FORM_BOARD_RESOURCE_MODEL) return calculation;
 
-  const outputs = calculation.outputs.map(output => {
+  const outputs: ConditionOutput[] = calculation.outputs.map((output): ConditionOutput => {
     if (output.outputKey !== 'forms.form_material_lf') return output;
     const traceBase = output.trace.values.filter(value => !value.key.endsWith('.form_material_factor_lf_per_lf'));
     const baseTrace: ConditionTraceValue[] = [
