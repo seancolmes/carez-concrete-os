@@ -23,6 +23,12 @@ import {
   STRIP_FOOTING_V3_CONTRACT_VERSION,
   STRIP_FOOTING_V3_DEFINITION,
 } from './stripFootingV3.ts';
+import {
+  calculateStripFootingV4,
+  STRIP_FOOTING_V4_CONTRACT_VERSION,
+  STRIP_FOOTING_V4_DEFINITION,
+  STRIP_FOOTING_V4_ENDPOINT_ROLE,
+} from './stripFootingV4.ts';
 import type {
   ConditionArchetypeDefinition,
   ConditionArchetypeKey,
@@ -42,6 +48,7 @@ type LoadedMeasurement = {
   measurement_type: string;
   raw_quantity: number | string;
   raw_unit: string;
+  geometry: unknown;
   variables: Record<string, number | string | null> | null;
   risk_class_code: string | null;
   status: string;
@@ -67,6 +74,21 @@ const geometryType = (measurementType: string): ConditionMeasurementRole['geomet
   throw new Error(`Unsupported Condition measurement type: ${measurementType || 'unknown'}.`);
 };
 
+const openPolylineEndpointCount = (rawGeometry: unknown) => {
+  const geometry = asRecord(rawGeometry);
+  if (geometry.type !== 'polyline') throw new Error('Strip footing run geometry must be a polyline.');
+  const points = asArray(geometry.points)
+    .map(point => asRecord(point))
+    .filter(point => Number.isFinite(Number(point.x)) && Number.isFinite(Number(point.y)))
+    .map(point => ({ x: Number(point.x), y: Number(point.y) }));
+  if (points.length < 2) throw new Error('Strip footing run geometry requires at least two points.');
+  const first = points[0];
+  const last = points[points.length - 1];
+  const tolerance = 1e-7;
+  const closed = Math.abs(first.x - last.x) <= tolerance && Math.abs(first.y - last.y) <= tolerance;
+  return closed ? 0 : 2;
+};
+
 const moduleLabel = (key: string) => key
   .split('_')
   .map(part => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
@@ -83,6 +105,9 @@ function storedInputGroups(version: any): ConditionRawInputGroups {
 }
 
 function deployedDefinition(archetypeKey: ConditionArchetypeKey, archetypeVersion: any): ConditionArchetypeDefinition {
+  if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V4_CONTRACT_VERSION) {
+    return STRIP_FOOTING_V4_DEFINITION;
+  }
   if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V3_CONTRACT_VERSION) {
     return STRIP_FOOTING_V3_DEFINITION;
   }
@@ -316,14 +341,14 @@ export async function prepareConcreteConditionPilotPersistence({
   const previousIds = previousRoles.map(role => String(role.measurement_id));
   const allMeasurementIds = [...new Set([...measurementIds, ...previousIds])];
   const { data: measurementRows, error: measurementsError } = await supabase.from('takeoff_measurements')
-    .select('id,takeoff_set_id,sheet_id,assembly_version_id,measurement_type,raw_quantity,raw_unit,variables,risk_class_code,status,updated_at')
+    .select('id,takeoff_set_id,sheet_id,assembly_version_id,measurement_type,raw_quantity,raw_unit,geometry,variables,risk_class_code,status,updated_at')
     .eq('company_id', companyId)
     .in('id', allMeasurementIds);
   if (measurementsError) throw new Error(measurementsError.message);
   if ((measurementRows || []).length !== allMeasurementIds.length) throw new Error('One or more Condition measurements could not be loaded.');
   const measurements = new Map((measurementRows as LoadedMeasurement[]).map(measurement => [measurement.id, measurement]));
 
-  const calculationRoles: ConditionMeasurementRole[] = roles.map(role => {
+  const persistedCalculationRoles: ConditionMeasurementRole[] = roles.map(role => {
     const definition = roleDefinitions.get(role.role_key);
     const measurement = measurements.get(role.measurement_id);
     if (!definition) throw new Error(`Unsupported Condition role: ${role.role_key || 'unknown'}.`);
@@ -340,6 +365,21 @@ export async function prepareConcreteConditionPilotPersistence({
       geometryType: geometryType(measurement.measurement_type),
     };
   });
+  const calculationRoles: ConditionMeasurementRole[] = [...persistedCalculationRoles];
+  if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V4_CONTRACT_VERSION) {
+    for (const role of roles.filter(role => role.role_key === 'run')) {
+      const measurement = measurements.get(role.measurement_id);
+      if (!measurement?.sheet_id) throw new Error('Strip footing run endpoint derivation requires sheet-backed geometry.');
+      calculationRoles.push({
+        roleKey: STRIP_FOOTING_V4_ENDPOINT_ROLE,
+        measurementId: measurement.id,
+        sheetId: measurement.sheet_id,
+        quantity: openPolylineEndpointCount(measurement.geometry),
+        unit: 'EA',
+        geometryType: 'count',
+      });
+    }
+  }
 
   const primaryMeasurementIds = roles
     .filter(role => roleDefinitions.get(role.role_key)?.primary)
@@ -379,11 +419,13 @@ export async function prepareConcreteConditionPilotPersistence({
     sortOrder: module.sort_order,
   }));
   const versionNo = Number(archetypeVersion.version_no || 0);
-  const calculation = archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V3_CONTRACT_VERSION
-    ? calculateStripFootingV3({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
-    : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V2_CONTRACT_VERSION
-      ? calculateStripFootingV2({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
-      : calculateCondition({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides });
+  const calculation = archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V4_CONTRACT_VERSION
+    ? calculateStripFootingV4({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+    : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V3_CONTRACT_VERSION
+      ? calculateStripFootingV3({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+      : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V2_CONTRACT_VERSION
+        ? calculateStripFootingV2({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
+        : calculateCondition({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides });
 
   const { data: mappings, error: mappingsError } = await supabase.from('condition_legacy_output_mappings')
     .select('output_key,legacy_assembly_component_id,legacy_component_key_snapshot,output_unit_snapshot')
