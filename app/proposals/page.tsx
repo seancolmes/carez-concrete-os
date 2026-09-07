@@ -45,9 +45,9 @@ export default async function ProposalsPage(){
   const openValue=[...ready,...market,...needs].reduce((sum:number,row:any)=>sum+row.sell,0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Proposals</h1><p className="carez-page-description">Prepare one immutable customer offer, track engagement, respond to questions, and keep the winning revision connected to the awarded job.</p></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Proposals</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Prepare one immutable customer offer, track engagement, respond to questions, and keep the winning revision connected to the awarded job.</p></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><FileText/>Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link></div>
       </header>
 
@@ -62,16 +62,16 @@ export default async function ProposalsPage(){
         <Metric label="Open proposal value" value={money(openValue)} help="Current ready and active customer proposals."/>
       </section>
 
-      {needs.length>0?<section className="carez-section"><div className="carez-section-header"><div><p className="carez-kicker">Attention</p><h2 className="carez-section-title">Customer response waiting</h2><p className="carez-section-description">These proposals are most likely to require action now.</p></div></div><div className="grid gap-3 lg:grid-cols-2">{needs.map((row:any)=><ProposalCard key={row.e.id} row={row} priority/>)}</div></section>:null}
+      {needs.length>0?<section className="space-y-4"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Attention</p><h2 className="mt-1 text-lg font-semibold">Customer response waiting</h2><p className="mt-1 text-sm text-muted-foreground">These proposals are most likely to require action now.</p></div><div className="grid gap-3 lg:grid-cols-2">{needs.map((row:any)=><ProposalCard key={row.e.id} row={row} priority/>)}</div></section>:null}
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">Customer pipeline</p><h2 className="carez-section-title">Ready & in market</h2><p className="carez-section-description">Prepare, send, follow up, respond, or revise only from the current authoritative proposal state.</p></div></div>
+      <section className="space-y-4">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer pipeline</p><h2 className="mt-1 text-lg font-semibold">Ready & in market</h2><p className="mt-1 text-sm text-muted-foreground">Prepare, send, follow up, respond, or revise only from the current authoritative proposal state.</p></div>
         {ready.length+market.length===0?<Empty className="min-h-56 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><FileText/></EmptyMedia><EmptyTitle>No proposal is waiting right now</EmptyTitle><EmptyDescription>Finish an estimate, run the audit, then move the revision into proposal preparation.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/estimates">Open estimates</Link></EmptyContent></Empty>:<div className="grid gap-3 lg:grid-cols-2">{[...ready,...market].map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div>}
       </section>
 
-      {won.length>0?<section className="carez-section"><div className="carez-section-header"><div><p className="carez-kicker">Won</p><h2 className="carez-section-title">Accepted proposals</h2><p className="carez-section-description">Accepted proposal revisions are locked and already handed into the awarded-job workflow.</p></div></div><div className="grid gap-3 lg:grid-cols-2">{won.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></section>:null}
+      {won.length>0?<section className="space-y-4"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Won</p><h2 className="mt-1 text-lg font-semibold">Accepted proposals</h2><p className="mt-1 text-sm text-muted-foreground">Accepted proposal revisions are locked and already handed into the awarded-job workflow.</p></div><div className="grid gap-3 lg:grid-cols-2">{won.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></section>:null}
 
-      {history.length>0?<section className="carez-section"><details className="overflow-hidden rounded-lg border bg-card"><summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 bg-muted/30 px-3 text-sm font-medium">Closed / previous proposal revisions <Badge variant="secondary">{history.length}</Badge></summary><div className="grid gap-3 border-t p-3 lg:grid-cols-2">{history.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></details></section>:null}
+      {history.length>0?<section className="space-y-4"><details className="overflow-hidden rounded-lg border bg-card"><summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 bg-muted/30 px-3 text-sm font-medium">Closed / previous proposal revisions <Badge variant="secondary">{history.length}</Badge></summary><div className="grid gap-3 border-t p-3 lg:grid-cols-2">{history.map((row:any)=><ProposalCard key={row.e.id} row={row}/>)}</div></details></section>:null}
     </div>
   </AppShell>;
 }
