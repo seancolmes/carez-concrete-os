@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { buttonVariants } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { PrintButton } from './PrintButton';
 
@@ -71,7 +72,7 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
       @page{size:letter;margin:.35in}
       @media print{html,body{background:#fff!important;color-scheme:light}.invoice-screen{padding:0;background:#fff}.invoice-actions{display:none!important}.invoice-document{width:100%;min-height:0;padding:20px 24px;box-shadow:none;border-radius:0}.invoice-document:before{height:5px}.invoice-doc-header{padding-bottom:18px}.invoice-info-grid{padding:18px 0}.invoice-brand img{width:185px}.invoice-totals-wrap{margin-top:18px}.invoice-footer{margin-top:28px}}
     `}</style>
-    <div className="invoice-actions"><Link className="button secondary" href="/billing">Back to Billing</Link><PrintButton/></div>
+    <div className="invoice-actions"><Link className={buttonVariants({variant:'outline'})} href="/billing">Back to Billing</Link><PrintButton/></div>
     <article className="invoice-document">
       {isVoid&&<div className="invoice-void">VOID</div>}
       <header className="invoice-doc-header">
