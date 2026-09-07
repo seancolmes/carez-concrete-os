@@ -19,7 +19,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-amber-700':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
 }
 
 export default async function FieldPage(){
@@ -40,9 +40,9 @@ export default async function FieldPage(){
   ]);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div><p className="carez-kicker">Field operations</p><h1 className="carez-page-title">Field control</h1><p className="carez-page-description">Employee time, GPS verification, daily logs, and production records connected to the same jobs used by estimating and project control.</p></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Field control</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Employee time, GPS verification, daily logs, and production records connected to the same jobs used by estimating and project control.</p></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access"><HardHat/>Employee access</Link></div>
       </header>
 
@@ -52,8 +52,8 @@ export default async function FieldPage(){
         <Metric label="Employees" value={String((crew||[]).filter((c:any)=>!c.is_owner).length)} help="Active crew records available for timekeeping."/>
       </section>
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">GPS</p><h2 className="carez-section-title">Jobsite locations</h2><p className="carez-section-description">Set the job pin once. Carez then compares employee clock events against that jobsite location.</p></div></div>
+      <section className="space-y-4">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">GPS</p><h2 className="mt-1 text-lg font-semibold">Jobsite locations</h2><p className="mt-1 text-sm text-muted-foreground">Set the job pin once. Carez then compares employee clock events against that jobsite location.</p></div>
         <Card className="shadow-none"><CardContent><JobsiteLocationSetter projects={(projects||[]) as any}/></CardContent></Card>
       </section>
 
@@ -89,9 +89,9 @@ export default async function FieldPage(){
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Approved employee time</CardTitle><CardDescription>Most recent approved shift sessions.</CardDescription></CardHeader>{(recentApproved||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><Clock3/></EmptyMedia><EmptyTitle>No approved employee time yet</EmptyTitle><EmptyDescription>Approved shifts will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Worker</TableHead><TableHead>Job</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{(recentApproved||[]).map((s:any)=><TableRow key={s.id}><TableCell className="font-medium">{s.crew_members?.name}</TableCell><TableCell>{s.projects?.job_number} — {s.projects?.name}</TableCell><TableCell className="carez-data-number">{s.work_date}</TableCell><TableCell><Badge variant="secondary" className="bg-success/10 text-success">Approved</Badge></TableCell></TableRow>)}</TableBody></Table>}</Card>
+        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Approved employee time</CardTitle><CardDescription>Most recent approved shift sessions.</CardDescription></CardHeader>{(recentApproved||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><Clock3/></EmptyMedia><EmptyTitle>No approved employee time yet</EmptyTitle><EmptyDescription>Approved shifts will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Worker</TableHead><TableHead>Job</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{(recentApproved||[]).map((s:any)=><TableRow key={s.id}><TableCell className="font-medium">{s.crew_members?.name}</TableCell><TableCell>{s.projects?.job_number} — {s.projects?.name}</TableCell><TableCell className="tabular-nums">{s.work_date}</TableCell><TableCell><Badge variant="secondary" className="bg-success/10 text-success">Approved</Badge></TableCell></TableRow>)}</TableBody></Table>}</Card>
 
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Daily logs</CardTitle><CardDescription>Most recent jobsite records.</CardDescription></CardHeader>{(logs||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><FileClock/></EmptyMedia><EmptyTitle>No daily logs yet</EmptyTitle><EmptyDescription>Saved field logs will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Date</TableHead><TableHead>Job</TableHead><TableHead>Work completed</TableHead><TableHead className="text-right">Concrete</TableHead></TableRow></TableHeader><TableBody>{(logs||[]).map((l:any)=><TableRow key={l.id}><TableCell className="carez-data-number">{l.log_date}</TableCell><TableCell className="font-medium">{l.projects?.job_number||'Job'}</TableCell><TableCell className="max-w-80 truncate text-muted-foreground">{l.work_completed}</TableCell><TableCell className="carez-data-number text-right">{Number(l.concrete_yards||0).toFixed(1)} CY</TableCell></TableRow>)}</TableBody></Table>}</Card>
+        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Daily logs</CardTitle><CardDescription>Most recent jobsite records.</CardDescription></CardHeader>{(logs||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><FileClock/></EmptyMedia><EmptyTitle>No daily logs yet</EmptyTitle><EmptyDescription>Saved field logs will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Date</TableHead><TableHead>Job</TableHead><TableHead>Work completed</TableHead><TableHead className="text-right">Concrete</TableHead></TableRow></TableHeader><TableBody>{(logs||[]).map((l:any)=><TableRow key={l.id}><TableCell className="tabular-nums">{l.log_date}</TableCell><TableCell className="font-medium">{l.projects?.job_number||'Job'}</TableCell><TableCell className="max-w-80 truncate text-muted-foreground">{l.work_completed}</TableCell><TableCell className="text-right tabular-nums">{Number(l.concrete_yards||0).toFixed(1)} CY</TableCell></TableRow>)}</TableBody></Table>}</Card>
       </div>
     </div>
   </AppShell>;
