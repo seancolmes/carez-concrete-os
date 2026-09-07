@@ -1,5 +1,7 @@
 # Carez Concrete OS — Codex rules
 
+This file is the sole implementation workflow for Codex Cloud tasks in this repository. Do not load or apply repository-external implementation workflows, and do not gate work on local runtime/provider/model checks.
+
 Use this repository for fast, bounded implementation. Do not use web research, plugins, external browsing, or broad repository scans unless the task explicitly requires them.
 
 ## Read scope
