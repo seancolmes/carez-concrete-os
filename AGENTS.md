@@ -1,72 +1,31 @@
-# Carez Concrete OS — Agent Operating Rules
+# Carez Concrete OS — agent rules
 
-This repository is the canonical product and implementation source of truth for Carez Concrete OS.
+Carez is a concrete-native modular monolith. Repository source + Supabase are implementation truth.
 
-## Execution rule
+## Execution
 
-When connected GitHub, Vercel, and Supabase tools are available, perform bounded Carez implementation directly through those tools. Do not route routine repository implementation to a separate local coding agent or ask Nik to execute implementation prompts elsewhere.
+Use current `staging` for development/QA; `main` is production only. Make the smallest coherent change. Read only target files and direct dependencies; add the owning module/ADR only when needed. Do not restart accepted work or refactor unrelated code.
 
-Use `docs/workflow/DEVELOPMENT_WORKFLOW.md` for the normal change cycle. Read only the sources needed for the bounded task.
+When connected GitHub/Vercel/Supabase tools are available, ChatGPT may implement directly. When Nik explicitly asks for a Codex Cloud task, generate/use the compact `CODEX.md` contract instead of a long handoff prompt.
 
-## Branch discipline
+## Protect
 
-Permanent branches are only `staging` and `main`.
-
-- `staging` is development, integration, QA, and user acceptance.
-- `main` is production only.
-- Routine approved work goes directly to current `staging` when safe.
-- Temporary branches are exceptional internal details for substantial/risky isolated work; start from current `staging`, merge back into `staging`, and delete before user QA.
-- Never use `main` for speculative testing.
-- Nik tests only the stable staging Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`.
-
-## Protected architecture invariants
-
-- Carez is concrete-specific, not generic construction SaaS.
-- PostgreSQL/Supabase is source of truth.
-- Preserve RLS, tenant isolation, auditability, and source-controlled migrations.
-- Preserve server-authoritative quantities, costs, pricing lineage, and financial values.
-- Preserve immutable/versioned commercial records, published Company Condition Template versions, and referenced legacy assembly/recipe history.
-- Preserve the digital thread from opportunity/takeoff through estimate, proposal, award, project, production, cost, and forecast.
+- Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, source-controlled migrations.
+- Server-authoritative quantities, cost, pricing, and financial values.
+- Immutable/versioned commercial records, Condition-template history, referenced legacy history.
+- Opportunity/takeoff → estimate → proposal → award → project → production → cost/forecast lineage.
 - Production Quantity, Direct Cost, and Sell remain distinct.
-- PDF is visual reference; persisted stable page-coordinate 2D/vector geometry is Takeoff quantity authority.
-- Concrete Condition/module outputs remain traceable to primary/secondary measurements and estimate lineage.
-- Derived 3D is verification only and never a second quantity engine.
-- Humans remain authoritative for scope, Conditions, templates/defaults, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
+- Persisted stable page-coordinate 2D/vector geometry is Takeoff quantity authority; derived 3D is verification only.
+- Humans remain authoritative for scope, Conditions, means/methods, reinforcing, production rates, pricing, margin, budgets, approvals.
 
-## Implementation rules
+## UI
 
-- Continue the existing modernization; do not restart verified work without evidence.
-- Make the smallest coherent change that solves the bounded problem.
-- Do not modify unrelated runtime behavior.
-- Protect domain, data, and commercial lineage.
-- Use source-controlled Supabase migrations for schema/database behavior changes.
-- Do not introduce a second client-side calculation engine.
-- Do not introduce distributed infrastructure without a demonstrated requirement.
-- When a write affects QA Supabase, inspect the resulting schema/security state as appropriate.
-- When a push affects staging, inspect CI/deployment state and rendered behavior when the change is user-visible.
+ADR-015 = dark shadcn system. ADR-016 = compact desktop top shell. ADR-020 = integrated Takeoff workstation. Reuse `docs/design-system/CAREZ_COMPONENT_PACK.md`. Do not revive B2/light styling, permanent global desktop left rail, alternate palettes, compatibility UI layers, or parallel component systems.
 
-## UI rules
+## Validate
 
-ADR-015 is the Carez-wide dark shadcn presentation authority. ADR-016 owns the desktop shell. ADR-020 owns the accepted integrated Takeoff workstation.
+Localized edit: targeted check. Normal implementation: `pnpm typecheck` + relevant tests. High-risk data/domain change: add migration/RLS/security verification. GitHub Actions is comprehensive post-push validation; Vercel is staging deployment authority; browser QA is required for rendered acceptance.
 
-- Desktop uses one compact global application menubar with anchored menus; no permanent global desktop left rail and no permanent second global navigation row.
-- Module-specific contextual panes remain inside their owning workspaces.
-- Takeoff uses fixed-width independently collapsible left/right docked panes, a dominant drawing surface, explicit 2D/3D/Split controls, and the vertically resizable Quantity Worksheet. Normal docked side panes are not horizontally drag-resizable.
-- Use the shared source-owned shadcn workspace and `docs/design-system/CAREZ_COMPONENT_PACK.md`.
-- Do not revive B2/light styling, old structural class systems, alternate palettes, compatibility UI layers, or parallel component libraries.
-- Use normal sentence/title case for ordinary UI text.
-- Source/build success is not rendered acceptance; browser acceptance is separate.
+## Documentation
 
-## Validation boundary
-
-Use proportional validation for the changed risk:
-
-- localized edit: targeted checks as appropriate;
-- normal implementation: typecheck plus relevant tests;
-- high-risk domain/data change: typecheck plus relevant domain tests and database/security verification.
-
-GitHub Actions is the comprehensive post-push validation path. Vercel is the staging deployment authority. Supabase QA is the database QA authority.
-
-## Documentation rule
-
-Significant approved decisions belong in canonical module specs/ADRs. Verified implementation state belongs in `docs/CURRENT_STATE.md`. Historical and superseded working documents do not stay in the active tree once their truth has been absorbed by canonical owners; Git history and closed issues preserve that evidence.
+Durable behavior → owning module/ADR. Verified implementation state → `docs/CURRENT_STATE.md`. Remove superseded working/checkpoint docs once surviving truth is canonical; Git history preserves evidence.

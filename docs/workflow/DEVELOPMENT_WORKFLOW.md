@@ -1,55 +1,50 @@
-# Carez Development Workflow
+# Carez development workflow
 
-## Branch model
+## Branches
 
-Permanent branches are only:
-- `staging` — development, integration, QA, and user acceptance;
-- `main` — production.
+- `staging`: development, integration, QA, user acceptance.
+- `main`: production only.
+- Temporary branches are exceptional; if used, start from `staging`, merge back, delete before user QA.
+- Nik tests only the stable staging Vercel alias from `docs/BRANCH_AND_RELEASE_MODEL.md`.
 
-Nik tests only the stable `staging` Vercel URL. Temporary branches are exceptional internal implementation details. If technically necessary, create from current `staging`, validate, merge into `staging`, and delete before user browser QA.
+## Standard cycle
 
-## Execution model
-
-The owning Carez ChatGPT conversation is the normal implementation and coordination surface when connected GitHub, Vercel, and Supabase tools are available.
-
-Default division of labor:
-
-- ChatGPT + GitHub: inspect source, edit repository files, commit/push to `staging`, manage issues, inspect CI.
-- ChatGPT + Supabase: inspect QA schema/data, apply source-controlled QA migrations, validate RLS/security/database behavior.
-- ChatGPT + Vercel: inspect staging deployments/build/runtime logs and verify the stable QA deployment.
-- Browser/user QA: final rendered acceptance for user-visible behavior.
-
-Do not hand routine Carez implementation back to Nik as a local coding prompt when the connected tools can perform the work directly.
-
-## Work cycle
-
-1. Read only the canonical docs needed for the bounded objective.
-2. Inspect the relevant source/database behavior.
-3. Separate observed evidence from hypothesis and confirm root cause when practical.
-4. Make the smallest coherent implementation change on current `staging` when safe.
-5. For database behavior, add/apply the source-controlled migration to isolated QA only unless production promotion is explicitly authorized.
-6. Run or inspect task-appropriate validation.
-7. Push/checkpoint the change.
+1. Read only the files needed for the bounded task.
+2. Inspect the target implementation and direct dependencies.
+3. Confirm root cause when practical.
+4. Make the smallest coherent change.
+5. For DB changes, add a source-controlled migration and apply to QA only unless production is explicitly authorized.
+6. Validate proportionally: targeted checks for local edits; typecheck + relevant tests for normal work; add DB/RLS/security checks for high-risk data changes.
+7. Push/checkpoint to `staging`.
 8. Inspect GitHub Actions and the matching Vercel staging deployment.
-9. Browser-verify rendered UI behavior when applicable.
-10. Update canonical docs/issues when approved behavior or verified state changed.
-11. Remove superseded working/checkpoint documentation once its surviving truth has been absorbed by canonical owners.
-12. Leave a clean resumable checkpoint.
+9. Browser-verify rendered UI when applicable.
+10. Update the owning module/ADR/`CURRENT_STATE.md` only when durable behavior or verified state changed.
+11. Delete superseded working/checkpoint docs after surviving truth is captured canonically.
 
-## Validation policy
+## Acceptance evidence
 
-Use proportional validation:
+- Source inspection proves implementation only.
+- Typecheck/build proves compile/integration only.
+- Domain tests prove calculation/lineage contracts.
+- DB inspection proves persistence/security behavior.
+- Vercel proves deployed build/runtime state.
+- Browser QA proves rendered user-visible behavior.
 
-- small/localized edit: targeted check/typecheck as appropriate;
-- normal implementation: typecheck plus relevant tests;
-- high-risk domain/database change: typecheck plus relevant domain tests, migration/RLS/security verification, and staging runtime inspection.
+UI is not accepted as fixed until the exact behavior is re-tested in browser. Data/domain changes must preserve deterministic calculations, tenant isolation, mutation boundaries, and historical lineage.
 
-GitHub Actions remains the comprehensive post-push validation authority. A source/build pass does not replace browser acceptance for rendered behavior.
+## Approval → documentation
 
-## Documentation and release
+When a material decision is approved/final/locked:
 
-Use GitHub issues for active work, module specs/ADRs for durable product truth, and `CURRENT_STATE.md` for concise verified implementation status.
+- product/module behavior → owning `docs/modules/*.md`;
+- cross-cutting architecture → `docs/ARCHITECTURE.md` and usually ADR;
+- global UX/design rule → canonical design-system doc/ADR;
+- sequence → `docs/ROADMAP.md`;
+- verified implementation/blocker → `docs/CURRENT_STATE.md`;
+- execution/process rule → `AGENTS.md`, `CODEX.md`, or this file.
 
-Do not retain superseded design drafts, finished implementation checklists, old QA scripts, or obsolete execution-workflow documents in the active tree once their durable facts are captured elsewhere. Git history and closed issues preserve historical evidence.
+Do not promote brainstorms, temporary hypotheses, or one-off private data.
 
-Promote `staging` to `main` only after the intended release scope is accepted and production promotion is explicitly authorized. Never test speculative work by pushing it to `main`.
+## Release
+
+Promote `staging` to `main` only after explicit production authorization and required acceptance. Production DB changes remain gated by Issue #59 while it is open.
