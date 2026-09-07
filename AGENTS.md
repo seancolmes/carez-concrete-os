@@ -6,6 +6,8 @@ Carez is a concrete-native modular monolith. Repository source + Supabase are im
 
 Use current `staging` for development/QA; `main` is production only. Make the smallest coherent change. Read only target files and direct dependencies; add the owning module/ADR only when needed. Do not restart accepted work or refactor unrelated code.
 
+For Codex Cloud tasks, root `CODEX.md` is the sole execution workflow. Do not load or apply repository-external local implementation workflows, and do not gate work on local runtime, provider, or model checks.
+
 When connected GitHub/Vercel/Supabase tools are available, ChatGPT may implement directly. When Nik explicitly asks for a Codex Cloud task, generate/use the compact `CODEX.md` contract instead of a long handoff prompt.
 
 ## Protect
