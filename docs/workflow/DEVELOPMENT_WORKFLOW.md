@@ -2,72 +2,54 @@
 
 ## Branch model
 
-Read `BRANCH_AND_RELEASE_MODEL.md` first.
-
 Permanent branches are only:
 - `staging` — development, integration, QA, and user acceptance;
 - `main` — production.
 
-Nik tests only the stable `staging` Vercel URL. Never send him to a feature-branch or PR preview to determine which build is current.
-
-Temporary branches are exceptional internal implementation details. If technically necessary, create from current `staging`, validate, merge into `staging`, and delete before user browser QA.
+Nik tests only the stable `staging` Vercel URL. Temporary branches are exceptional internal implementation details. If technically necessary, create from current `staging`, validate, merge into `staging`, and delete before user browser QA.
 
 ## Execution model
 
-Carez uses the local-first Codex workflow defined in `CODEX_EXECUTION_WORKFLOW.md` and ADR-017.
+The owning Carez ChatGPT conversation is the normal implementation and coordination surface when connected GitHub, Vercel, and Supabase tools are available.
 
 Default division of labor:
 
-- ChatGPT/connected tools: canonical-doc/repository inspection, product/architecture reasoning, issue triage, implementation scoping, QA coordination, CI/deployment inspection, documentation reconciliation, and release management.
-- Local Codex with Ollama + `gpt-oss:20b`: default bounded coding executor.
-- Cloud Codex: escalation for difficult/high-risk implementation, complex debugging, migrations/RLS/security-sensitive work, Takeoff geometry/math, Condition persistence/domain logic, commercial lineage, major refactors, or justified browser automation.
-- GitHub Actions: comprehensive post-push validation.
-- Stable `staging`: only user-facing QA target.
+- ChatGPT + GitHub: inspect source, edit repository files, commit/push to `staging`, manage issues, inspect CI.
+- ChatGPT + Supabase: inspect QA schema/data, apply source-controlled QA migrations, validate RLS/security/database behavior.
+- ChatGPT + Vercel: inspect staging deployments/build/runtime logs and verify the stable QA deployment.
+- Browser/user QA: final rendered acceptance for user-visible behavior.
 
-Before work intended to use local inference, verify the active provider/model is actually local Ollama + `gpt-oss:20b`.
+Do not hand routine Carez implementation back to Nik as a local coding prompt when the connected tools can perform the work directly.
 
 ## Work cycle
 
-1. Read only the canonical docs needed to understand current state, priority, and the bounded change.
-2. Identify one coherent objective.
-3. Inspect the relevant implementation and reproduce/understand the issue or gap.
-4. Separate observed evidence from hypothesis and confirm root cause when practical before coding.
-5. Prepare a bounded implementation packet with objective, target area/files, required behavior, protected boundaries, and validation.
-6. Execute the change locally by default when the task fits `gpt-oss:20b`; use cloud Codex only when escalation criteria are met.
-7. Make the smallest coherent change and preserve architecture, tenant isolation, data/domain/commercial lineage, and unrelated behavior.
-8. Run task-appropriate local validation rather than automatically running every check for every small edit.
-9. Push/checkpoint the change and stop the coding task.
-10. Let GitHub Actions perform comprehensive typecheck/tests/build validation.
-11. Confirm the stable staging deployment updated.
-12. Browser-verify rendered UI changes on the one staging QA URL.
-13. Update canonical docs/issues when approved behavior or verified state changed.
-14. Leave a clean resumable checkpoint.
-
-## Local retry rule
-
-For a bounded local Codex task:
-
-1. Make one implementation attempt.
-2. If validation fails, provide the exact failure and allow one focused corrective attempt.
-3. If the second attempt fails, stop.
-4. Return the evidence to the owning Carez chat for re-scoping or cloud escalation.
-
-Repeated speculative local retries are not a substitute for root-cause analysis.
+1. Read only the canonical docs needed for the bounded objective.
+2. Inspect the relevant source/database behavior.
+3. Separate observed evidence from hypothesis and confirm root cause when practical.
+4. Make the smallest coherent implementation change on current `staging` when safe.
+5. For database behavior, add/apply the source-controlled migration to isolated QA only unless production promotion is explicitly authorized.
+6. Run or inspect task-appropriate validation.
+7. Push/checkpoint the change.
+8. Inspect GitHub Actions and the matching Vercel staging deployment.
+9. Browser-verify rendered UI behavior when applicable.
+10. Update canonical docs/issues when approved behavior or verified state changed.
+11. Remove superseded working/checkpoint documentation once its surviving truth has been absorbed by canonical owners.
+12. Leave a clean resumable checkpoint.
 
 ## Validation policy
 
-Use proportional local validation:
+Use proportional validation:
 
-- small/localized edit: targeted test or typecheck as appropriate;
-- normal implementation: typecheck plus relevant targeted tests;
-- high-risk domain change: typecheck plus relevant domain tests and any additional focused validation needed for the changed invariant.
+- small/localized edit: targeted check/typecheck as appropriate;
+- normal implementation: typecheck plus relevant tests;
+- high-risk domain/database change: typecheck plus relevant domain tests, migration/RLS/security verification, and staging runtime inspection.
 
-GitHub Actions remains the comprehensive validation authority after push. A local pass does not replace CI.
+GitHub Actions remains the comprehensive post-push validation authority. A source/build pass does not replace browser acceptance for rendered behavior.
 
 ## Documentation and release
 
-Use GitHub issues for work to be done, module specs/ADRs for product truth, and `CURRENT_STATE.md` for verified implementation status. Pull requests are optional implementation/review records, not separate user-facing builds.
+Use GitHub issues for active work, module specs/ADRs for durable product truth, and `CURRENT_STATE.md` for concise verified implementation status.
 
-Codex should normally not poll Vercel, perform release bookkeeping, or update unrelated documentation. Those responsibilities return to the owning ChatGPT Carez chat after implementation.
+Do not retain superseded design drafts, finished implementation checklists, old QA scripts, or obsolete execution-workflow documents in the active tree once their durable facts are captured elsewhere. Git history and closed issues preserve historical evidence.
 
 Promote `staging` to `main` only after the intended release scope is accepted and production promotion is explicitly authorized. Never test speculative work by pushing it to `main`.

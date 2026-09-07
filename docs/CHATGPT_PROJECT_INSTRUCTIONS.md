@@ -6,7 +6,7 @@ Use these instructions as the concise operating contract for the Carez ChatGPT P
 
 GitHub documentation and repository evidence are canonical for Carez product/architecture/implementation state. Do not reconstruct current architecture from historical chats when canonical repository docs exist.
 
-Before product or implementation work, consult `docs/README.md`, `docs/CURRENT_STATE.md`, `docs/BRANCH_AND_RELEASE_MODEL.md`, the applicable module spec, relevant ADRs, and repository evidence as needed.
+Before product or implementation work, consult only the canonical sources required for the task: `docs/README.md`, `docs/CURRENT_STATE.md`, `docs/BRANCH_AND_RELEASE_MODEL.md`, the applicable module spec, relevant active ADRs, and repository evidence as needed.
 
 ## Branch / build model
 
@@ -16,55 +16,50 @@ Carez has only two permanent branches:
 
 Nik tests only the single stable staging Vercel URL defined in `docs/BRANCH_AND_RELEASE_MODEL.md`. Never ask him to choose a feature branch, PR preview, commit-specific deployment, or alternate Vercel link.
 
-Approved routine work should be implemented directly on current `staging` when safe. Temporary branches are exceptional internal implementation details for substantial/risky isolated work; if used, start from current staging, merge into staging, and delete before user browser QA. Do not create long-lived feature/module/QA/governance/archive branches. Git history, issues, PRs, ADRs, tags/releases, and docs preserve history.
+Approved routine work should be implemented directly on current `staging` when safe. Temporary branches are exceptional internal details for substantial/risky isolated work; if used, start from current staging, merge into staging, and delete before user browser QA. Never test speculative work by pushing it to `main`.
 
-Never test speculative work by pushing it to `main`. Promote staging to main only as an explicit production release after acceptance.
+## Direct implementation rule
 
-## Chat and mode routing
+When connected GitHub, Vercel, and Supabase tools are available, perform Carez implementation directly in ChatGPT:
 
-Follow `docs/CHAT_WORKSPACE_MAP.md`. Approved product truth belongs in GitHub, not chat transcripts.
+- inspect and edit repository source;
+- commit/push to `staging`;
+- apply source-controlled QA migrations to the isolated QA Supabase project;
+- inspect CI, Vercel build/runtime logs, and deployment state;
+- update issues and canonical docs;
+- continue iterating from the actual repository state.
 
-Permanent chats: `00 — Carez Control Room`, `10 — Takeoff Workstation`, `20 — Concrete Condition & Resource Engine`, `30 — Estimating & Proposals`, `40 — CRM & Preconstruction`, `50 — Projects, Work Packages & Scheduling`, `60 — Field, Production & Pour Control`, `70 — Procurement, Finance & Billing`, `80 — Documents, Drawings & Knowledge`, `90 — AI & Plan Intelligence`, `95 — UX & Design System`, `99 — QA, Release & Debugging`.
+Do not hand routine implementation back to Nik as a local Codex/OpenCode task when these connected tools can perform it directly.
 
-Use the owning permanent chat for brainstorming, architecture, requirements, decisions, screenshots, planning, GitHub review, normal analysis, implementation scoping, QA coordination, and release/documentation reconciliation. If ownership is unclear/cross-module, use `00` first and choose one primary owner. Do not create a permanent chat for every page, feature, PR, or bug.
+## Chat routing
 
-Regular Chat is default. Use Work selectively for large/multi-step research, document/file/artifact-heavy work, or persistent agentic execution.
+Use the owning permanent chat for product/domain discussion, QA reasoning, implementation, GitHub review, and release/documentation reconciliation.
 
-Carez uses the local-first Codex workflow in ADR-017 and `docs/workflow/CODEX_EXECUTION_WORKFLOW.md`:
+Permanent chats:
+- `00 — Carez Control Room`
+- `10 — Takeoff Workstation`
+- `20 — Concrete Condition & Resource Engine`
+- `30 — Estimating & Proposals`
+- `40 — CRM & Preconstruction`
+- `50 — Projects, Work Packages & Scheduling`
+- `60 — Field, Production & Pour Control`
+- `70 — Procurement, Finance & Billing`
+- `80 — Documents, Drawings & Knowledge`
+- `90 — AI & Plan Intelligence`
+- `95 — UX & Design System`
+- `99 — QA, Release & Debugging`
 
-- Local Codex with Ollama + `gpt-oss:20b` is the default Codex executor for bounded implementation.
-- Cloud Codex is reserved for difficult/high-risk implementation or debugging that meets the documented escalation criteria.
-- ChatGPT/connected tools should perform repository/docs inspection, architecture reasoning, issue triage, CI/Vercel/Supabase inspection, QA coordination, documentation reconciliation, and release management whenever those tools can do so directly.
-- When using local Codex, verify the active provider/model is actually local Ollama + `gpt-oss:20b` before execution.
-- Use one coherent objective per Codex task and prefer fresh bounded tasks over long general-purpose Codex threads.
-- Local bounded failures get one implementation attempt and one focused correction from the exact failure; after the second failure, stop and re-scope or escalate.
-
-Never say “switch this chat to Codex.” A Codex task is separate from ChatGPT. If the user asks ChatGPT to do implementation directly and available tools can do it safely, do the work rather than routing unnecessarily.
-
-Temporary ChatGPT/Work threads are only for focused isolated work. If a permanent chat becomes too long, create `<permanent chat> — Continuation N` and bootstrap from canonical GitHub docs.
-
-## QA discovery routing
-
-During `99` testing: defect/regression → investigate in 99; small improvement/new idea → capture owner and continue QA unless immediate exploration helps; major module-specific idea → owning module; Carez-wide visual/system idea → 95. A new preference is not automatically a failed test.
-
-## Mandatory routing footer
-
-For every substantive Carez response end with:
-
-CAREZ ROUTING
-CHAT: owning permanent chat or Stay in this chat
-MODE: Regular Chat, Work, or Codex
-TEMP CHAT: No or exact temporary ChatGPT/Work thread
-CODEX TASK: No or exact separate Codex task; prefix `Local —` or `Cloud —` when Codex is used
-WHY: one short sentence
-NEXT ACTION: exactly what the user should do next
-RETURN TO: owning permanent chat after temporary activity, or N/A
-
-Never make the user remember or infer the routing system or whether Codex should be local versus cloud.
+Use `00` first when ownership is unclear or cross-module. Do not create a permanent chat for every page, feature, or bug.
 
 ## Approval → GitHub
 
-When the user says a significant decision is approved/final/locked/accepted/“go with this” or equivalent: update the canonical GitHub owner; add/update an ADR for long-lived architectural consequences; add/update an issue if implementation is required; update `CURRENT_STATE.md` only when implementation/verification state changes.
+When the user says a significant decision is approved/final/locked/accepted/“go with this” or equivalent:
+
+- update the canonical GitHub owner;
+- add/update an ADR for long-lived architectural consequences;
+- add/update an issue if implementation is required;
+- update `CURRENT_STATE.md` when implementation/verification state changes;
+- remove superseded working/checkpoint documents after surviving truth has been absorbed by canonical owners.
 
 ## Evidence discipline
 
@@ -72,7 +67,7 @@ Keep observed evidence, hypothesis, confirmed root cause, implemented fix, and v
 
 ## Architecture protection
 
-Preserve the digital thread, Supabase/PostgreSQL authority, RLS/tenant isolation, immutable/versioned commercial records, server-authoritative calculations, published Company Condition Template and referenced legacy assembly/version immutability, and separation of Production Quantity, Direct Cost, and Sell. Do not propose a rewrite/distributed architecture without demonstrated need.
+Preserve the digital thread, Supabase/PostgreSQL authority, RLS/tenant isolation, immutable/versioned commercial records, server-authoritative calculations, published Company Condition Template and referenced legacy assembly/version immutability, and separation of Production Quantity, Direct Cost, and Sell.
 
 Takeoff: PDF is visual reference; stable page-coordinate vector geometry is measurement authority. The daily object is a Concrete Condition with typed modules and primary/secondary measurement roles. Protect Takeoff → Condition/module output → estimate lineage. Derived 3D never becomes a second quantity engine.
 
@@ -84,45 +79,21 @@ Humans remain authoritative for scope, Conditions, company templates/defaults, m
 
 Carez is concrete-native. Desktop is a professional workstation; mobile is field-first.
 
-ADR-016 defines the desktop shell: compact top application header + animated global category navigation + module-specific contextual panes. The previous permanent global desktop left app rail is superseded. Module side panes remain when they serve the current workflow, such as Plans/Conditions/Zones in Takeoff.
+ADR-015 defines the dark-first shadcn presentation system. ADR-016 defines the compact top-navigation shell. ADR-020 defines the accepted integrated Takeoff workstation. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines shared Carez components.
 
-The estimator workspace uses a resizable Plans/Conditions/Zones pane, dominant 2D/3D/Split drawing surface, one dockable/floatable/resizable Condition Properties window, and permanent resizable Quantity/Estimate Worksheet. Favor modern minimal structure, excellent readability, tabs, dropdowns, calm spacing, and crisp grids. Avoid tiny text, cramped chrome, uncontrolled overlapping windows, generic SaaS styling, giant rounded cards, glassmorphism, excessive gradients/pills, huge typography, and excessive unused whitespace.
+No module may introduce or revive B2/light styling, a permanent global desktop left rail, old structural class systems, a compatibility presentation layer, a second component framework, or a hard-coded alternate palette.
 
-### Global shadcn workspace rule — applies in every chat
+The accepted Takeoff workspace uses fixed-width independently collapsible Plans/Conditions/Zones and Condition Properties panes, a dominant 2D/3D/Split drawing surface, and a vertically resizable Quantity Worksheet. Normal docked side panes are not horizontally drag-resizable.
 
-`docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md` is the Carez-wide presentation authority. ADR-016 owns the global top-navigation shell. `docs/design-system/CAREZ_COMPONENT_PACK.md` defines the first shared Carez component pack. ADR-014 remains useful for source-owned shadcn component/composition architecture only where ADR-015 does not supersede it. While Issue #44 is open, it is the implementation/completion owner for the full dark shadcn conversion, top-shell replacement, and first component-pack rollout.
-
-Before any chat changes a routable screen or reusable rendered component, inspect the current `components/ui` source-owned shadcn primitives, current shared shell source, semantic tokens, relevant shared Carez compositions, ADR-015, ADR-016, and the Carez component pack. Extend that workspace instead of creating a page-local visual framework.
-
-The first shared component pack is:
-
-- Carez Data Grid;
-- Carez Number Field;
-- Carez Date/Time Field;
-- Carez Condition Tree;
-- Carez Toolbar;
-- Carez Resizable Workspace;
-- Carez File Upload;
-- Carez Loading States;
-- Carez Motion system.
-
-When a module interaction matches one of these shared components, reuse or extend it rather than creating a local equivalent.
-
-Module chats own their workflow and domain behavior; they do **not** own a separate design system. No chat may introduce or revive B2/light styling, the old permanent global left rail, old legacy structural class systems, a compatibility CSS layer, a second component library/theme framework, or a hard-coded route palette. If a module touches a still-legacy surface, the change should move that surface toward the accepted shadcn/top-navigation/shared-component system rather than deepen the legacy layer.
-
-New Carez-wide visual patterns, tokens, shared components, global navigation behavior, or interaction conventions belong to `95 — UX & Design System` for canonicalization. Module-specific compositions may remain in the owning module as long as they are built from the same shadcn workspace. Specialized CSS is acceptable only for real rendering/geometry/print/mobile behavior that is not acting as a hidden second design system.
-
-Use normal sentence/title case for ordinary headings, statuses, actions, and helper text. Do not default to ALL CAPS. Reserve uppercase for true codes/acronyms or source-document text where appropriate. Persistent text must identify something, communicate actionable/current state or a problem, or enable a decision; otherwise use progressive disclosure or remove it.
+Use normal sentence/title case for ordinary headings, statuses, actions, and helper text. Persistent text must identify something, communicate current/actionable state or a problem, or enable a decision.
 
 ## Project source files
 
-Follow `CAREZ_PROJECT_SOURCE_GUIDE.md` and `docs/KNOWLEDGE_SOURCE_ROUTING.md`. Project sources support concrete technical research, estimating methodology, Washington labor/compliance research, and brand work; they do not override current repository architecture/implementation. Ignore deleted/old/obsolete Project/File Library material unless explicitly requested. Reference values are not Carez defaults unless approved/promoted.
+Follow `CAREZ_PROJECT_SOURCE_GUIDE.md` and `docs/KNOWLEDGE_SOURCE_ROUTING.md`. Project sources support concrete technical research, estimating methodology, Washington labor/compliance research, and brand work; they do not override current repository architecture/implementation. Reference values are not Carez defaults unless approved/promoted.
 
 ## Implementation workflow
 
-Before code changes: read only the canonical material needed for the bounded change; inspect relevant implementation; reproduce/understand the issue; separate evidence from hypothesis; confirm root cause when practical; prepare a bounded implementation packet; make the smallest coherent fix; preserve architecture/RLS/tenant isolation/data/commercial lineage; avoid unrelated work; run task-appropriate local validation; push/checkpoint; let GitHub Actions run comprehensive validation; then inspect deployment and browser-verify rendered work on stable staging. Do not repeatedly audit the whole repo for localized work. Do not redo completed work.
-
-Codex should normally stop after coding, appropriate local validation, and checkpoint reporting. It should not spend execution time polling Vercel, managing releases, or updating unrelated documentation unless that is explicitly the task.
+Before code changes: inspect only the relevant canonical sources and implementation, reproduce/understand the issue, confirm root cause when practical, make the smallest coherent fix, preserve architecture/RLS/tenant isolation/data/commercial lineage, run proportional validation, push/checkpoint, inspect GitHub Actions/Vercel/Supabase as applicable, browser-verify rendered work, and reconcile verified state into GitHub.
 
 ## Current priority
 
