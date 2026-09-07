@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { prepareAssemblyOutputs } from '@/lib/takeoff/assemblyEngine.server';
+import { prepareConcreteConditionPilotPersistence } from '@/lib/takeoff/conditions/persistence.server';
+import { persistDrawingMeasurementWithConditions } from '@/lib/takeoff/conditions/measurementPersistence';
 import { measureDrawingGeometry, roundMeasurement, type DrawingGeometry, type NormalizedPoint } from '@/lib/takeoff/geometry';
 import {
   calibrationFromManual,
@@ -232,16 +234,30 @@ async function recalculateDrawingMeasurement({
     inputs: values,
     riskClassCode: measurement.risk_class_code || context.version.default_risk_class_code || null,
   });
-  const { error } = await supabase.rpc('carez_update_drawing_measurement', {
-    p_measurement_id: measurement.id,
-    p_geometry: storedGeometry(geometry, Number(context.sheet.page_number), measured),
-    p_raw_quantity: roundMeasurement(measured.quantity, 4),
-    p_raw_unit: context.primaryUnit,
-    p_variables: engine.values,
-    p_outputs: engine.prepared,
-    p_scale_region_id: context.scaleRegion?.id || null,
+  const conditionResult = await persistDrawingMeasurementWithConditions({
+    supabase,
+    companyId,
+    measurementId: measurement.id,
+    persistMeasurement: async () => {
+      const { error } = await supabase.rpc('carez_update_drawing_measurement', {
+        p_measurement_id: measurement.id,
+        p_geometry: storedGeometry(geometry, Number(context.sheet.page_number), measured),
+        p_raw_quantity: roundMeasurement(measured.quantity, 4),
+        p_raw_unit: context.primaryUnit,
+        p_variables: engine.values,
+        p_outputs: engine.prepared,
+        p_scale_region_id: context.scaleRegion?.id || null,
+      });
+      if (error) throw new Error(error.message);
+    },
+    recalculateCondition: async conditionVersionId => {
+      const prepared = await prepareConcreteConditionPilotPersistence({
+        supabase, companyId, input: { conditionVersionId },
+      });
+      const { error } = await supabase.rpc('carez_commit_project_condition_calculation', prepared.rpcPayload);
+      if (error) throw new Error(error.message);
+    },
   });
-  if (error) throw new Error(error.message);
   return {
     id: measurement.id,
     quantity: roundMeasurement(measured.quantity),
@@ -249,6 +265,7 @@ async function recalculateDrawingMeasurement({
     perimeterLf: roundMeasurement(measured.perimeterLf),
     cutoutQuantity: roundMeasurement(measured.cutoutQuantity || 0),
     inputHolds: inputHoldCount(engine.prepared),
+    pendingConditionVersionIds: conditionResult.pendingConditionVersionIds,
   };
 }
 
