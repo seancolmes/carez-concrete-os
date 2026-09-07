@@ -160,9 +160,9 @@ export default async function SchedulePage(){
     <div className="flex justify-end border-t border-border pt-3"><button type="submit" className={buttonVariants({size:'sm'})}>Add to schedule</button></div>
   </form>;
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="carez-page">
-    <header className="carez-page-header">
-      <div><div className="carez-kicker">Jobs & field</div><h1 className="carez-page-title">Schedule</h1><p className="carez-page-description">Plan the work, see crew loading, and manage readiness across active projects.</p></div>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Schedule</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Plan the work, see crew loading, and manage readiness across active projects.</p></div>
       <ScheduleHeaderActions>{addWorkForm}</ScheduleHeaderActions>
     </header>
 
