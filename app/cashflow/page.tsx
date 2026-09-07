@@ -2,7 +2,6 @@ import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {AlertTriangle,Banknote,CreditCard,Landmark,ReceiptText,ShieldCheck,ShoppingCart,Wallet} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
-import {Badge} from '@/components/ui/badge';
 import {buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {createClient} from '@/lib/supabase/server';
@@ -12,8 +11,8 @@ const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'U
 const num=(n:any)=>Number(n||0);
 
 function CashMetric({label,value,help,tone='default'}:{label:string;value:string;help?:string;tone?:'default'|'success'|'warning'|'danger'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-amber-500/30')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-warning/30')}>
+    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
     {help?<CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>:null}
   </Card>;
 }
@@ -44,9 +43,9 @@ export default async function CashflowPage(){
   const bank=num(c?.bank_cash),tax=num(c?.sales_tax_reserve),payrollNeed=num(c?.payroll_cash_requirement||payroll?.total_open_payroll_requirement),ap=num(c?.open_ap),pos=num(c?.open_po_commitments),companyBills=num(c?.unpaid_company_expense_obligations),reserves=num(c?.manual_reserves),spokenFor=tax+payrollNeed+ap+pos+companyBills+reserves,safe=num(c?.safe_cash_after_known_obligations),configured=Boolean(c?.balance_as_of)||((bankAccounts||[]).filter((x:any)=>x.include_in_cash!==false&&x.active!==false).length>0);
 
   return <AppShell userName={p.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div><p className="carez-kicker">Finance</p><h1 className="carez-page-title">Cash position</h1><p className="carez-page-description">What is in the bank, what is already spoken for, and what Carez can actually spend without taking from payroll, vendors, or taxes.</p></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cash position</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">What is in the bank, what is already spoken for, and what Carez can actually spend without taking from payroll, vendors, or taxes.</p></div>
         <Link className={buttonVariants({size:'sm'})} href="/banking"><Landmark/>Banking</Link>
       </header>
 
@@ -61,11 +60,11 @@ export default async function CashflowPage(){
 
       {configured&&safe<0?<div className="flex gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><div className="font-medium text-destructive">Carez is short {money(Math.abs(safe))} against known obligations.</div><div className="mt-1 text-xs leading-5 text-muted-foreground">Do not treat the bank balance as available cash.</div></div></div>:null}
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">Cash controls</p><h2 className="carez-section-title">Where the money is going</h2><p className="carez-section-description">Open the area that explains or changes the cash position above.</p></div></div>
+      <section className="space-y-4">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cash controls</p><h2 className="mt-1 text-lg font-semibold">Where the money is going</h2><p className="mt-1 text-sm text-muted-foreground">Open the area that explains or changes the cash position above.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {controls.map(({href,label,copy,Icon})=><Link href={href} key={href}><Card className="h-full gap-3 py-4 shadow-none transition-colors hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Icon className="size-4"/></span><div><CardTitle className="text-sm">{label}</CardTitle><CardDescription className="mt-1 text-xs leading-5">{copy}</CardDescription></div></CardHeader></Card></Link>)}
-          <Link href="/procurement/orders"><Card className="h-full gap-3 py-4 shadow-none transition-colors hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><ShoppingCart className="size-4"/></span><div><CardTitle className="text-sm">Open orders</CardTitle><CardDescription className="mt-1 text-xs leading-5">{money(pos)} committed to vendors</CardDescription></div></CardHeader></Card></Link>
+          {controls.map(({href,label,copy,Icon})=><Link href={href} key={href} className="group"><Card className="h-full gap-3 py-4 shadow-none transition-colors group-hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Icon className="size-4"/></span><div><CardTitle className="text-sm">{label}</CardTitle><CardDescription className="mt-1 text-xs leading-5">{copy}</CardDescription></div></CardHeader></Card></Link>)}
+          <Link href="/procurement/orders" className="group"><Card className="h-full gap-3 py-4 shadow-none transition-colors group-hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><ShoppingCart className="size-4"/></span><div><CardTitle className="text-sm">Open orders</CardTitle><CardDescription className="mt-1 text-xs leading-5">{money(pos)} committed to vendors</CardDescription></div></CardHeader></Card></Link>
         </div>
       </section>
 
@@ -74,14 +73,14 @@ export default async function CashflowPage(){
           <CardHeader><CardTitle>Money already spoken for</CardTitle><CardDescription>Why the bank balance is not the same as safe-to-spend cash.</CardDescription></CardHeader>
           <CardContent><dl className="divide-y rounded-lg border">{[
             ['Customer tax money',tax],['Crew payroll requirement',payrollNeed],['Vendor bills we owe',ap],['Material / service orders already issued',pos],['Unpaid company expenses',companyBills],['Other protected money',reserves],
-          ].map(([label,value])=><div key={String(label)} className="flex items-center justify-between gap-4 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="carez-data-number font-medium">{money(value)}</dd></div>)}<div className="flex items-center justify-between gap-4 bg-muted/30 px-3 py-3"><dt className="text-sm font-semibold">Total spoken for</dt><dd className="carez-data-number font-semibold">{money(spokenFor)}</dd></div></dl></CardContent>
+          ].map(([label,value])=><div key={String(label)} className="flex items-center justify-between gap-4 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="font-mono font-medium tabular-nums">{money(value)}</dd></div>)}<div className="flex items-center justify-between gap-4 bg-muted/30 px-3 py-3"><dt className="text-sm font-semibold">Total spoken for</dt><dd className="font-mono font-semibold tabular-nums">{money(spokenFor)}</dd></div></dl></CardContent>
         </Card>
 
         <Card className="shadow-none">
           <CardHeader className="grid grid-cols-[1fr_auto] gap-3"><div><CardTitle>Company spending</CardTitle><CardDescription>Operating expenses that keep Carez running.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/expenses">Expenses</Link></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">{[
             ['This month',money(expenses?.current_month_business_expense),'default'],['This year',money(expenses?.ytd_business_expense),'default'],['Still unpaid',money(expenses?.unpaid_company_expense_obligations),num(expenses?.unpaid_company_expense_obligations)>0?'warning':'success'],
-          ].map(([label,value,tone])=><div key={String(label)} className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">{label}</div><div className={cn('mt-1.5 font-mono text-lg font-semibold tabular-nums',tone==='warning'&&'text-amber-700',tone==='success'&&'text-success')}>{value}</div></div>)}</CardContent>
+          ].map(([label,value,tone])=><div key={String(label)} className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">{label}</div><div className={cn('mt-1.5 font-mono text-lg font-semibold tabular-nums',tone==='warning'&&'text-warning',tone==='success'&&'text-success')}>{value}</div></div>)}</CardContent>
         </Card>
       </div>
 
