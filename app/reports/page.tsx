@@ -27,9 +27,9 @@ function MetricCard({label,value,help,Icon,tone='default'}:{label:string;value:s
     <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-4">
       <div className="min-w-0">
         <CardDescription className="text-xs font-medium">{label}</CardDescription>
-        <CardTitle className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700')}>{value}</CardTitle>
+        <CardTitle className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle>
       </div>
-      <span className={cn('flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground',tone==='success'&&'bg-success/10 text-success',tone==='warning'&&'bg-amber-500/10 text-amber-700')}><Icon className="size-4"/></span>
+      <span className={cn('flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground',tone==='success'&&'bg-success/10 text-success',tone==='warning'&&'bg-warning/10 text-warning')}><Icon className="size-4"/></span>
     </CardHeader>
     <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
   </Card>;
@@ -44,6 +44,10 @@ function ReportsEmpty({Icon,title,description,href,action}:{Icon:any;title:strin
     </EmptyHeader>
     <EmptyContent><Link href={href} className={buttonVariants({variant:'outline',size:'sm'})}>{action}</Link></EmptyContent>
   </Empty>;
+}
+
+function SectionHeading({kicker,title,description}:{kicker:string;title:string;description?:string}){
+  return <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{kicker}</p><h2 className="mt-1 text-lg font-semibold">{title}</h2>{description?<p className="mt-1 max-w-4xl text-sm text-muted-foreground">{description}</p>:null}</div>;
 }
 
 export default async function ReportsPage(){
@@ -82,13 +86,11 @@ export default async function ReportsPage(){
   const ar=(billing||[]).reduce((s:number,x:any)=>s+num(x.outstanding_ar),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div>
-          <p className="carez-kicker">Company performance</p>
-          <h1 className="carez-page-title">Owner reports</h1>
-          <p className="carez-page-description">Job profitability, labor performance, production history, and receivables from the authoritative Carez records already in the system.</p>
-        </div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company performance</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Owner reports</h1>
+        <p className="mt-1 max-w-5xl text-sm text-muted-foreground">Job profitability, labor performance, production history, and receivables from the authoritative Carez records already in the system.</p>
       </header>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -98,10 +100,8 @@ export default async function ReportsPage(){
         <MetricCard label="Customers still owe us" value={money(ar)} help="Outstanding invoices across all jobs." Icon={Wallet} tone={ar>0?'warning':'success'}/>
       </section>
 
-      <section className="carez-section">
-        <div className="carez-section-header">
-          <div><p className="carez-kicker">Jobs</p><h2 className="carez-section-title">Job scorecards</h2><p className="carez-section-description">Estimate and budget against actual performance.</p></div>
-        </div>
+      <section className="space-y-4">
+        <SectionHeading kicker="Jobs" title="Job scorecards" description="Estimate and budget against actual performance."/>
         {(projects||[]).length===0?
           <ReportsEmpty Icon={ClipboardCheck} title="No project history yet" description="Completed and active jobs will appear here with budget versus actual performance." href="/projects" action="Open projects"/>:
           <Card className="py-0 shadow-none">
@@ -113,21 +113,19 @@ export default async function ReportsPage(){
                 return <TableRow key={p.id}>
                   <TableCell><Link href={`/projects/${p.id}`} className="font-medium hover:text-primary">{p.job_number} — {p.name}</Link></TableCell>
                   <TableCell><Badge variant={p.status==='active'?'default':'secondary'} className={p.status==='completed'?'bg-success/10 text-success':''}>{titleCase(p.status)}</Badge></TableCell>
-                  <TableCell className="carez-data-number text-right">{money(f.adjusted_contract||p.contract_value)}</TableCell>
-                  <TableCell className="carez-data-number text-right">{money(b.actual_total_company_cost)}</TableCell>
-                  <TableCell className={cn('carez-data-number text-right',budgetUsed>=100&&'text-destructive')}>{b.project_id?`${budgetUsed.toFixed(1)}%`:'No baseline'}</TableCell>
-                  <TableCell className="carez-data-number text-right">{num(b.actual_labor_hours).toFixed(1)} hr</TableCell>
-                  <TableCell className="carez-data-number text-right">{money(bill.outstanding_ar)}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">{money(f.adjusted_contract||p.contract_value)}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">{money(b.actual_total_company_cost)}</TableCell>
+                  <TableCell className={cn('text-right font-mono tabular-nums',budgetUsed>=100&&'text-destructive')}>{b.project_id?`${budgetUsed.toFixed(1)}%`:'No baseline'}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">{num(b.actual_labor_hours).toFixed(1)} hr</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">{money(bill.outstanding_ar)}</TableCell>
                 </TableRow>;
               })}</TableBody>
             </Table>
           </Card>}
       </section>
 
-      <section className="carez-section">
-        <div className="carez-section-header">
-          <div><p className="carez-kicker">Production</p><h2 className="carez-section-title">Carez production database</h2><p className="carez-section-description">Weighted actual production from approved employee task time and verified quantities.</p></div>
-        </div>
+      <section className="space-y-4">
+        <SectionHeading kicker="Production" title="Carez production database" description="Weighted actual production from approved employee task time and verified quantities."/>
         {taskRates.length===0?
           <ReportsEmpty Icon={BarChart3} title="No measured production yet" description="Task clocking and verified quantities will build this automatically." href="/field" action="Open field control"/>:
           <Card className="py-0 shadow-none">
@@ -135,18 +133,18 @@ export default async function ReportsPage(){
               <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Task</TableHead><TableHead className="text-right">Samples</TableHead><TableHead className="text-right">Total built</TableHead><TableHead className="text-right">Total MH</TableHead><TableHead className="text-right">Units / MH</TableHead><TableHead className="text-right">MH / unit</TableHead></TableRow></TableHeader>
               <TableBody>{taskRates.map(r=><TableRow key={`${r.task}-${r.unit}`}>
                 <TableCell className="font-medium">{r.task}</TableCell>
-                <TableCell className="carez-data-number text-right">{r.samples}</TableCell>
-                <TableCell className="carez-data-number text-right">{r.qty.toFixed(1)} {r.unit}</TableCell>
-                <TableCell className="carez-data-number text-right">{r.mh.toFixed(1)} MH</TableCell>
-                <TableCell className="carez-data-number text-right">{(r.qty/r.mh).toFixed(2)} {r.unit}/MH</TableCell>
-                <TableCell className="carez-data-number text-right">{(r.mh/r.qty).toFixed(3)} MH/{r.unit}</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{r.samples}</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{r.qty.toFixed(1)} {r.unit}</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{r.mh.toFixed(1)} MH</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{(r.qty/r.mh).toFixed(2)} {r.unit}/MH</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{(r.mh/r.qty).toFixed(3)} MH/{r.unit}</TableCell>
               </TableRow>)}</TableBody>
             </Table>
           </Card>}
       </section>
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">Current work</p><h2 className="carez-section-title">Jobs still running</h2></div></div>
+      <section className="space-y-4">
+        <SectionHeading kicker="Current work" title="Jobs still running"/>
         {active.length===0?
           <ReportsEmpty Icon={BriefcaseBusiness} title="No active jobs" description="Jobs in progress will appear here with current labor, budget, and customer balance information." href="/projects" action="View projects"/>:
           <div className="grid gap-3 lg:grid-cols-2">{active.map((p:any)=>{
