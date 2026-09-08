@@ -21,14 +21,14 @@ const sourceLabel=(s:string)=>({outlook:'Outlook email',phone:'Phone',website:'W
 const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'|'danger'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-amber-500/30',tone==='danger'&&'border-destructive/25')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-warning/30',tone==='danger'&&'border-destructive/25')}>
+    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
     <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
   </Card>;
 }
 
 function LeadStatus({status,followDue}:{status:string;followDue:boolean}){
-  if(followDue)return <Badge variant="secondary" className="bg-amber-500/10 text-amber-700">Follow up due</Badge>;
+  if(followDue)return <Badge variant="secondary" className="bg-warning/10 text-warning">Follow up due</Badge>;
   if(status==='won')return <Badge variant="secondary" className="bg-success/10 text-success">Won</Badge>;
   if(status==='lost')return <Badge variant="secondary" className="text-muted-foreground">Lost</Badge>;
   if(status==='estimating'||status==='proposal_sent')return <Badge>{stageLabel(status)}</Badge>;
@@ -61,9 +61,9 @@ export default async function LeadsPage(){
   const pendingInbox=Number((inbox as any)?.count||0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Leads</h1><p className="carez-page-description">Every opportunity gets one permanent number that carries from first contact through estimate, proposal, and awarded job.</p></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Leads</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Every opportunity gets one permanent number that carries from first contact through estimate, proposal, and awarded job.</p></div>
         <div className="flex flex-wrap items-center gap-2">
           <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Lead inbox{pendingInbox?` (${pendingInbox})`:''}</Link>
           <Dialog>
@@ -94,14 +94,14 @@ export default async function LeadsPage(){
         <Metric label="Bid deadlines due" value={String(bidsDue.length)} help="Open opportunities at or past their bid due date." tone={bidsDue.length?'warning':'success'}/>
       </section>
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">Sales pipeline</p><h2 className="carez-section-title">Opportunities</h2><p className="carez-section-description">L-26-### becomes E-26-###-R0, then P-26-###-R0, then Job 26-### when accepted.</p></div></div>
+      <section className="space-y-4">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sales pipeline</p><h2 className="mt-1 text-lg font-semibold">Opportunities</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">L-26-### becomes E-26-###-R0, then P-26-###-R0, then Job 26-### when accepted.</p></div>
         {(leads||[]).length===0?<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>No leads yet</EmptyTitle><EmptyDescription>Add a lead manually or connect Outlook and review the Lead Inbox.</EmptyDescription></EmptyHeader><EmptyContent><Link href="/leads/inbox" className={buttonVariants({variant:'outline'})}><Inbox/>Open lead inbox</Link></EmptyContent></Empty>:
           <div className="grid gap-3 xl:grid-cols-2">{(leads||[]).map((lead:any)=>{
             const history=activityMap.get(lead.id)||[];
             const followDue=Boolean(lead.follow_up&&lead.follow_up<=today()&&!['won','lost'].includes(lead.status));
             const estimate=estimateMap.get(lead.id);
-            return <Card className={cn('gap-0 py-0 shadow-none',followDue&&'border-amber-500/30')} key={lead.id}>
+            return <Card className={cn('gap-0 py-0 shadow-none',followDue&&'border-warning/30')} key={lead.id}>
               <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b py-3">
                 <div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><Badge variant="outline" className="font-mono text-[10px]">L-{lead.opportunity_number||'UNNUMBERED'}</Badge><span className="text-xs text-muted-foreground">{sourceLabel(lead.source)}</span></div><CardTitle className="truncate">{lead.project_name}</CardTitle><CardDescription className="mt-1 truncate">{lead.customer_name}{lead.city?` · ${lead.city}, ${lead.state||'WA'}`:''} · {money(lead.estimated_value)}</CardDescription></div>
                 <LeadStatus status={lead.status} followDue={followDue}/>
@@ -113,7 +113,7 @@ export default async function LeadsPage(){
                   ['Jobsite',lead.address||lead.city||'Not entered',lead.city&&lead.address?`${lead.city}, ${lead.state||'WA'}`:''],
                   ['Bid due',lead.bid_due||'Not set',''],
                   ['Follow up',lead.follow_up||'Not set',followDue?'Due now':''],
-                ].map(([label,value,detail])=><div key={String(label)} className="min-w-0 rounded-lg border bg-muted/20 p-3"><div className="text-[11px] text-muted-foreground">{label}</div><div className={cn('mt-1 truncate text-sm font-medium',label==='Follow up'&&followDue&&'text-amber-700')}>{value}</div>{detail?<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{detail}</div>:null}</div>)}</div>
+                ].map(([label,value,detail])=><div key={String(label)} className="min-w-0 rounded-lg border bg-muted/20 p-3"><div className="text-[11px] text-muted-foreground">{label}</div><div className={cn('mt-1 truncate text-sm font-medium',label==='Follow up'&&followDue&&'text-warning')}>{value}</div>{detail?<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{detail}</div>:null}</div>)}</div>
 
                 <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[11px] font-medium text-muted-foreground">Concrete work</div><div className="mt-1 text-sm leading-5">{lead.scope||'Scope not entered yet.'}</div></div>
 
@@ -134,7 +134,7 @@ export default async function LeadsPage(){
               <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3">
                 {estimate?<Link className={buttonVariants({size:'sm'})} href="/estimates"><FileText/>Open {estimate.estimate_number}-R{estimate.version}</Link>:!['won','lost'].includes(lead.status)?<form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={lead.id}/><Button type="submit" size="sm">Start estimate<ArrowRight/></Button></form>:null}
                 <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Email / lead inbox</Link>
-                {followDue?<span className="ml-auto flex items-center gap-1.5 self-center text-xs font-medium text-amber-700"><Clock3 className="size-3.5"/>Follow up is due</span>:null}
+                {followDue?<span className="ml-auto flex items-center gap-1.5 self-center text-xs font-medium text-warning"><Clock3 className="size-3.5"/>Follow up is due</span>:null}
               </CardFooter>
             </Card>;
           })}</div>}
