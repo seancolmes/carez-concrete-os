@@ -242,7 +242,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><div className="section-kicker">SOURCE DRAWINGS</div><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="empty-state"><div><div className="title">No source drawing is attached to this locked revision.</div></div></div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
+      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
       {conditionAuthoringActive
         ? <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
@@ -251,4 +251,3 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     </div>
   </AppShell>;
 }
-
