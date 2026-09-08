@@ -30,10 +30,10 @@ type Attention={priority:number;tone:AttentionTone;subject:string;issue:string;w
 type MetricTone='neutral'|'active'|'success'|'warning'|'danger';
 
 function OperatingMetric({label,value,help,tone}:{label:string;value:string;help:string;tone:MetricTone}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-amber-500/30')}>
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-warning/30')}>
     <CardHeader className="gap-1 px-4">
       <CardDescription className="text-xs font-medium">{label}</CardDescription>
-      <CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='active'&&'text-primary',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700',tone==='danger'&&'text-destructive')}>{value}</CardTitle>
+      <CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='active'&&'text-primary',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</CardTitle>
     </CardHeader>
     <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
   </Card>;
@@ -42,7 +42,7 @@ function OperatingMetric({label,value,help,tone}:{label:string;value:string;help
 function StatusBadge({tone,label}:{tone:'muted'|'active'|'success'|'warning'|'danger';label:string}){
   return <Badge variant={tone==='danger'?'destructive':tone==='active'?'default':'secondary'} className={cn(
     tone==='success'&&'bg-success/10 text-success',
-    tone==='warning'&&'bg-amber-500/10 text-amber-700',
+    tone==='warning'&&'bg-warning/10 text-warning',
     tone==='muted'&&'text-muted-foreground'
   )}>{label}</Badge>;
 }
@@ -171,12 +171,12 @@ export default async function HomePage(){
     :`${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'} · no urgent exceptions`;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="carez-kicker">Today</p>
-          <h1 className="carez-page-title">{fmtDate(start)}</h1>
-          <p className="carez-page-description">{headerStatus}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{fmtDate(start)}</h1>
+          <p className="mt-1 max-w-4xl text-sm text-muted-foreground">{headerStatus}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects</Link>
@@ -201,7 +201,7 @@ export default async function HomePage(){
           <CardContent className="p-0">
             {attention.length===0?<div className="flex min-h-36 items-center gap-3 px-4 py-6 text-sm"><span className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success"><CheckCircle2 className="size-4"/></span><div><div className="font-medium">No urgent exceptions</div><div className="mt-0.5 text-muted-foreground">Today's work can run from the current plan.</div></div></div>:
               <div className="divide-y">{attention.slice(0,8).map((item,index)=><Link href={item.href} key={`${item.subject}-${index}`} className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
-                <span className={cn('flex size-8 items-center justify-center rounded-lg bg-primary/8 text-primary',item.tone==='danger'&&'bg-destructive/8 text-destructive',item.tone==='warning'&&'bg-amber-500/10 text-amber-700')}>{item.tone==='danger'?<AlertTriangle className="size-4"/>:item.tone==='warning'?<Clock3 className="size-4"/>:<PhoneCall className="size-4"/>}</span>
+                <span className={cn('flex size-8 items-center justify-center rounded-lg bg-primary/8 text-primary',item.tone==='danger'&&'bg-destructive/8 text-destructive',item.tone==='warning'&&'bg-warning/10 text-warning')}>{item.tone==='danger'?<AlertTriangle className="size-4"/>:item.tone==='warning'?<Clock3 className="size-4"/>:<PhoneCall className="size-4"/>}</span>
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{item.subject}</span><span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{item.issue}</span><span className="mt-1 block text-[11px] text-muted-foreground">{item.when}</span></span>
                 <span className="hidden items-center gap-1 text-xs font-medium text-primary sm:flex">{item.action}<ArrowRight className="size-3"/></span>
               </Link>)}</div>}
@@ -222,7 +222,7 @@ export default async function HomePage(){
                   const readiness=rr?.ready_to_start_all===false?'blocked':rr?.ready_to_start_all===true?'ready':'scheduled';
                   const field=fieldMap.get(item.project_id)||{working:0,review:0};
                   return <TableRow key={item.id}>
-                    <TableCell className="carez-data-number">{fmtTime(item.start_time)||'—'}</TableCell>
+                    <TableCell className="font-mono tabular-nums">{fmtTime(item.start_time)||'—'}</TableCell>
                     <TableCell>{item.project_id?<Link href={`/projects/${item.project_id}`} className="font-medium hover:text-primary">{job?.job_number||'Job'}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{job?.name||'Project'}</span></Link>:<span className="font-medium">{job?.job_number||'Job'}</span>}</TableCell>
                     <TableCell><span className="font-medium">{item.title}</span>{readiness==='blocked'&&rr?.start_next_action?<span className="mt-0.5 block max-w-56 whitespace-normal text-xs text-muted-foreground">{rr.start_next_action}</span>:null}</TableCell>
                     <TableCell><span className="font-medium">{field.working?`${field.working} working`:'—'}</span>{field.review?<span className="mt-0.5 block text-xs text-muted-foreground">{field.review} timecard review</span>:null}</TableCell>
@@ -234,9 +234,9 @@ export default async function HomePage(){
         </Card>
       </div>
 
-      <section className="carez-section">
-        <div className="carez-section-header">
-          <div><p className="carez-kicker">Active jobs</p><h2 className="carez-section-title">What moves next</h2><p className="carez-section-description">Next physical operation, readiness, live field activity, and budget position.</p></div>
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Active jobs</p><h2 className="mt-1 text-lg font-semibold">What moves next</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Next physical operation, readiness, live field activity, and budget position.</p></div>
           <Link href="/projects" className={buttonVariants({variant:'outline',size:'sm'})}>All projects</Link>
         </div>
         {dashboardJobs.length===0?<CompactEmpty Icon={BriefcaseBusiness} title="No active jobs" description="Accepted proposals and direct jobs will appear here." href="/projects" action="Open projects"/>:
@@ -253,7 +253,7 @@ export default async function HomePage(){
                   <TableCell><Link href={`/projects/${p.id}`} className="font-medium hover:text-primary">{p.job_number} · {p.name}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<span className="block text-[11px] font-normal text-muted-foreground">{location}</span>:null}</Link></TableCell>
                   <TableCell><StatusBadge tone={p.status==='on_hold'?'danger':'active'} label={titleCase(p.status)}/></TableCell>
                   <TableCell><span className="font-medium">{nextOperation}</span>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':`${num(row.r.blocked_operations)} operation${num(row.r.blocked_operations)===1?'':'s'} blocked`}</span>:null}</TableCell>
-                  <TableCell className="carez-data-number">{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></TableCell>
+                  <TableCell className="font-mono tabular-nums">{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></TableCell>
                   <TableCell><span className="font-medium">{row.field.working?`${row.field.working} working`:'—'}</span><span className="mt-0.5 block text-xs text-muted-foreground">{row.field.review?`${row.field.review} timecard review`:row.field.working?'Active field shift':'No active shift'}</span></TableCell>
                   <TableCell><StatusBadge tone={readiness.tone} label={readiness.label}/></TableCell>
                   <TableCell>{hasBudget?<div className="min-w-36"><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className={cn('font-medium',row.budgetUsed>=100&&'text-destructive')}>{row.budgetUsed.toFixed(0)}% used</span><span className="text-muted-foreground">{row.laborRemaining.toFixed(1)} MH left</span></div><Progress value={Math.max(0,Math.min(100,row.budgetUsed))}/></div>:<span className="text-xs text-muted-foreground">No authoritative budget snapshot</span>}</TableCell>
@@ -293,7 +293,7 @@ export default async function HomePage(){
                 ['7-day expected in',money(cashIn),'normal'],
                 ['7-day expected out',money(cashOut),'normal'],
                 ['7-day net',money(cashNet),cashNet<0?'warning':'normal'],
-              ].map(([label,value,tone])=><div key={label} className="flex items-center justify-between gap-6 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-amber-700')}>{value}</dd></div>)}
+              ].map(([label,value,tone])=><div key={label} className="flex items-center justify-between gap-6 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-warning')}>{value}</dd></div>)}
             </dl>
             <div className="mt-4 flex gap-2"><Link href="/billing" className={buttonVariants({variant:'outline',size:'sm'})}><Wallet/>Billing</Link><Link href="/cashflow" className={buttonVariants({variant:'outline',size:'sm'})}>Cashflow</Link></div>
           </CardContent>
