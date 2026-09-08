@@ -16,8 +16,8 @@ const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'U
 const qty=(n:any,d=1)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-amber-500/30')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700')}>{value}</CardTitle></CardHeader>
+  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-warning/30')}>
+    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader>
     <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
   </Card>;
 }
@@ -70,9 +70,9 @@ export default async function TakeoffPage(){
   const totalDirect=(summaries||[]).reduce((sum:number,row:any)=>sum+Number(row.takeoff_direct_cost||0),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-page">
-      <header className="carez-page-header">
-        <div><p className="carez-kicker">Preconstruction</p><h1 className="carez-page-title">Concrete takeoff</h1><p className="carez-page-description">Open the plans, measure the physical work, and let Carez conditions and assemblies build labor, material, equipment, and field quantities behind the drawing.</p></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Concrete takeoff</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Open the plans, measure the physical work, and let Carez conditions and assemblies build labor, material, equipment, and field quantities behind the drawing.</p></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assemblies</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
       </header>
 
@@ -88,13 +88,13 @@ export default async function TakeoffPage(){
       </section>
 
       {startableEstimates.length>0?<Card className="shadow-none">
-        <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><p className="carez-kicker">Start a bid</p><CardTitle>Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate. Carez creates the takeoff set and opens the drawing workspace without inserting an unnecessary setup screen.</CardDescription></div>
+        <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Start a bid</p><CardTitle className="mt-1">Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate. Carez creates the takeoff set and opens the drawing workspace without inserting an unnecessary setup screen.</CardDescription></div>
           <form action={createTakeoffSet} className="flex flex-col gap-2 sm:flex-row"><input type="hidden" name="name" value="Concrete Takeoff"/><select name="estimate_id" required defaultValue="" className="h-8 min-w-72 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20"><option value="" disabled>Choose estimate…</option>{startableEstimates.map((e:any)=><option key={e.id} value={e.id}>{e.estimate_number}-R{e.version} — {e.name}</option>)}</select><Button type="submit" size="sm"><Plus/>Start takeoff</Button></form>
         </CardHeader>
       </Card>:null}
 
-      <section className="carez-section">
-        <div className="carez-section-header"><div><p className="carez-kicker">Your bids</p><h2 className="carez-section-title">Takeoff workbench</h2><p className="carez-section-description">The plans stay primary. Pricing holds and manual field quantities stay attached to the bid without competing with measurement work.</p></div></div>
+      <section className="space-y-4">
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your bids</p><h2 className="mt-1 text-lg font-semibold">Takeoff workbench</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">The plans stay primary. Pricing holds and manual field quantities stay attached to the bid without competing with measurement work.</p></div>
         {activeSets.length===0?<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Ruler/></EmptyMedia><EmptyTitle>No takeoff started yet</EmptyTitle><EmptyDescription>Create an estimate first, then start its plan takeoff here.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/estimates">Open estimates</Link></EmptyContent></Empty>:
           <div className="grid gap-4">{activeSets.map((set:any)=>{
             const estimate:any=estimateMap.get(set.estimate_id);
@@ -112,16 +112,16 @@ export default async function TakeoffPage(){
               <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
                 <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-4"/></span>
                 <div className="min-w-0"><CardTitle className="truncate">{estimate?.name||set.name}</CardTitle><CardDescription className="mt-1 truncate">{estimate?`${estimate.estimate_number}-R${estimate.version}`:'Estimate'} · {set.revision_label}{set.source_filename?` · ${set.source_filename}`:''}</CardDescription></div>
-                <Badge variant={tone==='warning'?'secondary':tone==='success'?'secondary':'outline'} className={cn(tone==='warning'&&'bg-amber-500/10 text-amber-700',tone==='success'&&'bg-success/10 text-success',tone==='muted'&&'text-muted-foreground')}>{status}</Badge>
+                <Badge variant={tone==='warning'?'secondary':tone==='success'?'secondary':'outline'} className={cn(tone==='warning'&&'bg-warning/10 text-warning',tone==='success'&&'bg-success/10 text-success',tone==='muted'&&'text-muted-foreground')}>{status}</Badge>
               </CardHeader>
 
               <CardContent className="p-0">
                 <div className="grid grid-cols-2 divide-x divide-y border-b sm:grid-cols-5 sm:divide-y-0">
-                  {[['Sheets',set.page_count||setSheets.length||'—'],['Objects',ms.length],['Labor',`${qty(summary.takeoff_man_hours)} MH`],['Price holds',holds.length],['Direct cost',money(summary.takeoff_direct_cost)]].map(([label,value],index)=><div key={String(label)} className="px-4 py-3"><div className="text-[11px] font-medium text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-sm font-semibold tabular-nums',label==='Price holds'&&holds.length&&'text-amber-700')}>{value}</div></div>)}
+                  {[['Sheets',set.page_count||setSheets.length||'—'],['Objects',ms.length],['Labor',`${qty(summary.takeoff_man_hours)} MH`],['Price holds',holds.length],['Direct cost',money(summary.takeoff_direct_cost)]].map(([label,value])=><div key={String(label)} className="px-4 py-3"><div className="text-[11px] font-medium text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-sm font-semibold tabular-nums',label==='Price holds'&&holds.length&&'text-warning')}>{value}</div></div>)}
                 </div>
 
                 {!locked&&holds.length>0?<details className="border-b">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-amber-500/5 px-4 py-2.5 text-xs font-medium text-amber-800"><span className="flex items-center gap-2"><AlertTriangle className="size-3.5"/>Resolve {holds.length} pricing hold{holds.length===1?'':'s'}</span><span className="text-[11px] font-normal text-muted-foreground">Open</span></summary>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-warning/5 px-4 py-2.5 text-xs font-medium text-warning"><span className="flex items-center gap-2"><AlertTriangle className="size-3.5"/>Resolve {holds.length} pricing hold{holds.length===1?'':'s'}</span><span className="text-[11px] font-normal text-muted-foreground">Open</span></summary>
                   <div className="space-y-3 p-4">{materialHolds.length===0?<div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground">The remaining hold is labor configuration. Review the estimating system in the Assembly Library.</div>:<div className="divide-y rounded-lg border">{materialHolds.map((o:any)=><div className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" key={o.id}><div><div className="text-sm font-medium">{o.label}</div><div className="mt-0.5 text-xs text-muted-foreground">{qty(o.production_quantity,2)} {o.production_unit} · current price missing</div></div><form action={updateTakeoffOutputPrice} className="flex items-center gap-2"><div className="relative"><span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span><Input name="unit_cost" type="number" min="0" step="0.01" inputMode="decimal" required placeholder="0.00" className="h-8 w-28 pl-6 pr-7 text-right text-xs"/><span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">/{o.production_unit}</span></div><input type="hidden" name="output_id" value={o.id}/><Button type="submit" variant="outline" size="sm">Save</Button></form></div>)}</div>}</div>
                 </details>:null}
 
@@ -140,7 +140,7 @@ export default async function TakeoffPage(){
           })}</div>}
       </section>
 
-      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="carez-kicker">Estimating system</p><CardTitle>Concrete assemblies do the heavy lifting</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published assemblies convert plan geometry into concrete, reinforcement, forms, finish labor, and production quantities. Maintain those recipes separately from daily takeoff work.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Open assembly library</Link></CardHeader></Card>
+      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Concrete assemblies do the heavy lifting</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published assemblies convert plan geometry into concrete, reinforcement, forms, finish labor, and production quantities. Maintain those recipes separately from daily takeoff work.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Open assembly library</Link></CardHeader></Card>
     </div>
   </AppShell>;
 }
