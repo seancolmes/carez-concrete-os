@@ -20,8 +20,8 @@
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child{grid-template-columns:38px minmax(0,1fr)!important}
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child{width:38px!important;min-width:38px!important;max-width:38px!important;resize:none!important}
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child>*{display:none!important}
-  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlay3d"]{left:38px!important}
-  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:calc(50% + 19px)!important}
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlay3d"],
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:38px!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 38px!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>aside:last-child>*{display:none!important}
 }
@@ -33,8 +33,8 @@
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child{grid-template-columns:38px minmax(0,1fr)!important}
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child{width:38px!important;min-width:38px!important;max-width:38px!important;resize:none!important}
   .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child>*{display:none!important}
-  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlay3d"]{left:38px!important}
-  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:calc(50% + 19px)!important}
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlay3d"],
+  .shell[data-navigator-collapsed="true"]>:global([data-context-tab][data-view-mode]) [class*="derivedOverlaySplit"]{left:38px!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 38px!important}
   .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>aside:last-child>*{display:none!important}
   .navigatorCollapse{left:206px}
