@@ -1,57 +1,35 @@
 # Takeoff R3F 3D Viewer Design
 
-**Date:** 2026-09-15
-
-**Issue:** #41 — P0.5D — Unified synchronized 2D/3D Takeoff workstation
-
-**Status:** Approved design, pending written-spec review before implementation planning
+**Date:** 2026-09-15  
+**Issue:** #41 — P0.5D — Unified synchronized 2D/3D Takeoff workstation  
+**Status:** Approved architecture; pending written-spec review before implementation planning
 
 ## Goal
 
-Replace the current SVG pseudo-3D presentation with a real React Three Fiber / Three.js construction-model viewer that renders the active PDF sheet as the spatial reference plane and displays derived concrete solids from existing authoritative Carez Takeoff geometry.
-
-The estimator experience is simple: click **3D** and see the current Takeoff represented spatially over the same plan sheet, using the same colors, elevations, dimensions, and stable domain identities already owned by Carez.
+Replace the current SVG pseudo-3D presentation with a real React Three Fiber / Three.js construction-model viewer. Clicking **3D** must show the active PDF sheet as the spatial reference plane with supported Carez Takeoff elements rendered as physical concrete volumes using the same geometry, colors, elevations, dimensions, and stable IDs already owned by Carez.
 
 ## Non-goals
 
-This design does not introduce:
-
-- a second 3D model database;
-- 3D-derived quantity authority;
-- freeform BIM modeling;
-- photorealistic rendering;
-- fabrication-grade reinforcing models;
-- cross-sheet building stacking without explicit registration/datum support;
-- direct 3D geometry editing in the first replacement milestone;
-- per-Condition “make this 3D” setup;
-- a Split viewport requirement.
-
-Direct 3D geometry editing/creation remains a follow-on after the replacement viewer is accepted.
+No second 3D database, mesh-derived quantity authority, freeform BIM modeling, photorealistic rendering, cross-sheet stacking without registration, per-Condition “make this 3D” workflow, estimator-facing Split view, or direct 3D geometry editing in this replacement.
 
 ## Governing invariants
 
-1. Persisted normalized 2D/vector Takeoff geometry remains the stored geometry and quantity authority.
-2. Server/domain quantity outputs remain authoritative; rendered meshes never recalculate commercial or production quantities.
-3. 2D and 3D are synchronized views of the same Takeoff element, identified by stable domain IDs.
-4. The PDF/takeoff coordinate mapping is shared between 2D and 3D.
-5. Unsupported or incomplete 3D projection may hold one element but must not block valid 2D Takeoff work or valid sibling 3D solids.
-6. Human authority over scope, Conditions, means/methods, reinforcing interpretation, rates, pricing, margin, budgets, and approvals remains unchanged.
-7. The implementation must preserve the repo contract in `CODEX.md`, especially its rule that persisted page-coordinate 2D/vector geometry is Takeoff quantity authority and derived 3D is verification only.
+1. Persisted normalized 2D/vector Takeoff geometry remains stored geometry and quantity authority.
+2. Server/domain outputs remain quantity, cost, and pricing authority; Three.js never calculates authoritative quantities.
+3. 2D and 3D use the same `measurementId`, `conditionVersionId`, and `sheetId`.
+4. PDF and derived solids share one calibrated plan coordinate system.
+5. One unsupported/incomplete projection must not block valid sibling solids or normal 2D Takeoff work.
+6. Current replacement is visualization/selection only. Direct 3D geometry editing requires a separate design/governance decision because current `CODEX.md` defines derived 3D as verification only.
 
-## 1. Renderer architecture
-
-The existing Carez Takeoff model remains upstream authority:
+## 1. Architecture and authority
 
 ```text
-Authoritative Carez Takeoff
-│
-├── PDF sheet
+Carez Takeoff authority
+├── PDF sheet/page
 ├── normalized measurement geometry
 ├── calibration
-├── Condition properties
-├── color
-├── elevation/reference
-├── width/depth/thickness/profile
+├── governed Condition inputs
+├── color/elevation/profile
 └── server/domain quantities
           │
           ▼
@@ -65,218 +43,102 @@ Derived3DScene
 └── sourceQuantities
           │
           ▼
-NEW R3F rendering adapter
-          │
-          ▼
-React Three Fiber / Three.js
-└── Orthographic construction viewer
+R3F / Three.js renderer
 ```
 
-`buildDerived3DScene()` remains the physical projection authority. It already reads persisted measurements, applies calibration, derives supported slab/footing/pad shapes, carries stable IDs, and copies source quantity references without making mesh-derived quantities authoritative.
+`buildDerived3DScene()` remains physical projection authority. The renderer consumes its output; it does not re-derive business geometry or quantities.
 
-The replacement is therefore primarily a rendering/presentation-layer change, not a rewrite of Carez quantity or Condition logic.
+### Coordinate contract
 
-### View model
+`Derived3DSolid.shape` is already calibrated plan-space feet: X = plan horizontal, Z = plan page-down, Y = elevation. R3F consumes those coordinates directly and must not apply another measurement scale.
 
-The center Takeoff viewport exposes only:
+`Derived3DSheetPlane.worldWidth/worldHeight` define the PDF plane in the same units:
 
 ```text
-[ 2D ] [ 3D ]
+PDF top-left     -> (0, 0, 0)
+PDF top-right    -> (worldWidth, 0, 0)
+PDF bottom-left  -> (0, 0, worldHeight)
+PDF bottom-right -> (worldWidth, 0, worldHeight)
 ```
 
-- **2D** — existing PDF.js drawing surface and Takeoff overlay.
-- **3D** — R3F Canvas with the active PDF as a physical plan plane plus derived concrete solids.
+PDF/Three.js UV orientation must be handled explicitly so the sheet cannot render vertically flipped while solids remain unchanged.
 
-Sheets, Condition Properties, and the Quantity Worksheet remain in their existing workstation locations.
+## 2. Workstation and synchronization
 
-No estimator-facing Split mode is part of the target.
+The center viewport exposes only **2D | 3D**.
 
-## 2. Exact 2D/3D synchronization
+- 2D: existing PDF.js plan + Takeoff overlays.
+- 3D: R3F Canvas with the same active PDF as the plan plane plus derived solids.
 
-The same stable domain identifiers drive both views:
+Sheets, Condition Properties, and Quantity Worksheet remain in place.
 
-```text
-measurementId
-conditionVersionId
-sheetId
-```
+### Selection
 
-### 2D -> 3D
+2D selection carries the exact `measurementId` into 3D. 3D raycasting returns the mesh `measurementId` through the existing Carez selection path. No matching by color, name, array position, or approximate geometry.
 
-Selecting a 2D measurement must:
+### Sheets
 
-1. set the authoritative active measurement;
-2. select the corresponding Condition;
-3. focus the same record in Properties/worksheet;
-4. highlight the exact 3D mesh when 3D is opened.
+The active sheet is the scene boundary. Switching A4 -> A5 swaps both PDF and solids to A5. Invalid stale selection clears; it must not jump the user back to A4.
 
-### 3D -> 2D
+### View switching preserves
 
-Clicking a 3D object uses Three.js raycasting and the mesh’s stable `measurementId` to select the same authoritative Takeoff measurement.
-
-No selection matching by color, label, order, or fuzzy geometry is permitted.
-
-### Sheet behavior
-
-The active sheet is the scene boundary.
-
-If A4 is active:
-
-- 2D shows A4;
-- 3D shows A4 as the plan plane;
-- only A4 Takeoff solids render.
-
-Changing to A5 swaps both the PDF and the 3D scene to A5 without jumping back because of stale selection.
-
-If the current selection is not valid on the new sheet, selection clears cleanly.
-
-### Mode switching
-
-Switching 2D/3D preserves:
-
-- active sheet;
-- selected measurement/Condition;
-- Properties context;
-- worksheet state;
-- unsaved/saved calculation state;
-- authoritative quantities.
-
-Camera memory is per sheet and is sanitized when restored.
+Active sheet, selected measurement/Condition, Properties context, worksheet state, calculation state, and authoritative quantities.
 
 ### Property editing
 
-In the first accepted R3F replacement, Properties remains the editing surface.
+Properties remains the editing surface in this replacement. Selecting from either view may edit governed elevation/reference, width, depth/thickness/height, profile/type, etc. through existing **Save & recalculate**. The mesh then regenerates from updated domain data. Elevation changes must be visible relative to the fixed PDF plane without camera auto-refit.
 
-The estimator may select an element in either 2D or 3D, then edit governed properties such as elevation/reference, width, depth/thickness/height, profile/type, and other supported Condition inputs through the existing Save & recalculate path.
+## 3. Style A visual target
 
-After recalculation the 3D mesh regenerates from the same source record. An elevation change must move the mesh relative to the PDF datum without auto-refitting the camera and hiding the movement.
+Professional construction takeoff model: clean white plan surface, crisp colored concrete volumes, restrained shading, stable CAD-like navigation.
 
-Direct drag/vertex editing in 3D is deferred.
-
-## 3. Visual target — Style A construction model
-
-The approved visual target is a professional construction takeoff model, not a photorealistic BIM rendering and not translucent markup.
-
-### Scene composition
+Scene:
 
 ```text
-R3F Canvas
-│
-├── Orthographic camera
-├── OrbitControls
-├── restrained ambient/hemisphere light
-├── one soft directional key light
-├── active PDF plan plane
-├── derived Takeoff meshes
-├── crisp mesh edges
-├── selection/hover treatment
-└── subtle contact shadow
+OrthographicCamera
+OrbitControls
+restrained ambient/hemisphere light
+one soft directional light
+active PDF plan plane
+derived Takeoff meshes
+crisp edges
+selection/hover treatment
+subtle contact shadow
 ```
 
-No skybox, terrain, decorative grid, dramatic environment map, textured concrete, or changing sun position.
+No skybox, terrain, decorative grid, environment map, concrete texture, dramatic light, or translucent-markup look.
 
-### PDF plan plane
+### PDF plane
 
-The PDF is the visual anchor and must remain readable at a normal oblique 3D angle.
+The existing drawing workspace already receives `pdfUrl` and tracks active page. The 3D integration must pass that same `pdfUrl` plus active sheet `page_number` to the R3F plan loader.
 
-Requirements:
+Render the page directly through PDF.js, not by screenshotting the existing 2D canvas. Target about 2x displayed resolution with a 4096 px longest-side cap initially, correct color space/filtering, opaque white sheet, exact proportions, thin neutral edge, restrained shadow, and correct texture orientation.
 
-- render the active PDF page directly through PDF.js to a dedicated texture;
-- do not scrape/capture the existing visible 2D canvas;
-- target roughly 2x displayed resolution;
-- cap the initial longest texture dimension at 4096 px;
-- use correct color-space handling and high-quality texture filtering;
-- render on an opaque white rectangular plane;
-- keep page proportions exact;
-- add a thin neutral sheet edge and restrained shadow;
-- use the same page size/calibration mapping as authoritative 2D Takeoff geometry.
+### Meshes
 
-The PDF must not stretch, shear, or become a faded screenshot.
+- Slab: render the existing derived prism polygon/holes and top/bottom elevations.
+- Strip/wall footing: render the existing derived footing prism/profile; do not recompute the raw centerline in R3F.
+- Pad footing: render the existing derived box/prism at its governed dimensions, rotation, and elevation.
 
-### Concrete meshes
+The renderer may not guess steps, slopes, returns, transitions, or offsets.
 
-#### Slab / area-based concrete
+### Materials
 
-```text
-2D polygon + holes
-+ thickness
-+ elevation/reference
--> extruded polygon mesh
-```
+Use existing Condition color. Bright readable tops, darker sides, thin dark edges, opaque normal geometry. Selected mesh gets stronger edge and small brightness/emissive lift; hover gets temporary edge emphasis. No pulsing/glow animation.
 
-The mesh preserves the authoritative plan footprint and holes. Top/bottom elevations come only from governed inputs.
+## 4. Camera
 
-#### Strip / wall footing
+Use an orthographic CAD-style camera.
 
-```text
-2D measured run
-+ governed width/depth/profile
-+ elevation/reference
--> continuous footing mesh
-```
+Home: about 45° yaw, 35–40° above plan, target sheet center, full PDF framed with margin. The PDF sheet—not concrete extents—controls initial framing.
 
-The mesh follows the saved run and existing governed footprint/profile logic. Corners should read as a continuous physical footing rather than disconnected segment boxes.
+Controls: orbit, pan, zoom, Home/Reset, Top, Focus Selected.
 
-No guessed steps, slopes, returns, offsets, or transitions.
+Horizontal orbit may be unrestricted; vertical orbit remains above the plan and stops before an unusable edge-on view. Never flip below the sheet.
 
-#### Pad / column footing
+Camera memory is per sheet and sanitized on restore. Property/elevation changes do not auto-refit.
 
-The existing governed location plus dimensions/orientation produces a box/prism at the authoritative plan coordinate.
-
-### Materials and edges
-
-Each mesh uses its existing Condition color.
-
-- top surfaces: bright/readable near the Condition color;
-- side surfaces: naturally darker from lighting;
-- edges: thin, dark, crisp;
-- selected: stronger edge plus restrained brightness/emissive lift;
-- hovered: temporary edge emphasis only;
-- normal geometry: opaque.
-
-Selected geometry must be obvious within one glance without glow/pulsing effects.
-
-### Camera
-
-Use an orthographic construction/CAD-style camera.
-
-Default Home view:
-
-- approximately 45 degrees yaw;
-- approximately 35–40 degrees elevation above the plan;
-- target the center of the active PDF sheet;
-- frame the complete sheet with comfortable margin.
-
-The PDF sheet, not concrete extents, controls initial framing.
-
-Required interactions:
-
-- orbit;
-- pan;
-- zoom;
-- Home/Reset;
-- Top view;
-- Focus Selected.
-
-Orbit stays above the plan. Horizontal rotation may be unrestricted, but vertical orbit stops before a near-edge-on unusable view and can never flip beneath the PDF plane.
-
-Changing a Condition elevation must not auto-fit or auto-center the camera.
-
-### Camera persistence
-
-Persist only per-sheet camera rotation, zoom, and target/pan state needed to restore a useful view.
-
-On restore:
-
-- clamp to valid construction-view limits;
-- reject/normalize states that put the viewer below the plan;
-- prevent restoring a state where the sheet is effectively lost.
-
-## 4. Component boundaries
-
-The current `TakeoffDerived3DView.tsx` combines camera math, PDF capture, manual projection, SVG face generation, controls, selection, filters, and issues. The replacement must split these responsibilities.
-
-Recommended structure:
+## 5. Component boundaries
 
 ```text
 components/takeoff/3d/
@@ -296,45 +158,18 @@ lib/takeoff/3d/
 └── selection.ts
 ```
 
-### Component responsibilities
+- `Takeoff3DViewport`: integration only; no quantities.
+- `Takeoff3DScene`: Canvas/camera/lights/plan/meshes.
+- `Takeoff3DPlan`: direct PDF.js page -> Three texture/plane.
+- `Takeoff3DSolid`: one `Derived3DSolid`, material/edges/hover/select.
+- `meshGeometry`: pure `Derived3DShape -> THREE.BufferGeometry`.
+- controls/camera hook: navigation and per-sheet memory only.
 
-`Takeoff3DViewport.tsx`
+R3F/WebGL must be client-only and dynamically loaded with SSR disabled (or repo-equivalent) so Next.js server rendering never instantiates browser/WebGL APIs.
 
-- React-facing integration entry point;
-- accepts `scene`, `activeSheetId`, `selectedMeasurementId`, view state, and selection callback;
-- owns no quantity calculations.
+## 6. Dependencies and governance precondition
 
-`Takeoff3DScene.tsx`
-
-- creates Canvas, orthographic camera, lighting, plan, meshes, and camera controls;
-- owns no commercial/quantity logic.
-
-`Takeoff3DPlan.tsx`
-
-- loads/renders only the active PDF page through PDF.js;
-- creates/disposes the Three.js texture and plan plane;
-- never scrapes the 2D canvas.
-
-`Takeoff3DSolid.tsx`
-
-- converts a single existing `Derived3DSolid` to a renderable mesh through `meshGeometry.ts`;
-- handles Condition color, top/side presentation, edges, selection, hover, and click-to-select;
-- does not choose physical dimensions.
-
-`meshGeometry.ts`
-
-- pure conversion from existing `Derived3DShape` to `THREE.BufferGeometry`;
-- no React, no state, no quantity logic;
-- unit-testable in Node where practical.
-
-`Takeoff3DControls.tsx` / `useTakeoff3DCamera.ts`
-
-- own OrbitControls, Home, Top, Focus, limits, and per-sheet camera memory;
-- do not own Takeoff selection or business state.
-
-## 5. Dependencies
-
-The approved renderer stack is limited to:
+Approved new dependencies are limited to:
 
 ```text
 three
@@ -342,19 +177,13 @@ three
 @react-three/drei
 ```
 
-No second UI framework, BIM framework, CAD authoring package, or alternate component system is allowed.
+Use stable versions compatible with current React 19 / Next.js 15 and pin through `pnpm-lock.yaml`. No prerelease unless unavoidable and documented.
 
-### CODEX.md dependency-rule note
+Current `CODEX.md` says no new dependency. Therefore implementation Milestone 0 must first make a narrow governance change allowing dependencies that are explicitly approved by the task/spec, while continuing to prohibit unrelated dependency additions. Do not silently violate `CODEX.md`.
 
-`CODEX.md` currently contains a blanket “no new dependency” execution rule. This approved design explicitly requires the three packages above, so implementation is blocked until the execution plan includes a narrow repository-governance adjustment allowing task-required dependencies that are explicitly approved by the spec/prompt. Do not silently violate `CODEX.md`.
+## 7. Existing state integration
 
-The governance adjustment must remain narrow: no unrelated dependency additions are authorized.
-
-## 6. Integration with existing workstation state
-
-`IntegratedTakeoffConditionWorkspace` already owns the relevant shared state, including active sheet, selected measurement/Condition, view mode, derived scene, and current Condition workflow context.
-
-The R3F viewer plugs into that state rather than introducing another global store.
+`IntegratedTakeoffConditionWorkspace` remains owner of active sheet, selected measurement/Condition, view mode, derived scene, and Condition workflow state. Do not add another global store.
 
 Conceptually:
 
@@ -363,250 +192,113 @@ viewMode === '2d'
   ? <TakeoffDrawingWorkspace ... />
   : <Takeoff3DViewport
       scene={derivedScene}
+      pdfUrl={workspaceProps.pdfUrl}
       activeSheetId={activeSheetId}
+      activePageNumber={activeSheet.page_number}
       selectedMeasurementId={selectedMeasurementId}
       onSelectMeasurement={requestMeasurementSelection}
     />
 ```
 
-Exact prop names may follow current repo conventions, but the boundary is fixed: the viewer consumes existing domain state and emits stable-ID selection events.
+Exact names may follow current repo conventions; stable-ID state ownership is fixed.
 
-## 7. Performance constraints
+## 8. Performance and failure behavior
 
-Initial performance target:
+- one active PDF texture;
+- active-sheet meshes only;
+- rebuild geometry only for relevant geometry/physical-property changes;
+- selection/hover do not rebuild geometry;
+- camera motion avoids React state churn per frame;
+- cap DPR at a practical maximum (initial target 2);
+- dispose textures/geometries/materials;
+- no preloaded 3D scenes for all sheets.
 
-- one active PDF texture at a time;
-- active-sheet Takeoff meshes only;
-- scene geometry rebuild only when relevant geometry/physical properties change;
-- selection changes should not rebuild geometry;
-- hover should not rebuild scene geometry;
-- camera motion must avoid React state churn per frame;
-- dispose replaced Three.js textures/geometries/materials correctly;
-- do not preload 3D scenes for every PDF sheet.
+If one element cannot project, valid siblings still render and Carez explains the exact missing/unsupported input. If WebGL/renderer fails: **3D unavailable — 2D Takeoff and quantities remain available.**
 
-A4 renders when A4 is active; A5 replaces it when A5 becomes active.
+## 9. Migration milestones
 
-## 8. Error behavior
+### Milestone 0 — governance/dependencies
 
-3D must never block normal 2D Takeoff work.
-
-If one element lacks supported physical inputs:
-
-- valid siblings still render;
-- the affected element is identified clearly;
-- Carez states the exact missing/unsupported reason;
-- `Resolve input` focuses the existing Properties field when applicable;
-- 2D geometry and worksheet remain available.
-
-If the renderer itself fails:
-
-> 3D unavailable — 2D Takeoff and quantities remain available.
-
-No Takeoff data is changed or lost.
-
-## 9. Migration strategy
+Adjust `CODEX.md` narrowly, add only the three approved renderer packages, preserve current SVG renderer.
 
 ### Milestone A — R3F foundation
 
-Build in an isolated Codex worktree from current `staging`.
+Client-only Canvas, orthographic camera, direct PDF.js texture plane, Home/Top/orbit/pan/zoom. No concrete yet.
 
-Deliver only:
-
-- R3F Canvas;
-- orthographic camera;
-- PDF.js texture plane;
-- Home/Top/orbit/pan/zoom;
-- clean A4 rendering.
-
-No concrete meshes yet.
-
-Acceptance: the PDF construction viewer alone looks professional and remains readable at the default oblique angle.
+**Gate:** real plan alone is readable, correctly oriented, stable, and professional.
 
 ### Milestone B — physical meshes
 
-Add:
+Slab, strip/wall footing, pad footing, Style A materials/lighting/edges/selection.
 
-- slab/prism rendering;
-- strip/wall footing rendering;
-- pad footing rendering;
-- Style A materials, lighting, edges, selection visuals.
-
-Acceptance: geometry registers exactly over the authoritative 2D locations and reads as physical concrete volume.
+**Gate:** exact registration and clearly physical concrete volume.
 
 ### Milestone C — synchronization
 
-Add/finish:
+2D->3D selection, 3D->2D selection, sheet sync, property-driven regeneration, per-sheet camera memory, partial-model issue disclosure.
 
-- 2D -> 3D selection;
-- 3D -> 2D selection;
-- active-sheet synchronization;
-- property-change mesh regeneration;
-- per-sheet camera memory;
-- unsupported-element disclosure without blocking valid siblings.
-
-Acceptance: the full Issue #41 Parts 1–2 browser workflow passes on a real multi-element sheet.
+**Gate:** Issue #41 Parts 1–2 real-browser workflow passes.
 
 ### Milestone D — legacy retirement
 
-Only after A–C pass browser acceptance:
+Only after A–C browser acceptance: remove SVG renderer/CSS, temporary renderer gate, obsolete renderer-only helpers/tests; final regression and Issue #41 update.
 
-- delete the SVG pseudo-3D renderer and its CSS;
-- remove the temporary internal renderer gate;
-- remove renderer-only obsolete helpers/tests;
-- run final regression and update Issue #41.
+During A–C, an internal developer-only `legacy-svg | r3f` gate may exist for comparison/rollback. It must never be estimator-facing and must be removed in D.
 
-The SVG renderer remains a fallback until R3F has clearly passed the visual and synchronization gates.
+## 10. Testing
 
-## 10. Temporary renderer gate
+### Pure tests
 
-During migration only, support an internal developer renderer choice such as:
+- derived plan coordinates are not re-scaled;
+- PDF plane dimensions equal `worldWidth/worldHeight`;
+- texture orientation matches page top-left/page-down convention;
+- slab polygon/holes -> correct Three geometry;
+- 12 in thickness -> 1.0 ft vertical extrusion;
+- top/bottom/centerline reference -> correct Y range;
+- footing prism/profile -> continuous geometry;
+- pad -> correct dimensions/rotation/elevation.
 
-```text
-legacy-svg
-r3f
-```
+### Identity/camera tests
 
-This must not become an estimator-facing product option.
+- mesh A selects measurement A; mesh B selects B;
+- no name/color/index matching;
+- sheet switch scopes scene and clears stale selection;
+- renderer actions do not mutate source quantity references;
+- Home stays above plan and frames full sheet;
+- camera cannot flip below plan or collapse edge-on;
+- property/elevation change does not trigger refit.
 
-Purpose:
+At each milestone run targeted tests + `pnpm typecheck`. Before acceptance run `pnpm check`. Source/build success is not browser acceptance.
 
-- side-by-side regression comparison;
-- safe rollback;
-- isolate browser defects during migration.
+## 11. Browser visual acceptance
 
-Remove the gate in Milestone D.
+Use a real authenticated staging sheet with at least two supported elements, different Condition colors, and different elevations. Inspect 2D, 3D Home, rotated view, selected slab, selected footing, fixed-camera elevation change, and 3D->2D return.
 
-## 11. Automated testing
+Reject if PDF is blurry/stretched/sheared/flipped, solids are misregistered, geometry looks like translucent markup, camera can get lost/below/edge-on, selection is ambiguous, elevation change auto-refits, or quantities change because 3D rendered/selected.
 
-### Pure geometry tests
+Pass only when plan notes/dimensions remain readable at Home angle, solids sit exactly over source 2D locations, Condition colors are recognizable, thickness/depth reads clearly, elevation differences are visible, selection is obvious, and navigation feels like a restrained construction/CAD viewer.
 
-Test without React/WebGL where practical:
+## 12. Issue #41 acceptance workflow
 
-- normalized PDF coordinate -> same calibrated plan coordinate used by 2D;
-- slab polygon/holes -> correct vertices;
-- 12 in thickness -> exactly 1.0 ft extrusion;
-- governed elevation/reference -> correct top/bottom Y;
-- footing run + width/profile -> correct continuous footprint/extrusion;
-- pad location/dimensions/orientation -> correct box transform.
+1. Open real sheet in 2D and select an element.
+2. Switch to 3D; same element selected and all supported active-sheet elements render.
+3. Click another 3D mesh; exact 2D/Properties/worksheet record changes.
+4. Return to 2D; exact source measurement remains selected.
+5. Change sheets; both views follow without stale jump-back.
+6. Edit governed property/elevation and Save & recalculate.
+7. Mesh regenerates; authoritative 2D geometry and server/domain quantities remain intact.
+8. Camera does not recenter after elevation change.
+9. Unsupported elements are disclosed without blocking valid siblings.
+10. Switching views/selecting meshes does not change worksheet quantities.
 
-### Identity/synchronization tests
+## 13. Execution workflow
 
-Verify stable ID mapping:
+After this written spec is approved, create the detailed implementation plan with Superpowers `writing-plans`, then execute milestone-by-milestone in an isolated Codex worktree from current `staging`. Use GPT-6 Astra for graphics-heavy implementation/visual judgment, TDD for pure geometry/camera/selection behavior, systematic debugging for registration/rendering defects, verification-before-completion, and code review before promotion.
 
-- mesh A selects measurement A;
-- mesh B selects measurement B;
-- no color/name/index matching;
-- sheet change updates scene scope;
-- invalid stale selection clears cleanly;
-- source quantity references are not mutated by renderer actions.
+## 14. Deferred direct 3D editing
 
-### Camera tests
+Move/reshape/create operations are not part of this replacement. A later design may route 3D gestures through the same validated Carez Takeoff commands used by 2D, but it must first explicitly update the governing ADR/CODEX verification-only contract.
 
-Test pure constraint utilities where practical:
-
-- Home camera stays above plan;
-- minimum pitch prevents unusable edge-on view;
-- camera cannot flip below plan;
-- Top is exact plan view;
-- Home frames full sheet;
-- elevation/property change does not trigger automatic camera refit.
-
-### Existing repo validation
-
-At each milestone run targeted tests plus `pnpm typecheck`. Before acceptance run `pnpm check` because this is a broad/high-risk renderer replacement.
-
-Source/build success is not browser acceptance.
-
-## 12. Browser/visual acceptance
-
-The R3F viewer does not pass because it compiles.
-
-Use a real authenticated staging Takeoff sheet containing at least two supported elements, different Condition colors, and different elevations.
-
-Capture/inspect at minimum:
-
-- 2D active sheet;
-- 3D Home;
-- 3D rotated;
-- selected slab;
-- selected footing;
-- changed elevation with fixed camera;
-- 3D -> 2D return state.
-
-Hard rejection criteria:
-
-- blurry or unreadable PDF;
-- stretched/sheared plan;
-- concrete misregistered from its 2D footprint/run;
-- translucent-markup appearance;
-- camera can get lost, flip under, or collapse edge-on;
-- ambiguous selection;
-- property/elevation change silently refits the camera;
-- quantities change because 3D rendered or was selected;
-- scene looks like floating SVG polygons rather than a construction takeoff model.
-
-Passing visual criteria:
-
-- primary PDF notes/dimensions remain visibly readable at Home angle;
-- concrete sits exactly over the source 2D Takeoff;
-- Condition colors remain recognizable;
-- thickness/depth reads immediately from shading/edges;
-- elevation differences are visible relative to the PDF plane;
-- selection is obvious within one glance;
-- navigation behaves like a restrained construction/CAD viewer;
-- overall result matches the approved Style A intent: clean white plan surface plus crisp colored concrete volumes.
-
-## 13. Issue #41 acceptance workflow
-
-A browser pass must demonstrate:
-
-1. Open a real sheet in 2D.
-2. Select one Takeoff element.
-3. Switch to 3D; the same element is selected.
-4. All other supported Takeoff elements on the active sheet render automatically.
-5. Click a different object in 3D; exact 2D/Properties/worksheet selection changes to that measurement.
-6. Return to 2D; exact source measurement remains selected.
-7. Change sheets; both views follow the new sheet without stale-selection jump-back.
-8. Change a governed elevation/reference or dimension and Save & recalculate.
-9. Confirm the corresponding mesh regenerates while authoritative 2D plan geometry and server/domain quantity authority remain intact.
-10. Confirm camera does not automatically recenter after an elevation change.
-11. Confirm unsupported/incomplete elements are disclosed without blocking valid siblings.
-12. Confirm switching views or selecting 3D objects does not change worksheet quantities.
-
-## 14. Execution workflow
-
-Implementation should be handed to Codex in an isolated worktree and executed milestone-by-milestone.
-
-Recommended model/process:
-
-- GPT-6 Astra for the visual/graphics-heavy implementation and browser judgment;
-- Superpowers `using-git-worktrees` before implementation;
-- Superpowers `writing-plans` after this written spec is approved;
-- Superpowers `test-driven-development` for renderer utilities/behavior changes;
-- Superpowers `systematic-debugging` for coordinate/camera/rendering defects;
-- Superpowers `verification-before-completion` before any completion claim;
-- code review before merge/promotion.
-
-Codex must follow current `CODEX.md` read-scope discipline: start from the implementation-plan files and direct dependencies rather than broad repository scans.
-
-## 15. Deferred follow-on
-
-After Milestones A–D are accepted, a separate design may add direct 3D authoring/editing that writes through the same authoritative Carez Takeoff commands.
-
-That follow-on may include:
-
-- move existing supported geometry;
-- edit endpoints/vertices/locations;
-- create a supported Takeoff element from a 3D work plane;
-- write back the same normalized measurement geometry 2D would write;
-- use the normal recalculation/history/versioning/RLS/lineage path.
-
-It must not turn the viewer into freeform BIM modeling or introduce mesh-derived quantity authority.
-
-## Decision summary
-
-The approved architectural rule is:
+## Decision
 
 > **Carez owns the Takeoff. Three.js only renders it.**
-
-The new renderer may display, select, orbit around, and later provide an editing interface to Carez Takeoff elements, but it never becomes an independent source of geometry quantity truth.
