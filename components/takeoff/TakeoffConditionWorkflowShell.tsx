@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useState,type MouseEvent} from 'react';
+import {useEffect,useState} from 'react';
 import {PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {ConditionDeletionManager} from './ConditionDeletionManager';
@@ -27,19 +27,7 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
     return()=>window.removeEventListener('carez:open-conditions',openConditions);
   },[]);
 
-  const syncActiveSheet=(event:MouseEvent<HTMLDivElement>)=>{
-    const target=event.target instanceof Element?event.target:null;
-    const button=target?.closest('button');
-    const sheetNavigator=button?.closest('aside');
-    if(!button||!sheetNavigator?.querySelector('button[title="Hide sheets"]'))return;
-    const pageNumber=Number(button.querySelector('span')?.textContent?.trim());
-    if(!Number.isInteger(pageNumber))return;
-    const sheet=(workspaceProps.initialSheets||[]).find((entry:any)=>Number(entry.page_number)===pageNumber);
-    if(!sheet?.id)return;
-    window.dispatchEvent(new CustomEvent('carez:takeoff-sheet-change',{detail:{sheetId:String(sheet.id)}}));
-  };
-
-  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'} onClickCapture={syncActiveSheet}>
+  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData}/>
     <ConditionDeletionManager setId={setId} locked={Boolean(workspaceProps.locked)} conditions={conditionData?.conditions||[]}/>
     <Button
