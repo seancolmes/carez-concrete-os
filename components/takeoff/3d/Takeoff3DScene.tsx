@@ -2,12 +2,14 @@
 
 import { useEffect, useState, type RefObject } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import type { Derived3DSheetPlane } from '@/lib/takeoff/conditions/derived3d/contracts';
+import { ContactShadows } from '@react-three/drei';
+import type { Derived3DIssue, Derived3DSheetPlane, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d/contracts';
 import type { Takeoff3DCameraMemory } from '@/lib/takeoff/3d/camera';
 import { sheetPlaneFrame } from '@/lib/takeoff/3d/coordinates';
 import { Takeoff3DPlan } from './Takeoff3DPlan';
 import { Takeoff3DControls, type Takeoff3DCameraActions } from './Takeoff3DControls';
 import { Takeoff3DUnavailable } from './Takeoff3DErrorBoundary';
+import { Takeoff3DSolid } from './Takeoff3DSolid';
 
 function ContextLossGuard() {
   const gl = useThree(state => state.gl);
@@ -26,9 +28,11 @@ function ActivePlan({ plane, pdfUrl, pageNumber }: { plane: Derived3DSheetPlane;
   return <Takeoff3DPlan plane={plane} pdfUrl={pdfUrl} pageNumber={pageNumber} viewportSize={size} />;
 }
 
-export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onRetry }: {
+export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onRetry, solids, selectedMeasurementId, onSelectSolid, onMeshIssue }: {
   plane: Derived3DSheetPlane; pdfUrl: string; pageNumber: number;
   memory: Map<string, Takeoff3DCameraMemory>; actions: RefObject<Takeoff3DCameraActions | null>; onRetry: () => void;
+  solids: Derived3DSolid[]; selectedMeasurementId: string | null; onSelectSolid: (solid: Derived3DSolid) => void;
+  onMeshIssue: (solidId: string, issue: Derived3DIssue | null) => void;
 }) {
   const frame = sheetPlaneFrame(plane);
   const far = Math.max(10000, Math.hypot(frame.width, frame.height) * 6);
@@ -39,6 +43,10 @@ export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onR
     <directionalLight position={[40, 80, -30]} intensity={1.15} />
     <ContextLossGuard />
     <ActivePlan key={`${plane.sheetId}:${pdfUrl}:${pageNumber}`} plane={plane} pdfUrl={pdfUrl} pageNumber={pageNumber} />
+    {solids.map(solid => <Takeoff3DSolid key={solid.id} solid={solid} selected={solid.measurementId === selectedMeasurementId}
+      onSelect={onSelectSolid} onIssue={onMeshIssue} />)}
+    <ContactShadows key={solids.map(solid => solid.geometryKey).join('|')} position={[frame.center[0], 0, frame.center[2]]}
+      scale={[frame.width, frame.height]} opacity={0.12} blur={0.6} near={0.01} far={10} frames={1} resolution={512} depthWrite={false} />
     <Takeoff3DControls sheetId={plane.sheetId} width={frame.width} height={frame.height} memory={memory} actions={actions} />
   </Canvas>;
 }

@@ -28,7 +28,8 @@ test('R3F foundation uses an orthographic Canvas and a direct PDF reference', ()
   assert.match(viewport, /activeSheetId/);
   assert.match(controls, /maxPolarAngle=\{MAX_POLAR\}/);
   assert.match(controls, /screenSpacePanning=\{false\}/);
-  assert.doesNotMatch(scene, /Takeoff3DSolid|meshGeometry/);
+  assert.match(scene, /<Takeoff3DSolid/);
+  assert.doesNotMatch(scene, /buildTakeoffMeshGeometry/);
 });
 
 test('Condition issues stay below permanent tabs and are compact/collapsible', () => {
