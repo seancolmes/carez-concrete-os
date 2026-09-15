@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useState} from 'react';
+import {useEffect,useState,type MouseEvent} from 'react';
 import {PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {ConditionDeletionManager} from './ConditionDeletionManager';
@@ -27,7 +27,19 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
     return()=>window.removeEventListener('carez:open-conditions',openConditions);
   },[]);
 
-  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
+  const settleSplitView=(event:MouseEvent<HTMLDivElement>)=>{
+    const target=event.target instanceof Element?event.target:null;
+    const button=target?.closest('button[role="tab"]');
+    const viewTabs=button?.closest('[role="tablist"][aria-label="Takeoff view mode"]');
+    if(!button||!viewTabs||button.textContent?.trim()!=='Split')return;
+    const root=event.currentTarget;
+    window.requestAnimationFrame(()=>window.requestAnimationFrame(()=>{
+      root.querySelector<HTMLButtonElement>('button[title^="Fit page"]')?.click();
+      root.querySelector<HTMLButtonElement>('button[aria-label="Reset 3D view and reference elevation"]')?.click();
+    }));
+  };
+
+  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'} onClickCapture={settleSplitView}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData}/>
     <ConditionDeletionManager setId={setId} locked={Boolean(workspaceProps.locked)} conditions={conditionData?.conditions||[]}/>
     <Button
