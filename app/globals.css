@@ -106,26 +106,6 @@
   ::selection { background: color-mix(in oklch, var(--foreground) 18%, transparent); }
 }
 
-@layer components {
-  .carez-page { @apply mx-auto w-full max-w-[1600px] space-y-5; }
-  .carez-page-header { @apply flex flex-col gap-3 border-b pb-4 md:flex-row md:items-end md:justify-between; }
-  .carez-page-title { @apply text-2xl font-semibold tracking-tight text-foreground; }
-  .carez-page-description { @apply mt-1 max-w-3xl text-sm leading-5 text-muted-foreground; }
-  .carez-section { @apply space-y-3; }
-  .carez-section-header { @apply flex flex-wrap items-end justify-between gap-3; }
-  .carez-section-title { @apply text-base font-semibold tracking-tight; }
-  .carez-section-description { @apply mt-0.5 text-sm text-muted-foreground; }
-  .carez-kicker { @apply mb-1 text-xs font-medium text-muted-foreground; }
-  .carez-data-number { @apply font-mono tabular-nums tracking-tight; }
-  .carez-toolbar { @apply flex min-h-9 flex-wrap items-center gap-1 border-b bg-background px-2 py-1; }
-}
-
-@keyframes carez-indeterminate {
-  0% { transform: translateX(-130%); }
-  50% { transform: translateX(120%); }
-  100% { transform: translateX(310%); }
-}
-
 .carez-build-identity {
   position: fixed;
   right: 10px;
