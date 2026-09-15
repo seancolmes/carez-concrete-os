@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
+const workspaceStyles = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
 const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
@@ -41,11 +42,12 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
   assert.match(workstation, /primaryAssignment=.*focusMeasurement\(primaryAssignment\?\.measurement_id\|\|null\)/);
 });
 
-test('Split view refits both drawing and 3D after the viewport changes size', () => {
-  assert.ok(workflowShell.includes('aria-label="Takeoff view mode"'));
-  assert.ok(workflowShell.includes('button[title^="Fit page"]'));
-  assert.ok(workflowShell.includes('button[aria-label="Reset 3D view and reference elevation"]'));
-  assert.ok(workflowShell.includes('window.requestAnimationFrame(()=>window.requestAnimationFrame'));
+test('3D toggles in the current drawing viewport and Split is not exposed', () => {
+  assert.match(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
+  assert.match(workspaceStyles, /\.derivedOverlay3d,\.derivedOverlaySplit\{left:260px\}/);
+  assert.match(workspaceStyles, /data-view-mode="split"[^\n]*section\{width:100%;min-width:0\}/);
+  assert.doesNotMatch(workflowShell, /settleSplitView/);
+  assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
 });
 
 test('3D elevation reference exposes governed choices required by projection', () => {
