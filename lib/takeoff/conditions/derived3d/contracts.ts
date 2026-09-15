@@ -9,11 +9,17 @@ export type Derived3DSourceReference = {
   templateVersionId: string | null; archetypeVersionId: string | null; measurementRevision: string | null;
   conditionRevision: string | null; sheetId: string; sheetRevision: string | null; calibrationKey: string;
 };
+export type Derived3DVerificationRelations = {
+  connectionGroup: string | null; connectionToleranceFt: number | null;
+  elevationGroup: string | null; elevationToleranceFt: number | null;
+  supportGroup: string | null; supportToleranceFt: number | null;
+};
 export type Derived3DSolid = Derived3DSourceReference & {
   id: string; geometryKey: string; conditionCode: string; conditionName: string; archetypeKey: ConditionArchetypeKey;
   measurementName: string; zone: string | null; color: string; sourceQuantityKey: string; shape: Derived3DShape;
+  verification: Derived3DVerificationRelations;
 };
-export type Derived3DIssueCode = '3d_input_required' | 'invalid_geometry' | 'cutout_inconsistency' | 'potential_overlap' | 'geometric_overlap' | 'duplicate_placement' | 'unsupported_projection' | 'quantity_mismatch' | 'check_limit';
+export type Derived3DIssueCode = '3d_input_required' | 'invalid_geometry' | 'cutout_inconsistency' | 'potential_overlap' | 'geometric_overlap' | 'duplicate_placement' | 'unsupported_projection' | 'quantity_mismatch' | 'check_limit' | 'elevation_conflict' | 'floating_element' | 'gap_disconnection';
 export type Derived3DIssue = {
   id: string; code: Derived3DIssueCode; severity: 'hold' | 'warning'; conditionVersionId: string;
   measurementId: string | null; sheetId: string | null; message: string; relatedSolidIds?: string[];
