@@ -3,7 +3,7 @@ import { linearFootprint } from '../physicalGeometry.ts';
 import { conditionArchetype } from './catalog.ts';
 import { calibrationScale, elevationRange, finiteNumber, positiveNumber, record, stableDerived3DHash, toPlanPoint } from './derived3d/coordinates.ts';
 import { GEOMETRY_EPS_FT, spatialChecks, validateFootprint } from './derived3d/checks.ts';
-import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeometryCache, Derived3DIssue, Derived3DScene, Derived3DShape, Derived3DSolid } from './derived3d/contracts.ts';
+import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeometryCache, Derived3DIssue, Derived3DScene, Derived3DSheetPlane, Derived3DShape, Derived3DSolid } from './derived3d/contracts.ts';
 export type * from './derived3d/contracts.ts';
 export { stableDerived3DHash } from './derived3d/coordinates.ts';
 export const PROJECTION_VERSION = 'concrete-projection-v2';
@@ -23,6 +23,30 @@ function geometryFromSource(value: unknown): DrawingGeometry {
   return geometry;
 }
 
+function buildSheetPlanes(input: BuildDerived3DSceneInput): Record<string, Derived3DSheetPlane> {
+  const measurementScaleBySheet = new Map<string, number>();
+  for (const measurement of input.measurements) {
+    if (!measurement.sheet_id || measurementScaleBySheet.has(measurement.sheet_id)) continue;
+    const scale = calibrationScale(measurement.calibration);
+    if (scale) measurementScaleBySheet.set(measurement.sheet_id, scale);
+  }
+  const planes: Record<string, Derived3DSheetPlane> = {};
+  for (const sheet of input.sheets) {
+    const pageWidth = positiveNumber(sheet.page_width), pageHeight = positiveNumber(sheet.page_height);
+    if (!pageWidth || !pageHeight) continue;
+    const scaleFtPerPdfUnit = calibrationScale(sheet.calibration) || measurementScaleBySheet.get(sheet.id) || null;
+    planes[sheet.id] = {
+      sheetId: sheet.id,
+      pageWidth,
+      pageHeight,
+      scaleFtPerPdfUnit,
+      worldWidth: scaleFtPerPdfUnit ? pageWidth * scaleFtPerPdfUnit : null,
+      worldHeight: scaleFtPerPdfUnit ? pageHeight * scaleFtPerPdfUnit : null,
+    };
+  }
+  return planes;
+}
+
 export function projectionCapability(condition: Derived3DConditionSource): { supported: boolean; reason?: string } {
   if (!['strip_wall_footing', 'slab_on_grade', 'pad_column_footing'].includes(condition.archetypeKey)) return { supported: false, reason: 'This Condition family has no supported projection adapter.' };
   const version = condition.contractVersion ?? 1;
@@ -36,12 +60,13 @@ export function buildDerived3DScene(input: BuildDerived3DSceneInput, cache?: Der
   catch {
     // Projection failure must never take down the authoritative drawing or worksheet.
     cache?.clear();
-    return { scopeKey: input.scopeKey || 'sheet-local', hash: 'unavailable', state: input.state || 'saved', unavailable: true, solids: [], issues: [], sourceQuantities: {}, coverage: { requested: input.conditions.length, projected: 0, held: input.conditions.length, checksComplete: false } };
+    return { scopeKey: input.scopeKey || 'sheet-local', hash: 'unavailable', state: input.state || 'saved', unavailable: true, solids: [], issues: [], sourceQuantities: {}, sheetPlanes: buildSheetPlanes(input), coverage: { requested: input.conditions.length, projected: 0, held: input.conditions.length, checksComplete: false } };
   }
 }
 function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometryCache): Derived3DScene {
   const measurements = new Map(input.measurements.map(m => [m.id, m]));
   const sheets = new Map(input.sheets.map(s => [s.id, s]));
+  const sheetPlanes = buildSheetPlanes(input);
   const solids: Derived3DSolid[] = [], issues: Derived3DIssue[] = [];
   const sourceQuantities: Derived3DScene['sourceQuantities'] = {};
   const scopeKey = input.scopeKey || 'sheet-local';
@@ -145,7 +170,7 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
   if (cache) for (const key of cache.keys()) if (!usedKeys.has(key)) cache.delete(key);
   const checked = spatialChecks(solids);
   issues.push(...checked.issues);
-  return { scopeKey, state: input.state || 'saved', sourceQuantities, solids, issues,
+  return { scopeKey, state: input.state || 'saved', sourceQuantities, sheetPlanes, solids, issues,
     hash: stableDerived3DHash([scopeKey, solids.map(s => [s.id, s.geometryKey]), issues.map(i => i.id)]),
     coverage: { requested, projected, held: requested - projected, checksComplete: checked.complete } };
 }
