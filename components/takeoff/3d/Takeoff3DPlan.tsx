@@ -51,7 +51,11 @@ export function Takeoff3DPlan({ pdfUrl, pageNumber, plane, viewportSize }: {
     </mesh>
     <mesh position={frame.center} rotation={frame.rotation} renderOrder={-20}>
       <planeGeometry args={[frame.width, frame.height]} />
-      <meshBasicMaterial map={texture} color="#ffffff" side={THREE.DoubleSide} depthWrite={false} depthTest={false} transparent={false} toneMapped={false} />
+      {texture ? (
+        <meshBasicMaterial key={texture.uuid} map={texture} color="#ffffff" side={THREE.DoubleSide} depthWrite={false} depthTest={false} transparent={false} toneMapped={false} />
+      ) : (
+        <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} depthWrite={false} depthTest={false} transparent={false} toneMapped={false} />
+      )}
       <Edges color="#b5bac2" renderOrder={-19} depthWrite={false} depthTest={false} />
     </mesh>
     {!texture && <Html center position={frame.center}><span role="status" style={{ color: '#111827', whiteSpace: 'nowrap' }}>Loading plan…</span></Html>}
