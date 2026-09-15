@@ -7,6 +7,7 @@ const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowS
 const workspaceStyles = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
+const viewerStyles = readFileSync('components/takeoff/TakeoffDerived3DView.module.css', 'utf8');
 const derived3d = readFileSync('lib/takeoff/conditions/derived3d.ts', 'utf8');
 const coordinates = readFileSync('lib/takeoff/conditions/derived3d/coordinates.ts', 'utf8');
 const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
@@ -61,10 +62,24 @@ test('3D uses the rendered PDF sheet as the spatial reference plane', () => {
   assert.match(viewer, /querySelector<HTMLCanvasElement>\('canvas'\)/);
   assert.match(viewer, /sheetPlane\.worldWidth/);
   assert.match(viewer, /sheetPlane\.worldHeight/);
-  assert.match(viewer, /<image href=\{planImageUrl\}/);
+  assert.match(viewer, /<image className=\{styles\.planImage\} href=\{planImageUrl\}/);
   assert.match(viewer, /PLAN_DATUM_ELEVATION = 0/);
   assert.match(viewer, /frameForScene\(sheetSolids, sheetPlane\)/);
   assert.doesNotMatch(viewer, /patternUnits=/);
+});
+
+test('3D viewer constrains orbit and keeps the plan and solids legible', () => {
+  assert.match(viewer, /MIN_CAMERA_PITCH = -1\.38/);
+  assert.match(viewer, /MAX_CAMERA_PITCH = -0\.32/);
+  assert.match(viewer, /normalizeCamera/);
+  assert.match(viewer, /MAX_PLAN_TEXTURE_DIMENSION = 3072/);
+  assert.match(viewer, /imageSmoothingQuality = 'high'/);
+  assert.match(viewer, /opacity="0\.98"/);
+  assert.match(viewer, /styles\.faceSelected/);
+  assert.match(viewer, /<summary><SlidersHorizontal size=\{14\}\/?>Filters<\/summary>/);
+  assert.match(viewerStyles, /\.sheetPlane\{[^}]*drop-shadow/);
+  assert.match(viewerStyles, /\.filtersPanel\{/);
+  assert.match(viewerStyles, /\.faceSelected\{/);
 });
 
 test('3D elevation reference exposes governed choices required by projection', () => {
