@@ -20,7 +20,8 @@ test('P0.5E migration ledger is tenant-scoped, classified, auditable, and idempo
 
 test('legacy migration classification is deterministic for the four governed outcomes', async () => {
   assert.equal(existsSync(classifierPath), true, 'P0.5E legacy migration classifier must exist');
-  const { classifyLegacyMigrationCandidate } = await import('../lib/takeoff/conditions/legacyMigration.ts');
+  const classifierModulePath = '../lib/takeoff/conditions/' + 'legacyMigration.ts';
+  const { classifyLegacyMigrationCandidate } = await import(classifierModulePath);
 
   assert.equal(classifyLegacyMigrationCandidate({
     referencedByIssuedHistory: true,
