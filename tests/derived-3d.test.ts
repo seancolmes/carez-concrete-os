@@ -209,7 +209,7 @@ test('unsupported contracts, segment overrides and source discrepancies are expl
 });
 
 test('modern strip contracts project governed trapezoid profiles', () => {
-  for (const contractVersion of [2, 3]) {
+  for (const contractVersion of [2, 3, 4, 5]) {
     const scene = buildDerived3DScene({ conditions: [{ ...slabCondition(), archetypeKey: 'strip_wall_footing', contractVersion, engineKey: 'concrete_condition_v1', planFacts: { width_ft: 4, depth_ft: 2 }, concreteProfile: { enabled: true, profile: 'trapezoid', topWidthFt: 2 }, roles: [{ roleKey: 'run', measurementId: 'strip' }] }], measurements: [{ id: 'strip', sheet_id: sheet.id, name: 'Strip', raw_quantity: 10, raw_unit: 'LF', geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.1 }] } }], sheets: [sheet] });
     assert.equal(scene.issues.length, 0);
     const shape = scene.solids[0].shape;
@@ -220,4 +220,47 @@ test('modern strip contracts project governed trapezoid profiles', () => {
       assert.equal(Math.max(...shape.topOuter!.map(p => p.z)) - Math.min(...shape.topOuter!.map(p => p.z)), 2);
     }
   }
+});
+
+test('strip footing v5 projects from 2D geometry while preserving authoritative LF', () => {
+  const scene = buildDerived3DScene({
+    conditions: [{
+      conditionId: 'condition-strip-v5', conditionVersionId: 'version-strip-v5', code: 'FTG-V5', name: '3D Test Strip Footing',
+      archetypeKey: 'strip_wall_footing', contractVersion: 5, engineKey: 'concrete_condition_v1', color: '#34d399',
+      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular' },
+      drawingInputs: { elevation_ft: 0, elevation_reference: 'top' }, roles: [{ roleKey: 'run', measurementId: 'measurement-strip-v5' }],
+    }],
+    measurements: [{
+      id: 'measurement-strip-v5', sheet_id: sheet.id, name: '3D Test Strip Footing', raw_quantity: 17.19, raw_unit: 'LF',
+      geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.1 }, { x: 0.2, y: 0.18 }] },
+    }],
+    sheets: [sheet],
+  });
+
+  assert.equal(scene.issues.length, 0);
+  assert.equal(scene.solids.length, 1);
+  assert.equal(scene.solids[0].shape.kind, 'prism');
+  assert.deepEqual(Object.values(scene.sourceQuantities), [{ measurementId: 'measurement-strip-v5', value: 17.19, unit: 'LF', revision: null }]);
+  assert.equal('volume' in scene.solids[0], false);
+  assert.equal('sourceQuantity' in scene.solids[0], false);
+});
+
+test('strip footing v5 still holds unsupported step geometry instead of inventing a solid', () => {
+  const scene = buildDerived3DScene({
+    conditions: [{
+      conditionId: 'condition-strip-v5-step', conditionVersionId: 'version-strip-v5-step', code: 'FTG-V5-STEP', name: 'Stepped Strip Footing',
+      archetypeKey: 'strip_wall_footing', contractVersion: 5, engineKey: 'concrete_condition_v1', color: '#34d399',
+      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular' },
+      drawingInputs: { elevation_ft: 0, elevation_reference: 'top' }, roles: [{ roleKey: 'run', measurementId: 'measurement-strip-v5-step' }],
+    }],
+    measurements: [{
+      id: 'measurement-strip-v5-step', sheet_id: sheet.id, name: 'Stepped Strip Footing', raw_quantity: 20, raw_unit: 'LF',
+      geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.3, y: 0.1 }], steps: [{ at: 0.5 }] },
+    }],
+    sheets: [sheet],
+  });
+
+  assert.equal(scene.solids.length, 0);
+  assert.equal(scene.issues[0].code, 'unsupported_projection');
+  assert.match(scene.issues[0].message, /segment or instance overrides/i);
 });
