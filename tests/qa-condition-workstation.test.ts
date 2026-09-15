@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
@@ -16,6 +17,14 @@ const r3fPlan = readFileSync('components/takeoff/3d/Takeoff3DPlan.tsx', 'utf8');
 const r3fScene = readFileSync('components/takeoff/3d/Takeoff3DScene.tsx', 'utf8');
 const r3fControls = readFileSync('components/takeoff/3d/Takeoff3DControls.tsx', 'utf8');
 const r3fToolbar = readFileSync('components/takeoff/3d/Takeoff3DToolbar.tsx', 'utf8');
+
+function sourceFiles(root: string): string[] {
+  return readdirSync(root, { withFileTypes: true }).flatMap(entry => {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.(?:ts|tsx|js|jsx|mjs|cjs|css|md|json)$/.test(entry.name) ? [path] : [];
+  });
+}
 
 test('R3F foundation uses an orthographic Canvas and a direct PDF reference', () => {
   assert.match(r3fScene, /<Canvas/);
@@ -105,6 +114,18 @@ test('R3F is the only 3D renderer and remains client-only', () => {
   assert.match(workstation, /cameraMemory=\{r3fMemory\.current\}/);
   assert.match(workstation, /selectedMeasurementId=\{selectedMeasurementId\}/);
   assert.match(workstation, /onSelectSolid=\{selectDerivedSolid\}/);
+});
+
+test('retired 3D migration markers are absent from active source and tests', () => {
+  const markers = [
+    ['Takeoff', 'Derived3DView'].join(''),
+    ['derived', 'Overlay', 'Split'].join(''),
+    ['NEXT', 'PUBLIC', 'CAREZ', '3D', 'RENDERER'].join('_'),
+  ];
+  for (const path of ['components', 'tests', 'lib'].flatMap(sourceFiles)) {
+    const content = readFileSync(path, 'utf8');
+    for (const marker of markers) assert.equal(content.includes(marker), false, `${marker} remains in ${path}`);
+  }
 });
 
 test('3D uses the rendered PDF sheet as the spatial reference plane', () => {
