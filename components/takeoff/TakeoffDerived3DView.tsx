@@ -1,8 +1,8 @@
 'use client';
 
-import { Component, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, Eye, EyeOff, Focus, RotateCcw } from 'lucide-react';
-import type { Derived3DIssue, Derived3DPlanPoint, Derived3DScene, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d';
+import type { Derived3DIssue, Derived3DPlanPoint, Derived3DScene, Derived3DSheetPlane, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d';
 import styles from './TakeoffDerived3DView.module.css';
 import { Button } from '@/components/ui/button';
 import { formatArchitecturalLength } from '@/lib/takeoff/lengthFormat';
@@ -36,7 +36,14 @@ type RenderFace = {
   top: boolean;
 };
 
+type SheetProjection = {
+  matrix: string;
+  corners: ProjectedPoint[];
+};
+
 const DEFAULT_CAMERA: Camera = { yaw: -Math.PI / 4, pitch: -0.58, zoom: 1, panX: 0, panY: 0 };
+const PLAN_DATUM_ELEVATION = 0;
+const MAX_PLAN_TEXTURE_DIMENSION = 2048;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 function boxCorners(solid: Derived3DSolid): Point3[] {
@@ -84,26 +91,32 @@ function frameForSolids(solids: Derived3DSolid[], preferredReference?: number | 
   const center = sceneCenter(solids);
   const points = solids.flatMap(solidPoints);
   const fitRadius = Math.max(1, ...points.map(point => Math.hypot(point.x - center.x, point.y - center.y, point.z - center.z)));
-  const referenceElevation = Number.isFinite(preferredReference) ? Number(preferredReference) : (solids[0]?.shape.top ?? center.y);
+  const referenceElevation = Number.isFinite(preferredReference) ? Number(preferredReference) : PLAN_DATUM_ELEVATION;
   return { center, fitRadius, referenceElevation };
 }
 
-function referencePlan(solids: Derived3DSolid[], center: Point3) {
-  const points = solids.flatMap(solid => solidPoints(solid).map(point => ({ x: point.x, z: point.z })));
-  const minX = points.length ? Math.min(...points.map(point => point.x)) : center.x - 1;
-  const maxX = points.length ? Math.max(...points.map(point => point.x)) : center.x + 1;
-  const minZ = points.length ? Math.min(...points.map(point => point.z)) : center.z - 1;
-  const maxZ = points.length ? Math.max(...points.map(point => point.z)) : center.z + 1;
-  const padding = Math.max(1, Math.max(maxX - minX, maxZ - minZ) * 0.08);
+function sheetPlanePoints(plane: Derived3DSheetPlane | null | undefined): Point3[] {
+  if (!plane?.worldWidth || !plane.worldHeight) return [];
+  return [
+    { x: 0, y: PLAN_DATUM_ELEVATION, z: 0 },
+    { x: plane.worldWidth, y: PLAN_DATUM_ELEVATION, z: 0 },
+    { x: plane.worldWidth, y: PLAN_DATUM_ELEVATION, z: plane.worldHeight },
+    { x: 0, y: PLAN_DATUM_ELEVATION, z: plane.worldHeight },
+  ];
+}
+
+function frameForScene(solids: Derived3DSolid[], plane: Derived3DSheetPlane | null | undefined): ViewFrame {
+  const points = [...sheetPlanePoints(plane), ...solids.flatMap(solidPoints)];
+  if (!points.length) return { center: { x: 0, y: 0, z: 0 }, fitRadius: 1, referenceElevation: PLAN_DATUM_ELEVATION };
+  const center = {
+    x: (Math.min(...points.map(point => point.x)) + Math.max(...points.map(point => point.x))) / 2,
+    y: (Math.min(...points.map(point => point.y)) + Math.max(...points.map(point => point.y))) / 2,
+    z: (Math.min(...points.map(point => point.z)) + Math.max(...points.map(point => point.z))) / 2,
+  };
   return {
-    ring: [
-      { x: minX - padding, z: minZ - padding },
-      { x: maxX + padding, z: minZ - padding },
-      { x: maxX + padding, z: maxZ + padding },
-      { x: minX - padding, z: maxZ + padding },
-    ],
-    xAxis: [{ x: minX - padding, z: center.z }, { x: maxX + padding, z: center.z }],
-    zAxis: [{ x: center.x, z: minZ - padding }, { x: center.x, z: maxZ + padding }],
+    center,
+    fitRadius: Math.max(1, ...points.map(point => Math.hypot(point.x - center.x, point.y - center.y, point.z - center.z))),
+    referenceElevation: PLAN_DATUM_ELEVATION,
   };
 }
 
@@ -207,7 +220,8 @@ export class TakeoffDerived3DBoundary extends Component<{ children: ReactNode },
 export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, selectedConditionVersionId, selectedMeasurementId, onSelectSolid, onJumpToIssue, viewState, onViewStateChange, memory }: Props) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<Drag>(null);
-  const patternId = useId();
+  const planImageUrlRef = useRef<string | null>(null);
+  const [planImageUrl, setPlanImageUrl] = useState<string | null>(null);
   const [size, setSize] = useState({ width: 900, height: 600 });
   const [, invalidateCamera] = useState(0);
   const [issuesOpen, setIssuesOpen] = useState(false);
@@ -219,9 +233,53 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
     update(); const observer = new ResizeObserver(update); observer.observe(host); return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (planImageUrlRef.current) {
+      URL.revokeObjectURL(planImageUrlRef.current);
+      planImageUrlRef.current = null;
+    }
+    setPlanImageUrl(null);
+    const capture = () => {
+      const stage = stageRef.current;
+      const root = stage?.closest('[data-context-tab][data-view-mode]') as HTMLElement | null;
+      const source = root?.querySelector<HTMLCanvasElement>('canvas');
+      if (!source || source.width < 2 || source.height < 2) return;
+      try {
+        const ratio = Math.min(1, MAX_PLAN_TEXTURE_DIMENSION / source.width, MAX_PLAN_TEXTURE_DIMENSION / source.height);
+        const texture = document.createElement('canvas');
+        texture.width = Math.max(1, Math.round(source.width * ratio));
+        texture.height = Math.max(1, Math.round(source.height * ratio));
+        const context = texture.getContext('2d', { alpha: false });
+        if (!context) return;
+        context.drawImage(source, 0, 0, texture.width, texture.height);
+        texture.toBlob(blob => {
+          if (cancelled || !blob) return;
+          const next = URL.createObjectURL(blob);
+          if (cancelled) { URL.revokeObjectURL(next); return; }
+          if (planImageUrlRef.current) URL.revokeObjectURL(planImageUrlRef.current);
+          planImageUrlRef.current = next;
+          setPlanImageUrl(next);
+        }, 'image/png');
+      } catch {
+        // The derived model remains usable even if a browser blocks canvas texture capture.
+      }
+    };
+    const timers = [120, 500, 1200].map(delay => window.setTimeout(capture, delay));
+    return () => {
+      cancelled = true;
+      timers.forEach(timer => window.clearTimeout(timer));
+      if (planImageUrlRef.current) {
+        URL.revokeObjectURL(planImageUrlRef.current);
+        planImageUrlRef.current = null;
+      }
+    };
+  }, [activeSheetId]);
+
   const sheetSolids = useMemo(() => scene.solids.filter(solid => solid.sheetId === activeSheetId), [scene.solids, activeSheetId]);
+  const sheetPlane = activeSheetId ? scene.sheetPlanes[activeSheetId] || null : null;
   const selectedSolid = useMemo(() => sheetSolids.find(solid => solid.measurementId === selectedMeasurementId) || sheetSolids.find(solid => solid.conditionVersionId === selectedConditionVersionId) || null, [sheetSolids, selectedConditionVersionId, selectedMeasurementId]);
-  const autoFrame = useMemo(() => frameForSolids(sheetSolids, selectedSolid?.shape.top), [sheetSolids, selectedSolid?.shape.top]);
+  const autoFrame = useMemo(() => frameForScene(sheetSolids, sheetPlane), [sheetSolids, sheetPlane]);
   const remembered = memory.get(cameraKey);
   const camera = remembered?.camera || DEFAULT_CAMERA;
   const center = remembered?.center || autoFrame.center;
@@ -229,10 +287,10 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   const referenceElevation = remembered?.referenceElevation ?? autoFrame.referenceElevation;
 
   useEffect(() => {
-    if (!sheetSolids.length || memory.has(cameraKey)) return;
+    if ((!sheetSolids.length && !sheetPlane) || memory.has(cameraKey)) return;
     memory.set(cameraKey, { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation });
     invalidateCamera(value => value + 1);
-  }, [cameraKey, memory, sheetSolids.length, autoFrame.center.x, autoFrame.center.y, autoFrame.center.z, autoFrame.fitRadius, autoFrame.referenceElevation]);
+  }, [cameraKey, memory, sheetSolids.length, sheetPlane, autoFrame.center.x, autoFrame.center.y, autoFrame.center.z, autoFrame.fitRadius, autoFrame.referenceElevation]);
 
   const currentMemory = () => memory.get(cameraKey) || { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation };
   const setCamera = (next: Camera | ((current: Camera) => Camera)) => {
@@ -260,14 +318,21 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
     return { x: size.width / 2 + camera.panX + raw.x * scale, y: size.height / 2 + camera.panY + raw.y * scale, depth: raw.depth };
   }, [center.x, center.y, center.z, camera, fitScale, size]);
   const faces = useMemo(() => renderFaces(visibleSolids, project), [visibleSolids, project]);
-  const datumPlan = useMemo(() => referencePlan(sheetSolids, center), [sheetSolids, center.x, center.z]);
-  const datumRing = datumPlan.ring.map(point => project({ ...point, y: referenceElevation }));
-  const datumXAxis = datumPlan.xAxis.map(point => project({ ...point, y: referenceElevation }));
-  const datumZAxis = datumPlan.zAxis.map(point => project({ ...point, y: referenceElevation }));
-  const datumLabel = datumRing[0] || { x: 8, y: 16, depth: 0 };
+  const sheetProjection = useMemo<SheetProjection | null>(() => {
+    if (!sheetPlane?.worldWidth || !sheetPlane.worldHeight || !(sheetPlane.pageWidth > 0) || !(sheetPlane.pageHeight > 0)) return null;
+    const origin = project({ x: 0, y: PLAN_DATUM_ELEVATION, z: 0 });
+    const right = project({ x: sheetPlane.worldWidth, y: PLAN_DATUM_ELEVATION, z: 0 });
+    const bottom = project({ x: 0, y: PLAN_DATUM_ELEVATION, z: sheetPlane.worldHeight });
+    const far = project({ x: sheetPlane.worldWidth, y: PLAN_DATUM_ELEVATION, z: sheetPlane.worldHeight });
+    const a = (right.x - origin.x) / sheetPlane.pageWidth;
+    const b = (right.y - origin.y) / sheetPlane.pageWidth;
+    const c = (bottom.x - origin.x) / sheetPlane.pageHeight;
+    const d = (bottom.y - origin.y) / sheetPlane.pageHeight;
+    return { matrix: `matrix(${a} ${b} ${c} ${d} ${origin.x} ${origin.y})`, corners: [origin, right, far, bottom] };
+  }, [sheetPlane, project]);
 
   const resetView = () => {
-    const frame = frameForSolids(sheetSolids, selectedSolid?.shape.top);
+    const frame = frameForScene(sheetSolids, sheetPlane);
     memory.set(cameraKey, { camera: DEFAULT_CAMERA, center: frame.center, fitRadius: frame.fitRadius, referenceElevation: frame.referenceElevation });
     invalidateCamera(value => value + 1);
   };
@@ -282,7 +347,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   };
   const holdCount = sheetIssues.filter(issue => issue.severity === 'hold').length;
   const baseStatus = selectedUnsupportedIssue && !selectedHasSolid ? '3D unavailable' : selectedInputIssue && !selectedHasSolid ? 'Inputs required' : scene.state === 'preview' ? 'Unsaved preview' : sheetSolids.length ? 'Current model' : 'No modeled scope';
-  const status = [baseStatus, holdCount && sheetSolids.length ? 'Partial model' : '', !scene.coverage.checksComplete ? 'Checks incomplete' : ''].filter(Boolean).join(' · ');
+  const status = [baseStatus, holdCount && sheetSolids.length ? 'Partial model' : '', sheetProjection && !planImageUrl ? 'Plan loading' : '', !scene.coverage.checksComplete ? 'Checks incomplete' : ''].filter(Boolean).join(' · ');
   const sheetLabel = activeSheetLabel || 'Current sheet';
   if (scene.unavailable) return <div className={styles.empty} role="status"><strong>3D view unavailable</strong><span>The drawing and worksheet remain available. Reload to retry the model.</span></div>;
   return <div className={styles.viewer} data-issues-open={issuesOpen} aria-label="3D concrete verification">
@@ -294,7 +359,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
       <Button variant="ghost" size="icon-sm" onClick={isolateSelected} disabled={!selectedConditionVersionId} aria-pressed={Boolean(viewState.isolated)} title="Isolate selected Condition" aria-label="Isolate selected Condition"><Focus size={16}/></Button>
       <Button variant="ghost" size="icon-sm" onClick={showAll} title="Show all" aria-label="Show all"><Eye size={16}/></Button>
       <Button variant="ghost" size="sm" onClick={focusSelected} disabled={!selectedSolid}>Focus</Button>
-      <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view and reference elevation" aria-label="Reset 3D view and reference elevation"><RotateCcw size={16}/></Button>
+      <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view" aria-label="Reset 3D view"><RotateCcw size={16}/></Button>
       <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>3D checks {sheetIssues.length}</Button>
     </div>
     <div ref={stageRef} className={styles.stage} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setCamera(current => ({ ...current, zoom: clamp(current.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), 0.1, 20) })); }}>
@@ -314,14 +379,10 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
         if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 3 && drag.solidId && drag.mode === 'orbit') { const solid = visibleSolids.find(solid => solid.id === drag.solidId); if (solid) onSelectSolid(solid); }
         dragRef.current = null;
       }} onPointerCancel={() => { dragRef.current = null; }}>
-        <defs><pattern id={patternId} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--border)" strokeWidth="0.5"/></pattern></defs>
         <rect width={size.width} height={size.height} fill="var(--background)"/>
-        <rect width={size.width} height={size.height} fill={`url(#${patternId})`}/>
-        {sheetSolids.length ? <g aria-label={`Stable reference elevation ${formatArchitecturalLength(referenceElevation)}`} pointerEvents="none">
-          <path d={polygonPath(datumRing)} fill="none" stroke="var(--muted-foreground)" strokeOpacity="0.38" strokeWidth="1" strokeDasharray="5 5" vectorEffect="non-scaling-stroke"/>
-          <line x1={datumXAxis[0]?.x} y1={datumXAxis[0]?.y} x2={datumXAxis[1]?.x} y2={datumXAxis[1]?.y} stroke="var(--muted-foreground)" strokeOpacity="0.24" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
-          <line x1={datumZAxis[0]?.x} y1={datumZAxis[0]?.y} x2={datumZAxis[1]?.x} y2={datumZAxis[1]?.y} stroke="var(--muted-foreground)" strokeOpacity="0.24" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
-          <text x={datumLabel.x + 6} y={datumLabel.y - 6} fill="var(--muted-foreground)" fontSize="11">Reference {formatArchitecturalLength(referenceElevation)}</text>
+        {sheetProjection ? <g pointerEvents="none" aria-label={`PDF plan reference plane at ${formatArchitecturalLength(PLAN_DATUM_ELEVATION)}`}>
+          <polygon points={sheetProjection.corners.map(point => `${point.x},${point.y}`).join(' ')} fill="white" fillOpacity={planImageUrl ? 0.96 : 0.08} stroke="var(--border)" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+          {planImageUrl ? <image href={planImageUrl} x="0" y="0" width={sheetPlane!.pageWidth} height={sheetPlane!.pageHeight} preserveAspectRatio="none" transform={sheetProjection.matrix} opacity="0.82"/> : null}
         </g> : null}
         {faces.map(face => {
           const selected = selectedMeasurementId ? face.solid.measurementId === selectedMeasurementId : face.solid.conditionVersionId === selectedConditionVersionId;
@@ -330,7 +391,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
       </svg>
       {visibleSolids.length>0&&!selectedHasSolid&&(selectedInputIssue||selectedUnsupportedIssue)&&<div className={styles.selectedIssue} role="status"><AlertTriangle size={16}/><div><strong>{selectedInputIssue?'Selected takeoff needs a 3D input':'Selected takeoff is not modeled'}</strong><span>{(selectedInputIssue||selectedUnsupportedIssue)?.message}</span></div>{selectedInputIssue?<Button variant="outline" size="sm" onClick={()=>onJumpToIssue(selectedInputIssue)}>Resolve input</Button>:<Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button>}</div>}
       {!visibleSolids.length && <div className={styles.empty}>{sheetSolids.length?<><strong>No visible concrete</strong><span>Restore visibility to review this sheet.</span><Button variant="outline" size="sm" onClick={showAll}>Show all</Button></>:selectedUnsupportedIssue?<><strong>3D unavailable for this Condition</strong><span>{selectedUnsupportedIssue.message}</span><Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button></>:selectedInputIssue?<><strong>3D input required</strong><span>{selectedInputIssue.message}</span><Button variant="outline" size="sm" onClick={()=>onJumpToIssue(selectedInputIssue)}>Resolve input</Button></>:holdCount?<><strong>3D checks require attention</strong><span>{sheetIssues.find(issue=>issue.severity==='hold')?.message||'Resolve the current 3D checks before this scope can be modeled.'}</span><Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button></>:selectedConditionVersionId&&selectedMeasurementId?<><strong>No modeled scope on this sheet</strong><span>The selected measured Condition does not currently project a supported solid on {sheetLabel}.</span></>:<><strong>No 3D concrete on this sheet</strong><span>Select a measured concrete Condition to review its derived model.</span></>}</div>}
-      <div className={styles.help}>Reference {formatArchitecturalLength(referenceElevation)} · Drag to orbit · Shift-drag to pan · Wheel to zoom</div>
+      <div className={styles.help}>Plan datum {formatArchitecturalLength(PLAN_DATUM_ELEVATION)} · Drag to orbit · Shift-drag to pan · Wheel to zoom</div>
     </div>
     {issuesOpen && <aside className={styles.issues} aria-label="3D verification issues">
       <header><strong>3D checks · {sheetIssues.length}</strong><span>Current sheet and unassigned Conditions</span></header>
