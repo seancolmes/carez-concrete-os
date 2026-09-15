@@ -24,8 +24,9 @@ type Point3 = { x: number; y: number; z: number };
 type ProjectedPoint = { x: number; y: number; depth: number };
 type Camera = { yaw: number; pitch: number; zoom: number; panX: number; panY: number };
 type Drag = { mode: 'orbit' | 'pan'; x: number; y: number; camera: Camera; pointerId: number; solidId: string | null } | null;
+type ViewFrame = { center: Point3; fitRadius: number; referenceElevation: number };
 export type Derived3DViewState = { hidden: string[]; isolated: string | null; zone: string; elevation: string };
-export type Derived3DViewMemory = Map<string, { camera: Camera; center: Point3 | null }>;
+export type Derived3DViewMemory = Map<string, { camera: Camera; center: Point3 | null; fitRadius: number | null; referenceElevation: number | null }>;
 type RenderFace = {
   key: string;
   solid: Derived3DSolid;
@@ -76,6 +77,33 @@ function sceneCenter(solids: Derived3DSolid[]) {
     x: (Math.min(...points.map(point => point.x)) + Math.max(...points.map(point => point.x))) / 2,
     y: (Math.min(...points.map(point => point.y)) + Math.max(...points.map(point => point.y))) / 2,
     z: (Math.min(...points.map(point => point.z)) + Math.max(...points.map(point => point.z))) / 2,
+  };
+}
+
+function frameForSolids(solids: Derived3DSolid[], preferredReference?: number | null): ViewFrame {
+  const center = sceneCenter(solids);
+  const points = solids.flatMap(solidPoints);
+  const fitRadius = Math.max(1, ...points.map(point => Math.hypot(point.x - center.x, point.y - center.y, point.z - center.z)));
+  const referenceElevation = Number.isFinite(preferredReference) ? Number(preferredReference) : (solids[0]?.shape.top ?? center.y);
+  return { center, fitRadius, referenceElevation };
+}
+
+function referencePlan(solids: Derived3DSolid[], center: Point3) {
+  const points = solids.flatMap(solid => solidPoints(solid).map(point => ({ x: point.x, z: point.z })));
+  const minX = points.length ? Math.min(...points.map(point => point.x)) : center.x - 1;
+  const maxX = points.length ? Math.max(...points.map(point => point.x)) : center.x + 1;
+  const minZ = points.length ? Math.min(...points.map(point => point.z)) : center.z - 1;
+  const maxZ = points.length ? Math.max(...points.map(point => point.z)) : center.z + 1;
+  const padding = Math.max(1, Math.max(maxX - minX, maxZ - minZ) * 0.08);
+  return {
+    ring: [
+      { x: minX - padding, z: minZ - padding },
+      { x: maxX + padding, z: minZ - padding },
+      { x: maxX + padding, z: maxZ + padding },
+      { x: minX - padding, z: maxZ + padding },
+    ],
+    xAxis: [{ x: minX - padding, z: center.z }, { x: maxX + padding, z: center.z }],
+    zAxis: [{ x: center.x, z: minZ - padding }, { x: center.x, z: maxZ + padding }],
   };
 }
 
@@ -184,47 +212,73 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   const [, invalidateCamera] = useState(0);
   const [issuesOpen, setIssuesOpen] = useState(false);
   const cameraKey = `${scene.scopeKey}:${activeSheetId || 'none'}`;
-  const remembered = memory.get(cameraKey);
-  const camera = remembered?.camera || DEFAULT_CAMERA;
-  const setCamera = (next: Camera | ((current: Camera) => Camera)) => {
-    const current = memory.get(cameraKey);
-    memory.set(cameraKey, { camera: typeof next === 'function' ? next(current?.camera || DEFAULT_CAMERA) : next, center: current?.center || null });
-    invalidateCamera(n => n + 1);
-  };
-  const setCenter = (center: Point3) => { memory.set(cameraKey, { camera: memory.get(cameraKey)?.camera || DEFAULT_CAMERA, center }); invalidateCamera(n => n + 1); };
 
   useEffect(() => {
     const host = stageRef.current; if (!host) return;
     const update = () => setSize({ width: Math.max(1, host.clientWidth), height: Math.max(1, host.clientHeight) });
     update(); const observer = new ResizeObserver(update); observer.observe(host); return () => observer.disconnect();
   }, []);
+
   const sheetSolids = useMemo(() => scene.solids.filter(solid => solid.sheetId === activeSheetId), [scene.solids, activeSheetId]);
+  const selectedSolid = useMemo(() => sheetSolids.find(solid => solid.measurementId === selectedMeasurementId) || sheetSolids.find(solid => solid.conditionVersionId === selectedConditionVersionId) || null, [sheetSolids, selectedConditionVersionId, selectedMeasurementId]);
+  const autoFrame = useMemo(() => frameForSolids(sheetSolids, selectedSolid?.shape.top), [sheetSolids, selectedSolid?.shape.top]);
+  const remembered = memory.get(cameraKey);
+  const camera = remembered?.camera || DEFAULT_CAMERA;
+  const center = remembered?.center || autoFrame.center;
+  const fitRadius = remembered?.fitRadius || autoFrame.fitRadius;
+  const referenceElevation = remembered?.referenceElevation ?? autoFrame.referenceElevation;
+
+  useEffect(() => {
+    if (!sheetSolids.length || memory.has(cameraKey)) return;
+    memory.set(cameraKey, { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation });
+    invalidateCamera(value => value + 1);
+  }, [cameraKey, memory, sheetSolids.length, autoFrame.center.x, autoFrame.center.y, autoFrame.center.z, autoFrame.fitRadius, autoFrame.referenceElevation]);
+
+  const currentMemory = () => memory.get(cameraKey) || { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation };
+  const setCamera = (next: Camera | ((current: Camera) => Camera)) => {
+    const current = currentMemory();
+    memory.set(cameraKey, { ...current, camera: typeof next === 'function' ? next(current.camera) : next });
+    invalidateCamera(value => value + 1);
+  };
+  const setFrame = (frame: ViewFrame, nextCamera?: Camera) => {
+    const current = currentMemory();
+    memory.set(cameraKey, { camera: nextCamera || current.camera, center: frame.center, fitRadius: frame.fitRadius, referenceElevation: current.referenceElevation ?? frame.referenceElevation });
+    invalidateCamera(value => value + 1);
+  };
+
   const zones = useMemo(() => [...new Set(sheetSolids.map(solid => solid.zone).filter((value): value is string => Boolean(value)))].sort(), [sheetSolids]);
-  const elevations = useMemo(() => [...new Set(sheetSolids.map(s => s.shape.top))].sort((a, b) => a - b), [sheetSolids]);
+  const elevations = useMemo(() => [...new Set(sheetSolids.map(solid => solid.shape.top))].sort((a, b) => a - b), [sheetSolids]);
   const visibleSolids = useMemo(() => sheetSolids.filter(solid => !viewState.hidden.includes(solid.conditionVersionId) && (!viewState.isolated || solid.conditionVersionId === viewState.isolated) && (viewState.zone === 'all' || solid.zone === viewState.zone) && (viewState.elevation === 'all' || String(solid.shape.top) === viewState.elevation)), [sheetSolids, viewState]);
   const sheetIssues = useMemo(() => scene.issues.filter(entry => !entry.sheetId || entry.sheetId === activeSheetId), [scene.issues, activeSheetId]);
   const selectedConditionIssues = useMemo(() => selectedConditionVersionId ? scene.issues.filter(entry => entry.conditionVersionId === selectedConditionVersionId) : [], [scene.issues, selectedConditionVersionId]);
   const selectedInputIssue = useMemo(() => selectedConditionIssues.find(issue => issue.severity === 'hold' && issue.code === '3d_input_required') || null, [selectedConditionIssues]);
   const selectedUnsupportedIssue = useMemo(() => selectedConditionIssues.find(issue => issue.severity === 'hold' && issue.code === 'unsupported_projection') || null, [selectedConditionIssues]);
   const selectedHasSolid = useMemo(() => Boolean(selectedConditionVersionId && sheetSolids.some(solid => solid.conditionVersionId === selectedConditionVersionId)), [sheetSolids, selectedConditionVersionId]);
-  const center = remembered?.center || sceneCenter(sheetSolids);
-  const fitScale = useMemo(() => {
-    const points = sheetSolids.flatMap(solidPoints); if (!points.length) return 1;
-    const radius = Math.max(1, ...points.map(p => Math.hypot(p.x - center.x, p.y - center.y, p.z - center.z)));
-    return Math.min(size.width, size.height) * 0.43 / radius;
-  }, [sheetSolids, center.x, center.y, center.z, size]);
+  const fitScale = Math.min(size.width, size.height) * 0.43 / Math.max(1, fitRadius);
   const project = useMemo(() => (point: Point3): ProjectedPoint => {
     const raw = projectRaw(point, center, camera), scale = fitScale * camera.zoom;
     return { x: size.width / 2 + camera.panX + raw.x * scale, y: size.height / 2 + camera.panY + raw.y * scale, depth: raw.depth };
   }, [center.x, center.y, center.z, camera, fitScale, size]);
   const faces = useMemo(() => renderFaces(visibleSolids, project), [visibleSolids, project]);
-  const resetView = () => { memory.set(cameraKey, { camera: DEFAULT_CAMERA, center: sceneCenter(sheetSolids) }); invalidateCamera(n => n + 1); };
+  const datumPlan = useMemo(() => referencePlan(sheetSolids, center), [sheetSolids, center.x, center.z]);
+  const datumRing = datumPlan.ring.map(point => project({ ...point, y: referenceElevation }));
+  const datumXAxis = datumPlan.xAxis.map(point => project({ ...point, y: referenceElevation }));
+  const datumZAxis = datumPlan.zAxis.map(point => project({ ...point, y: referenceElevation }));
+  const datumLabel = datumRing[0] || { x: 8, y: 16, depth: 0 };
+
+  const resetView = () => {
+    const frame = frameForSolids(sheetSolids, selectedSolid?.shape.top);
+    memory.set(cameraKey, { camera: DEFAULT_CAMERA, center: frame.center, fitRadius: frame.fitRadius, referenceElevation: frame.referenceElevation });
+    invalidateCamera(value => value + 1);
+  };
   const showAll = () => onViewStateChange({ hidden: [], isolated: null, zone: 'all', elevation: 'all' });
   const toggleSelected = () => { if (selectedConditionVersionId) onViewStateChange(current => ({ ...current, isolated: null, hidden: current.hidden.includes(selectedConditionVersionId) ? current.hidden.filter(id => id !== selectedConditionVersionId) : [...current.hidden, selectedConditionVersionId] })); };
   const isolateSelected = () => { if (selectedConditionVersionId) onViewStateChange(current => ({ ...current, hidden: [], isolated: current.isolated === selectedConditionVersionId ? null : selectedConditionVersionId })); };
   const focusSelected = () => {
-    const selection = sheetSolids.filter(s => s.measurementId === selectedMeasurementId || (!selectedMeasurementId && s.conditionVersionId === selectedConditionVersionId));
-    if (selection.length) { setCenter(sceneCenter(selection)); setCamera(current => ({ ...current, panX: 0, panY: 0 })); }
+    const selection = sheetSolids.filter(solid => solid.measurementId === selectedMeasurementId || (!selectedMeasurementId && solid.conditionVersionId === selectedConditionVersionId));
+    if (!selection.length) return;
+    const frame = frameForSolids(selection, currentMemory().referenceElevation);
+    setFrame(frame, { ...camera, panX: 0, panY: 0 });
   };
   const holdCount = sheetIssues.filter(issue => issue.severity === 'hold').length;
   const baseStatus = scene.state === 'preview' ? 'Unsaved preview' : selectedUnsupportedIssue && !selectedHasSolid ? '3D unavailable' : selectedInputIssue && !selectedHasSolid ? 'Inputs required' : sheetSolids.length ? 'Current model' : 'No modeled scope';
@@ -240,7 +294,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
       <Button variant="ghost" size="icon-sm" onClick={isolateSelected} disabled={!selectedConditionVersionId} aria-pressed={Boolean(viewState.isolated)} title="Isolate selected Condition" aria-label="Isolate selected Condition"><Focus size={16}/></Button>
       <Button variant="ghost" size="icon-sm" onClick={showAll} title="Show all" aria-label="Show all"><Eye size={16}/></Button>
       <Button variant="ghost" size="sm" onClick={focusSelected} disabled={!selectedMeasurementId}>Focus</Button>
-      <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view" aria-label="Reset 3D view"><RotateCcw size={16}/></Button>
+      <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view and reference elevation" aria-label="Reset 3D view and reference elevation"><RotateCcw size={16}/></Button>
       <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>3D checks {sheetIssues.length}</Button>
     </div>
     <div ref={stageRef} className={styles.stage} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setCamera(current => ({ ...current, zoom: clamp(current.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), 0.1, 20) })); }}>
@@ -257,19 +311,25 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
         else setCamera({ ...drag.camera, yaw: drag.camera.yaw + dx * 0.008, pitch: clamp(drag.camera.pitch + dy * 0.006, -1.45, 1.45) });
       }} onPointerUp={event => {
         const drag = dragRef.current; if (!drag || drag.pointerId !== event.pointerId) return;
-        if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 3 && drag.solidId && drag.mode === 'orbit') { const solid = visibleSolids.find(s => s.id === drag.solidId); if (solid) onSelectSolid(solid); }
+        if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 3 && drag.solidId && drag.mode === 'orbit') { const solid = visibleSolids.find(solid => solid.id === drag.solidId); if (solid) onSelectSolid(solid); }
         dragRef.current = null;
       }} onPointerCancel={() => { dragRef.current = null; }}>
         <defs><pattern id={patternId} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--border)" strokeWidth="0.5"/></pattern></defs>
         <rect width={size.width} height={size.height} fill="var(--background)"/>
         <rect width={size.width} height={size.height} fill={`url(#${patternId})`}/>
+        {sheetSolids.length ? <g aria-label={`Stable reference elevation ${formatArchitecturalLength(referenceElevation)}`} pointerEvents="none">
+          <path d={polygonPath(datumRing)} fill="none" stroke="var(--muted-foreground)" strokeOpacity="0.38" strokeWidth="1" strokeDasharray="5 5" vectorEffect="non-scaling-stroke"/>
+          <line x1={datumXAxis[0]?.x} y1={datumXAxis[0]?.y} x2={datumXAxis[1]?.x} y2={datumXAxis[1]?.y} stroke="var(--muted-foreground)" strokeOpacity="0.24" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+          <line x1={datumZAxis[0]?.x} y1={datumZAxis[0]?.y} x2={datumZAxis[1]?.x} y2={datumZAxis[1]?.y} stroke="var(--muted-foreground)" strokeOpacity="0.24" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+          <text x={datumLabel.x + 6} y={datumLabel.y - 6} fill="var(--muted-foreground)" fontSize="11">Reference {formatArchitecturalLength(referenceElevation)}</text>
+        </g> : null}
         {faces.map(face => {
           const selected = selectedMeasurementId ? face.solid.measurementId === selectedMeasurementId : face.solid.conditionVersionId === selectedConditionVersionId;
           return <path key={face.key} data-solid-id={face.solid.id} d={face.path} fill={face.solid.color} fillOpacity={selected ? Math.min(0.92, face.opacity + 0.16) : face.opacity} fillRule="evenodd" stroke={selected ? 'var(--foreground)' : face.solid.color} strokeOpacity={selected ? 0.95 : 0.7} strokeWidth={selected ? 1.8 : 1} vectorEffect="non-scaling-stroke" className={styles.face} tabIndex={face.top ? 0 : undefined} role={face.top ? 'button' : undefined} aria-label={face.top ? `${face.solid.conditionName} — ${face.solid.measurementName}` : undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectSolid(face.solid); } }} />;
         })}
       </svg>
       {!visibleSolids.length && <div className={styles.empty}>{sheetSolids.length?<><strong>No visible concrete</strong><span>Restore visibility to review this sheet.</span><Button variant="outline" size="sm" onClick={showAll}>Show all</Button></>:selectedUnsupportedIssue?<><strong>3D unavailable for this Condition</strong><span>{selectedUnsupportedIssue.message}</span><Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button></>:selectedInputIssue?<><strong>3D input required</strong><span>{selectedInputIssue.message}</span><Button variant="outline" size="sm" onClick={()=>onJumpToIssue(selectedInputIssue)}>Resolve input</Button></>:holdCount?<><strong>3D checks require attention</strong><span>{sheetIssues.find(issue=>issue.severity==='hold')?.message||'Resolve the current 3D checks before this scope can be modeled.'}</span><Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button></>:selectedConditionVersionId&&selectedMeasurementId?<><strong>No modeled scope on this sheet</strong><span>The selected measured Condition does not currently project a supported solid on {sheetLabel}.</span></>:<><strong>No 3D concrete on this sheet</strong><span>Select a measured concrete Condition to review its derived model.</span></>}</div>}
-      <div className={styles.help}>Drag to orbit · Shift-drag to pan · Wheel to zoom</div>
+      <div className={styles.help}>Reference {formatArchitecturalLength(referenceElevation)} · Drag to orbit · Shift-drag to pan · Wheel to zoom</div>
     </div>
     {issuesOpen && <aside className={styles.issues} aria-label="3D verification issues">
       <header><strong>3D checks · {sheetIssues.length}</strong><span>Current sheet and unassigned Conditions</span></header>
