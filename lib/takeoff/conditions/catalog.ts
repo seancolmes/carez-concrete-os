@@ -65,7 +65,7 @@ export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> 
       output('reinforcing.steel_lb', 'reinforcing', 'Reinforcing steel', 'material', 'LB', 'pad-rebar-weight-v1', 'rebar'),
       output('anchors_embeds.anchor_ea', 'anchors_embeds', 'Anchors / embeds', 'material', 'EA', 'role-or-each-count-v1', 'anchors'),
       output('labor.place_concrete_mh', 'labor', 'Place concrete labor', 'labor', 'HR', 'production-rate-v1', 'labor_place'),
-      output('labor.forms_mh', 'labor', 'Forms labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
+      output('labor.forms_mh', 'labor', 'Form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
       output('labor.reinforcing_mh', 'labor', 'Reinforcing labor', 'labor', 'HR', 'production-rate-v1', 'labor_rebar'),
       output('labor.anchors_embeds_mh', 'labor', 'Anchor / embed labor', 'labor', 'HR', 'production-rate-v1', 'labor_anchors'),
     ],
