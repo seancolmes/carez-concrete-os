@@ -65,7 +65,6 @@ import type {
 } from '@/lib/takeoff/conditions/types';
 import {ConditionModuleEditor} from './ConditionModuleEditor';
 import {ConditionRolePicker} from './ConditionRolePicker';
-import {TakeoffDerived3DView, TakeoffDerived3DBoundary, type Derived3DViewMemory} from './TakeoffDerived3DView';
 import {DEFAULT_DERIVED_3D_VIEW_STATE, type Derived3DViewState} from '@/lib/takeoff/3d/viewState';
 import {useTakeoff3DCamera} from './3d/useTakeoff3DCamera';
 import {resolvedPhysicalInputs} from '@/lib/takeoff/conditions/derived3d/sources';
@@ -77,7 +76,6 @@ const Takeoff3DViewport=dynamic(
   ()=>import('./3d/Takeoff3DViewport').then(module=>module.Takeoff3DViewport),
   {ssr:false},
 );
-const rendererMode=process.env.NEXT_PUBLIC_CAREZ_3D_RENDERER==='legacy-svg'?'legacy-svg':'r3f';
 
 type ConditionSummary={
   condition_id:string;condition_version_id:string;code:string;name:string;revision_no:number;version_status:string;
@@ -183,7 +181,6 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
   const [derivedViewState,setDerivedViewState]=useState<Derived3DViewState>(DEFAULT_DERIVED_3D_VIEW_STATE);
-  const derivedMemory=useRef<Derived3DViewMemory>(new Map());
   const r3fMemory=useTakeoff3DCamera();
   const derivedCache=useRef<Derived3DGeometryCache>(new Map());
   const [outputsOpen,setOutputsOpen]=useState(false);
@@ -464,8 +461,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       {contextPortal}
       <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':'3D'}</button>)}</div></div>
       {viewMode==='3d'&&<div className={`${styles.derivedOverlay} ${styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
-        {rendererMode==='legacy-svg'?<TakeoffDerived3DBoundary><TakeoffDerived3DView scene={derived3DScene} viewState={derivedViewState} onViewStateChange={setDerivedViewState} memory={derivedMemory.current} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/></TakeoffDerived3DBoundary>
-          :<Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>}
+        <Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
