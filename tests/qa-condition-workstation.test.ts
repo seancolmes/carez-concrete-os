@@ -14,6 +14,23 @@ const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
 
+test('R3F foundation uses an orthographic Canvas and a direct PDF reference', () => {
+  const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
+  const plan = readFileSync('components/takeoff/3d/Takeoff3DPlan.tsx', 'utf8');
+  const scene = readFileSync('components/takeoff/3d/Takeoff3DScene.tsx', 'utf8');
+  const controls = readFileSync('components/takeoff/3d/Takeoff3DControls.tsx', 'utf8');
+  assert.match(scene, /<Canvas/);
+  assert.match(scene, /orthographic/);
+  assert.match(plan, /renderPdfPageCanvas/);
+  assert.match(plan, /flipY = true/);
+  assert.match(plan, /depthWrite=\{false\} depthTest=\{false\}/);
+  assert.doesNotMatch(plan, /querySelector/);
+  assert.match(viewport, /activeSheetId/);
+  assert.match(controls, /maxPolarAngle=\{MAX_POLAR\}/);
+  assert.match(controls, /screenSpacePanning=\{false\}/);
+  assert.doesNotMatch(scene, /Takeoff3DSolid|meshGeometry/);
+});
+
 test('Condition issues stay below permanent tabs and are compact/collapsible', () => {
   const tabsIndex = workstation.indexOf('<Tabs value={propertyTab}');
   const issuesIndex = workstation.indexOf('<Collapsible open={issuesOpen}');
