@@ -4,26 +4,26 @@
 
 **Goal:** Establish the approved Precision Grid UX authority and the source-owned appearance/token foundation for first-class light, dark, and system themes plus user density preference, without migrating the shell or module workspaces yet.
 
-**Architecture:** ADR-024 becomes the durable Carez UI/UX authority. A small pure appearance contract owns theme/density preference values and the pre-hydration boot script; a root client provider owns live system-theme changes and local persistence; `app/globals.css` owns semantic Precision Grid tokens for both themes and density baselines; Settings exposes the preferences using the existing Base UI/shadcn source components. No new runtime dependency, database migration, navigation rewrite, or module redesign is part of this subproject.
+**Architecture:** ADR-024 becomes the durable Carez UI/UX authority. A pure appearance module owns preference values and the pre-hydration boot script; a root client provider owns local persistence and live system-theme changes; `app/globals.css` owns the semantic Precision Grid light/dark palettes and density baselines; Settings exposes these preferences through existing source-owned Base UI/shadcn components. No new dependency, database migration, navigation rewrite, or module redesign is part of this subproject.
 
-**Tech Stack:** Next.js 15 App Router, React 19, TypeScript 5.9, Tailwind CSS v4, source-owned shadcn/Base UI components, CSS custom properties/OKLCH, `next/font/google`, Node `node:test`, Supabase application architecture unchanged.
+**Tech Stack:** Next.js 15 App Router, React 19, TypeScript 5.9, Tailwind CSS v4, source-owned shadcn/Base UI, CSS custom properties/OKLCH, `next/font/google`, Node `node:test`; Supabase/domain architecture unchanged.
 
 **Spec:** `docs/superpowers/specs/2026-09-15-carez-os-major-ui-ux-redesign-design.md`  
 **Implementation owner:** GitHub Issue #63 — `Carez OS major UI/UX redesign — Subproject 1 canonical authority + token foundation`
 
 ## Global Constraints
 
-- Work from current `staging`; `main` remains production only.
+- Start from current `staging`; `main` remains production only.
 - Preserve Supabase/PostgreSQL authority, RLS/tenant isolation, server-authoritative calculations, immutable/versioned commercial records, Job Spine lineage, Production Quantity / Direct Cost / Sell separation, and Takeoff 2D/vector authority.
-- Preserve source-owned shadcn/Base UI/Tailwind v4. Do not introduce `next-themes`, another component library, or another design system.
-- Issue #44 is completed historical evidence and must remain closed. Do not reopen or repurpose it; Issue #63 owns this subproject.
-- Implement only Subproject 1. Do not implement role-adaptive navigation, the Hybrid command shell, project context bar, Today/Project/Takeoff reference redesigns, or module migration waves.
-- True appearance modes are `light | dark | system`. Default preference is `system`.
-- Density preferences are `default | compact | comfortable`. They establish root semantic baselines only; later workspace archetypes may constrain/override density safely.
-- Inter Variable remains primary UI typography. IBM Plex Mono becomes the technical/numeric mono family. Do not convert ordinary UI text to mono.
-- Carez blue is a restrained interaction/selection/focus token. Keep existing generic `primary` treatment neutral enough that this foundation does not flood legacy routes with blue before their redesign slices.
-- Do not touch `app/takeoff-v3.css` speculatively. If stable-staging light-theme QA proves an active selector there causes a real defect, record the exact route/selector as an Issue #63 acceptance blocker and make only the bounded corrective change required to pass acceptance.
-- Source/build success is not rendered acceptance. Issue #63 and `CURRENT_STATE.md` are not marked accepted until the stable staging deployment is browser-verified.
+- Preserve the source-owned shadcn/Base UI/Tailwind v4 component system. Do not add `next-themes` or another runtime UI/theme library.
+- Issue #44 is closed historical evidence. Do not reopen or repurpose it; Issue #63 owns this subproject.
+- Implement **Subproject 1 only**. Do not implement role-adaptive navigation, the Hybrid command shell, project context bar, Today/Project/Takeoff reference redesigns, or module migration waves.
+- Appearance modes are `light | dark | system`; the default preference is `system`.
+- Density preferences are `default | compact | comfortable`; this slice only establishes root semantic baselines. Workspace archetypes may later constrain them safely.
+- Inter Variable remains normal UI typography. IBM Plex Mono becomes the technical/numeric mono family. Do not make ordinary UI copy mono.
+- Carez blue is restrained interaction/selection/focus identity. Keep existing generic `primary` tokens neutral enough that this foundation does not flood still-unmigrated routes with blue.
+- Do not rewrite `app/takeoff-v3.css` speculatively. If stable-staging light-theme QA proves an active selector causes a real defect, record the exact route/selector and make only the bounded fix required for Issue #63 acceptance.
+- Source/build success is not rendered acceptance. Do not mark Issue #63 or `CURRENT_STATE.md` accepted until stable staging is browser-verified and Nik accepts it.
 
 ---
 
@@ -31,37 +31,38 @@
 
 ### Create
 
-- `docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md` — durable UI/UX authority and supersession map.
-- `lib/ui/appearance.ts` — pure theme/density contract plus pre-hydration appearance boot script.
-- `components/carez/appearance-provider.tsx` — client context for persistence and live system-theme changes.
-- `components/settings/AppearanceSettings.tsx` — Settings controls for theme and density.
-- `tests/ui-authority-contract.test.ts` — canonical-document authority regression test.
-- `tests/ui-appearance.test.ts` — pure appearance preference behavior tests.
-- `tests/ui-token-contract.test.ts` — dual-theme/token/font/layout integration contract test.
-- `tests/ui-settings-appearance.test.ts` — Settings appearance integration source contract.
+- `docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md`
+- `lib/ui/appearance.ts`
+- `components/carez/appearance-provider.tsx`
+- `components/settings/AppearanceSettings.tsx`
+- `tests/ui-authority-contract.test.ts`
+- `tests/ui-appearance.test.ts`
+- `tests/ui-token-contract.test.ts`
+- `tests/ui-settings-appearance.test.ts`
 
 ### Modify
 
-- `docs/superpowers/specs/2026-09-15-carez-os-major-ui-ux-redesign-design.md` — mark written-spec review complete.
-- `docs/README.md` — make ADR-024 the active UI visual/theme authority.
-- `CODEX.md` — replace the dark-only UI authority rule with ADR-024 dual-theme authority while preserving the current shell/Takeoff boundaries.
-- `docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md` — mark theme/visual portions superseded by ADR-024 while retaining compatible source-ownership/content/motion rules.
-- `docs/decisions/ADR-016-top-navigation-shell-and-component-pack.md` — document the transition boundary: current shell remains implemented until Subproject 2; ADR-024 owns visual/theme/density and future shell architecture.
-- `docs/decisions/ADR-019-tactile-metric-card-system.md` — remove pointer-following perspective tilt from the canonical interaction requirement; retain static/action distinction and accessibility semantics.
-- `docs/decisions/ADR-020-integrated-takeoff-workstation-and-precision-cursor.md` — keep Takeoff authority, point presentation/theme/shell styling to ADR-024/current module spec.
-- `docs/design-system/CAREZ_COMPONENT_PACK.md` — replace dark-only foundation language with Precision Grid dual-theme/density contract.
-- `components/carez/index.ts` — export the appearance provider/hook.
-- `app/globals.css` — Precision Grid semantic tokens, light/dark palettes, density and motion tokens, IBM Plex Mono mapping.
-- `app/layout.tsx` — remove forced dark class, add IBM Plex Mono, appearance boot script, provider, hydration-safe root.
-- `app/settings/page.tsx` — expose Appearance settings section.
-- `docs/CURRENT_STATE.md` — update only after automated validation, deployment, browser QA, and user acceptance pass.
+- `docs/superpowers/specs/2026-09-15-carez-os-major-ui-ux-redesign-design.md`
+- `docs/README.md`
+- `CODEX.md`
+- `docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md`
+- `docs/decisions/ADR-016-top-navigation-shell-and-component-pack.md`
+- `docs/decisions/ADR-019-tactile-metric-card-system.md`
+- `docs/decisions/ADR-020-integrated-takeoff-workstation-and-precision-cursor.md`
+- `docs/design-system/CAREZ_COMPONENT_PACK.md`
+- `components/carez/index.ts`
+- `app/globals.css`
+- `app/layout.tsx`
+- `app/settings/page.tsx`
+- `docs/CURRENT_STATE.md` **only after rendered acceptance**
 
-### Explicitly unchanged in this subproject
+### Explicitly unchanged unless browser evidence proves a bounded acceptance defect
 
-- `components/AppShell.tsx` navigation architecture.
-- `app/takeoff-v3.css` unless an observed light-theme acceptance defect proves a bounded fix is required.
-- Domain/module calculations, Supabase schema/migrations, RLS, commercial records, Takeoff geometry, 3D projection authority.
-- `package.json` / `pnpm-lock.yaml` unless execution discovers an unrelated existing lock drift; no new dependency is authorized here.
+- `components/AppShell.tsx`
+- `app/takeoff-v3.css`
+- Supabase migrations/schema/RLS
+- domain calculations and Takeoff geometry/3D authority
+- `package.json` and `pnpm-lock.yaml`
 
 ---
 
@@ -70,34 +71,21 @@
 **Files:**
 - Create: `tests/ui-authority-contract.test.ts`
 - Create: `docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md`
-- Modify: `docs/superpowers/specs/2026-09-15-carez-os-major-ui-ux-redesign-design.md`
-- Modify: `docs/README.md`
-- Modify: `CODEX.md`
-- Modify: `docs/decisions/ADR-015-dark-minimal-shadcn-application-system.md`
-- Modify: `docs/decisions/ADR-016-top-navigation-shell-and-component-pack.md`
-- Modify: `docs/decisions/ADR-019-tactile-metric-card-system.md`
-- Modify: `docs/decisions/ADR-020-integrated-takeoff-workstation-and-precision-cursor.md`
-- Modify: `docs/design-system/CAREZ_COMPONENT_PACK.md`
+- Modify: approved design spec, `docs/README.md`, `CODEX.md`, ADR-015/016/019/020, `docs/design-system/CAREZ_COMPONENT_PACK.md`
 
-### Interface contract
-
-Consumes the approved umbrella design and produces one durable authority graph:
+### Authority interface
 
 ```text
 ADR-024 Precision Grid
-├── owns visual/theme/token/density architecture
-├── owns approved future shell direction at architecture level
+├── visual/theme/token/density authority
+├── approved future shell architecture
 ├── incorporates compatible ADR-015 principles
 ├── leaves ADR-016 as current implemented shell until Subproject 2
-├── amends ADR-019 interaction motion
+├── amends ADR-019 metric-card motion
 └── preserves ADR-020 Takeoff/domain authority
 ```
 
-Issue #44 remains closed historical evidence. Issue #63 owns implementation.
-
-### Steps
-
-- [ ] **1. Add the failing canonical-authority test.**
+- [ ] **1. Write the failing authority regression test.**
 
 Create `tests/ui-authority-contract.test.ts`:
 
@@ -108,7 +96,6 @@ import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
-
 const ADR_024 = 'docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md';
 
 test('Precision Grid is the canonical Carez UI authority', () => {
@@ -130,7 +117,7 @@ test('Precision Grid is the canonical Carez UI authority', () => {
   assert.match(readme, /ADR-024/);
   assert.match(codex, /ADR-024/);
   assert.match(pack, /Precision Grid/);
-  assert.match(pack, /dual-theme|light.*dark/i);
+  assert.match(pack, /light.*dark|dual-theme/i);
   assert.match(adr015, /ADR-024/);
   assert.match(adr016, /ADR-024/);
   assert.match(adr019, /ADR-024/);
@@ -139,19 +126,17 @@ test('Precision Grid is the canonical Carez UI authority', () => {
 });
 ```
 
-- [ ] **2. Run the new test and verify that it fails for the expected reason.**
-
-Run:
+- [ ] **2. Prove the test fails before the docs change.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-authority-contract.test.ts
 ```
 
-Expected: FAIL because ADR-024 does not exist yet and the current authority docs still point at the dark-only system.
+Expected: FAIL because ADR-024 is absent and the current authority graph is still dark-first.
 
-- [ ] **3. Create ADR-024 with the durable decision below.**
+- [ ] **3. Create ADR-024 exactly as the durable architecture decision.**
 
-Create `docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md` with this content:
+Create `docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md`:
 
 ```md
 # ADR-024 — Precision Grid dual-theme application system
@@ -164,132 +149,121 @@ Foundation implementation owner: Issue #63
 
 ## Context
 
-Carez completed the dark shadcn replacement under Issue #44 and established source-owned shadcn/Base UI/Tailwind components, a compact top shell, and the integrated Takeoff workstation. The next approved product direction is a major UX redesign that preserves all domain/data authority while replacing the dark-only presentation contract with one role-adaptive, project-aware Carez operating system.
+Carez completed the prior dark shadcn replacement under Issue #44 and established source-owned shadcn/Base UI/Tailwind components, a compact top shell, and the integrated Takeoff workstation. The approved next direction is a major UX redesign that preserves all domain/data authority while replacing the dark-only presentation contract with one role-adaptive, project-aware Carez operating system.
 
-The approved master visual language is **Precision Grid**. It has two controlled workspace expressions — Industrial specialist for dense technical work and Refined operations for scan/decision work — but remains one token system, one component system, and one interaction language.
+The master visual language is **Precision Grid**. Industrial specialist and Refined operations are controlled workspace expressions of one token system, one component system, and one interaction language.
 
 ## Decision
 
 ### Visual foundation
 
-Carez uses Precision Grid: restrained, exact, modern professional software with typography, spacing, separators, luminance, and selection doing most hierarchy work. Ordinary surfaces do not become floating card walls. Glassmorphism, neon/AI-gradient decoration, giant rounded containers, excessive shadow, and perpetual decorative motion remain outside the application language.
+Carez uses restrained, exact, construction-appropriate professional software. Typography, spacing, separators, luminance, and selection establish hierarchy before cards/shadows. Avoid generic SaaS cardification, glassmorphism, neon/AI gradients, giant rounded containers, excessive shadow, and decorative perpetual motion.
 
-Typography uses Inter Variable for normal UI and IBM Plex Mono selectively for technical identifiers/aligned technical data. Financial values, quantities, rates, percentages, and dimensions use tabular numerals where alignment benefits work.
+Primary UI typography is Inter Variable. IBM Plex Mono is selective technical/numeric typography. Quantities, money, rates, percentages, and dimensions use tabular numerals where alignment helps.
 
-The base spacing rhythm is 4 px micro / 8 px grid. Normal radii are approximately 4–6 px and large bounded surfaces normally stop at 8 px. Elevation is reserved for real overlays such as menus, dialogs, popovers, and floating inspectors.
+The base rhythm is 4 px micro / 8 px grid. Normal radii are about 4–6 px and larger bounded surfaces normally stop at 8 px. Elevation is reserved for genuine overlays such as menus, dialogs, popovers, and floating inspectors.
 
-### Theme
+### Appearance
 
-Light, Dark, and System are first-class user preferences. System is the default preference. Light and dark use the same semantic hierarchy, states, components, and accessibility behavior; components are not duplicated by theme.
+The preference contract is `light | dark | system`; System is the default. Light and dark use identical semantic responsibilities, component behavior, state language, and accessibility rules. Components are not forked by theme.
 
-The application uses semantic tokens for canvas/panel/raised surfaces, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and workspace density. Carez blue is restrained interaction/selection/focus identity and does not replace success, warning, error, or domain geometry semantics.
+Semantic token families cover canvas/panel/raised surfaces, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density. Carez blue is restrained interaction/selection/focus identity and never substitutes for success, warning, error, or domain geometry meaning.
 
 ### Density
 
-Carez uses workspace-adaptive density. The root preference contract is `default | compact | comfortable`; workspace archetypes may constrain or override that baseline to remain safe and readable. Takeoff/Estimating remain dense specialist workspaces; Projects/CRM/Finance and overview surfaces may use more balanced compositions; mobile remains touch-first.
+The root density contract is `default | compact | comfortable`. Workspace archetypes may constrain/override the baseline for readability and touch safety. Specialist workspaces remain denser than balanced operations/overview surfaces; mobile remains touch-first.
 
-### Shell and project context
+### Shell/project context
 
-The approved end-state shell is role-adaptive with company role defaults plus user personalization, a compact Hybrid command shell, and a project context row only while a Job/Project is active. The global shell → project context → workspace header hierarchy is the target architecture.
+The approved end-state shell is role-adaptive with company role defaults plus user personalization, a compact Hybrid command shell, and a project context row only while a Job/Project is active. The hierarchy is global shell → project context → workspace header.
 
-This ADR does not claim that shell implementation is complete. ADR-016 remains the current implemented shell contract until the dedicated shell/navigation subproject replaces it. New work must not deepen ADR-016-specific presentation in ways that conflict with the approved end-state.
+This ADR does not claim that shell implementation is complete. ADR-016 remains the implemented shell contract until the dedicated shell/navigation subproject is browser-accepted. No permanent global desktop left rail returns.
 
-### Workspace and interaction model
+### Workspace/interaction
 
-Carez standardizes Canvas, Worksheet, Operational, Record, and Overview workspace archetypes. Desktop favors `select → inspect → act`; mobile favors `open → act → confirm`. Inspectors are persistent selection context, drawers/sheets are temporary secondary workflows, and dialogs are reserved for focused decisions/confirmations.
+Carez standardizes Canvas, Worksheet, Operational, Record, and Overview archetypes. Desktop favors `select → inspect → act`; mobile favors `open → act → confirm`. Inspectors are persistent selection context, drawers/sheets are temporary secondary workflows, and dialogs are focused decisions/confirmations.
 
-### State, trust, accessibility, and AI
+### Trust/accessibility/AI
 
-The UI distinguishes user-entered, system-calculated, imported, AI-suggested, and issued/versioned authority. Provenance remains inspectable. Loading, empty, validation, saving, failed-save, warning, blocked, error, and success states remain distinct. User work is preserved on recoverable save/network errors.
+The UI distinguishes user-entered, system-calculated, imported, AI-suggested, and issued/versioned authority. Provenance remains inspectable. Loading, empty, validation, saving, failed-save, warning, blocked, error, and success states remain distinct.
 
-Accessibility is part of shared component contracts: keyboard operation, visible focus, accessible names/roles, state/error announcement, light/dark contrast, reduced motion, and non-gesture alternatives are required where applicable.
+Shared components own keyboard operation, visible focus, accessible names/roles, state/error announcement, light/dark contrast, reduced motion, and non-gesture alternatives where applicable.
 
 AI remains evidence-backed assistance. Humans remain authoritative for scope, means/methods, production assumptions, pricing, margin, budgets, approvals, and final estimates.
 
 ## Relationship to prior UI decisions
 
 ### ADR-015
-
-ADR-024 supersedes ADR-015's dark-first/default-dark theme contract, dark-only token assumptions, and one-density visual foundation. ADR-024 incorporates and retains ADR-015's source-owned shadcn/Base UI model, continuous-workspace preference, restrained radii/shadows, typography-led hierarchy, semantic/scarce color, content discipline, functional motion, reduced-motion requirement, and prohibition on a parallel design system.
+ADR-024 supersedes the dark-first/default-dark theme contract, dark-only token assumptions, and one-density visual foundation. It retains source-owned shadcn/Base UI, continuous workspaces, restrained surfaces/radii/shadows, typography-led hierarchy, semantic/scarce color, content discipline, functional motion, reduced motion, and the ban on parallel design systems.
 
 ### ADR-016
-
-ADR-024 supersedes ADR-016 as the approved future shell architecture and owns visual/theme/density rules. ADR-016 remains the current implemented shell contract until the dedicated shell/navigation implementation slice lands and is browser-accepted. No permanent global desktop left rail is reintroduced.
+ADR-024 owns the approved future shell architecture and visual/theme/density rules. ADR-016 remains the current implemented shell until its dedicated replacement slice is browser-accepted.
 
 ### ADR-019
-
-ADR-024 retains the distinction between static metric summaries and genuinely interactive metric actions, but supersedes pointer-following perspective/3D tilt as a canonical interaction requirement. Interactive metric summaries may use restrained border/surface emphasis and at most a small vertical lift when appropriate; keyboard/touch/reduced-motion equivalence remains mandatory.
+Retain static-vs-interactive metric semantics and accessibility, but pointer-following perspective/3D tilt is no longer canonical. Interactive summaries may use restrained border/surface emphasis and at most a small vertical lift.
 
 ### ADR-020
-
-ADR-020 remains authoritative for Takeoff/Condition workstation and domain invariants where not superseded by newer module/3D contracts. ADR-024 supersedes only application-wide theme, density, surface, and shell presentation rules. The current Takeoff module spec remains authoritative where it has already superseded older presentation details such as estimator-facing Split behavior.
+ADR-020 remains authoritative for Takeoff/Condition workstation and domain invariants where not superseded by newer Takeoff/3D contracts. ADR-024 supersedes only application-wide theme, density, surface, and shell presentation rules. The active Takeoff module spec wins where it has already replaced older presentation details such as estimator-facing Split behavior.
 
 ### Issue #44
+Issue #44 is completed historical implementation evidence. It is not reopened. Issue #63 begins the new redesign implementation sequence.
 
-Issue #44 is completed historical implementation evidence for the prior dark shadcn migration. It is not reopened. Issue #63 begins the new redesign implementation sequence.
+## Persistence
 
-## Appearance persistence
-
-The foundation stores theme and density preferences device-locally. No database migration is required in this subproject. A later product decision may add cross-device preference sync without changing the semantic theme/density contract.
-
-System theme follows `prefers-color-scheme` live. Appearance is applied before normal React hydration so a saved Light/Dark preference does not flash a forced dark frame.
+Theme and density preferences are device-local in this subproject; no database migration is required. System theme follows `prefers-color-scheme` live. Appearance is resolved before normal React hydration to avoid a forced-dark flash.
 
 ## Protected architecture
 
-This decision changes presentation/interaction architecture only. It does not change Supabase/PostgreSQL authority, RLS/tenant isolation, Job Spine/commercial lineage, server-authoritative calculations, immutable/versioned records, Production Quantity / Direct Cost / Sell separation, PDF/vector Takeoff authority, Condition lineage, or derived-3D verification boundaries.
+This is presentation/interaction architecture only. It does not change Supabase/PostgreSQL authority, RLS/tenant isolation, Job Spine/commercial lineage, server-authoritative calculations, immutable/versioned records, Production Quantity / Direct Cost / Sell separation, PDF/vector Takeoff authority, Condition lineage, or derived-3D verification boundaries.
 
 ## Tooling governance
 
-UI UX Pro Max may be used as design intelligence and implementation guidance. It is not runtime UI authority and does not become a parallel component system. Carez canonical docs, source-owned components, module contracts, and architecture invariants remain authoritative.
+UI UX Pro Max may provide design intelligence and implementation guidance. It is not runtime UI authority and does not become a parallel component system.
 
 ## Acceptance
 
-The foundation is accepted only when canonical docs are reconciled, dual-theme semantic tokens are present, Light/Dark/System preference persists and System reacts to OS changes, root density preference is represented, Inter/IBM Plex Mono are wired correctly, automated validation passes, the matching staging deployment is READY, and authenticated browser QA verifies representative existing surfaces without claiming later shell/module redesign work complete.
+The foundation is accepted only when canonical docs are reconciled; semantic light/dark tokens exist; Light/Dark/System preference persists and System follows OS changes; root density preference exists; Inter/IBM Plex Mono are wired correctly; automated validation passes; the matching staging deployment is READY; and authenticated browser QA verifies representative existing surfaces without claiming later shell/module slices complete.
 ```
 
-- [ ] **4. Reconcile the existing authority docs without pretending later subprojects are implemented.**
+- [ ] **4. Reconcile existing authority docs with these exact statements.**
 
-Apply these exact authority statements:
-
-`docs/README.md` → replace the current `## UI authority` paragraph with:
+`docs/README.md` → replace `## UI authority` body with:
 
 ```md
-## UI authority
-
-ADR-024 owns the Precision Grid visual/theme/token/density architecture and the approved end-state Carez OS interaction direction. ADR-016 remains the current implemented desktop-shell contract until the dedicated shell/navigation subproject replaces it. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants. Shared UI belongs in `design-system/CAREZ_COMPONENT_PACK.md`; modules must not create competing design systems or revive legacy presentation layers.
+ADR-024 owns the Precision Grid visual/theme/token/density architecture and approved end-state Carez OS interaction direction. ADR-016 remains the current implemented desktop-shell contract until the dedicated shell/navigation subproject replaces it. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants. Shared UI belongs in `design-system/CAREZ_COMPONENT_PACK.md`; modules must not create competing design systems or revive legacy presentation layers.
 ```
 
-`CODEX.md` → replace the existing UI-authority preserve bullet with:
+`CODEX.md` → replace the current dark-only UI-authority bullet with:
 
 ```md
 - UI authority: ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md`; ADR-016 remains the implemented shell until its dedicated replacement slice, and ADR-020/current Takeoff module contracts remain authoritative for Takeoff invariants. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, a permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed semantic tokens, or a second component system.
 ```
 
-`ADR-015` → change the status line to:
+`ADR-015` → set:
 
 ```md
 Status: Accepted principles, theme/visual foundation superseded by ADR-024
 ```
 
-and insert after the header metadata:
+and add after metadata:
 
 ```md
 ADR-024 supersedes this ADR's dark-first/default-dark theme contract, dark-only token assumptions, and one-density visual foundation. Its source-owned shadcn/Base UI architecture, continuous-workspace preference, restrained surface/content discipline, semantic/scarce color, functional motion, and anti-parallel-design-system rules remain incorporated by ADR-024.
 ```
 
-`ADR-016` → keep `Status: Accepted` and add after the header metadata:
+`ADR-016` → keep Accepted and add after metadata:
 
 ```md
 Transition under ADR-024: this ADR remains the current implemented shell contract until the dedicated role-adaptive Hybrid command-shell/project-context subproject is implemented and browser-accepted. ADR-024 is already authoritative for visual theme, token, density, and the approved end-state shell architecture. No permanent global desktop left rail returns.
 ```
 
-`ADR-019` → change the status line to:
+`ADR-019` → set:
 
 ```md
 Status: Accepted pattern, motion treatment amended by ADR-024
 ```
 
-replace the perspective/tilt requirement in `CarezActionMetricCard` with:
+replace the perspective/tilt requirement with:
 
 ```md
 - no pointer-following perspective/3D tilt; interactive cards may use restrained border/surface emphasis and at most about 1 px vertical lift when it materially clarifies clickability;
@@ -299,10 +273,10 @@ replace the perspective/tilt requirement in `CarezActionMetricCard` with:
 and add:
 
 ```md
-ADR-024 is authoritative when any older tactile-motion wording conflicts with Precision Grid.
+ADR-024 is authoritative when older tactile-motion wording conflicts with Precision Grid.
 ```
 
-`ADR-020` → keep it Accepted and add after metadata:
+`ADR-020` → keep Accepted and add after metadata:
 
 ```md
 Presentation transition: ADR-024 supersedes application-wide theme, token, density, and shell styling. This ADR remains authoritative for integrated Takeoff/workstation/domain invariants where not superseded by the current Takeoff module/3D contracts.
@@ -314,19 +288,19 @@ Presentation transition: ADR-024 supersedes application-wide theme, token, densi
 All shared Carez components use the ADR-024 Precision Grid semantic token system, first-class light/dark themes, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
 ```
 
-and add this section before the numbered component list:
+Add before the numbered component list:
 
 ```md
 ## Precision Grid foundation
 
-Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required semantic families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
+Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
 
 Appearance preference is `light | dark | system`; System is default. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
 
-Primary UI typography is Inter Variable. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain the default for quantities, money, rates, percentages, and dimensions.
+Primary UI typography is Inter Variable. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 ```
 
-`docs/superpowers/specs/2026-09-15-carez-os-major-ui-ux-redesign-design.md` → change status to:
+Approved design spec → set:
 
 ```md
 **Status:** Approved architectural design; implementation decomposed by subproject
@@ -338,13 +312,11 @@ and replace the final pending-review sentence with:
 This design is the approved architectural umbrella. Implementation proceeds through independently planned/verified subprojects beginning with Issue #63 — Canonical authority + token foundation.
 ```
 
-- [ ] **5. Run the authority test again.**
+- [ ] **5. Re-run the authority test; expect PASS.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-authority-contract.test.ts
 ```
-
-Expected: PASS.
 
 - [ ] **6. Commit Task 1.**
 
@@ -371,7 +343,7 @@ git commit -m "docs: establish Precision Grid UI authority"
 - Create: `components/carez/appearance-provider.tsx`
 - Modify: `components/carez/index.ts`
 
-### Interface contract
+### Public contract
 
 ```ts
 type CarezThemePreference = 'light' | 'dark' | 'system';
@@ -379,26 +351,24 @@ type CarezResolvedTheme = 'light' | 'dark';
 type CarezDensityPreference = 'default' | 'compact' | 'comfortable';
 ```
 
-Storage remains device-local in this subproject:
+Device-local keys:
 
 ```text
 carez.theme
 carez.density
 ```
 
-Root DOM state:
+Root state:
 
 ```text
 data-theme-preference="light|dark|system"
 data-theme="light|dark"
 data-density="default|compact|comfortable"
-class="dark" only when resolved theme is dark
+class="dark" only when resolved dark
 style.colorScheme="light|dark"
 ```
 
-### Steps
-
-- [ ] **1. Add failing pure behavior tests.**
+- [ ] **1. Add failing tests.**
 
 Create `tests/ui-appearance.test.ts`:
 
@@ -415,7 +385,7 @@ import {
   resolveThemePreference,
 } from '../lib/ui/appearance.ts';
 
-test('theme preferences normalize to system unless explicitly valid', () => {
+test('theme preference normalizes safely', () => {
   assert.equal(normalizeThemePreference('light'), 'light');
   assert.equal(normalizeThemePreference('dark'), 'dark');
   assert.equal(normalizeThemePreference('system'), 'system');
@@ -423,7 +393,7 @@ test('theme preferences normalize to system unless explicitly valid', () => {
   assert.equal(normalizeThemePreference(null), 'system');
 });
 
-test('density preferences normalize to default unless explicitly valid', () => {
+test('density preference normalizes safely', () => {
   assert.equal(normalizeDensityPreference('default'), 'default');
   assert.equal(normalizeDensityPreference('compact'), 'compact');
   assert.equal(normalizeDensityPreference('comfortable'), 'comfortable');
@@ -431,18 +401,18 @@ test('density preferences normalize to default unless explicitly valid', () => {
   assert.equal(normalizeDensityPreference(undefined), 'default');
 });
 
-test('system theme resolves against OS preference while explicit modes ignore it', () => {
+test('system resolves from OS while explicit themes do not', () => {
   assert.equal(resolveThemePreference('system', false), 'light');
   assert.equal(resolveThemePreference('system', true), 'dark');
   assert.equal(resolveThemePreference('light', true), 'light');
   assert.equal(resolveThemePreference('dark', false), 'dark');
 });
 
-test('boot script owns the same persistence and DOM contract', () => {
+test('boot script owns persistence and DOM state', () => {
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, new RegExp(CAREZ_THEME_STORAGE_KEY));
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, new RegExp(CAREZ_DENSITY_STORAGE_KEY));
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /prefers-color-scheme: dark/);
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /themePreference/);
+  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.themePreference/);
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.theme/);
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.density/);
   assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /classList\.toggle\('dark'/);
@@ -450,17 +420,13 @@ test('boot script owns the same persistence and DOM contract', () => {
 });
 ```
 
-- [ ] **2. Run the test and confirm the expected missing-module failure.**
+- [ ] **2. Run and confirm missing-module failure.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-appearance.test.ts
 ```
 
-Expected: FAIL because `lib/ui/appearance.ts` does not exist.
-
-- [ ] **3. Implement the pure appearance contract and pre-hydration script.**
-
-Create `lib/ui/appearance.ts`:
+- [ ] **3. Implement `lib/ui/appearance.ts`.**
 
 ```ts
 export type CarezThemePreference = 'light' | 'dark' | 'system';
@@ -479,10 +445,7 @@ export function normalizeDensityPreference(value: unknown): CarezDensityPreferen
   return value === 'compact' || value === 'comfortable' || value === 'default' ? value : 'default';
 }
 
-export function resolveThemePreference(
-  preference: CarezThemePreference,
-  prefersDark: boolean,
-): CarezResolvedTheme {
+export function resolveThemePreference(preference: CarezThemePreference, prefersDark: boolean): CarezResolvedTheme {
   return preference === 'system' ? (prefersDark ? 'dark' : 'light') : preference;
 }
 
@@ -509,29 +472,18 @@ export const CAREZ_APPEARANCE_BOOT_SCRIPT = `(() => {
 })();`;
 ```
 
-- [ ] **4. Run the pure tests and confirm PASS.**
+- [ ] **4. Re-run appearance tests; expect PASS.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-appearance.test.ts
 ```
 
-Expected: PASS.
-
-- [ ] **5. Implement the root client provider.**
-
-Create `components/carez/appearance-provider.tsx`:
+- [ ] **5. Implement `components/carez/appearance-provider.tsx`.**
 
 ```tsx
 'use client';
 
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import {
   CAREZ_DENSITY_STORAGE_KEY,
   CAREZ_THEME_MEDIA_QUERY,
@@ -556,19 +508,11 @@ type CarezAppearanceContextValue = {
 const CarezAppearanceContext = createContext<CarezAppearanceContextValue | null>(null);
 
 function readStorage(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
+  try { return window.localStorage.getItem(key); } catch { return null; }
 }
 
 function writeStorage(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Local persistence is best-effort; current-session appearance still applies.
-  }
+  try { window.localStorage.setItem(key, value); } catch {}
 }
 
 function applyTheme(preference: CarezThemePreference, prefersDark: boolean): CarezResolvedTheme {
@@ -593,14 +537,9 @@ export function CarezAppearanceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    const initialTheme = normalizeThemePreference(
-      root.dataset.themePreference ?? readStorage(CAREZ_THEME_STORAGE_KEY),
-    );
-    const initialDensity = normalizeDensityPreference(
-      root.dataset.density ?? readStorage(CAREZ_DENSITY_STORAGE_KEY),
-    );
+    const initialTheme = normalizeThemePreference(root.dataset.themePreference ?? readStorage(CAREZ_THEME_STORAGE_KEY));
+    const initialDensity = normalizeDensityPreference(root.dataset.density ?? readStorage(CAREZ_DENSITY_STORAGE_KEY));
     const media = window.matchMedia(CAREZ_THEME_MEDIA_QUERY);
-
     setThemePreference(initialTheme);
     setDensityPreference(initialDensity);
     setResolvedTheme(resolveThemePreference(initialTheme, media.matches));
@@ -614,10 +553,8 @@ export function CarezAppearanceProvider({ children }: { children: ReactNode }) {
       setResolvedTheme(applyTheme(themePreference, media.matches));
       writeStorage(CAREZ_THEME_STORAGE_KEY, themePreference);
     };
-
     update();
     if (themePreference !== 'system') return;
-
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, [ready, themePreference]);
@@ -647,7 +584,7 @@ export function useCarezAppearance() {
 }
 ```
 
-Modify `components/carez/index.ts`:
+- [ ] **6. Export it from `components/carez/index.ts`.**
 
 ```ts
 export * from './appearance-provider';
@@ -657,16 +594,14 @@ export * from './motion';
 export * from './workspace';
 ```
 
-- [ ] **6. Run focused tests plus typecheck.**
+- [ ] **7. Run focused tests and typecheck; expect PASS.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-appearance.test.ts
 pnpm typecheck
 ```
 
-Expected: both PASS.
-
-- [ ] **7. Commit Task 2.**
+- [ ] **8. Commit Task 2.**
 
 ```bash
 git add tests/ui-appearance.test.ts lib/ui/appearance.ts components/carez/appearance-provider.tsx components/carez/index.ts
@@ -675,25 +610,14 @@ git commit -m "feat(ui): define Carez appearance foundation"
 
 ---
 
-## Task 3: Replace the forced-dark root with Precision Grid dual-theme tokens
+## Task 3: Install Precision Grid tokens and remove forced-dark root markup
 
 **Files:**
 - Create: `tests/ui-token-contract.test.ts`
 - Modify: `app/globals.css`
 - Modify: `app/layout.tsx`
 
-### Interface contract
-
-- `:root` owns the light token set.
-- `.dark` owns the dark token set.
-- `html[data-density="compact"]` and `html[data-density="comfortable"]` alter only root density baselines.
-- `CAREZ_APPEARANCE_BOOT_SCRIPT` runs before body hydration.
-- `CarezAppearanceProvider` maintains live state after hydration.
-- No literal `dark` class is forced by server markup.
-
-### Steps
-
-- [ ] **1. Add the failing token/layout contract test.**
+- [ ] **1. Write the failing token/layout contract test.**
 
 Create `tests/ui-token-contract.test.ts`:
 
@@ -705,27 +629,14 @@ import test from 'node:test';
 const root = new URL('../', import.meta.url);
 const globals = readFileSync(new URL('app/globals.css', root), 'utf8');
 const layout = readFileSync(new URL('app/layout.tsx', root), 'utf8');
-
-function block(pattern: RegExp, source: string) {
-  return source.match(pattern)?.[1] ?? '';
-}
+const block = (pattern: RegExp, source: string) => source.match(pattern)?.[1] ?? '';
 
 const requiredThemeTokens = [
-  '--surface-canvas',
-  '--surface-panel',
-  '--surface-raised',
-  '--text-primary',
-  '--text-secondary',
-  '--text-muted',
-  '--border-default',
-  '--border-strong',
-  '--interaction-primary',
-  '--interaction-selection',
-  '--interaction-focus',
-  '--status-success',
-  '--status-warning',
-  '--status-error',
-  '--status-info',
+  '--surface-canvas', '--surface-panel', '--surface-raised',
+  '--text-primary', '--text-secondary', '--text-muted',
+  '--border-default', '--border-strong',
+  '--interaction-primary', '--interaction-selection', '--interaction-focus',
+  '--status-success', '--status-warning', '--status-error', '--status-info',
 ];
 
 test('light and dark token blocks are independent and complete', () => {
@@ -740,39 +651,37 @@ test('light and dark token blocks are independent and complete', () => {
   }
 });
 
-test('density and typography contracts are wired at the root', () => {
+test('density and typography contracts are present', () => {
   assert.match(globals, /--density-control-height:/);
   assert.match(globals, /--density-row-height:/);
   assert.match(globals, /--density-workspace-gap:/);
   assert.match(globals, /html\[data-density=['"]compact['"]\]/);
   assert.match(globals, /html\[data-density=['"]comfortable['"]\]/);
   assert.match(globals, /--font-mono:\s*var\(--font-ibm-plex-mono\)/);
-  assert.match(globals, /html\.dark\s*\{[^}]*color-scheme:\s*dark/s);
   assert.match(globals, /html\s*\{[^}]*color-scheme:\s*light/s);
+  assert.match(globals, /html\.dark\s*\{[^}]*color-scheme:\s*dark/s);
 });
 
-test('layout no longer hard-codes dark and runs the appearance bootstrap', () => {
+test('layout bootstraps appearance without a forced dark server class', () => {
   assert.match(layout, /IBM_Plex_Mono/);
   assert.match(layout, /--font-ibm-plex-mono/);
   assert.match(layout, /CAREZ_APPEARANCE_BOOT_SCRIPT/);
   assert.match(layout, /CarezAppearanceProvider/);
   assert.match(layout, /suppressHydrationWarning/);
   assert.doesNotMatch(layout, /GeistMono/);
-  assert.doesNotMatch(layout, /\$\{[^}]+\}\s+dark/);
+  assert.doesNotMatch(layout, /className=\{[^\n]*\bdark\b/);
 });
 ```
 
-- [ ] **2. Run the contract test and verify expected failure.**
+- [ ] **2. Run and confirm expected failure.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-token-contract.test.ts
 ```
 
-Expected: FAIL because light/dark currently share one block, `color-scheme` is forced dark, and `layout.tsx` hard-codes the dark class/Geist Mono.
+- [ ] **3. Replace the dark-only token block in `app/globals.css` with the Precision Grid contract.**
 
-- [ ] **3. Replace the token/theme portion of `app/globals.css`.**
-
-Keep the existing Tailwind/shadcn imports, build identity, scrollbar, reduced-motion, and print/mobile rules unless noted. Replace the current `@theme inline`, combined `:root,.dark`, and base `html` theme handling with the following contract:
+Keep existing imports and unrelated specialized/reduced-motion rules. Use this token architecture:
 
 ```css
 @theme inline {
@@ -992,17 +901,17 @@ html[data-density='comfortable'] {
 }
 ```
 
-Also change the build identity font line from `var(--font-geist-mono)` to:
+Change the build-identity font declaration to:
 
 ```css
 font: 600 9px/1.2 var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Consolas, monospace;
 ```
 
-Do not change the existing reduced-motion rule except as required by formatting.
+Keep the existing reduced-motion rule.
 
-- [ ] **4. Replace the forced-dark root layout with the hydration-safe appearance foundation.**
+- [ ] **4. Update `app/layout.tsx` without changing shell behavior.**
 
-Update `app/layout.tsx` to this structure while preserving metadata/build-identity behavior and the existing `takeoff-v3.css` import:
+Preserve current metadata/build identity and `takeoff-v3.css`; replace Geist/forced-dark wiring with:
 
 ```tsx
 import type { Metadata } from 'next';
@@ -1013,12 +922,7 @@ import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import './globals.css';
 import './takeoff-v3.css';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   variable: '--font-ibm-plex-mono',
@@ -1038,19 +942,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html
-    lang="en"
-    suppressHydrationWarning
-    className={`${inter.variable} ${ibmPlexMono.variable}`}
-  >
+  return <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
     </head>
     <body className={inter.className}>
       <CarezAppearanceProvider>
-        <TooltipProvider>
-          {children}
-        </TooltipProvider>
+        <TooltipProvider>{children}</TooltipProvider>
       </CarezAppearanceProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
@@ -1060,26 +958,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-Do not remove the `geist` package in this task; dependency cleanup is unrelated to the visual foundation and would create lockfile noise.
+Do **not** remove the now-unused `geist` package in this subproject; that is unrelated lockfile cleanup.
 
-- [ ] **5. Run the token contract test.**
-
-```bash
-node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-token-contract.test.ts
-```
-
-Expected: PASS.
-
-- [ ] **6. Run appearance tests and typecheck together.**
+- [ ] **5. Run token + appearance tests and typecheck; expect PASS.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-appearance.test.ts tests/ui-token-contract.test.ts
 pnpm typecheck
 ```
 
-Expected: PASS.
-
-- [ ] **7. Commit Task 3.**
+- [ ] **6. Commit Task 3.**
 
 ```bash
 git add tests/ui-token-contract.test.ts app/globals.css app/layout.tsx
@@ -1095,19 +983,7 @@ git commit -m "feat(ui): add Precision Grid dual-theme tokens"
 - Create: `components/settings/AppearanceSettings.tsx`
 - Modify: `app/settings/page.tsx`
 
-### Interface contract
-
-- Theme choices: System, Light, Dark.
-- Density choices: Workspace default, Compact, Comfortable.
-- Controls are disabled until client appearance state is hydrated.
-- Changing a selection updates the provider immediately; persistence is provider-owned.
-- Settings remains a normal server route with one nested client component; no Settings page conversion is required.
-
-### Steps
-
-- [ ] **1. Add a failing integration source-contract test.**
-
-Create `tests/ui-settings-appearance.test.ts`:
+- [ ] **1. Write the failing Settings integration contract.**
 
 ```ts
 import assert from 'node:assert/strict';
@@ -1116,14 +992,12 @@ import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
 const componentUrl = new URL('components/settings/AppearanceSettings.tsx', root);
-
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 
-test('Settings exposes the Carez appearance preference surface', () => {
+test('Settings exposes Carez appearance preferences', () => {
   assert.equal(existsSync(componentUrl), true);
   const component = read('components/settings/AppearanceSettings.tsx');
   const settings = read('app/settings/page.tsx');
-
   assert.match(component, /useCarezAppearance/);
   assert.match(component, /System/);
   assert.match(component, /Light/);
@@ -1136,29 +1010,19 @@ test('Settings exposes the Carez appearance preference surface', () => {
 });
 ```
 
-- [ ] **2. Run the test and verify expected failure.**
+Run and expect FAIL:
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-settings-appearance.test.ts
 ```
 
-Expected: FAIL because the Appearance settings component does not exist.
-
-- [ ] **3. Implement the Settings appearance component using the existing Base UI Select composition.**
-
-Create `components/settings/AppearanceSettings.tsx`:
+- [ ] **2. Create `components/settings/AppearanceSettings.tsx`.**
 
 ```tsx
 'use client';
 
 import { useCarezAppearance } from '@/components/carez/appearance-provider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function AppearanceSettings() {
   const {
@@ -1173,19 +1037,12 @@ export function AppearanceSettings() {
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
       <div>
         <div className="text-sm font-medium">Theme</div>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          Follow this device or use an explicit Carez light/dark theme.
-        </p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Follow this device or use an explicit Carez light/dark theme.</p>
       </div>
-      <Select
-        value={themePreference}
-        onValueChange={value => {
-          if (value === 'light' || value === 'dark' || value === 'system') setThemePreference(value);
-        }}
-      >
-        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez theme">
-          <SelectValue />
-        </SelectTrigger>
+      <Select value={themePreference} onValueChange={value => {
+        if (value === 'light' || value === 'dark' || value === 'system') setThemePreference(value);
+      }}>
+        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez theme"><SelectValue /></SelectTrigger>
         <SelectContent align="end">
           <SelectItem value="system">System</SelectItem>
           <SelectItem value="light">Light</SelectItem>
@@ -1197,19 +1054,12 @@ export function AppearanceSettings() {
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
       <div>
         <div className="text-sm font-medium">Density</div>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          Sets your baseline spacing. Specialist workspaces may enforce safe density limits.
-        </p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Sets your baseline spacing. Specialist workspaces may enforce safe density limits.</p>
       </div>
-      <Select
-        value={densityPreference}
-        onValueChange={value => {
-          if (value === 'default' || value === 'compact' || value === 'comfortable') setDensityPreference(value);
-        }}
-      >
-        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez density">
-          <SelectValue />
-        </SelectTrigger>
+      <Select value={densityPreference} onValueChange={value => {
+        if (value === 'default' || value === 'compact' || value === 'comfortable') setDensityPreference(value);
+      }}>
+        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez density"><SelectValue /></SelectTrigger>
         <SelectContent align="end">
           <SelectItem value="default">Workspace default</SelectItem>
           <SelectItem value="compact">Compact</SelectItem>
@@ -1221,15 +1071,15 @@ export function AppearanceSettings() {
 }
 ```
 
-- [ ] **4. Add the Appearance section to the existing Settings page.**
+- [ ] **3. Integrate it into `app/settings/page.tsx` without redesigning Settings.**
 
-In `app/settings/page.tsx`, add:
+Add import:
 
 ```tsx
 import { AppearanceSettings } from '@/components/settings/AppearanceSettings';
 ```
 
-Immediately after the Company Branding section and before Connections, add:
+Immediately after Company Branding and before Connections:
 
 ```tsx
 <section className="space-y-4">
@@ -1242,18 +1092,14 @@ Immediately after the Company Branding section and before Connections, add:
 </section>
 ```
 
-Do not move or redesign the existing Settings integrations/labor sections in this subproject.
-
-- [ ] **5. Run the Settings contract test and typecheck.**
+- [ ] **4. Run Settings test and typecheck; expect PASS.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-settings-appearance.test.ts
 pnpm typecheck
 ```
 
-Expected: PASS.
-
-- [ ] **6. Run all new UI foundation tests together.**
+- [ ] **5. Run all four new contract tests.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test \
@@ -1263,9 +1109,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types -
   tests/ui-settings-appearance.test.ts
 ```
 
-Expected: PASS.
-
-- [ ] **7. Commit Task 4.**
+- [ ] **6. Commit Task 4.**
 
 ```bash
 git add tests/ui-settings-appearance.test.ts components/settings/AppearanceSettings.tsx app/settings/page.tsx
@@ -1274,22 +1118,18 @@ git commit -m "feat(settings): add Carez appearance preferences"
 
 ---
 
-## Task 5: Run the complete automated foundation gate
+## Task 5: Run the complete automated foundation gate and deploy staging
 
 **Files:** none unless a failing check proves a bounded correction is required.
 
-### Steps
-
-- [ ] **1. Confirm the working tree contains only expected Subproject 1 changes.**
+- [ ] **1. Confirm only expected Subproject 1 files changed across the four task commits.**
 
 ```bash
 git status --short
 git diff --stat HEAD~4..HEAD
 ```
 
-Expected: only the files listed in this plan. If unrelated changes are present, separate them before continuing.
-
-- [ ] **2. Run targeted UI foundation tests.**
+- [ ] **2. Run all new foundation tests.**
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test \
@@ -1301,15 +1141,15 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types -
 
 Expected: PASS.
 
-- [ ] **3. Run full repository validation because theme tokens/layout affect the whole application.**
+- [ ] **3. Run full repository validation.**
 
 ```bash
 pnpm check
 ```
 
-Expected: `pnpm typecheck`, all domain tests, and production build PASS.
+Expected: typecheck, all domain tests, and production build PASS.
 
-- [ ] **4. Verify no new dependency or lockfile mutation was introduced.**
+- [ ] **4. Verify no dependency/lockfile mutation.**
 
 ```bash
 git diff --exit-code HEAD~4..HEAD -- package.json pnpm-lock.yaml
@@ -1317,7 +1157,7 @@ git diff --exit-code HEAD~4..HEAD -- package.json pnpm-lock.yaml
 
 Expected: no diff.
 
-- [ ] **5. Verify the implementation did not alter shell navigation or domain/database source.**
+- [ ] **5. Verify this slice did not change shell navigation or domain/database source.**
 
 ```bash
 git diff --name-only HEAD~4..HEAD | grep -E '^(components/AppShell\.tsx|supabase/|lib/domain/|lib/takeoff/conditions/)' && exit 1 || true
@@ -1325,62 +1165,58 @@ git diff --name-only HEAD~4..HEAD | grep -E '^(components/AppShell\.tsx|supabase
 
 Expected: no output.
 
-- [ ] **6. Push the validated commits to `staging` if the execution environment is on a temporary task branch; otherwise confirm `staging` already contains them.**
+- [ ] **6. Integrate/push only to canonical `staging`.**
 
-If a temporary branch was required by the runner, merge it into current `staging`, delete the temporary branch, and push `staging`. Do not ask Nik to test a feature-branch preview.
+If the executor used a temporary implementation branch, merge it into current `staging`, delete it, then push `staging`. Nik must not test a feature-branch preview.
 
-- [ ] **7. Wait for the stable staging alias to serve the matching commit before browser QA.**
+- [ ] **7. Record the application SHA that will be browser-tested.**
 
-Stable QA URL:
+```bash
+git rev-parse HEAD
+```
+
+Store this exact value in the execution notes as the **browser-test application SHA**. It is distinct from the later documentation-only `CURRENT_STATE.md` reconciliation commit.
+
+- [ ] **8. Wait for the stable staging alias to report this application SHA before browser QA.**
 
 ```text
 https://carez-concrete-os-git-staging-seancolmes-projects.vercel.app
 ```
 
-Do not proceed to acceptance based only on a READY deployment if the browser still serves a different build identity.
+A READY deployment serving a different build identity is not acceptable evidence.
 
 ---
 
-## Task 6: Browser-verify the foundation, then reconcile Current State and close Issue #63
+## Task 6: Browser-verify, obtain user acceptance, then reconcile Current State and close Issue #63
 
-**Files:**
-- Modify after PASS only: `docs/CURRENT_STATE.md`
-- GitHub Issue #63 comment/state after PASS only.
+**Files after PASS only:**
+- Modify: `docs/CURRENT_STATE.md`
+- GitHub: comment/close Issue #63
 
-### Browser acceptance matrix
+If the executor cannot use an authenticated browser, stop after Task 5 and hand browser QA to `99 — QA / Release / Debugging`. Do **not** update `CURRENT_STATE.md` or close Issue #63 until the same stable staging build is verified and Nik accepts it.
 
-Use an authenticated browser on the stable staging URL. This is a foundation QA pass, not broad route-redesign acceptance.
+### Browser acceptance
 
-- [ ] **1. Verify Settings controls render and are keyboard accessible.**
+- [ ] **1. `/settings`: Appearance controls render and work by keyboard.**
 
-Open `/settings` and confirm:
+Confirm Theme shows System/Light/Dark and Density shows Workspace default/Compact/Comfortable. Tab to both Selects; open/select/close by keyboard; confirm visible focus.
 
-```text
-Interface
-Appearance
-Theme: System | Light | Dark
-Density: Workspace default | Compact | Comfortable
-```
+- [ ] **2. Explicit Light persists without a forced-dark flash.**
 
-Tab into both Select triggers, open by keyboard, change choices, Escape/close, and verify visible focus.
-
-- [ ] **2. Verify explicit Light persistence without forced-dark flash.**
-
-Choose Light. Confirm `document.documentElement` has:
+Select Light and confirm root state:
 
 ```text
 data-theme-preference="light"
 data-theme="light"
-data-density="..."
 class does not contain "dark"
 style.colorScheme === "light"
 ```
 
-Reload `/settings`. Confirm Light remains and the page does not visibly flash a forced dark frame before hydration.
+Reload. The preference must persist and the first visible frame must not be forced dark.
 
-- [ ] **3. Verify explicit Dark persistence.**
+- [ ] **3. Explicit Dark persists.**
 
-Choose Dark and confirm:
+Confirm:
 
 ```text
 data-theme-preference="dark"
@@ -1389,15 +1225,15 @@ class contains "dark"
 style.colorScheme === "dark"
 ```
 
-Reload and confirm it persists.
+Reload and confirm persistence.
 
-- [ ] **4. Verify System follows `prefers-color-scheme` live.**
+- [ ] **4. System follows OS/browser color-scheme changes live.**
 
-Choose System. Use browser/OS color-scheme emulation to switch Light → Dark → Light without reloading. Confirm `data-theme`, `.dark`, and `colorScheme` update on each media-query change while `data-theme-preference` stays `system`.
+Select System. Emulate Light → Dark → Light without reload. `data-theme`, `.dark`, and `style.colorScheme` must update each time while `data-theme-preference` remains `system`.
 
-- [ ] **5. Verify density root state/persistence.**
+- [ ] **5. Density root state persists.**
 
-Select Compact, reload, then Comfortable, reload, then restore Workspace default. Confirm `data-density` persists as `compact`, `comfortable`, and `default` respectively. Inspect computed values for:
+Cycle Compact → reload → Comfortable → reload → Workspace default. Confirm `data-density` and computed values for:
 
 ```text
 --density-control-height
@@ -1405,11 +1241,11 @@ Select Compact, reload, then Comfortable, reload, then restore Workspace default
 --density-workspace-gap
 ```
 
-Do not require all current legacy/shared components to visually consume these values yet; shared-component adoption is Subproject 3.
+This slice does not require every existing component to consume density yet; that is Subproject 3.
 
 - [ ] **6. Smoke representative existing surfaces in both themes.**
 
-At minimum inspect:
+At minimum:
 
 ```text
 /settings
@@ -1418,57 +1254,53 @@ At minimum inspect:
 /takeoff/[an existing accessible setId]
 ```
 
-Check text/background contrast, inputs, buttons, menus/popovers, Switch, Data Grid/table content, selected/focus state, overflow, and no unreadable hard-coded dark-on-dark or light-on-light region.
+Check readable contrast, inputs, buttons, menus/popovers, Switch, table/Data Grid content, focus/selection state, and no obvious hard-coded theme collision. This is token-foundation acceptance, not later route/shell redesign approval.
 
-This does not approve the future shell or route redesign; it only proves the token foundation does not break representative existing work.
+- [ ] **7. Handle specialized-style defects only from evidence.**
 
-- [ ] **7. Treat active specialized CSS defects as real blockers, not speculative refactors.**
+If `app/takeoff-v3.css` or another specialized stylesheet causes an observed light-theme defect, record exact route/selector/evidence in Issue #63, make only the bounded correction, re-run `pnpm check`, redeploy, and repeat the affected checks. Do not rewrite specialized rendering CSS wholesale.
 
-If `app/takeoff-v3.css` or another specialized stylesheet creates an observed light-theme defect, record the exact route, selector, and screenshot/evidence in Issue #63. Make the smallest semantic-token/dual-theme correction for the observed active selector, rerun `pnpm check`, redeploy staging, and repeat the affected browser checks. Do not rewrite specialized geometry/rendering CSS wholesale.
+- [ ] **8. Obtain Nik's PASS on the browser-test application SHA recorded in Task 5.**
 
-- [ ] **8. Obtain Nik's stable-staging acceptance before changing Current State.**
-
-Required user result: PASS on the stable staging build for this foundation slice.
+Do not proceed to Current State reconciliation without explicit user acceptance.
 
 ### Current State reconciliation after PASS
 
-- [ ] **9. Update `docs/CURRENT_STATE.md` only after Tasks 5–6 have passed.**
+- [ ] **9. Update `docs/CURRENT_STATE.md`.**
 
-Make these durable corrections:
-
-1. Set:
+Set:
 
 ```md
 Last reconciled: 2026-09-15
 ```
 
-2. Replace the protected-baseline UI authority bullet with:
+Replace the protected-baseline UI authority bullet with:
 
 ```md
 - ADR-024 Precision Grid is the active application visual/theme/token/density authority. ADR-016 remains the currently implemented shell until the dedicated role-adaptive shell/navigation subproject replaces it; ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
 ```
 
-3. Replace the stale `Issue #44 remains open...` statement with:
+Replace the stale Issue #44-open statement with:
 
 ```md
 Issue #44 is **accepted/closed** at staging SHA `388b8f35682ddd23c9c9f69a907d65d724e63fa2`; the prior dark-shadcn route conversion, compatibility-layer removal, and route-family browser acceptance are historical baseline, not an active implementation gate.
 ```
 
-4. Add to the Global UI/shared-system state after browser acceptance:
+Add:
 
 ```md
-Issue #63 — Precision Grid canonical authority + token foundation — is accepted on staging. Implemented foundation includes first-class Light/Dark/System preference, pre-hydration theme resolution, device-local appearance persistence, Inter + IBM Plex Mono typography roles, Precision Grid semantic light/dark tokens, root default/compact/comfortable density state, and Settings appearance controls. This acceptance does not imply the later role-adaptive shell, project-context layer, shared-component expansion, or route/module redesign slices are implemented.
+Issue #63 — Precision Grid canonical authority + token foundation — is accepted on staging. The accepted foundation includes first-class Light/Dark/System preference, pre-hydration theme resolution, device-local appearance persistence, Inter + IBM Plex Mono typography roles, Precision Grid semantic light/dark tokens, root default/compact/comfortable density state, and Settings appearance controls. This does not imply that the later role-adaptive shell, project-context layer, shared-component expansion, or route/module redesign slices are implemented.
 ```
 
-5. Replace the old active priority about continuing Issue #44 with:
+Replace the old Issue #44 UI priority with:
 
 ```md
 1. Continue the approved Carez OS major UI/UX redesign through the next independently planned subproject: Global shell + navigation context. Preserve ADR-024 and the accepted Issue #63 foundation while doing so.
 ```
 
-Leave non-UI priorities such as derived 3D and Issue #59 in their existing relative order unless their verified state has independently changed.
+Keep non-UI priorities in their existing relative order unless independently verified state changed.
 
-- [ ] **10. Commit Current State reconciliation.**
+- [ ] **10. Commit/push the Current State reconciliation.**
 
 ```bash
 git add docs/CURRENT_STATE.md
@@ -1476,92 +1308,81 @@ git commit -m "docs: record Precision Grid foundation acceptance"
 git push origin staging
 ```
 
-- [ ] **11. Add Issue #63 acceptance evidence and close it completed.**
-
-Obtain the exact final staging SHA:
+- [ ] **11. Record the final documentation SHA separately.**
 
 ```bash
 git rev-parse HEAD
 ```
 
-Use that exact SHA in the Issue #63 acceptance comment. The comment must state:
+The Issue #63 comment must identify both:
+
+1. the **browser-test application SHA** accepted in Step 8; and
+2. this **final documentation SHA** containing the reconciled Current State.
+
+Do not misrepresent the docs-only commit as the SHA that received the full browser interaction pass.
+
+- [ ] **12. Post acceptance evidence to Issue #63 and close it completed.**
+
+Use this body, substituting the two exact SHA values obtained from git commands:
 
 ```md
 ## Subproject 1 acceptance — PASS
+
+Browser-accepted application SHA: <exact Task 5 application SHA>
+Current-State reconciliation SHA: <exact Task 6 documentation SHA>
 
 - ADR-024 and canonical UI authority reconciliation complete.
 - Light / Dark / System preference and live System media-query response browser-verified.
 - Appearance persistence and root density preference browser-verified.
 - Precision Grid dual-theme semantic tokens and Inter / IBM Plex Mono foundation implemented.
 - `pnpm check` PASS.
-- Matching stable staging deployment browser-verified and user accepted.
-- `CURRENT_STATE.md` reconciled.
+- Matching stable staging application build browser-verified and user accepted.
+- `CURRENT_STATE.md` reconciled after acceptance.
 
 This closes only Subproject 1. Role-adaptive shell/navigation, shared component/state expansion, reference slices, and module migrations remain separate follow-on subprojects.
 ```
 
-If `gh` is available, post and close with:
+If `gh` is available, obtain the values from git and post the body with `gh issue comment 63`, then:
 
 ```bash
-SHA="$(git rev-parse HEAD)"
-printf '%s\n' \
-  '## Subproject 1 acceptance — PASS' \
-  '' \
-  "Accepted staging SHA: \`$SHA\`." \
-  '' \
-  '- ADR-024 and canonical UI authority reconciliation complete.' \
-  '- Light / Dark / System preference and live System media-query response browser-verified.' \
-  '- Appearance persistence and root density preference browser-verified.' \
-  '- Precision Grid dual-theme semantic tokens and Inter / IBM Plex Mono foundation implemented.' \
-  '- `pnpm check` PASS.' \
-  '- Matching stable staging deployment browser-verified and user accepted.' \
-  '- `CURRENT_STATE.md` reconciled.' \
-  '' \
-  'This closes only Subproject 1. Role-adaptive shell/navigation, shared component/state expansion, reference slices, and module migrations remain separate follow-on subprojects.' \
-  > /tmp/carez-issue-63-acceptance.md
-
-gh issue comment 63 --repo seancolmes/carez-concrete-os --body-file /tmp/carez-issue-63-acceptance.md
 gh issue close 63 --repo seancolmes/carez-concrete-os --reason completed
 ```
 
-If `gh` is not available, use the connected GitHub issue tool with the same exact body and final SHA.
+If `gh` is unavailable, use the connected GitHub issue tool with the same exact evidence and close reason.
 
 ---
 
 ## Final Verification Checklist
 
-Before declaring Subproject 1 complete, all of the following must be true:
-
 - [ ] ADR-024 exists and canonical docs reference it without contradiction.
-- [ ] Issue #44 remains closed; Issue #63 owns and then closes this foundation slice.
-- [ ] No new runtime dependency or package-lock change was introduced.
-- [ ] `lib/ui/appearance.ts` tests pass.
-- [ ] Provider reacts live to System theme changes in browser.
-- [ ] No server-rendered hard-coded `.dark` class remains in `app/layout.tsx`.
-- [ ] Light and dark each define complete semantic token families.
-- [ ] Inter is normal UI; IBM Plex Mono is the mono/technical family.
-- [ ] Root density state is `default | compact | comfortable` and persists locally.
-- [ ] Settings appearance controls are keyboard accessible.
+- [ ] Issue #44 remains closed; Issue #63 owns this slice.
+- [ ] No new runtime dependency or lockfile mutation.
+- [ ] Appearance pure tests pass.
+- [ ] System preference reacts live in browser.
+- [ ] `app/layout.tsx` has no server-forced `.dark` class.
+- [ ] Light and dark each define the complete semantic token families.
+- [ ] Inter is normal UI; IBM Plex Mono is technical/mono.
+- [ ] Root density state is `default | compact | comfortable` and persists.
+- [ ] Settings Appearance is keyboard accessible.
 - [ ] `pnpm check` passes.
-- [ ] Matching stable `staging` deployment is READY.
-- [ ] Authenticated browser QA passes `/settings`, `/`, `/projects`, and a current Takeoff set in both themes.
-- [ ] Nik accepts the stable staging foundation.
-- [ ] `CURRENT_STATE.md` is updated only after acceptance.
+- [ ] Stable staging serves the exact application SHA used for browser QA.
+- [ ] `/settings`, `/`, `/projects`, and a current Takeoff set pass the token-foundation smoke in both themes.
+- [ ] Nik explicitly accepts that application SHA.
+- [ ] `CURRENT_STATE.md` is updated only afterward, with its docs SHA recorded separately.
+- [ ] Issue #63 closes only after acceptance evidence is posted.
 - [ ] No statement claims Subprojects 2–7 are implemented.
 
-## Spec Coverage Self-Check
+## Spec Coverage Self-Review
 
-This plan covers every requirement assigned to Subproject 1 by the approved umbrella spec:
+- Canonical authority reconciliation → Task 1.
+- Semantic light/dark token architecture → Task 3.
+- Light/Dark/System preference, pre-hydration resolution, persistence, live OS response → Tasks 2–4 and Task 6.
+- Typography, spacing/radius, motion, semantic interaction/status tokens → Task 3.
+- Root density primitives → Tasks 2–4.
+- No shell/module migration → Global Constraints and unchanged-file boundary.
+- No new dependency → Global Constraints and Task 5.
+- Automated validation/build → Tasks 1–5.
+- Stable-staging rendered acceptance → Task 6.
+- Current-state truth only after verification → Task 6.
 
-- canonical authority reconciliation → Task 1;
-- semantic light/dark token architecture → Task 3;
-- true Light/Dark/System preference and persistence → Tasks 2–4;
-- typography / spacing / radius / elevation-motion token foundation → Tasks 1 and 3;
-- density primitives → Tasks 2–4;
-- no shell/module migration yet → Global Constraints + unchanged-file boundary;
-- no new design/runtime dependency → Global Constraints + Task 5;
-- automated tests/build → Tasks 1–5;
-- stable staging browser acceptance → Task 6;
-- current-state truth only after verification → Task 6.
-
-There are no `TBD`, `TODO`, or intentionally ambiguous implementation decisions in this plan. Any browser-discovered defect is handled as evidence-driven bounded correction under Issue #63 rather than pre-authorized scope expansion.
+The plan contains no unresolved implementation decision. Browser-discovered defects follow an evidence-driven bounded correction path under Issue #63 rather than pre-authorized scope expansion.
