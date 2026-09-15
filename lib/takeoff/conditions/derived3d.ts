@@ -7,6 +7,7 @@ import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeome
 export type * from './derived3d/contracts.ts';
 export { stableDerived3DHash } from './derived3d/coordinates.ts';
 export const PROJECTION_VERSION = 'concrete-projection-v2';
+const STRIP_PROJECTION_CONTRACT_VERSIONS = new Set([1, 2, 3, 4, 5]);
 
 function geometryFromSource(value: unknown): DrawingGeometry {
   const raw = record(value);
@@ -25,8 +26,8 @@ function geometryFromSource(value: unknown): DrawingGeometry {
 export function projectionCapability(condition: Derived3DConditionSource): { supported: boolean; reason?: string } {
   if (!['strip_wall_footing', 'slab_on_grade', 'pad_column_footing'].includes(condition.archetypeKey)) return { supported: false, reason: 'This Condition family has no supported projection adapter.' };
   const version = condition.contractVersion ?? 1;
-  const known = condition.archetypeKey === 'strip_wall_footing' ? [1, 2, 3] : [1];
-  if (!known.includes(version) || (condition.engineKey !== undefined && condition.engineKey !== 'concrete_condition_v1')) return { supported: false, reason: 'This Condition version has no supported physical projection adapter.' };
+  const supportedVersion = condition.archetypeKey === 'strip_wall_footing' ? STRIP_PROJECTION_CONTRACT_VERSIONS.has(version) : version === 1;
+  if (!supportedVersion || (condition.engineKey !== undefined && condition.engineKey !== 'concrete_condition_v1')) return { supported: false, reason: 'This Condition version has no supported physical projection adapter.' };
   return { supported: true };
 }
 
