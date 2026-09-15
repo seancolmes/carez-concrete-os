@@ -27,7 +27,17 @@ export function homeCameraMemory(width: number, height: number, viewportWidth: n
 }
 
 export function topCameraMemory(width: number, height: number, viewportWidth: number, viewportHeight: number): Takeoff3DCameraMemory {
-  return { ...homeCameraMemory(width, height, viewportWidth, viewportHeight), azimuth: 0, polar: MIN_POLAR };
+  const frameMargin = 1.12;
+  const zoom = clamp(Math.min(
+    viewportWidth / (width * frameMargin),
+    viewportHeight / (height * frameMargin),
+  ), 0.05, 40);
+  return {
+    azimuth: 0,
+    polar: MIN_POLAR,
+    zoom,
+    target: [width / 2, 0, height / 2],
+  };
 }
 
 export function cameraPositionForMemory(memory: Takeoff3DCameraMemory, width: number, height: number): [number, number, number] {
