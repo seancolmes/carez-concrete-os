@@ -48,14 +48,12 @@
 .propertiesHeader small{display:block;margin-top:2px;color:var(--muted-foreground);font-size:10px}
 .viewModeSwitch{display:flex;height:28px;align-items:center;gap:1px;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--muted) 30%,transparent);padding:2px}
 .viewModeSwitch button{height:22px;min-width:34px;border:0;border-radius:var(--radius-sm);background:transparent;padding:0 7px;color:var(--muted-foreground);font-size:10px;font-weight:700;cursor:pointer;transition:background-color 140ms ease,color 140ms ease,opacity 140ms ease}
-.viewModeSwitch button:last-child{display:none}
 .viewModeSwitch button:hover:not(:disabled){background:var(--muted);color:var(--foreground)}
 .viewModeSwitch button:focus-visible{outline:2px solid color-mix(in oklch,var(--ring) 55%,transparent);outline-offset:1px}
 .viewModeSwitch button:disabled{cursor:not-allowed;opacity:.38}
 .viewModeSwitch .viewModeActive{background:var(--foreground);color:var(--background);box-shadow:0 1px 2px rgb(0 0 0 / .22)}
 .derivedOverlay{position:absolute;z-index:80;top:34px;right:0;min-width:0;min-height:0;overflow:hidden;border-left:1px solid var(--border);background:var(--background)}
-.derivedOverlay3d,.derivedOverlaySplit{left:260px}
-.integrated[data-view-mode="split"] .drawingHost>div:first-child>div:first-child>section{width:100%;min-width:0}
+.derivedOverlay3d{left:260px}
 .conditionColor{width:10px;height:10px;flex:none;border-radius:3px;background:var(--success);box-shadow:0 0 0 1px color-mix(in oklch,var(--foreground) 10%,transparent)}
 .conditionColor[data-family="slab_on_grade"]{background:var(--chart-1)}
 .conditionColor[data-family="pad_column_footing"]{background:var(--warning)}
@@ -130,7 +128,7 @@
   .integrated{grid-template-columns:minmax(0,1fr) 0 350px!important}
   .fieldGrid{grid-template-columns:1fr}
   .drawingHost>div:first-child>div:first-child{grid-template-columns:220px minmax(0,1fr)!important}
-  .derivedOverlay3d,.derivedOverlaySplit{left:220px}
+  .derivedOverlay3d{left:220px}
 }
 @media(max-width:860px){
   .integrated{display:block;overflow:auto}
@@ -138,8 +136,7 @@
   .propertiesPane{min-height:540px;border-top:1px solid var(--border);border-left:0}
   .drawingHost>div:first-child>div:first-child{grid-template-columns:minmax(0,1fr)!important}
   .drawingHost>div:first-child>div:first-child>aside:first-child{display:none!important}
-  .derivedOverlay3d,.derivedOverlaySplit{left:0}
-  .integrated[data-view-mode="split"] .drawingHost>div:first-child>div:first-child>section{width:100%}
+  .derivedOverlay3d{left:0}
   .propertiesHeader{align-items:flex-start}
 }
 @media(prefers-reduced-motion:reduce){.viewModeSwitch button{transition:none}}

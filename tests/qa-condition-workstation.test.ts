@@ -63,11 +63,26 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
 });
 
 test('3D toggles in the current drawing viewport and Split is not exposed', () => {
-  assert.match(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
-  assert.match(workspaceStyles, /\.derivedOverlay3d,\.derivedOverlaySplit\{left:260px\}/);
-  assert.match(workspaceStyles, /data-view-mode="split"[^\n]*section\{width:100%;min-width:0\}/);
+  assert.doesNotMatch(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
+  assert.match(workspaceStyles, /\.derivedOverlay3d\{left:260px\}/);
+  assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
+  assert.doesNotMatch(workspaceStyles, /derivedOverlaySplit|data-view-mode="split"/);
+  assert.doesNotMatch(workstation, /\['2d','3d','split'\]/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
+});
+
+test('R3F migration is client-only and shares existing sheet, selection and view state', () => {
+  assert.match(workstation, /NEXT_PUBLIC_CAREZ_3D_RENDERER/);
+  assert.match(workstation, /dynamic\(/);
+  assert.match(workstation, /ssr:\s*false/);
+  assert.match(workstation, /pdfUrl=\{workspaceProps\.pdfUrl\}/);
+  assert.match(workstation, /activePageNumber=\{Number\(activeSheet\?\.page_number\|\|1\)\}/);
+  assert.match(workstation, /@\/lib\/takeoff\/3d\/viewState/);
+  assert.match(viewer, /@\/lib\/takeoff\/3d\/viewState/);
+  assert.match(workstation, /cameraMemory=\{r3fMemory\.current\}/);
+  assert.match(workstation, /selectedMeasurementId=\{selectedMeasurementId\}/);
+  assert.match(workstation, /onSelectSolid=\{selectDerivedSolid\}/);
 });
 
 test('3D uses the rendered PDF sheet as the spatial reference plane', () => {

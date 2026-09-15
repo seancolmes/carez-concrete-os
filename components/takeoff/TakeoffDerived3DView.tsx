@@ -6,6 +6,7 @@ import type { Derived3DIssue, Derived3DPlanPoint, Derived3DScene, Derived3DSheet
 import styles from './TakeoffDerived3DView.module.css';
 import { Button } from '@/components/ui/button';
 import { formatArchitecturalLength } from '@/lib/takeoff/lengthFormat';
+import type { Derived3DViewState } from '@/lib/takeoff/3d/viewState';
 
 type Props = {
   scene: Derived3DScene;
@@ -25,7 +26,6 @@ type ProjectedPoint = { x: number; y: number; depth: number };
 type Camera = { yaw: number; pitch: number; zoom: number; panX: number; panY: number };
 type Drag = { mode: 'orbit' | 'pan'; x: number; y: number; camera: Camera; pointerId: number; solidId: string | null } | null;
 type ViewFrame = { center: Point3; fitRadius: number; referenceElevation: number };
-export type Derived3DViewState = { hidden: string[]; isolated: string | null; zone: string; elevation: string };
 export type Derived3DViewMemory = Map<string, { camera: Camera; center: Point3 | null; fitRadius: number | null; referenceElevation: number | null }>;
 type RenderFace = {
   key: string;

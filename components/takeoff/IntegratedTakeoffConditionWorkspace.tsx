@@ -3,6 +3,7 @@
 import {createPortal} from 'react-dom';
 import {useEffect,useMemo,useRef,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {AlertTriangle,CheckCircle2,ChevronDown,Layers3,Plus,RefreshCw,Ruler,Save,Search} from 'lucide-react';
 import {
   assignConditionPrimaryTakeoffSection,
@@ -64,11 +65,19 @@ import type {
 } from '@/lib/takeoff/conditions/types';
 import {ConditionModuleEditor} from './ConditionModuleEditor';
 import {ConditionRolePicker} from './ConditionRolePicker';
-import {TakeoffDerived3DView, TakeoffDerived3DBoundary, type Derived3DViewState, type Derived3DViewMemory} from './TakeoffDerived3DView';
+import {TakeoffDerived3DView, TakeoffDerived3DBoundary, type Derived3DViewMemory} from './TakeoffDerived3DView';
+import {DEFAULT_DERIVED_3D_VIEW_STATE, type Derived3DViewState} from '@/lib/takeoff/3d/viewState';
+import {useTakeoff3DCamera} from './3d/useTakeoff3DCamera';
 import {resolvedPhysicalInputs} from '@/lib/takeoff/conditions/derived3d/sources';
 import {TakeoffDrawingWorkspace} from './TakeoffDrawingWorkspace';
 import direction from './ConditionPropertiesDirectionA.module.css';
 import styles from './IntegratedTakeoffConditionWorkspace.module.css';
+
+const Takeoff3DViewport=dynamic(
+  ()=>import('./3d/Takeoff3DViewport').then(module=>module.Takeoff3DViewport),
+  {ssr:false},
+);
+const rendererMode=process.env.NEXT_PUBLIC_CAREZ_3D_RENDERER==='legacy-svg'?'legacy-svg':'r3f';
 
 type ConditionSummary={
   condition_id:string;condition_version_id:string;code:string;name:string;revision_no:number;version_status:string;
@@ -103,7 +112,7 @@ type ConditionData={
 type Props={setId:string;workspaceProps:any;conditionData:ConditionData};
 type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
-type ViewMode='2d'|'3d'|'split';
+type ViewMode='2d'|'3d';
 type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode};
 type PendingRoleDraw={conditionVersionId:string;roleKey:string;existingMeasurementIds:Set<string>};
 
@@ -173,8 +182,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [pendingSwitch,setPendingSwitch]=useState<PendingSwitch|null>(null);
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
-  const [derivedViewState,setDerivedViewState]=useState<Derived3DViewState>({hidden:[],isolated:null,zone:'all',elevation:'all'});
+  const [derivedViewState,setDerivedViewState]=useState<Derived3DViewState>(DEFAULT_DERIVED_3D_VIEW_STATE);
   const derivedMemory=useRef<Derived3DViewMemory>(new Map());
+  const r3fMemory=useTakeoff3DCamera();
   const derivedCache=useRef<Derived3DGeometryCache>(new Map());
   const [outputsOpen,setOutputsOpen]=useState(false);
   const [issuesOpen,setIssuesOpen]=useState(false);
@@ -349,7 +359,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     focusMeasurement(measurementId);
   };
   const selectDerivedSolid=(solid:Derived3DSolid)=>requestConditionSelection(solid.conditionVersionId,false,solid.measurementId);
-  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','split');
+  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','3d');
 
   useEffect(()=>{const findSidebar=()=>setSidebarHost(drawingHostRef.current?.querySelector('aside') as HTMLElement|null);findSidebar();const id=window.setTimeout(findSidebar,0);return()=>window.clearTimeout(id);},[]);
   useEffect(()=>{const host=drawingHostRef.current;if(!host)return;let observer:ResizeObserver|null=null;let timer=0;const attach=()=>{const dock=host.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');if(!dock)return false;const update=()=>setDockHeight(Math.max(38,Math.round(dock.getBoundingClientRect().height)));update();observer=new ResizeObserver(update);observer.observe(dock);return true;};if(!attach())timer=window.setTimeout(()=>{attach();},0);return()=>{if(timer)window.clearTimeout(timer);observer?.disconnect();};},[]);
@@ -452,8 +462,11 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation}/>
       {contextPortal}
-      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
-      {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.derivedOverlaySplit:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}><TakeoffDerived3DBoundary><TakeoffDerived3DView scene={derived3DScene} viewState={derivedViewState} onViewStateChange={setDerivedViewState} memory={derivedMemory.current} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/></TakeoffDerived3DBoundary></div>}
+      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':'3D'}</button>)}</div></div>
+      {viewMode==='3d'&&<div className={`${styles.derivedOverlay} ${styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
+        {rendererMode==='legacy-svg'?<TakeoffDerived3DBoundary><TakeoffDerived3DView scene={derived3DScene} viewState={derivedViewState} onViewStateChange={setDerivedViewState} memory={derivedMemory.current} activeSheetId={activeSheetId} activeSheetLabel={activeSheetLabel} selectedConditionVersionId={selectedVersionId} selectedMeasurementId={selectedMeasurementId} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/></TakeoffDerived3DBoundary>
+          :<Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>}
+      </div>}
     </div>
     <aside className={styles.propertiesPane} aria-label="Condition Properties">
       <header className={styles.propertiesHeader}><div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
