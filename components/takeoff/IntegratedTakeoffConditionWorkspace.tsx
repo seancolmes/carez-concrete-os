@@ -331,7 +331,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const zones=useMemo(()=>{const counts=new Map<string,number>();for(const measurement of measurements){const label=String(measurement.location||'').trim();if(label)counts.set(label,(counts.get(label)||0)+1);}return[...counts].map(([label,count])=>({label,count})).sort((a,b)=>a.label.localeCompare(b.label));},[measurements]);
   const focusMeasurement=(measurementId:string|null)=>{setSelectedMeasurementId(measurementId);const measurement=measurementId?measurements.find((row:any)=>row.id===measurementId):null;if(measurement?.sheet_id)setActiveSheetId(measurement.sheet_id);};
   const primaryMeasurementForVersion=(versionId:string)=>{const contract=contractForVersion(versionId).definition;if(!contract)return null;const primary=contract.roles.find(role=>role.primary);if(!primary)return null;const working=versionId===selectedVersionId?roleSelections[primary.key]||'':'';return working||conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key)?.measurement_id||null;};
-  const changeViewMode=(mode:ViewMode)=>{if(mode!=='2d'&&selectedVersionId){const measurementId=primaryMeasurementForVersion(selectedVersionId);if(measurementId)focusMeasurement(measurementId);}setViewMode(mode);};
+  const changeViewMode=(mode:ViewMode)=>{setViewMode(mode);};
   const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
     setSelectedVersionId(versionId);setCreating(false);
     if(nextTab)setPropertyTab(nextTab);if(nextMode)setViewMode(nextMode);
