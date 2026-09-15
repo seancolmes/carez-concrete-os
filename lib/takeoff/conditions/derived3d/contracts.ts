@@ -13,6 +13,14 @@ export type Derived3DSolid = Derived3DSourceReference & {
   id: string; geometryKey: string; conditionCode: string; conditionName: string; archetypeKey: ConditionArchetypeKey;
   measurementName: string; zone: string | null; color: string; sourceQuantityKey: string; shape: Derived3DShape;
 };
+export type Derived3DSheetPlane = {
+  sheetId: string;
+  pageWidth: number;
+  pageHeight: number;
+  scaleFtPerPdfUnit: number | null;
+  worldWidth: number | null;
+  worldHeight: number | null;
+};
 export type Derived3DIssueCode = '3d_input_required' | 'invalid_geometry' | 'cutout_inconsistency' | 'potential_overlap' | 'geometric_overlap' | 'duplicate_placement' | 'unsupported_projection' | 'quantity_mismatch' | 'check_limit';
 export type Derived3DIssue = {
   id: string; code: Derived3DIssueCode; severity: 'hold' | 'warning'; conditionVersionId: string;
@@ -23,6 +31,7 @@ export type Derived3DQuantityReference = { measurementId: string; value: number;
 export type Derived3DScene = {
   hash: string; scopeKey: string; solids: Derived3DSolid[]; issues: Derived3DIssue[];
   sourceQuantities: Record<string, Derived3DQuantityReference>;
+  sheetPlanes: Record<string, Derived3DSheetPlane>;
   coverage: { requested: number; projected: number; held: number; checksComplete: boolean };
   state: 'saved' | 'preview';
   unavailable?: boolean;
