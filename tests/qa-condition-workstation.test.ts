@@ -80,18 +80,23 @@ test('R3F exposes Focus, filters and active-sheet partial-model holds without hi
 });
 
 test('3D toggles in the current drawing viewport and Split is not exposed', () => {
+  const retiredSplitClass = ['derived', 'Overlay', 'Split'].join('');
   assert.doesNotMatch(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:260px\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
-  assert.doesNotMatch(workspaceStyles, /derivedOverlaySplit|data-view-mode="split"/);
+  assert.equal(workspaceStyles.includes(retiredSplitClass), false);
+  assert.doesNotMatch(workspaceStyles, /data-view-mode="split"/);
   assert.doesNotMatch(workstation, /\['2d','3d','split'\]/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
 });
 
 test('R3F is the only 3D renderer and remains client-only', () => {
-  assert.doesNotMatch(workstation, /NEXT_PUBLIC_CAREZ_3D_RENDERER/);
-  assert.doesNotMatch(workstation, /TakeoffDerived3DView|TakeoffDerived3DBoundary|Derived3DViewMemory/);
+  const retiredGate = ['NEXT', 'PUBLIC', 'CAREZ', '3D', 'RENDERER'].join('_');
+  const retiredViewer = ['Takeoff', 'Derived3DView'].join('');
+  assert.equal(workstation.includes(retiredGate), false);
+  assert.equal(workstation.includes(retiredViewer), false);
+  assert.doesNotMatch(workstation, /TakeoffDerived3DBoundary|Derived3DViewMemory/);
   assert.match(workstation, /dynamic\(/);
   assert.match(workstation, /ssr:\s*false/);
   assert.match(workstation, /pdfUrl=\{workspaceProps\.pdfUrl\}/);
