@@ -227,7 +227,7 @@ test('strip footing v5 projects from 2D geometry while preserving authoritative 
     conditions: [{
       conditionId: 'condition-strip-v5', conditionVersionId: 'version-strip-v5', code: 'FTG-V5', name: '3D Test Strip Footing',
       archetypeKey: 'strip_wall_footing', contractVersion: 5, engineKey: 'concrete_condition_v1', color: '#34d399',
-      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular' },
+      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular', topWidthFt: undefined },
       drawingInputs: { elevation_ft: 0, elevation_reference: 'top' }, roles: [{ roleKey: 'run', measurementId: 'measurement-strip-v5' }],
     }],
     measurements: [{
@@ -250,7 +250,7 @@ test('strip footing v5 still holds unsupported step geometry instead of inventin
     conditions: [{
       conditionId: 'condition-strip-v5-step', conditionVersionId: 'version-strip-v5-step', code: 'FTG-V5-STEP', name: 'Stepped Strip Footing',
       archetypeKey: 'strip_wall_footing', contractVersion: 5, engineKey: 'concrete_condition_v1', color: '#34d399',
-      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular' },
+      planFacts: { width_ft: 2, depth_ft: 1 }, concreteProfile: { enabled: true, profile: 'rectangular', topWidthFt: undefined },
       drawingInputs: { elevation_ft: 0, elevation_reference: 'top' }, roles: [{ roleKey: 'run', measurementId: 'measurement-strip-v5-step' }],
     }],
     measurements: [{
