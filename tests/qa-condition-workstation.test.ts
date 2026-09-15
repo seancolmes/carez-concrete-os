@@ -7,6 +7,7 @@ const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowS
 const workspaceStyles = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
+const derived3d = readFileSync('lib/takeoff/conditions/derived3d.ts', 'utf8');
 const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
@@ -48,6 +49,16 @@ test('3D toggles in the current drawing viewport and Split is not exposed', () =
   assert.match(workspaceStyles, /data-view-mode="split"[^\n]*section\{width:100%;min-width:0\}/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
+});
+
+test('3D uses the rendered PDF sheet as the spatial reference plane', () => {
+  assert.match(derived3d, /sheetPlanes/);
+  assert.match(derived3d, /worldWidth: scaleFtPerPdfUnit \? pageWidth \* scaleFtPerPdfUnit : null/);
+  assert.match(viewer, /scene\.sheetPlanes\[activeSheetId\]/);
+  assert.match(viewer, /querySelector<HTMLCanvasElement>\('canvas'\)/);
+  assert.match(viewer, /<image href=\{planImageUrl\}/);
+  assert.match(viewer, /PLAN_DATUM_ELEVATION = 0/);
+  assert.doesNotMatch(viewer, /patternUnits=/);
 });
 
 test('3D elevation reference exposes governed choices required by projection', () => {
