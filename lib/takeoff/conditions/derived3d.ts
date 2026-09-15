@@ -3,7 +3,7 @@ import { linearFootprint } from '../physicalGeometry.ts';
 import { conditionArchetype } from './catalog.ts';
 import { calibrationScale, elevationRange, finiteNumber, positiveNumber, record, stableDerived3DHash, toPlanPoint } from './derived3d/coordinates.ts';
 import { GEOMETRY_EPS_FT, spatialChecks, validateFootprint } from './derived3d/checks.ts';
-import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeometryCache, Derived3DIssue, Derived3DScene, Derived3DShape, Derived3DSolid } from './derived3d/contracts.ts';
+import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeometryCache, Derived3DIssue, Derived3DScene, Derived3DShape, Derived3DSolid, Derived3DVerificationRelations } from './derived3d/contracts.ts';
 export type * from './derived3d/contracts.ts';
 export { stableDerived3DHash } from './derived3d/coordinates.ts';
 export const PROJECTION_VERSION = 'concrete-projection-v2';
@@ -21,6 +21,25 @@ function geometryFromSource(value: unknown): DrawingGeometry {
   const geometry = { type: raw.type, points: raw.points.map(point), ...(raw.holes !== undefined ? { holes: raw.holes.map((ring: unknown) => { if (!Array.isArray(ring)) throw new Error('Area cutout is invalid.'); return ring.map(point); }) } : {}) } as DrawingGeometry;
   validateDrawingGeometry(geometry);
   return geometry;
+}
+
+function reviewGroup(value: unknown) {
+  const group = typeof value === 'string' ? value.trim() : '';
+  return group || null;
+}
+function reviewTolerance(value: unknown) {
+  const tolerance = finiteNumber(value);
+  return tolerance !== null && tolerance >= 0 ? tolerance : null;
+}
+function verificationRelations(condition: Derived3DConditionSource): Derived3DVerificationRelations {
+  return {
+    connectionGroup: reviewGroup(condition.drawingInputs.qc_connection_group),
+    connectionToleranceFt: reviewTolerance(condition.drawingInputs.qc_connection_tolerance_ft),
+    elevationGroup: reviewGroup(condition.drawingInputs.qc_elevation_group),
+    elevationToleranceFt: reviewTolerance(condition.drawingInputs.qc_elevation_tolerance_ft),
+    supportGroup: reviewGroup(condition.drawingInputs.qc_support_group),
+    supportToleranceFt: reviewTolerance(condition.drawingInputs.qc_support_tolerance_ft),
+  };
 }
 
 export function projectionCapability(condition: Derived3DConditionSource): { supported: boolean; reason?: string } {
@@ -52,6 +71,7 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
     const capable = projectionCapability(condition);
     const primaryRole = capable.supported ? conditionArchetype(condition.archetypeKey).roles.find(r => r.primary) : undefined;
     const assignments = condition.roles.filter(r => r.roleKey === primaryRole?.key).sort((a, b) => (a.roleInstanceKey || a.measurementId).localeCompare(b.roleInstanceKey || b.measurementId));
+    const verification = verificationRelations(condition);
     for (const assignment of assignments.length ? assignments : [null]) {
       requested++;
       const measurement = assignment ? measurements.get(assignment.measurementId) : undefined;
@@ -137,7 +157,7 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
         const geometryKey = stableDerived3DHash([PROJECTION_VERSION, reference.conditionVersionId, reference.templateVersionId, reference.archetypeVersionId, reference.measurementRevision, reference.sheetRevision, reference.calibrationKey, shape]);
         const previous = cache?.get(id), resolvedShape = previous?.key === geometryKey ? previous.shape : shape;
         cache?.set(id, { key: geometryKey, shape: resolvedShape }); usedKeys.add(id);
-        solids.push({ ...reference, id, geometryKey, conditionCode: condition.code, conditionName: condition.name, archetypeKey: condition.archetypeKey, measurementName: measurement.name, zone: String(measurement.location || '').trim() || null, color: condition.color, sourceQuantityKey: quantityKey, shape: resolvedShape });
+        solids.push({ ...reference, id, geometryKey, conditionCode: condition.code, conditionName: condition.name, archetypeKey: condition.archetypeKey, measurementName: measurement.name, zone: String(measurement.location || '').trim() || null, color: condition.color, sourceQuantityKey: quantityKey, shape: resolvedShape, verification });
       }
       projected++;
     }
@@ -146,6 +166,6 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
   const checked = spatialChecks(solids);
   issues.push(...checked.issues);
   return { scopeKey, state: input.state || 'saved', sourceQuantities, solids, issues,
-    hash: stableDerived3DHash([scopeKey, solids.map(s => [s.id, s.geometryKey]), issues.map(i => i.id)]),
+    hash: stableDerived3DHash([scopeKey, solids.map(s => [s.id, s.geometryKey, s.verification]), issues.map(i => i.id)]),
     coverage: { requested, projected, held: requested - projected, checksComplete: checked.complete } };
 }
