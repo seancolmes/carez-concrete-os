@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
@@ -21,9 +22,19 @@ test('pricing issues route to Review when available or the linked Estimate other
   assert.match(workstation, /return'Estimate'/);
 });
 
-test('selected Condition primary takeoff drives the active 2D and 3D sheet', () => {
+test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff selection', () => {
+  assert.match(viewer, /scene\.solids\.filter\(solid => solid\.sheetId === activeSheetId\)/);
+  assert.match(workstation, /changeViewMode=\(mode:ViewMode\)=>\{setViewMode\(mode\);\}/);
+  assert.doesNotMatch(workstation, /changeViewMode=\(mode:ViewMode\)=>\{if\(mode!=='2d'&&selectedVersionId\)/);
+
+  assert.match(shell, /new CustomEvent\('carez:takeoff-sheet-change',\{detail:\{sheetId:String\(sheet\.id\)\}\}\)/);
+  assert.match(workstation, /window\.addEventListener\('carez:takeoff-sheet-change'/);
+
   assert.match(workstation, /focusMeasurement=\(measurementId:string\|null\)=>\{setSelectedMeasurementId\(measurementId\);const measurement=.*setActiveSheetId\(measurement\.sheet_id\)/);
-  assert.match(workstation, /changeViewMode=\(mode:ViewMode\)=>\{if\(mode!=='2d'&&selectedVersionId\)/);
+  assert.match(workstation, /requestMeasurementSelection=\(measurementId:string\|null\)=>\{/);
+  assert.match(workstation, /requestConditionSelection\(role\.condition_version_id,false,measurementId\)/);
+  assert.match(workstation, /selectDerivedSolid=\(solid:Derived3DSolid\)=>requestConditionSelection\(solid\.conditionVersionId,false,solid\.measurementId\)/);
+  assert.match(workstation, /conditionSelectedMeasurementId=\{selectedMeasurementId\} onConditionMeasurementSelect=\{requestMeasurementSelection\}/);
   assert.match(workstation, /primaryAssignment=.*focusMeasurement\(primaryAssignment\?\.measurement_id\|\|null\)/);
 });
 
