@@ -31,7 +31,7 @@ Use this repository for fast, bounded implementation. Do not use web research, p
 ## Execute
 
 1. Inspect only the target and direct dependencies.
-2. Make the smallest coherent diff; no unrelated refactor or new dependency.
+2. Make the smallest coherent diff; no unrelated refactor or dependency. Add a dependency only when the task prompt or an approved repository spec explicitly authorizes it, and add only the authorized packages.
 3. Reuse existing helpers, components, and schema patterns.
 4. Database changes use source-controlled migrations and preserve RLS/lineage.
 5. Run targeted tests plus `pnpm typecheck`. Run `pnpm check` only for broad/high-risk changes or when requested.
