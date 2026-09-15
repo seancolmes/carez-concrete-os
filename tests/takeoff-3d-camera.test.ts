@@ -18,10 +18,17 @@ test('Home and Top frame the sheet above its fixed datum', () => {
     const memory = create(100, 80, 1200, 800);
     assert.deepEqual(memory.target, [50, 0, 40]);
     assert.ok(cameraPositionForMemory(memory, 100, 80)[1] > 0);
-    assert.ok(Math.hypot(100, 80) * memory.zoom < 800);
   }
-  assert.equal(topCameraMemory(100, 80, 1200, 800).polar, MIN_POLAR);
+  const home = homeCameraMemory(100, 80, 1200, 800);
+  const top = topCameraMemory(100, 80, 1200, 800);
+  assert.equal(top.polar, MIN_POLAR);
   assert.ok(MAX_POLAR < Math.PI / 2);
+  // A true top view should fit the rectangular sheet to the viewport rather than
+  // reuse the conservative diagonal fit needed by the oblique Home view.
+  assert.ok(top.zoom > home.zoom * 1.4);
+  assert.ok(100 * top.zoom <= 1200);
+  assert.ok(80 * top.zoom <= 800);
+  assert.ok(80 * top.zoom >= 800 * 0.75);
 });
 
 test('fit remains sheet-governed in portrait and wide viewports', () => {
