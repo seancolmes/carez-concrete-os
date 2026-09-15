@@ -1,2 +1,5 @@
 allowBuilds:
   supabase: true
+# Expose Drei's existing transitive declarations without another direct dependency.
+publicHoistPattern:
+  - '@types/three'
