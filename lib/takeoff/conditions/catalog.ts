@@ -139,7 +139,7 @@ export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> 
       output('forms.edge_contact_sf', 'forms', 'Edge form contact area', 'material', 'SF', 'slab-edge-form-v1', 'forms'),
       output('reinforcing.steel_lb', 'reinforcing', 'Reinforcing steel', 'material', 'LB', 'slab-rebar-allowance-v1', 'rebar'),
       output('slab_systems.vapor_barrier_sf', 'slab_systems', 'Vapor barrier', 'material', 'SF', 'area-waste-v1', 'vapor_barrier'),
-      output('slab_systems.base_cy', 'slab_systems', 'Aggregate base', 'material', 'CY', 'area-waste-v1', 'base'),
+      output('slab_systems.base_cy', 'slab_systems', 'Aggregate base', 'material', 'CY', 'slab-base-volume-v1', 'base'),
       output('anchors_embeds.anchor_ea', 'anchors_embeds', 'Anchors / embeds', 'material', 'EA', 'role-count-v1', 'anchors'),
       output('labor.place_finish_mh', 'labor', 'Place and finish labor', 'labor', 'HR', 'production-rate-v1', 'labor_place_finish'),
       output('labor.forms_mh', 'labor', 'Form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
