@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { cameraPositionForMemory, homeCameraMemory, topCameraMemory, sanitizeCameraMemory, shouldInitializeCamera, MIN_POLAR, MAX_POLAR } from '../lib/takeoff/3d/camera.ts';
 
 test('restored camera clamps orbit and zoom and replaces non-finite values', () => {
@@ -44,4 +45,14 @@ test('only a sheet without memory initializes; same-sheet updates never refit', 
   assert.equal(shouldInitializeCamera('A4', 'A5', false), true);
   assert.equal(shouldInitializeCamera('A4', 'A5', true), false);
   assert.equal(shouldInitializeCamera(null, 'A4', false), true);
+});
+
+test('camera integration is independent of selection, regeneration and issue changes', () => {
+  const controls = readFileSync('components/takeoff/3d/Takeoff3DControls.tsx', 'utf8');
+  const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
+  assert.doesNotMatch(controls, /scene\.hash|geometryKey|selectedMeasurementId|conditionRevision|issueCount/);
+  assert.match(controls, /if \(previousSheetId.current === sheetId\) return/);
+  assert.match(controls, /onEnd=\{save\}/);
+  assert.doesNotMatch(controls, /onChange=\{save\}|useFrame/);
+  assert.match(viewport, /key=\{`\$\{activeSheetId\}:\$\{attempt\}`\}/);
 });

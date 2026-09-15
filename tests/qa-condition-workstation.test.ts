@@ -60,7 +60,28 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
   assert.match(workstation, /requestConditionSelection\(role\.condition_version_id,false,measurementId\)/);
   assert.match(workstation, /selectDerivedSolid=\(solid:Derived3DSolid\)=>requestConditionSelection\(solid\.conditionVersionId,false,solid\.measurementId\)/);
   assert.match(workstation, /conditionSelectedMeasurementId=\{selectedMeasurementId\} onConditionMeasurementSelect=\{requestMeasurementSelection\}/);
-  assert.match(workstation, /primaryAssignment=.*focusMeasurement\(primaryAssignment\?\.measurement_id\|\|null\)/);
+  assert.match(workstation, /focusMeasurement\(primaryMeasurementForVersion\(versionId\)\)/);
+});
+
+test('R3F exposes Focus, filters and active-sheet partial-model holds without hiding siblings', () => {
+  const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
+  const toolbar = readFileSync('components/takeoff/3d/Takeoff3DToolbar.tsx', 'utf8');
+  assert.match(viewport, /issue\.sheetId === activeSheetId/);
+  assert.match(viewport, /issue\.measurementId === selectedMeasurementId/);
+  assert.match(viewport, /3D input required/);
+  assert.match(viewport, /3D unavailable for this Takeoff/);
+  assert.match(viewport, /Resolve input/);
+  assert.match(viewport, /calibrated && pdfUrl \? <Takeoff3DErrorBoundary/);
+  assert.match(viewport, /solids=\{visibleSolids\}/);
+  assert.match(viewport, /actions\.current\?\.focusSelected/);
+  assert.match(toolbar, /onClick=\{onFocus\}/);
+  assert.match(toolbar, /onClick=\{onToggleFilters\}/);
+  assert.match(toolbar, /3D checks \{issueCount\}/);
+  assert.match(viewport, /aria-label="3D zone"/);
+  assert.match(viewport, /aria-label="3D top elevation"/);
+  assert.match(viewport, /Show all/);
+  assert.match(viewport, /Isolate/);
+  assert.doesNotMatch(viewport, /sourceQuantities|raw_quantity|production_quantity|direct_cost/);
 });
 
 test('3D toggles in the current drawing viewport and Split is not exposed', () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { solidSelectionIdentity, sheetSolidsForSelection, selectedSolidForMeasurement } from '../lib/takeoff/3d/selection.ts';
+import { solidSelectionIdentity, sheetSolidsForSelection, selectedSolidForMeasurement, focusFrameForSolids } from '../lib/takeoff/3d/selection.ts';
 import type { Derived3DScene, Derived3DSolid } from '../lib/takeoff/conditions/derived3d/contracts.ts';
 
 function solid(id: string, sheetId: string): Derived3DSolid {
@@ -38,4 +38,33 @@ test('selected 3d solid uses a dark high-contrast outline stronger than hover', 
   assert.match(source, /lineWidth=\{selected \? 2\.5 : hovered \? 1\.5 : 0\.75\}/);
   assert.match(source, /emissiveIntensity=\{selected \? 0\.16 : 0\}/);
   assert.doesNotMatch(source, /selected \? '#e2e8f0'/);
+});
+
+test('R3F uses the workstation selection path without a parallel selection store', () => {
+  const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+  const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
+  const scene = readFileSync('components/takeoff/3d/Takeoff3DScene.tsx', 'utf8');
+  assert.match(workstation, /<Takeoff3DViewport[^>]*selectedMeasurementId=\{selectedMeasurementId\}[^>]*onSelectSolid=\{selectDerivedSolid\}/);
+  assert.match(viewport, /selectedMeasurementId=\{selectedMeasurementId\} onSelectSolid=\{onSelectSolid\}/);
+  assert.match(scene, /selected=\{solid.measurementId === selectedMeasurementId\}/);
+  assert.doesNotMatch(viewport + scene, /dispatchEvent|setSelectedMeasurementId/);
+});
+
+test('Condition loading and recalculation cannot overwrite exact selected assignment or revive its sheet', () => {
+  const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+  const loadEffect = workstation.slice(workstation.indexOf('useEffect(()=>{if(!selectedVersion)return;'), workstation.indexOf('useEffect(()=>{if(!availableTabs'));
+  assert.doesNotMatch(loadEffect, /focusMeasurement|setActiveSheetId|setSelectedMeasurementId/);
+  const sheetListener = workstation.slice(workstation.indexOf('useEffect(()=>{const sheet='), workstation.indexOf('useEffect(()=>{\n    const pending='));
+  assert.match(sheetListener, /setSelectedMeasurementId/);
+  assert.match(sheetListener, /sheet_id===sheetId/);
+});
+
+test('Focus includes every selected placement and governed elevation, skipping unsupported geometry', () => {
+  const second = { ...a, shape: { ...a.shape, centerX: 11, bottom: 4, top: 6 } } as Derived3DSolid;
+  const frame = focusFrameForSolids([a, second]);
+  assert.deepEqual(frame?.target, [6, 2.5, 1]);
+  assert.ok((frame?.width ?? 0) >= 11);
+  assert.equal(frame?.height, 7);
+  assert.equal(focusFrameForSolids([]), null);
+  assert.deepEqual(focusFrameForSolids([a, { ...a, shape: { ...a.shape, top: NaN } }]), focusFrameForSolids([a]));
 });

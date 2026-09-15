@@ -9,3 +9,9 @@
 .checks{position:absolute;z-index:2;top:8px;right:8px;max-width:min(340px,calc(100% - 16px));max-height:calc(100% - 16px);overflow:auto;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--popover);box-shadow:0 4px 16px rgb(0 0 0 / .2);font-size:12px}
 .checks>div{padding-block:10px;border-bottom:1px solid var(--border)}
 .checks p{margin:4px 0 8px;color:var(--muted-foreground)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px}
+.filters label{display:flex;align-items:center;gap:6px}
+.filters select{max-width:180px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--background);color:var(--foreground)}
+.issueOverlay{position:absolute;z-index:1;left:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(360px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--popover);box-shadow:0 4px 16px rgb(0 0 0 / .2);font-size:12px}
+.issueOverlay span{color:var(--muted-foreground)}
+.centeredIssue{left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);width:360px;align-items:center;text-align:center}
