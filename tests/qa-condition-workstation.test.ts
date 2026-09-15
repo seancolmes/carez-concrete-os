@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
+const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
 
@@ -39,9 +41,23 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
   assert.match(workstation, /primaryAssignment=.*focusMeasurement\(primaryAssignment\?\.measurement_id\|\|null\)/);
 });
 
-test('3D empty state identifies selected missing inputs and separates model checks from estimating issues', () => {
+test('Split view refits both drawing and 3D after the viewport changes size', () => {
+  assert.ok(workflowShell.includes('aria-label="Takeoff view mode"'));
+  assert.ok(workflowShell.includes('button[title^="Fit page"]'));
+  assert.ok(workflowShell.includes('button[aria-label="Reset 3D view and reference elevation"]'));
+  assert.ok(workflowShell.includes('window.requestAnimationFrame(()=>window.requestAnimationFrame'));
+});
+
+test('3D elevation reference exposes governed choices required by projection', () => {
+  assert.ok(conditionCatalog.includes("key: 'elevation_reference'"));
+  assert.ok(conditionCatalog.includes("options: ['top', 'bottom', 'centerline']"));
+});
+
+test('3D identifies selected missing inputs in empty and partial sheet models', () => {
   assert.match(viewer, /selectedInputIssue/);
   assert.match(viewer, /<strong>3D input required<\/strong><span>\{selectedInputIssue\.message\}<\/span>/);
+  assert.ok(viewer.includes('visibleSolids.length>0&&!selectedHasSolid'));
+  assert.ok(viewer.includes('Selected takeoff needs a 3D input'));
   assert.match(viewer, />Resolve input<\/Button>/);
   assert.match(viewer, />3D checks \{sheetIssues\.length\}<\/Button>/);
   assert.match(viewer, /Current model/);
