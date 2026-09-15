@@ -59,7 +59,7 @@ flowchart TB
   shell["Compact Carez application header"] --> nav["Global category navigation + animated panels"]
   nav --> work["Estimator workspace"]
   work --> left["Resizable context pane: Plans · Conditions · Zones"]
-  work --> center["Drawing surface: 2D · 3D · Split"]
+  work --> center["Drawing surface: 2D · 3D"]
   work --> right["Condition Properties: dock · float · resize"]
   center --> bottom["Resizable Quantity / Estimate Worksheet"]
 ~~~
@@ -82,7 +82,7 @@ The Conditions tab should use the shared Carez Condition Tree where the interact
 
 A compact Carez Toolbar contains measurement tools, selection/editing, snap/ortho, cutouts, arcs, undo/redo, visibility, and view mode.
 
-View switch: **2D**, **3D**, **Split**.
+View switch: **2D**, **3D**. Both modes use the same drawing viewport; 3D replaces the plan presentation in place rather than opening a second pane.
 
 The canvas owns the largest area. Plan geometry remains readable and Takeoff colors remain more salient than UI chrome.
 
@@ -243,9 +243,11 @@ The worksheet and estimate preserve the exact count source.
 
 Each visible 3D object carries the corresponding Condition, measurement, role, sheet/revision, and zone IDs. The renderer receives derived dimensional facts; it does not calculate commercial outputs.
 
+The active implementation uses React Three Fiber / Three.js as the sole 3D renderer. The active PDF page is rendered directly as the calibrated spatial reference plane, while persisted 2D/vector Takeoff geometry remains the stored geometry and quantity authority.
+
 ### Interaction
 
-Phase A includes orbit, pan, zoom, reset/home, synchronized selection, hide/show/isolate, color by Condition or review state, section/level filtering, an issue list with jump-to-source, optional dimension/elevation labels, and Split-view camera/selection continuity.
+Phase A includes orbit, pan, zoom, Home/Top/Focus, synchronized selection, hide/show/isolate, color by Condition or review state, section/level filtering, an issue list with jump-to-source, optional dimension/elevation labels, and per-sheet camera/selection continuity across 2D/3D switching.
 
 ### Review checks
 
@@ -301,7 +303,7 @@ There is no big-bang destructive database rewrite.
 - ADR-016 compact application header + global animated category navigation outside the module work area;
 - Plans/Conditions/Zones contextual tabs using shared Condition Tree/filter patterns;
 - dockable/floatable/resizable Condition Properties through the Carez Resizable Workspace;
-- 2D, 3D, and Split switch;
+- 2D and 3D switch in the same drawing viewport;
 - shared Carez Toolbar and Number Field controls;
 - permanent worksheet using the Carez Data Grid;
 - saved local panel layout with safe reset;
@@ -317,9 +319,11 @@ There is no big-bang destructive database rewrite.
 ### P0.5D — Derived 3D Phase A
 
 - derived solids and synchronized selection;
+- direct PDF-backed R3F/Three.js spatial reference plane;
 - visibility/color/zone/level controls;
 - missing-input and geometric QC issues;
-- performance/fallback verification.
+- performance/fallback verification;
+- retired SVG pseudo-3D renderer and migration gate after accepted R3F parity.
 
 ### P0.5E — Migration and legacy UI retirement
 
@@ -346,7 +350,7 @@ The direction is accepted only when an authenticated estimator can:
 4. configure rebar, forms, anchors/embeds, labor, and applicable modules through readable controls;
 5. save valid geometry while isolated module inputs remain on hold;
 6. edit governed properties without redrawing and receive atomic output/estimate reconciliation;
-7. use 2D, 3D, and Split with identical selection and quantity totals;
+7. use 2D and 3D with identical selection and quantity totals while switching in the same drawing viewport;
 8. detect and resolve representative elevation, overlap/gap, and cutout issues;
 9. undo/redo, refresh, delete, and work across sheets without orphan/duplicate outputs;
 10. preserve every historical published/accepted reference through migration;
