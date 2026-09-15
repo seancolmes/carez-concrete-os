@@ -1,6 +1,6 @@
 # Module Spec — Takeoff
 
-Status: active flagship workstation; Concrete Condition migration approved, not yet implementation-verified
+Status: active flagship workstation; Concrete Condition + R3F 2D/3D workstation implemented on staging, with final acceptance tracked in Issue #41
 
 ## Purpose
 
@@ -119,17 +119,19 @@ Available facts include count, location, supported shape/profile, per-instance d
 - Keyboard focus and shortcuts are predictable and do not conflict with text/dimension inputs.
 - Sheet, viewport, zoom/pan, calibration, selection, active tool, and safe window state survive normal docking/view changes.
 
-## 2D / 3D / Split contract
+## 2D / 3D contract
 
 - **2D** is the authoritative drawing/editing view.
-- **3D** is a derived concrete verification view.
-- **Split** presents synchronized views of the same selected records.
+- **3D** is a derived concrete verification view in the same drawing viewport; there is no estimator-facing Split mode.
+- The active PDF sheet is rendered directly as the spatial reference plane for 3D.
 - Condition color, visibility, zone, group, review status, and selection are shared.
 - 3D-capable Conditions require governed profile/dimensions plus elevation value and top/bottom/centerline reference.
 - Missing 3D inputs create a visible hold; no dimension is invented.
-- Initial 3D interaction is read-only verification with orbit/pan/zoom, isolate/hide, filters, issue list, and click-through to Properties.
+- Initial 3D interaction is read-only verification with orbit/pan/zoom, Home/Top/Focus, isolate/hide, filters, issue list, and click-through to Properties.
+- Per-sheet camera state and stable-ID selection persist safely across 2D/3D switching and property recalculation.
 - Direct 3D geometry editing is deferred until the same command, validation, persistence, collaboration, undo/redo, and lineage path has parity with 2D.
-- The renderer does not calculate or persist an independent quantity total.
+- The R3F/Three.js renderer consumes derived scene facts only; it does not calculate or persist an independent quantity total.
+- The retired SVG pseudo-3D renderer is not part of the active product path.
 - If 3D rendering is unavailable, 2D Takeoff and all quantities continue to work.
 
 ## Workstation information hierarchy
@@ -168,7 +170,7 @@ Existing published recipes/assemblies, formula ASTs, outputs, method profiles, e
 
 ## Current foundation
 
-P0 geometry/editor/atomic recalculation is implemented. The approved Concrete Condition, derived 3D, dark shadcn, top-navigation shell, and shared component-pack contracts describe architecture targets that still require implementation/browser verification where not already present. Current verified implementation state remains exclusively in docs/CURRENT_STATE.md.
+P0 geometry/editor/atomic recalculation and the Concrete Condition workstation are implemented. The active 3D path is the client-only R3F/Three.js viewer backed by the exact PDF sheet plane and existing derived scene authority. The SVG pseudo-3D renderer and migration gate are retired from the active path. Current release/acceptance state remains tracked in docs/CURRENT_STATE.md and Issue #41.
 
 ## Deferred/next
 
