@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { solidSelectionIdentity, sheetSolidsForSelection, selectedSolidForMeasurement } from '../lib/takeoff/3d/selection.ts';
 import type { Derived3DScene, Derived3DSolid } from '../lib/takeoff/conditions/derived3d/contracts.ts';
 
@@ -29,4 +30,12 @@ test('selection does not mutate source geometry or quantity references', () => {
   selectedSolidForMeasurement(sheetSolidsForSelection(scene, 'A4'), a.measurementId);
   assert.equal(JSON.stringify(scene), before);
   assert.equal(scene.sourceQuantities, quantities);
+});
+
+test('selected 3d solid uses a dark high-contrast outline stronger than hover', () => {
+  const source = readFileSync('components/takeoff/3d/Takeoff3DSolid.tsx', 'utf8');
+  assert.match(source, /selected \? '#020617' : hovered \? '#64748b' : '#18212c'/);
+  assert.match(source, /lineWidth=\{selected \? 2\.5 : hovered \? 1\.5 : 0\.75\}/);
+  assert.match(source, /emissiveIntensity=\{selected \? 0\.16 : 0\}/);
+  assert.doesNotMatch(source, /selected \? '#e2e8f0'/);
 });
