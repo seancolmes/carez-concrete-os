@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
-const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
+const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
@@ -27,8 +27,9 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
   assert.match(workstation, /changeViewMode=\(mode:ViewMode\)=>\{setViewMode\(mode\);\}/);
   assert.doesNotMatch(workstation, /changeViewMode=\(mode:ViewMode\)=>\{if\(mode!=='2d'&&selectedVersionId\)/);
 
-  assert.match(shell, /new CustomEvent\('carez:takeoff-sheet-change',\{detail:\{sheetId:String\(sheet\.id\)\}\}\)/);
+  assert.match(quantityDock, /new CustomEvent\('carez:takeoff-sheet-change', \{ detail: \{ sheetId: currentSheetId \} \}\)/);
   assert.match(workstation, /window\.addEventListener\('carez:takeoff-sheet-change'/);
+  assert.match(quantityDock, /new CustomEvent\('carez:takeoff-selection-change', \{ detail: \{ measurementId: selectedMeasurementId \} \}\)/);
 
   assert.match(workstation, /focusMeasurement=\(measurementId:string\|null\)=>\{setSelectedMeasurementId\(measurementId\);const measurement=.*setActiveSheetId\(measurement\.sheet_id\)/);
   assert.match(workstation, /requestMeasurementSelection=\(measurementId:string\|null\)=>\{/);
