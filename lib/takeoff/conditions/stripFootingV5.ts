@@ -3,6 +3,7 @@ import type {
   ConditionArchetypeDefinition,
   ConditionCalculation,
   ConditionCalculationRequest,
+  ConditionInputDefinition,
   ConditionModuleDefinition,
   ConditionModuleInputDefinition,
   ConditionOutputDefinition,
@@ -37,6 +38,15 @@ const v5FormsModule: ConditionModuleDefinition = {
   }),
 };
 
+const v5VerificationInputs: ConditionInputDefinition[] = [
+  { key: 'qc_connection_group', label: '3D connection review group', group: 'drawing', valueType: 'text' },
+  { key: 'qc_connection_tolerance_ft', label: 'Connection gap tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
+  { key: 'qc_elevation_group', label: '3D elevation match group', group: 'drawing', valueType: 'text' },
+  { key: 'qc_elevation_tolerance_ft', label: 'Elevation match tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
+  { key: 'qc_support_group', label: '3D support review group', group: 'drawing', valueType: 'text' },
+  { key: 'qc_support_tolerance_ft', label: 'Support gap tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
+];
+
 const outputDefinition = (definition: ConditionOutputDefinition): ConditionOutputDefinition => {
   if (definition.outputKey === 'forms.form_material_lf') {
     // The persisted compatibility algorithm key remains v4 so the existing
@@ -50,6 +60,7 @@ const outputDefinition = (definition: ConditionOutputDefinition): ConditionOutpu
 export const STRIP_FOOTING_V5_DEFINITION: ConditionArchetypeDefinition = {
   ...STRIP_FOOTING_V4_DEFINITION,
   contractVersion: STRIP_FOOTING_V5_CONTRACT_VERSION,
+  inputs: [...STRIP_FOOTING_V4_DEFINITION.inputs, ...v5VerificationInputs],
   modules: (STRIP_FOOTING_V4_DEFINITION.modules || []).map(module => module.key === 'forms' ? v5FormsModule : module),
   outputs: STRIP_FOOTING_V4_DEFINITION.outputs.map(outputDefinition),
 };
