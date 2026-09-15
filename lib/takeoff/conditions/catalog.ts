@@ -34,12 +34,6 @@ const commonLaborInputs: ConditionInputDefinition[] = [
 const commonDrawingInputs: ConditionInputDefinition[] = [
   { key: 'elevation_ft', label: 'Elevation', group: 'drawing', valueType: 'number', unit: 'FT', requiredBy: ['3d_projection'] },
   { key: 'elevation_reference', label: 'Elevation reference', group: 'drawing', valueType: 'select', requiredBy: ['3d_projection'] },
-  { key: 'qc_connection_group', label: '3D connection review group', group: 'drawing', valueType: 'text' },
-  { key: 'qc_connection_tolerance_ft', label: 'Connection gap tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
-  { key: 'qc_elevation_group', label: '3D elevation match group', group: 'drawing', valueType: 'text' },
-  { key: 'qc_elevation_tolerance_ft', label: 'Elevation match tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
-  { key: 'qc_support_group', label: '3D support review group', group: 'drawing', valueType: 'text' },
-  { key: 'qc_support_tolerance_ft', label: 'Support gap tolerance', group: 'drawing', valueType: 'number', unit: 'FT', minimum: 0 },
 ];
 
 export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> = {
@@ -71,7 +65,7 @@ export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> 
       output('reinforcing.steel_lb', 'reinforcing', 'Reinforcing steel', 'material', 'LB', 'pad-rebar-weight-v1', 'rebar'),
       output('anchors_embeds.anchor_ea', 'anchors_embeds', 'Anchors / embeds', 'material', 'EA', 'role-or-each-count-v1', 'anchors'),
       output('labor.place_concrete_mh', 'labor', 'Place concrete labor', 'labor', 'HR', 'production-rate-v1', 'labor_place'),
-      output('labor.forms_mh', 'labor', 'Form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
+      output('labor.forms_mh', 'labor', 'Forms labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
       output('labor.reinforcing_mh', 'labor', 'Reinforcing labor', 'labor', 'HR', 'production-rate-v1', 'labor_rebar'),
       output('labor.anchors_embeds_mh', 'labor', 'Anchor / embed labor', 'labor', 'HR', 'production-rate-v1', 'labor_anchors'),
     ],
