@@ -109,8 +109,8 @@ test('3D uses the rendered PDF sheet as the spatial reference plane', () => {
   assert.match(coordinates, /point\.y \* Number\(sheet\.page_height\) \* scale/);
   assert.match(r3fViewport, /scene\.sheetPlanes\[activeSheetId\]/);
   assert.match(r3fPlan, /renderPdfPageCanvas/);
-  assert.match(r3fPlan, /plane\.worldWidth/);
-  assert.match(r3fPlan, /plane\.worldHeight/);
+  assert.match(r3fPlan, /sheetPlaneFrame\(plane\)/);
+  assert.match(r3fPlan, /planeGeometry args=\{\[frame\.width, frame\.height\]\}/);
   assert.doesNotMatch(r3fPlan, /querySelector<HTMLCanvasElement>|patternUnits=/);
 });
 
