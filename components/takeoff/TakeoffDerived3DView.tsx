@@ -1,7 +1,7 @@
 'use client';
 
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, Eye, EyeOff, Focus, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, Focus, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import type { Derived3DIssue, Derived3DPlanPoint, Derived3DScene, Derived3DSheetPlane, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d';
 import styles from './TakeoffDerived3DView.module.css';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,19 @@ type SheetProjection = {
   corners: ProjectedPoint[];
 };
 
-const DEFAULT_CAMERA: Camera = { yaw: -Math.PI / 4, pitch: -0.58, zoom: 1, panX: 0, panY: 0 };
+const MIN_CAMERA_PITCH = -1.38;
+const MAX_CAMERA_PITCH = -0.32;
+const MIN_CAMERA_ZOOM = 0.18;
+const MAX_CAMERA_ZOOM = 12;
+const DEFAULT_CAMERA: Camera = { yaw: -Math.PI / 4, pitch: -0.72, zoom: 1, panX: 0, panY: 0 };
 const PLAN_DATUM_ELEVATION = 0;
-const MAX_PLAN_TEXTURE_DIMENSION = 2048;
+const MAX_PLAN_TEXTURE_DIMENSION = 3072;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const normalizeCamera = (camera: Camera): Camera => ({
+  ...camera,
+  pitch: clamp(camera.pitch, MIN_CAMERA_PITCH, MAX_CAMERA_PITCH),
+  zoom: clamp(camera.zoom, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM),
+});
 
 function boxCorners(solid: Derived3DSolid): Point3[] {
   if (solid.shape.kind !== 'box') return [];
@@ -149,12 +158,12 @@ function renderFaces(solids: Derived3DSolid[], project: (point: Point3) => Proje
     if (solid.shape.kind === 'box') {
       const vertices = boxCorners(solid).map(project);
       const faceIndices = [
-        { indices: [4, 5, 6, 7], opacity: 0.72, top: true },
-        { indices: [0, 3, 2, 1], opacity: 0.30, top: false },
-        { indices: [0, 1, 5, 4], opacity: 0.42, top: false },
-        { indices: [1, 2, 6, 5], opacity: 0.52, top: false },
-        { indices: [2, 3, 7, 6], opacity: 0.36, top: false },
-        { indices: [3, 0, 4, 7], opacity: 0.46, top: false },
+        { indices: [4, 5, 6, 7], opacity: 0.88, top: true },
+        { indices: [0, 3, 2, 1], opacity: 0.24, top: false },
+        { indices: [0, 1, 5, 4], opacity: 0.50, top: false },
+        { indices: [1, 2, 6, 5], opacity: 0.60, top: false },
+        { indices: [2, 3, 7, 6], opacity: 0.42, top: false },
+        { indices: [3, 0, 4, 7], opacity: 0.54, top: false },
       ];
       faceIndices.forEach((face, index) => {
         const points = face.indices.map(vertex => vertices[vertex]);
@@ -178,11 +187,11 @@ function renderFaces(solids: Derived3DSolid[], project: (point: Point3) => Proje
       solid,
       path: topRings.map(ring => ringPath(ring, shape.top, project)).join(' '),
       depth: topPoints.reduce((total, point) => total + point.depth, 0) / Math.max(1, topPoints.length),
-      opacity: 0.68,
+      opacity: 0.86,
       top: true,
     });
 
-    faces.push({ key: `${solid.id}:bottom`, solid, path: [shape.outer, ...shape.holes].map(ring => ringPath(ring, shape.bottom, project)).join(' '), depth: shape.outer.reduce((sum, point) => sum + project({ ...point, y: shape.bottom }).depth, 0) / shape.outer.length, opacity: 0.28, top: false });
+    faces.push({ key: `${solid.id}:bottom`, solid, path: [shape.outer, ...shape.holes].map(ring => ringPath(ring, shape.bottom, project)).join(' '), depth: shape.outer.reduce((sum, point) => sum + project({ ...point, y: shape.bottom }).depth, 0) / shape.outer.length, opacity: 0.22, top: false });
 
     [shape.outer, ...shape.holes].forEach((ring, ringIndex) => {
       for (let index = 0; index < ring.length; index += 1) {
@@ -199,7 +208,7 @@ function renderFaces(solids: Derived3DSolid[], project: (point: Point3) => Proje
           solid,
           path: polygonPath(points),
           depth: points.reduce((total, point) => total + point.depth, 0) / points.length,
-          opacity: ringIndex === 0 ? 0.44 : 0.30,
+          opacity: ringIndex === 0 ? 0.52 : 0.34,
           top: false,
         });
       }
@@ -252,6 +261,8 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
         texture.height = Math.max(1, Math.round(source.height * ratio));
         const context = texture.getContext('2d', { alpha: false });
         if (!context) return;
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
         context.drawImage(source, 0, 0, texture.width, texture.height);
         texture.toBlob(blob => {
           if (cancelled || !blob) return;
@@ -281,7 +292,7 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   const selectedSolid = useMemo(() => sheetSolids.find(solid => solid.measurementId === selectedMeasurementId) || sheetSolids.find(solid => solid.conditionVersionId === selectedConditionVersionId) || null, [sheetSolids, selectedConditionVersionId, selectedMeasurementId]);
   const autoFrame = useMemo(() => frameForScene(sheetSolids, sheetPlane), [sheetSolids, sheetPlane]);
   const remembered = memory.get(cameraKey);
-  const camera = remembered?.camera || DEFAULT_CAMERA;
+  const camera = normalizeCamera(remembered?.camera || DEFAULT_CAMERA);
   const center = remembered?.center || autoFrame.center;
   const fitRadius = remembered?.fitRadius || autoFrame.fitRadius;
   const referenceElevation = remembered?.referenceElevation ?? autoFrame.referenceElevation;
@@ -292,15 +303,20 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
     invalidateCamera(value => value + 1);
   }, [cameraKey, memory, sheetSolids.length, sheetPlane, autoFrame.center.x, autoFrame.center.y, autoFrame.center.z, autoFrame.fitRadius, autoFrame.referenceElevation]);
 
-  const currentMemory = () => memory.get(cameraKey) || { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation };
+  const currentMemory = () => {
+    const current = memory.get(cameraKey);
+    if (!current) return { camera: DEFAULT_CAMERA, center: autoFrame.center, fitRadius: autoFrame.fitRadius, referenceElevation: autoFrame.referenceElevation };
+    return { ...current, camera: normalizeCamera(current.camera) };
+  };
   const setCamera = (next: Camera | ((current: Camera) => Camera)) => {
     const current = currentMemory();
-    memory.set(cameraKey, { ...current, camera: typeof next === 'function' ? next(current.camera) : next });
+    const resolved = typeof next === 'function' ? next(current.camera) : next;
+    memory.set(cameraKey, { ...current, camera: normalizeCamera(resolved) });
     invalidateCamera(value => value + 1);
   };
   const setFrame = (frame: ViewFrame, nextCamera?: Camera) => {
     const current = currentMemory();
-    memory.set(cameraKey, { camera: nextCamera || current.camera, center: frame.center, fitRadius: frame.fitRadius, referenceElevation: current.referenceElevation ?? frame.referenceElevation });
+    memory.set(cameraKey, { camera: normalizeCamera(nextCamera || current.camera), center: frame.center, fitRadius: frame.fitRadius, referenceElevation: current.referenceElevation ?? frame.referenceElevation });
     invalidateCamera(value => value + 1);
   };
 
@@ -312,7 +328,9 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   const selectedInputIssue = useMemo(() => selectedConditionIssues.find(issue => issue.severity === 'hold' && issue.code === '3d_input_required') || null, [selectedConditionIssues]);
   const selectedUnsupportedIssue = useMemo(() => selectedConditionIssues.find(issue => issue.severity === 'hold' && issue.code === 'unsupported_projection') || null, [selectedConditionIssues]);
   const selectedHasSolid = useMemo(() => Boolean(selectedConditionVersionId && sheetSolids.some(solid => solid.conditionVersionId === selectedConditionVersionId)), [sheetSolids, selectedConditionVersionId]);
-  const fitScale = Math.min(size.width, size.height) * 0.43 / Math.max(1, fitRadius);
+  const selectedHidden = Boolean(selectedConditionVersionId && viewState.hidden.includes(selectedConditionVersionId));
+  const hasVisibilityFilters = Boolean(viewState.hidden.length || viewState.isolated || viewState.zone !== 'all' || viewState.elevation !== 'all');
+  const fitScale = Math.min(size.width, size.height) * 0.46 / Math.max(1, fitRadius);
   const project = useMemo(() => (point: Point3): ProjectedPoint => {
     const raw = projectRaw(point, center, camera), scale = fitScale * camera.zoom;
     return { x: size.width / 2 + camera.panX + raw.x * scale, y: size.height / 2 + camera.panY + raw.y * scale, depth: raw.depth };
@@ -353,16 +371,25 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
   return <div className={styles.viewer} data-issues-open={issuesOpen} aria-label="3D concrete verification">
     <div className={styles.toolbar}>
       <div className={styles.scope}><strong>{sheetLabel}</strong><span role="status">{status}</span></div>
-      <label className={styles.filter}>Zone<select aria-label="3D zone" value={viewState.zone} onChange={event => onViewStateChange(current => ({ ...current, zone: event.target.value }))}><option value="all">All zones</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}</select></label>
-      <label className={styles.filter}>Top elevation<select aria-label="3D top elevation" value={viewState.elevation} onChange={event => onViewStateChange(current => ({ ...current, elevation: event.target.value }))}><option value="all">All elevations</option>{elevations.map(value => <option key={value} value={String(value)}>{formatArchitecturalLength(value)}</option>)}</select></label>
-      <Button variant="ghost" size="icon-sm" onClick={toggleSelected} disabled={!selectedConditionVersionId} title="Hide or show selected Condition" aria-label="Hide or show selected Condition"><EyeOff size={16}/></Button>
-      <Button variant="ghost" size="icon-sm" onClick={isolateSelected} disabled={!selectedConditionVersionId} aria-pressed={Boolean(viewState.isolated)} title="Isolate selected Condition" aria-label="Isolate selected Condition"><Focus size={16}/></Button>
-      <Button variant="ghost" size="icon-sm" onClick={showAll} title="Show all" aria-label="Show all"><Eye size={16}/></Button>
-      <Button variant="ghost" size="sm" onClick={focusSelected} disabled={!selectedSolid}>Focus</Button>
-      <Button variant="ghost" size="icon-sm" onClick={resetView} title="Reset 3D view" aria-label="Reset 3D view"><RotateCcw size={16}/></Button>
-      <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>3D checks {sheetIssues.length}</Button>
+      <div className={styles.primaryTools}>
+        <Button variant="ghost" size="icon-sm" onClick={resetView} title="Home / reset 3D view" aria-label="Home / reset 3D view"><RotateCcw size={16}/></Button>
+        <Button variant="ghost" size="sm" onClick={focusSelected} disabled={!selectedSolid} title="Focus selected takeoff"><Focus size={14}/>Focus</Button>
+        <Button variant="ghost" size="icon-sm" onClick={toggleSelected} disabled={!selectedConditionVersionId} title={selectedHidden?'Show selected takeoff':'Hide selected takeoff'} aria-label={selectedHidden?'Show selected takeoff':'Hide selected takeoff'}>{selectedHidden?<Eye size={16}/>:<EyeOff size={16}/>}</Button>
+        <details className={styles.filtersMenu}>
+          <summary><SlidersHorizontal size={14}/>Filters</summary>
+          <div className={styles.filtersPanel}>
+            <label className={styles.filter}>Zone<select aria-label="3D zone" value={viewState.zone} onChange={event => onViewStateChange(current => ({ ...current, zone: event.target.value }))}><option value="all">All zones</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}</select></label>
+            <label className={styles.filter}>Top elevation<select aria-label="3D top elevation" value={viewState.elevation} onChange={event => onViewStateChange(current => ({ ...current, elevation: event.target.value }))}><option value="all">All elevations</option>{elevations.map(value => <option key={value} value={String(value)}>{formatArchitecturalLength(value)}</option>)}</select></label>
+            <div className={styles.filterActions}>
+              <Button variant="ghost" size="sm" onClick={isolateSelected} disabled={!selectedConditionVersionId} aria-pressed={Boolean(viewState.isolated)}><Focus size={14}/>Isolate</Button>
+              <Button variant="ghost" size="sm" onClick={showAll} disabled={!hasVisibilityFilters}><Eye size={14}/>Show all</Button>
+            </div>
+          </div>
+        </details>
+        <Button variant="outline" size="sm" aria-expanded={issuesOpen} onClick={() => setIssuesOpen(value => !value)}><AlertTriangle size={14}/>3D checks {sheetIssues.length}</Button>
+      </div>
     </div>
-    <div ref={stageRef} className={styles.stage} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setCamera(current => ({ ...current, zoom: clamp(current.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), 0.1, 20) })); }}>
+    <div ref={stageRef} className={styles.stage} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setCamera(current => ({ ...current, zoom: current.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12) })); }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Read-only 3D concrete model" onPointerDown={event => {
         if (![0, 1, 2].includes(event.button)) return;
         const target = event.target as Element;
@@ -373,20 +400,21 @@ export function TakeoffDerived3DView({ scene, activeSheetId, activeSheetLabel, s
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
         if (Math.hypot(dx, dy) < 3) return;
         if (drag.mode === 'pan') setCamera({ ...drag.camera, panX: drag.camera.panX + dx, panY: drag.camera.panY + dy });
-        else setCamera({ ...drag.camera, yaw: drag.camera.yaw + dx * 0.008, pitch: clamp(drag.camera.pitch + dy * 0.006, -1.45, 1.45) });
+        else setCamera({ ...drag.camera, yaw: drag.camera.yaw + dx * 0.008, pitch: clamp(drag.camera.pitch + dy * 0.006, MIN_CAMERA_PITCH, MAX_CAMERA_PITCH) });
       }} onPointerUp={event => {
         const drag = dragRef.current; if (!drag || drag.pointerId !== event.pointerId) return;
         if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 3 && drag.solidId && drag.mode === 'orbit') { const solid = visibleSolids.find(solid => solid.id === drag.solidId); if (solid) onSelectSolid(solid); }
         dragRef.current = null;
       }} onPointerCancel={() => { dragRef.current = null; }}>
         <rect width={size.width} height={size.height} fill="var(--background)"/>
-        {sheetProjection ? <g pointerEvents="none" aria-label={`PDF plan reference plane at ${formatArchitecturalLength(PLAN_DATUM_ELEVATION)}`}>
-          <polygon points={sheetProjection.corners.map(point => `${point.x},${point.y}`).join(' ')} fill="white" fillOpacity={planImageUrl ? 0.96 : 0.08} stroke="var(--border)" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
-          {planImageUrl ? <image href={planImageUrl} x="0" y="0" width={sheetPlane!.pageWidth} height={sheetPlane!.pageHeight} preserveAspectRatio="none" transform={sheetProjection.matrix} opacity="0.82"/> : null}
+        {sheetProjection ? <g className={styles.sheetPlane} pointerEvents="none" aria-label={`PDF plan reference plane at ${formatArchitecturalLength(PLAN_DATUM_ELEVATION)}`}>
+          <polygon className={styles.sheetSurface} points={sheetProjection.corners.map(point => `${point.x},${point.y}`).join(' ')} vectorEffect="non-scaling-stroke"/>
+          {planImageUrl ? <image className={styles.planImage} href={planImageUrl} x="0" y="0" width={sheetPlane!.pageWidth} height={sheetPlane!.pageHeight} preserveAspectRatio="none" transform={sheetProjection.matrix} opacity="0.98"/> : null}
         </g> : null}
         {faces.map(face => {
           const selected = selectedMeasurementId ? face.solid.measurementId === selectedMeasurementId : face.solid.conditionVersionId === selectedConditionVersionId;
-          return <path key={face.key} data-solid-id={face.solid.id} d={face.path} fill={face.solid.color} fillOpacity={selected ? Math.min(0.92, face.opacity + 0.16) : face.opacity} fillRule="evenodd" stroke={selected ? 'var(--foreground)' : face.solid.color} strokeOpacity={selected ? 0.95 : 0.7} strokeWidth={selected ? 1.8 : 1} vectorEffect="non-scaling-stroke" className={styles.face} tabIndex={face.top ? 0 : undefined} role={face.top ? 'button' : undefined} aria-label={face.top ? `${face.solid.conditionName} — ${face.solid.measurementName}` : undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectSolid(face.solid); } }} />;
+          const faceClass = [styles.face, face.top ? styles.faceTop : styles.faceSide, selected ? styles.faceSelected : ''].filter(Boolean).join(' ');
+          return <path key={face.key} data-solid-id={face.solid.id} d={face.path} fill={face.solid.color} fillOpacity={selected ? Math.min(0.98, face.opacity + 0.10) : face.opacity} fillRule="evenodd" stroke={selected ? 'var(--foreground)' : face.solid.color} strokeOpacity={selected ? 1 : 0.88} strokeWidth={selected ? 2.2 : 1.1} vectorEffect="non-scaling-stroke" className={faceClass} tabIndex={face.top ? 0 : undefined} role={face.top ? 'button' : undefined} aria-label={face.top ? `${face.solid.conditionName} — ${face.solid.measurementName}` : undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectSolid(face.solid); } }} />;
         })}
       </svg>
       {visibleSolids.length>0&&!selectedHasSolid&&(selectedInputIssue||selectedUnsupportedIssue)&&<div className={styles.selectedIssue} role="status"><AlertTriangle size={16}/><div><strong>{selectedInputIssue?'Selected takeoff needs a 3D input':'Selected takeoff is not modeled'}</strong><span>{(selectedInputIssue||selectedUnsupportedIssue)?.message}</span></div>{selectedInputIssue?<Button variant="outline" size="sm" onClick={()=>onJumpToIssue(selectedInputIssue)}>Resolve input</Button>:<Button variant="outline" size="sm" onClick={()=>setIssuesOpen(true)}>Open 3D checks</Button>}</div>}
