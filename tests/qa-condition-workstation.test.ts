@@ -8,6 +8,7 @@ const workspaceStyles = readFileSync('components/takeoff/IntegratedTakeoffCondit
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const viewer = readFileSync('components/takeoff/TakeoffDerived3DView.tsx', 'utf8');
 const derived3d = readFileSync('lib/takeoff/conditions/derived3d.ts', 'utf8');
+const coordinates = readFileSync('lib/takeoff/conditions/derived3d/coordinates.ts', 'utf8');
 const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
@@ -54,6 +55,8 @@ test('3D toggles in the current drawing viewport and Split is not exposed', () =
 test('3D uses the rendered PDF sheet as the spatial reference plane', () => {
   assert.match(derived3d, /sheetPlanes/);
   assert.match(derived3d, /worldWidth: scaleFtPerPdfUnit \? pageWidth \* scaleFtPerPdfUnit : null/);
+  assert.match(coordinates, /point\.x \* Number\(sheet\.page_width\) \* scale/);
+  assert.match(coordinates, /point\.y \* Number\(sheet\.page_height\) \* scale/);
   assert.match(viewer, /scene\.sheetPlanes\[activeSheetId\]/);
   assert.match(viewer, /querySelector<HTMLCanvasElement>\('canvas'\)/);
   assert.match(viewer, /<image href=\{planImageUrl\}/);
