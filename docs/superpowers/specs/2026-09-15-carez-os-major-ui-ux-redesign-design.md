@@ -718,7 +718,23 @@ migrate consumer → automated validation → browser verification → remove de
 
 Delete `app/carez-shadcn-compat.css` and other legacy presentation only after all consumers are migrated and browser-verified. Do not perform a speculative global CSS deletion.
 
-## 19. QA and acceptance
+## 19. Implementation-plan decomposition
+
+This document is the cross-application architectural umbrella. It is intentionally too broad to execute as one implementation batch. After written-spec approval, implementation planning must proceed as a sequence of independently verifiable subprojects. Do not create one giant plan that attempts to migrate the entire application at once.
+
+The required planning sequence is:
+
+1. **Canonical authority + token foundation** — replacement/updated UX ADR(s), component-pack reconciliation, semantic light/dark tokens, typography/spacing/radius/elevation/motion tokens, density primitives, and theme preference contract. No broad route migration.
+2. **Global shell + navigation context** — role-default navigation configuration, user personalization contract, Hybrid command shell, structured `More`, command palette, project context bar, workspace header contract, and responsive shell behavior.
+3. **Shared component/state foundation** — Data Grid, semantic numeric fields, Inspector, Toolbar, Record Header, Project Context Bar, loading/empty/error/save/provenance/status/accessibility contracts, and any required extensions of existing shared components.
+4. **Refined-operations reference slice** — Today → Project → Project Overview, proving Overview/Record archetypes, balanced density, dual theme, project context, role-aware shell, and responsive behavior.
+5. **Specialist reference slice** — Project → Takeoff, proving Canvas archetype, specialist density, panes, toolbar, inspector, worksheet/Data Grid, keyboard behavior, and preservation of accepted Takeoff/Condition/3D invariants.
+6. **Module migration waves** — Estimating, CRM/Preconstruction, Projects/Schedule, Field/Production, Procurement/Finance, Documents/Knowledge, and later AI-assisted surfaces migrate in owning-module slices using the validated system.
+7. **Field/mobile hardening + legacy retirement** — complete field-first mobile/tablet behavior, offline/sync states where supported, remove legacy/compatibility presentation only after consumers are accepted, and finish cross-application visual/accessibility regression coverage.
+
+The first implementation plan after this spec is approved must cover **Subproject 1 — Canonical authority + token foundation** only. Later subprojects receive their own implementation plans. A supplemental design/spec review is required only if a subproject uncovers new architecture or behavior not already fixed by this umbrella design.
+
+## 20. QA and acceptance
 
 A route is not considered redesigned because Tailwind/shadcn classes changed or because typecheck/build passes. A redesigned surface is accepted only when workflow behavior is preserved and rendered staging behavior matches the approved system.
 
@@ -782,7 +798,7 @@ For implementation slices:
 6. user acceptance where required;
 7. update `CURRENT_STATE.md` only when verified implementation state materially changes.
 
-## 20. Completion definition
+## 21. Completion definition
 
 The major redesign is complete only when:
 
