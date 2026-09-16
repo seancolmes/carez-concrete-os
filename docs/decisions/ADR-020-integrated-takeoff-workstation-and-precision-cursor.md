@@ -6,6 +6,8 @@ Owner: 95 — UX & Design System
 Related decisions: ADR-005, ADR-012, ADR-013, ADR-015, ADR-016, ADR-018
 Implementation owner: Issue #51, coordinated with Issue #44
 
+Presentation transition: ADR-024 supersedes application-wide theme, token, density, and shell styling. This ADR remains authoritative for integrated Takeoff/workstation/domain invariants where not superseded by the current Takeoff module/3D contracts.
+
 ## Context
 
 The current Takeoff route combines an older three-pane drawing workstation with a newer Concrete Condition authoring window. The resulting presentation duplicates navigation and properties responsibilities, obscures the drawing surface, and forces the estimator to reason about multiple overlapping interaction systems.

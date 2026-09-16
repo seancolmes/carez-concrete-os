@@ -26,7 +26,7 @@ Use this repository for fast, bounded implementation. Do not use web research, p
 - Production Quantity, Direct Cost, and Sell as distinct values.
 - Persisted page-coordinate 2D/vector geometry as Takeoff quantity authority; derived 3D is verification only.
 - Human authority over scope, Conditions, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
-- UI authority: ADR-015/016/020 plus `docs/design-system/CAREZ_COMPONENT_PACK.md`; do not revive B2/light styling, a permanent global desktop left rail, alternate palettes, compatibility UI layers, or a second component system.
+- UI authority: ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md`; ADR-016 remains the implemented shell until its dedicated replacement slice, and ADR-020/current Takeoff module contracts remain authoritative for Takeoff invariants. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, a permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed semantic tokens, or a second component system.
 
 ## Execute
 

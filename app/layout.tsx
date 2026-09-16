@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { GeistMono } from 'geist/font/mono';
-import {TooltipProvider} from '@/components/ui/tooltip';
+import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import { CarezAppearanceProvider } from '@/components/carez/appearance-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import './globals.css';
 import './takeoff-v3.css';
 
-const inter = Inter({
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-ibm-plex-mono',
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -23,11 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" className={`${inter.variable} ${GeistMono.variable} dark`}>
+  return <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
+    <head>
+      <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
+    </head>
     <body className={inter.className}>
-      <TooltipProvider>
-        {children}
-      </TooltipProvider>
+      <CarezAppearanceProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </CarezAppearanceProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
       </div>}
