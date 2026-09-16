@@ -2,6 +2,7 @@ import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {Building2,Calculator,Database,Landmark,LogOut,Mail,Settings2} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {AppearanceSettings} from '@/components/settings/AppearanceSettings';
 import {CompanyBrandingSettings} from '@/components/settings/CompanyBrandingSettings';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
@@ -45,6 +46,11 @@ export default async function SettingsPage(){
         <SectionHeading kicker="Company" title="Branding" description="Company identity used by the Carez workspace and new commercial documents."/>
         <CompanyBrandingSettings companyId={profile.company_id} initialLogoPath={branding?.logo_path||null}/>
       </section>:null}
+
+      <section className="space-y-4">
+        <SectionHeading kicker="Interface" title="Appearance" description="Theme and baseline workspace density for this device."/>
+        <AppearanceSettings />
+      </section>
 
       <section className="space-y-4">
         <SectionHeading kicker="Connections" title="Integrations" description="Services that remove office work or provide authoritative external data."/>
