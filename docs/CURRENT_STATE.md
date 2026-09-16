@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-07  
+Last reconciled: 2026-09-15  
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -22,7 +22,7 @@ User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MOD
 - Platform Condition Archetype → Company Condition Template → Project Concrete Condition ownership is versioned; published/verified history remains immutable.
 - Pricing overrides and commercial-document issuance snapshots remain preserved.
 - Production Quantity, Direct Cost, and Sell remain separate concepts.
-- ADR-015 dark shadcn presentation, ADR-016 compact desktop menubar, and ADR-020 integrated Takeoff workstation are active UI authorities.
+- ADR-024 Precision Grid is the active application visual/theme/token/density authority. ADR-016 remains the currently implemented shell until the dedicated role-adaptive shell/navigation subproject replaces it; ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
 - Accepted Job Spine / bid-to-field commercial and execution lineage remains the architecture baseline.
 - Derived 3D is verification from authoritative persisted 2D/Condition facts, not a second quantity engine.
 
@@ -54,7 +54,7 @@ Issue #55 is no longer an active sequencing gate. Do not reopen or re-test it wi
 
 ## Global UI / shared system state
 
-Issue #44 remains open as the Carez-wide dark shadcn route-conversion and rendered-acceptance owner.
+Issue #44 is **accepted/closed** at staging SHA `388b8f35682ddd23c9c9f69a907d65d724e63fa2`; the prior dark-shadcn route conversion, compatibility-layer removal, and route-family browser acceptance are historical baseline, not an active implementation gate.
 
 Implemented on staging:
 
@@ -76,7 +76,9 @@ Signed-in stable-staging browser acceptance and bounded expansion remain pending
 
 ## Active priorities
 
-1. Continue Issue #44 route conversion and remove the remaining legacy/compatibility presentation layer until every routable application surface uses the accepted shared dark shadcn system.
+Issue #63 — Precision Grid canonical authority + token foundation — is accepted on staging. The accepted foundation includes first-class Light/Dark/System preference, pre-hydration theme resolution, device-local appearance persistence, Inter + IBM Plex Mono typography roles, Precision Grid semantic light/dark tokens, root default/compact/comfortable density state, and Settings appearance controls. This does not imply that the later role-adaptive shell, project-context layer, shared-component expansion, or route/module redesign slices are implemented.
+
+1. Continue the approved Carez OS major UI/UX redesign through the next independently planned subproject: Global shell + navigation context. Preserve ADR-024 and the accepted Issue #63 foundation while doing so.
 2. Continue Issue #41 derived-3D acceptance/expansion from the accepted current Condition contracts and authoritative persisted 2D geometry.
 3. Resolve Issue #59 before any production migration promotion or `staging` → `main` release that depends on the canonical QA migration chain.
 4. Preserve only active canonical/supporting documentation in the repository tree. Superseded working documents and completed implementation checkpoint files should be deleted after their surviving truth is absorbed by canonical owners; Git history and closed issues preserve historical evidence.
