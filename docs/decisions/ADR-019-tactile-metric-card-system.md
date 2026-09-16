@@ -1,6 +1,6 @@
 # ADR-019 — Tactile metric card system
 
-Status: Accepted
+Status: Accepted pattern, motion treatment amended by ADR-024
 Date: 2026-09-05
 Owner: 95 — UX & Design System
 Related decisions: ADR-015, ADR-016, ADR-018
@@ -45,9 +45,9 @@ Use only when the whole card is a legitimate interactive target.
 Required behavior:
 
 - the entire card is implemented as an accessible link/button/action target, not a non-semantic div with mouse handlers;
-- subtle tactile depth on pointer hover/focus, normally limited to roughly 1.5–2 degrees maximum perspective tilt and about 1–2 px vertical lift;
+- no pointer-following perspective/3D tilt; interactive cards may use restrained border/surface emphasis and at most about 1 px vertical lift when it materially clarifies clickability;
 - border/surface/shadow may gain restrained emphasis during hover/focus;
-- interaction should generally resolve in approximately 140–180 ms and remain within ADR-015 motion limits;
+- interaction should generally resolve in approximately 140–180 ms and remain within the Precision Grid functional-motion contract;
 - keyboard focus must receive an equivalent clear affordance rather than making the effect mouse-only;
 - touch/mobile uses a compact pressed/active state rather than simulated persistent hover tilt;
 - `prefers-reduced-motion` removes perspective/lift and falls back to simple border/surface/focus treatment;
@@ -79,6 +79,8 @@ Interactive motion is a promise of interaction. If a metric does not navigate, f
 Implementation belongs in the source-owned Carez shadcn/Base UI/Tailwind system and should reuse the existing Carez Motion language. Do not add a new animation/component framework solely to reproduce this effect unless bundle/maintenance/accessibility review demonstrates a clear benefit.
 
 Likely first consumers include Dashboard/Today, Projects operational summaries, Schedule summary metrics, Resource Readiness, Owner Reports, Field/production summary surfaces, and finance/cash summaries where the metric-card pattern is actually appropriate.
+
+ADR-024 is authoritative when older tactile-motion wording conflicts with Precision Grid.
 
 ## Acceptance
 

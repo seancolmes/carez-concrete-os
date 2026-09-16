@@ -1,10 +1,12 @@
 # ADR-015 — Dark minimal shadcn application system
 
-Status: Accepted
+Status: Accepted principles, theme/visual foundation superseded by ADR-024
 Date: 2026-09-03
 Owner: 95 — UX & Design System
 Supersedes: the presentation/theme contract in ADR-014; ADR-014 remains authoritative for source-owned shadcn primitives and composition architecture unless this ADR says otherwise.
 Shell authority: ADR-016 supersedes the prior permanent-left-rail shell section of this ADR.
+
+ADR-024 supersedes this ADR's dark-first/default-dark theme contract, dark-only token assumptions, and one-density visual foundation. Its source-owned shadcn/Base UI architecture, continuous-workspace preference, restrained surface/content discipline, semantic/scarce color, functional motion, and anti-parallel-design-system rules remain incorporated by ADR-024.
 
 ## Context
 

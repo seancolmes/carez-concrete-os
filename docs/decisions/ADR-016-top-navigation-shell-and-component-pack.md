@@ -5,6 +5,8 @@ Date: 2026-09-04
 Owner: 95 — UX & Design System
 Supersedes: ADR-006 in full; the shell-specific portions of ADR-012, ADR-015, the Takeoff module spec, and the Concrete Condition workstation target where they require a permanent global left app rail.
 
+Transition under ADR-024: this ADR remains the current implemented shell contract until the dedicated role-adaptive Hybrid command-shell/project-context subproject is implemented and browser-accepted. ADR-024 is already authoritative for visual theme, token, density, and the approved end-state shell architecture. No permanent global desktop left rail returns.
+
 ## Context
 
 The permanent desktop app rail protected global navigation during the earlier Carez workstation modernization, but the approved Concrete Condition / Estimating EDGE-inspired workstation needs maximum horizontal room for domain-specific context panes, drawing, Condition Properties, 2D/3D/Split review, and the Quantity/Estimate Worksheet.

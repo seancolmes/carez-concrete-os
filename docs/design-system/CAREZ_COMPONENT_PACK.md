@@ -11,7 +11,7 @@ Carez modules must reuse one compact set of source-owned shadcn-compatible primi
 
 The pack is intentionally small. It establishes the components that recur across Takeoff, estimating, CRM, projects, field, finance, documents, and reporting. Module-specific compositions may wrap these primitives, but they should not create a competing local design system.
 
-All components use the active dark graphite semantic token system, source-owned React code, accessible keyboard/focus behavior, restrained radii, dense professional spacing, and the motion rules in ADR-015/ADR-016.
+All shared Carez components use the ADR-024 Precision Grid semantic token system, first-class light/dark themes, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
 
 Third-party component libraries are reference/source pools only. Any copied/adapted code must be license-vetted, reviewed for accessibility and bundle cost, converted to Carez semantic tokens, and owned in the Carez repository.
 
@@ -33,6 +33,14 @@ Before recommending the design:
 Options should differ in behavior or workflow, not merely color, spacing, or cosmetic styling. For example, a navigation redesign might compare an icon rail + flyout model, a collapsible contextual tree, and a command/search-centered model rather than three visually similar sidebars.
 
 This protocol does not authorize a second design system. External sources remain reference/source pools subject to ADR-015 licensing, accessibility, bundle-cost, architecture, and Carez-token requirements.
+
+## Precision Grid foundation
+
+Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
+
+Appearance preference is `light | dark | system`; System is default. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
+
+Primary UI typography is Inter Variable. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
 ## 1. Carez Data Grid
 

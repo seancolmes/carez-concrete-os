@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-15  
 **Owner:** 95 — UX & Design System  
-**Status:** Approved architectural design; pending written-spec review before implementation planning  
+**Status:** Approved architectural design; implementation decomposed by subproject  
 **Scope:** Major presentation and interaction redesign across Carez OS while preserving current domain/workflow architecture
 
 ## Goal
@@ -843,4 +843,4 @@ Foundation + reference-slice migration
 Rendered staging acceptance required
 ```
 
-This written design is the approved architectural target pending explicit user review of this committed spec. Implementation planning must not begin until that review is approved.
+This design is the approved architectural umbrella. Implementation proceeds through independently planned/verified subprojects beginning with Issue #63 — Canonical authority + token foundation.
