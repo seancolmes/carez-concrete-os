@@ -318,6 +318,10 @@ Issue #72 implements the reusable presentation/state foundation used by later wo
 - `CarezProvenance` exposes caller-supplied source/origin detail through concise text or an accessible disclosure; it never fabricates provenance.
 - `CarezEmptyState` composes the source-owned shadcn Empty primitive for neutral/error empty-state treatment.
 
+### Operating Metric
+
+`CarezOperatingMetric` and `CarezOperatingMetricStrip` provide the compact Overview/Record metric treatment for operational reference surfaces. They render caller-supplied label, value, supporting text, and semantic tone only. They never calculate readiness, cost, cash, production, margin, or commercial state. Favor one compact strip over unrelated metric cards when the values describe one operating position.
+
 ### Inspector
 
 `CarezInspector` is the canonical dense contextual property surface. Header, body/sections, validation, provenance/status/save-state slots, and footer/actions are explicit compositions. The Inspector owns presentation and keyboard/focus structure only; domain persistence, validation rules, autosave, calculations, and approval authority stay with the owning module.

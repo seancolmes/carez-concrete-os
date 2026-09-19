@@ -3,6 +3,7 @@ export * from './data-grid';
 export * from './fields';
 export * from './inspector';
 export * from './motion';
+export * from './operating-metric';
 export * from './project-context';
 export * from './record-header';
 export * from './state';
