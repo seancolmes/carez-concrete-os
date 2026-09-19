@@ -56,7 +56,7 @@ test('shared Data Grid exposes selected, sortable, loading, empty, and error sem
 
 test('semantic number field exposes presentation metadata without client calculation authority',()=>{
   const fields=readMaybe('components/carez/fields.tsx');
-  const start=fields.indexOf('export function CarezNumberField');
+  const start=fields.indexOf('type NumberInputProps');
   const end=fields.indexOf('export type CarezDateTimeMode');
   const numberField=start>=0&&end>start?fields.slice(start,end):fields;
   assert.match(numberField,/kind\?/);
