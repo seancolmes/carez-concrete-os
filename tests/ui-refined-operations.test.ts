@@ -140,3 +140,42 @@ test('Project Overview follows the approved operating-record hierarchy',()=>{
   assert.doesNotMatch(page,/function Metric/);
   assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
 });
+
+
+test('reference slice preserves unavailable-state language and route boundaries',()=>{
+  const today=read('app/page.tsx');
+  const projects=read('components/projects/JobsOperationsBoard.tsx');
+  const projectsPage=read('app/projects/page.tsx');
+  const overview=read('app/projects/[id]/page.tsx');
+
+  assert.match(today,/No authoritative budget snapshot/);
+  assert.match(overview,/Need Progress/);
+  assert.match(projects,/does not fabricate them/);
+  assert.match(projectsPage,/budgetAvailable:Boolean\(b\.project_id\)/);
+  assert.match(projectsPage,/billingAvailable:Boolean\(bill\.project_id\)/);
+
+  assert.doesNotMatch(today,/CarezProjectContextBar/);
+  assert.doesNotMatch(projects,/CarezProjectContextBar/);
+  assert.match(overview,/CarezRecordHeader/);
+});
+
+test('reference slice keeps explicit pointer-independent project opening',()=>{
+  const projects=read('components/projects/JobsOperationsBoard.tsx');
+
+  assert.match(projects,/event\.key===['"]Enter['"]/);
+  assert.match(projects,/Open Project/);
+  assert.match(projects,/onDoubleClick/);
+});
+
+test('reference slice stays on the accepted Carez component system',()=>{
+  const sources=[
+    read('app/page.tsx'),
+    read('components/projects/JobsOperationsBoard.tsx'),
+    read('app/projects/[id]/page.tsx'),
+  ].join('\n');
+
+  assert.doesNotMatch(sources,/from ['"]@mui\//);
+  assert.doesNotMatch(sources,/from ['"]antd/);
+  assert.doesNotMatch(sources,/from ['"]chakra-ui/);
+  assert.doesNotMatch(sources,/#[0-9a-fA-F]{3,8}\b/);
+});
