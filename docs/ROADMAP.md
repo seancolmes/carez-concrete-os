@@ -20,16 +20,16 @@ Outcome:
 - Issue #63 Precision Grid token/theme/density foundation is accepted;
 - Issue #71 role-adaptive Hybrid global shell + authoritative project-context navigation is accepted;
 - Issue #72 shared component/state/accessibility foundation is accepted, including semantic status/save/authority/provenance/feedback, Inspector, Record Header, shared Project Context Bar, semantic Number Field variants, and Data Grid state/accessibility foundations;
-- the next UI/UX implementation gate is the independently planned refined-operations reference slice `Today → Project → Project Overview`;
-- the specialist `Project → Takeoff` reference slice follows only after the refined-operations slice is accepted;
-- broad module migration does not begin until both reference expressions prove the shared system in rendered staging.
+- Subproject 4 refined-operations reference slice `Today → Project → Project Overview` is accepted on staging and proves the first rendered Overview/Record expression across the shared system;
+- the next UI/UX implementation gate is the independently planned specialist reference slice `Project → Takeoff`;
+- broad module migration does not begin until the specialist Takeoff reference expression is accepted in rendered staging.
 
 ## P0.5 — Concrete Condition + 3D Takeoff foundation
 
 Outcome:
 - active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
 - additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- the ADR-020 integrated estimator workstation uses the ADR-015 dark shadcn system plus the ADR-016 global menubar: stable-width independently collapsible Plans/Conditions/Zones and Condition Properties panes, a dominant drawing surface, explicit 2D/3D/Split view controls, and a permanently available vertically resizable Quantity/Estimate Worksheet;
+- the ADR-020 integrated estimator workstation remains the Takeoff authority and is governed by ADR-024 Precision Grid inside the accepted Issue #71 global shell: stable-width independently collapsible Plans/Conditions/Zones and Condition Properties panes, a dominant drawing surface, explicit 2D/3D/Split view controls, and a permanently available vertically resizable Quantity/Estimate Worksheet;
 - an optional future explicit floating-properties mode may be draggable/resizable, but the normal docked side panes do not use horizontal drag-resizing;
 - the shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading States, File Upload and motion patterns are used where applicable instead of route-local equivalents;
 - Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;

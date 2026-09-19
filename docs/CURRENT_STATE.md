@@ -73,6 +73,8 @@ Issue #71 — role-adaptive global shell + navigation context — is **accepted/
 
 Issue #72 — shared component/state foundation — is **accepted/passed** as of 2026-09-19 at staging SHA `40259ae36e11091239841e5bfadc7c3dd24623c0`. GitHub Actions run `35443858878` passed typecheck, domain/UI tests, and build; matching Vercel staging deployment `dpl_5sRWx1uBUNVzCDQfcaNqPBmMpKB2` reached READY; authenticated browser QA passed the bounded Project Overview Record Header, preserved project-context behavior, light/dark, responsive desktop/mobile, and keyboard-focus acceptance matrix.
 
+Subproject 4 — refined-operations reference slice `Today → Project → Project Overview` — is **accepted/passed** as of 2026-09-19 at staging SHA `c3fce78688a8b7002d3641c9a78a48d4355ddfd5`. GitHub Actions run `35447375963` passed typecheck, domain/UI tests, and build; matching Vercel staging deployment `dpl_Afh47FBy3LfA9dC11MpJ8MFmfKqX` reached READY; authenticated browser QA passed the Today exception-first hierarchy, Projects select → inspect → act workflow, Project Overview operating-record hierarchy, responsive/mobile ordering, keyboard interaction, project-context continuity, and light/dark presentation.
+
 Implemented on staging:
 
 - source-owned shadcn/Base UI primitives, Tailwind v4, ADR-024 Precision Grid semantic light/dark tokens, density controls, and shared Carez components;
@@ -86,6 +88,10 @@ Implemented on staging:
 - shared Carez Data Grid, Number Field, Date/Time Field/Range, Condition Tree, Toolbar, Resizable Workspace, File Upload, Loading States, Motion helpers, Related Tools, and Switch patterns;
 - Issue #72 shared state contracts and components: Status, Save State, Authority State, Feedback, Provenance, Empty/Error composition, Inspector, Record Header, shared Project Context Bar, semantic Number Field variants, and Data Grid selection/sort/loading/empty/error/accessibility foundations;
 - `/projects/[id]` uses the shared Record Header as the representative bounded consumer without changing its project queries/actions or redesigning the rest of Project Overview;
+- shared operational presentation mappings and compact operating-metric primitives are source-owned under the Carez UI foundation;
+- the accepted refined-operations reference slice now establishes the first rendered operational expression across Today, Projects, and Project Overview without changing quantity, cost, pricing, commercial, RLS, or lineage authority;
+- Projects uses the shared Data Grid plus responsive Inspector/Sheet select → inspect → act pattern with keyboard selection/open behavior and explicit unavailable-state handling;
+- Project Overview uses the approved operating-record hierarchy: attention, operating position, field/production, cost/forecast, commercial/billing, and next-job action, with mobile ordering that promotes the next action earlier;
 - Settings/company branding remains implemented with tenant-scoped storage/RLS and commercial-document snapshot preservation.
 
 ADR-016 is now historical for compatible retained principles; ADR-024 governs the accepted global shell/navigation behavior. Do not regress to the old static category shell or a permanent desktop left rail.
@@ -98,9 +104,9 @@ Signed-in stable-staging browser acceptance and bounded expansion remain pending
 
 ## Active priorities
 
-Issues #63, #71, and #72 are accepted on staging. Together they establish the current application-wide Precision Grid theme/token/density foundation, role-adaptive project-aware shell, and shared component/state/accessibility foundation. The refined-operations and specialist reference slices are not yet accepted.
+Issues #63, #71, and #72 plus the accepted Subproject 4 refined-operations reference slice establish the current application-wide Precision Grid foundation, role-adaptive project-aware shell, shared component/state/accessibility system, and first rendered operational reference expression. The specialist Takeoff reference slice is the next UI/UX acceptance gate; broad module migration remains blocked until it is accepted.
 
-1. Independently plan and execute Subproject 4 — the refined-operations reference slice `Today → Project → Project Overview` — from the accepted Issues #63 + #71 + #72 foundation. Preserve existing domain/query behavior and prove the Overview/Record archetypes, balanced density, dual theme, project context, role-aware shell, shared state components, and responsive behavior before broader route migration.
+1. Independently plan and execute Subproject 5 — the specialist reference slice `Project → Takeoff` — from the accepted Issues #63 + #71 + #72 + Subproject 4 foundation. Preserve ADR-020 Takeoff workstation/domain authority, authoritative persisted 2D geometry, derived-3D verification-only behavior, human scope/means-methods authority, existing quantity/calculation lineage, and the accepted global shell/project-context model.
 2. Continue Issue #41 derived-3D acceptance/expansion from the accepted current Condition contracts and authoritative persisted 2D geometry.
 3. Resolve Issue #59 before any production migration promotion or `staging` → `main` release that depends on the canonical QA migration chain.
 4. Preserve only active canonical/supporting documentation in the repository tree. Superseded working documents and completed implementation checkpoint files should be deleted after their surviving truth is absorbed by canonical owners; Git history and closed issues preserve historical evidence.
