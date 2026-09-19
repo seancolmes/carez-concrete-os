@@ -227,7 +227,7 @@ originating/linked Estimate lineage
 Takeoff
 ```
 
-Project Overview may expose an `Original Takeoff` or equivalent related-workflow action only when authoritative lineage resolves the exact Estimate/Takeoff record.
+Project Overview must expose an `Original Takeoff` related-workflow action when authoritative lineage resolves the exact Estimate/Takeoff record. When no exact linked Takeoff exists, the action is absent rather than guessed.
 
 If multiple revisions exist, the UI must identify them explicitly rather than guessing.
 
@@ -320,7 +320,7 @@ This is a Takeoff-local contextual pane, not global application navigation.
 
 ### 8.1 Conditions — primary estimator tab
 
-Conditions is the normal scope-creation/estimating tab.
+Conditions is the normal scope-creation/estimating tab and the default working tab on a fresh workstation entry. A valid device-local/session UI preference may restore another navigator tab without changing Condition authority.
 
 A Condition row communicates enough to identify and judge the object without opening Properties:
 
@@ -401,7 +401,34 @@ The navigator may directly control:
 
 These are presentation states only. They do not change quantity, estimate inclusion, module inclusion, or lineage.
 
-### 8.5 Search and filters
+### 8.5 Condition context actions
+
+A compact Condition context menu may expose only actions supported by current domain authority:
+
+- Open Properties;
+- Rename;
+- Duplicate;
+- Show / Hide;
+- Isolate;
+- Locate Measurements;
+- Review Holds;
+- Supersede / archive only where existing versioning behavior supports it.
+
+Do not add raw destructive Delete merely because the menu has room for it. Issued/referenced history remains protected.
+
+### 8.6 Navigator keyboard model
+
+When focus is in the navigator:
+
+- Arrow Up / Down moves through rows;
+- Enter selects/opens the focused row;
+- Space toggles the focused visibility control rather than invoking a drawing shortcut;
+- Arrow Right / Left expands or collapses supported groups;
+- search remains reachable through normal focus flow and may use Ctrl/Cmd+F only when the navigator owns that command without conflicting with browser/application behavior.
+
+Single-key drawing shortcuts such as M, S, and O do not fire while focus is inside navigator inputs or controls.
+
+### 8.7 Search and filters
 
 Search may match existing display identities such as:
 
@@ -419,7 +446,7 @@ Compact filters may include equivalent forms of:
 
 `Needs work` reflects existing hold/review state; it is not a new hidden quality score.
 
-### 8.6 Plans
+### 8.8 Plans
 
 Plans answers where the estimator is measuring.
 
@@ -445,7 +472,7 @@ Scale required
 
 Changing sheets preserves valid cross-sheet specialist context, including active Condition and visibility, while clearing page-specific transient state such as active edit handles and incompatible draft geometry.
 
-### 8.7 Zones
+### 8.9 Zones
 
 Zones are grouping/filter context, not Condition ownership and not quantity authority.
 
@@ -455,7 +482,7 @@ The UI must not infer building/level/pour/alternate relationships that are not r
 
 No Zones is a valid state and does not block Takeoff.
 
-### 8.8 Cross-tab continuity
+### 8.10 Cross-tab continuity
 
 Switching among Plans / Conditions / Zones does not discard the active Condition.
 
@@ -534,13 +561,18 @@ The header communicates:
 
 Representative states:
 
-- Saved / Ready;
-- Unsaved;
-- Pending recalculation;
-- Calculation hold;
-- Qty ready · Price missing;
 - Not calculated;
+- Unsaved;
+- Saving;
+- Pending recalculation;
+- Ready;
+- Qty ready · Price missing;
+- Calculation hold;
+- Not included;
+- Save failed;
 - Locked.
+
+These labels preserve the active Takeoff module's domain distinctions; they are mapped into shared Carez semantic state presentation rather than collapsed into generic success/error badges.
 
 ### 10.2 Capability-driven tabs
 
@@ -828,6 +860,29 @@ It can show:
 - source/lineage drill-down.
 
 The bottom Worksheet remains the estimate-wide working surface.
+
+### 17.4 Condition contract upgrade
+
+When a newer Condition contract/version is available, upgrade remains explicit.
+
+Representative behavior:
+
+```text
+F-01 · Contract v3
+
+Contract v4 available
+
+[Upgrade & Review]
+```
+
+Upgrade follows existing versioning rules:
+
+- carry only compatible governed inputs;
+- surface obsolete/changed fields for review;
+- require recalculation where the contract requires it;
+- never rewrite verified historical versions silently.
+
+Opening Properties never performs an invisible Condition-contract migration.
 
 ## 18. 2D/3D Canvas architecture
 
@@ -1417,6 +1472,8 @@ Holds      → Severity / Condition
 Recap      → summary sections
 ```
 
+Navigator/selection context may add an explicit temporary Worksheet filter, for example `F-01 Strip Footing ×`. Context must not silently hide rows without showing the active filter. Search may match Condition code/name, measurement name, sheet, zone/location, output/resource name, and Estimate section.
+
 View-specific column widths are device-local UI state.
 
 The reference may adopt shared Carez Data Grid semantics for selection, density, status, keyboard, headers, numeric alignment, empty/loading/error states, and accessibility while retaining specialist extensions such as virtualization, group rows, sticky behavior, and resizable columns.
@@ -1464,7 +1521,7 @@ Estimate
 03 30 00 · Item linked
 ```
 
-and provide an `Open Estimate Line` or equivalent action where an exact linked line exists.
+and provide an `Open Estimate Line` action where an exact linked line exists.
 
 Generated Estimate lines remain downstream of Takeoff quantity authority. The Estimate is not a second editor for Takeoff-generated physical quantity.
 
