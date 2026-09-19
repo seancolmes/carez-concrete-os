@@ -939,3 +939,374 @@ Expected: PASS.
 git add components/takeoff/TakeoffSpecialistWorkspace.tsx components/takeoff/TakeoffSpecialistWorkspace.module.css components/takeoff/TakeoffConditionWorkflowShell.tsx components/takeoff/TakeoffConditionWorkflowShell.module.css components/takeoff/3d/Takeoff3DViewport.tsx components/takeoff/3d/Takeoff3DToolbar.tsx tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/derived-3d.test.ts tests/takeoff-3d-selection.test.ts
 git commit -m "refactor: compose specialist takeoff workstation"
 ~~~
+
+
+### Task 8: Retire active compatibility presentation and finish Precision Grid responsiveness
+
+**Files:**
+- Modify: app/takeoff/[setId]/TakeoffDrawingPage.module.css
+- Modify: components/takeoff/TakeoffSpecialistWorkspace.module.css
+- Modify: components/takeoff/TakeoffContextNavigator.module.css
+- Modify: components/takeoff/ConditionProperties.module.css
+- Modify: components/takeoff/TakeoffWorksheet.module.css
+- Modify: components/takeoff/TakeoffDrawingWorkspace.module.css only for shared Canvas extraction support
+- Delete when unreferenced: components/takeoff/IntegratedTakeoffConditionWorkspace.tsx
+- Delete when unreferenced: components/takeoff/IntegratedTakeoffConditionWorkspace.module.css
+- Delete when unreferenced: components/takeoff/TakeoffShadcnTheme.module.css
+- Delete when unreferenced: components/takeoff/ConditionPropertiesDirectionA.module.css
+- Modify: docs/design-system/CAREZ_COMPONENT_PACK.md
+- Modify: tests/ui-takeoff-specialist-reference.test.ts
+- Modify: tests/qa-condition-workstation.test.ts
+- Modify: tests/ui-token-contract.test.ts
+- Modify: tests/ui-authority-contract.test.ts
+
+**Interfaces:**
+- Consumes: direct specialist components from Tasks 3–7.
+- Produces: true ADR-024 light/dark specialist presentation at wide desktop, laptop, tablet/narrow, and mobile containment boundaries.
+
+- [ ] **Step 1: Add RED compatibility/theme assertions**
+
+~~~ts
+test('active specialist path has no compatibility overlay or hard-coded palette',()=>{
+  const sources=[
+    read('components/takeoff/TakeoffConditionWorkflowShell.tsx'),
+    read('components/takeoff/TakeoffSpecialistWorkspace.tsx'),
+    read('components/takeoff/TakeoffContextNavigator.module.css'),
+    read('components/takeoff/ConditionProperties.module.css'),
+    read('components/takeoff/TakeoffWorksheet.module.css'),
+    read('app/takeoff/[setId]/TakeoffDrawingPage.module.css'),
+  ].join('\n');
+
+  assert.doesNotMatch(sources,/TakeoffShadcnTheme|IntegratedTakeoffConditionWorkspace/);
+  assert.doesNotMatch(sources,/\[class\*=/);
+  assert.doesNotMatch(sources,/#[0-9a-fA-F]{3,8}\b/);
+});
+~~~
+
+Also assert there is no data-view-mode="split" and no Split control.
+
+- [ ] **Step 2: Run source contracts and verify RED until legacy imports/selectors are removed**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/ui-token-contract.test.ts tests/ui-authority-contract.test.ts
+~~~
+
+- [ ] **Step 3: Implement direct wide/laptop workspace geometry**
+
+For 1440×900+:
+
+~~~text
+Navigator visible
+Canvas dominant
+Properties visible
+Worksheet useful working height
+~~~
+
+For 1280×800:
+
+~~~text
+same specialist architecture
+side panes compact/collapsible
+canvas minimum width protected
+worksheet shallower before canvas becomes unusable
+~~~
+
+Navigator and Properties use stable expanded widths plus collapse/restore, not horizontal drag resize. Worksheet remains vertically resizable.
+
+- [ ] **Step 4: Implement tablet/narrow containment**
+
+At approximately 768×1024:
+
+- Canvas stays primary.
+- Navigator and Properties open as accessible Sheet/drawer surfaces when docked coexistence would make the canvas unusable.
+- Worksheet remains reachable as a contained collapsible surface.
+- Current selection and dirty Condition state survive containment changes.
+- No essential operation relies on hover, right-click, or double-click.
+
+Use current shadcn/Base UI Sheet primitives rather than inventing a second drawer system.
+
+- [ ] **Step 5: Implement mobile inspection containment**
+
+At approximately 390×844 expose:
+
+- Takeoff identity;
+- sheet/Condition selection;
+- drawing viewer;
+- selected-object detail;
+- holds;
+- Worksheet summary/inspection;
+- Estimate/Project lineage actions;
+- locked, unsaved, calibration-required, hold, and price-required states.
+
+Do not claim full precision LF/SF/EA authoring parity on phone.
+
+- [ ] **Step 6: Apply the Precision Cursor directly**
+
+Use existing source-owned Carez cursor assets only under fine-pointer media queries.
+
+Map:
+
+~~~text
+select/default        Carez arrow
+measurement/edit      Carez crosshair
+calibration           Carez crosshair
+pan                    grab/grabbing
+worksheet height       ns-resize
+grid column resize     col-resize
+text/number            native text
+disabled               not-allowed
+~~~
+
+Touch/tablet retains native pointer behavior. Visible keyboard focus remains independent of cursor state.
+
+- [ ] **Step 7: Remove active compatibility files only after import search is clean**
+
+Run:
+
+~~~bash
+grep -R "IntegratedTakeoffConditionWorkspace\|TakeoffShadcnTheme\|ConditionPropertiesDirectionA" app components lib tests docs --exclude-dir=.next
+~~~
+
+For each retired file, delete it only if the search shows no required active or legacy consumer. If a legacy consumer remains, keep the file and remove only active Condition-first imports.
+
+- [ ] **Step 8: Update the component pack**
+
+Document:
+
+- direct specialist composition;
+- shared semantic state/toolbar/grid contracts;
+- specialist-owned virtualization, column resizing, and Canvas pointer interactions;
+- true light/dark Precision Grid tokens;
+- side-pane collapse versus Worksheet vertical resize;
+- no compatibility overlay as the accepted reference architecture.
+
+Do not mark Subproject 5 accepted in CURRENT_STATE.md yet.
+
+- [ ] **Step 9: Run source/token/type checks**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/ui-token-contract.test.ts tests/ui-authority-contract.test.ts
+pnpm typecheck
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+~~~bash
+git add -A app/takeoff/[setId] components/takeoff docs/design-system/CAREZ_COMPONENT_PACK.md tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/ui-token-contract.test.ts tests/ui-authority-contract.test.ts
+git commit -m "refactor: finish precision grid takeoff reference"
+~~~
+
+### Task 9: Cross-workstation regression, full validation, staging deploy, and browser acceptance handoff
+
+**Files:**
+- Modify only tests or product files required by concrete regressions found during validation.
+- Do not update docs/CURRENT_STATE.md or docs/ROADMAP.md before rendered/user acceptance.
+
+**Interfaces:**
+- Consumes: complete specialist reference slice.
+- Produces: green automated staging candidate plus an explicit authenticated browser QA record for the exact deployed SHA.
+
+- [ ] **Step 1: Run the focused Takeoff regression set**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test \
+  tests/ui-takeoff-specialist-reference.test.ts \
+  tests/specialist-workstation.test.ts \
+  tests/specialist-worksheet.test.ts \
+  tests/qa-condition-workstation.test.ts \
+  tests/condition-first-cutover.test.ts \
+  tests/concrete-condition-authoring.test.ts \
+  tests/condition-worksheet.test.ts \
+  tests/condition-measurement-update.test.ts \
+  tests/condition-repeatable-role-linkage.test.ts \
+  tests/derived-3d.test.ts \
+  tests/takeoff-3d-selection.test.ts \
+  tests/takeoff-3d-camera.test.ts \
+  tests/scale-regions.test.ts \
+  tests/estimate-worksheet.test.ts \
+  tests/ui-navigation.test.ts \
+  tests/ui-shared-components.test.ts \
+  tests/ui-shared-state.test.ts \
+  tests/ui-token-contract.test.ts \
+  tests/ui-authority-contract.test.ts
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 2: Run the broad/high-risk project gate**
+
+~~~bash
+pnpm check
+~~~
+
+Expected: typecheck, all Node tests, and production build PASS.
+
+- [ ] **Step 3: Review the final diff against the approved scope**
+
+Use planning base 89dc83d28b74aff8ba9922120c14c1426386d674.
+
+~~~bash
+git diff --stat 89dc83d28b74aff8ba9922120c14c1426386d674..HEAD
+git diff --name-only 89dc83d28b74aff8ba9922120c14c1426386d674..HEAD
+~~~
+
+Confirm:
+
+- no migration unless separately re-planned;
+- no main changes;
+- no unrelated route refactors;
+- no quantity, cost, or Sell calculation moved into client UI;
+- no broadened Project Context;
+- no supplier-catalog ingestion subsystem;
+- no removal of required historical/legacy compatibility records.
+
+- [ ] **Step 4: Commit any validation-only regression fix as its own bounded commit**
+
+Only if validation found a concrete defect:
+
+~~~bash
+git add <only-the-regression-files>
+git commit -m "fix: harden specialist takeoff acceptance"
+~~~
+
+Do not create a no-op commit.
+
+- [ ] **Step 5: Push current staging and verify GitHub Actions**
+
+~~~bash
+git push origin staging
+~~~
+
+Verify the matching staging SHA has successful typecheck, domain/UI tests, and build in GitHub Actions.
+
+- [ ] **Step 6: Verify matching Vercel staging deployment**
+
+Confirm the deployment metadata GitHub commit SHA exactly matches the current staging implementation SHA and the deployment is READY before browser QA.
+
+Use the stable staging alias only after verifying it points to that matching deployment.
+
+- [ ] **Step 7: Run authenticated browser QA at the approved sizes/themes**
+
+Required matrix:
+
+~~~text
+1440×900+   light + dark
+1280×800    light + dark
+768×1024    light + dark
+390×844     light + dark
+~~~
+
+Desktop/laptop primary journey:
+
+~~~text
+Project or Estimate
+→ exact linked Takeoff
+→ verify Takeoff / Estimate / optional Project identity
+→ Plans choose calibrated sheet
+→ Conditions choose F-01
+→ Properties review Scope / Concrete / Forms / Rebar / Labor
+→ Measure Footing Run in 2D
+→ role assignment
+→ Save & Recalculate
+→ Worksheet Quantities / Resources / Labor / Pricing / Holds / Recap
+→ 3D verify same selected object
+→ return 2D with selection preserved
+→ Open Estimate
+→ confirm generated lineage and commercial boundary
+~~~
+
+Repeat the critical path on a second Condition/sheet to prove state does not leak.
+
+- [ ] **Step 8: Exercise the failure/trust matrix**
+
+Verify at least:
+
+- no valid scale for LF/SF;
+- missing required Condition input;
+- missing resource price;
+- dirty Condition then cross-pane Condition switch;
+- save/calculation failure where safely testable;
+- 3D unavailable/held;
+- no measurements;
+- filtered-empty Worksheet;
+- issued/accepted locked revision.
+
+Expected: no false zero, no silent draft loss, no second quantity authority, and no hidden critical state.
+
+- [ ] **Step 9: Stop at the user-acceptance gate**
+
+Report:
+
+- exact implementation SHA;
+- exact successful Actions run;
+- exact matching READY Vercel deployment;
+- authenticated browser QA findings;
+- any residual non-blocking limitation.
+
+Ask for explicit Subproject 5 acceptance.
+
+Do not edit CURRENT_STATE.md or ROADMAP.md yet.
+
+### Task 10: Record canonical acceptance only after explicit user pass
+
+**Files:**
+- Modify: docs/CURRENT_STATE.md
+- Modify: docs/ROADMAP.md
+- Modify: docs/design-system/CAREZ_COMPONENT_PACK.md only if a final accepted-state note is materially missing
+
+**Interfaces:**
+- Consumes: explicit user acceptance plus verified browser-tested implementation SHA, successful GitHub Actions run, and matching READY Vercel staging deployment.
+- Produces: canonical accepted-state documentation; no product code.
+
+- [ ] **Step 1: Reverify staging did not move unexpectedly**
+
+Confirm current staging HEAD is the exact browser-tested implementation SHA. If staging moved, inspect the intervening commits and repeat the applicable verification before recording acceptance.
+
+- [ ] **Step 2: Update CURRENT_STATE.md**
+
+Record:
+
+- Subproject 5 accepted/passed;
+- exact implementation SHA;
+- exact GitHub Actions run;
+- exact matching Vercel deployment;
+- authenticated browser QA matrix;
+- approved Option A Estimate-authoritative lineage;
+- authoritative 2D / derived-3D boundary;
+- Direct Cost / Estimate Sell boundary;
+- accepted direct specialist composition;
+- Supplier Catalog Library retained as a separate follow-on architecture item.
+
+Set the active UI/UX priority to the broader migration wave only after acceptance.
+
+- [ ] **Step 3: Update ROADMAP.md**
+
+Mark the specialist reference slice accepted and unblock the next redesign module-migration wave.
+
+Keep Supplier Catalog Library as its own future architecture/spec cycle rather than folding it into migration work.
+
+- [ ] **Step 4: Commit documentation only**
+
+~~~bash
+git add docs/CURRENT_STATE.md docs/ROADMAP.md docs/design-system/CAREZ_COMPONENT_PACK.md
+git commit -m "docs: record specialist takeoff acceptance"
+git push origin staging
+~~~
+
+- [ ] **Step 5: Verify post-acceptance CI/deployment honestly**
+
+Verify GitHub Actions for the docs commit.
+
+If Vercel creates a matching docs-only deployment, record it. If it does not, state that directly rather than inventing a deployment.
+
+## Execution Notes
+
+- Every implementation task begins from the current staging checkout and re-reads only the files named in that task plus direct dependencies.
+- Preserve accepted work from Issues #63, #71, #72 and Subproject 4.
+- Use TDD: add the task-owned failing test first, prove RED, make the smallest coherent implementation, prove GREEN, then commit.
+- Do not combine Tasks 3–8 into one giant refactor commit. The plan depends on reviewable cutover boundaries.
+- If a task reveals that a database migration or authority change is required, stop and return to architecture review rather than improvising schema.
+- Browser acceptance is the product gate. Automated/source evidence cannot mark the specialist reference accepted.
+- The canonical execution environment remains the local Carez Codex workstation from current staging; this plan does not alter the development runtime architecture.
