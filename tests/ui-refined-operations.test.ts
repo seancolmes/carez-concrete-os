@@ -40,3 +40,31 @@ test('operating metric composition is source-owned and token based',()=>{
   assert.doesNotMatch(metric,/amber-|red-|green-|blue-/);
   assert.match(index,/operating-metric/);
 });
+
+
+test('Today is exception-first and uses shared operational components',()=>{
+  const page=read('app/page.tsx');
+
+  assert.match(page,/CarezOperatingMetricStrip/);
+  assert.match(page,/CarezOperatingMetric/);
+  assert.match(page,/CarezStatus/);
+  assert.match(page,/CarezDataGrid/);
+  assert.match(page,/CarezEmptyState|CarezFeedback/);
+
+  const attention=page.indexOf('Management attention');
+  const metrics=page.indexOf("Today's operating position");
+  const production=page.indexOf('Scheduled production');
+  const moves=page.indexOf('What moves next');
+
+  assert.ok(attention>=0&&metrics>attention,'Management Attention must precede Operating Position');
+  assert.ok(production>metrics,'Scheduled Production must follow Operating Position');
+  assert.ok(moves>production,'What Moves Next must follow Scheduled Production');
+
+  assert.match(page,/href="\/projects"/);
+  assert.match(page,/href="\/schedule"/);
+  assert.match(page,/href="\/cashflow"/);
+  assert.match(page,/href="\/billing"/);
+  assert.doesNotMatch(page,/function StatusBadge/);
+  assert.doesNotMatch(page,/function OperatingMetric/);
+  assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
+});
