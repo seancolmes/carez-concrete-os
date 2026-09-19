@@ -38,6 +38,7 @@
 - components/takeoff/ConditionProperties.tsx — single governed Condition editor/presentation surface.
 - components/takeoff/useConditionEditor.ts — Condition draft, dirty/save/recalculate, role assignment, upgrade, and unsaved-switch coordination.
 - components/takeoff/TakeoffDrawingCanvas.tsx — extracted 2D drawing/tool/status engine used directly by the Condition-first specialist workspace.
+- components/takeoff/TakeoffDrawingCanvas.module.css — semantic ADR-024 Canvas/tool/status styling for the active Condition-first path; legacy drawing CSS stays isolated to the fallback wrapper.
 - components/takeoff/TakeoffWorksheet.tsx — six-view virtualized/resizable bottom workbench.
 - components/takeoff/TakeoffSpecialistWorkspace.tsx — one direct controller/composition for Navigator + Canvas + Properties + Worksheet + derived 3D.
 - components/takeoff/TakeoffSpecialistWorkspace.module.css — direct ADR-024 workstation geometry/responsive rules.
@@ -103,6 +104,7 @@ Delete a retired file only after no active or legacy consumer imports it. Do not
   - TakeoffViewMode = 2d | 3d
   - TakeoffWorksheetView = quantities | resources | labor | pricing | holds | recap
   - TakeoffSelection = { sheetId, conditionVersionId, roleKey, measurementId }
+  - ConditionRoleMeasurementRequest = { requestId, conditionVersionId, roleKey, roleLabel, assemblyVersionId, objectName }
   - resolveTakeoffViewMode(value)
   - resolveTakeoffWorksheetView(value)
   - resolveConditionPresentationState(input)
@@ -137,40 +139,39 @@ test('Condition state preserves pending, holds, and price-missing semantics',()=
 });
 ~~~
 
-- [ ] **Step 2: Write the initial failing specialist source contract**
+- [ ] **Step 2: Add the baseline specialist authority source contract**
+
+Create tests/ui-takeoff-specialist-reference.test.ts with assertions that are already true on staging and must remain true throughout the cutover:
 
 ~~~ts
 import assert from 'node:assert/strict';
-import {existsSync,readFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
 const read=(path:string)=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('Subproject 5 has direct specialist component boundaries',()=>{
-  for(const path of [
-    'components/takeoff/TakeoffSpecialistWorkspace.tsx',
-    'components/takeoff/TakeoffContextNavigator.tsx',
-    'components/takeoff/ConditionProperties.tsx',
-    'components/takeoff/TakeoffDrawingCanvas.tsx',
-    'components/takeoff/TakeoffWorksheet.tsx',
-  ]) assert.equal(existsSync(new URL('../'+path,import.meta.url)),true,path+' must exist');
-});
-
-test('Takeoff does not become an authoritative project-context route',async()=>{
+test('Takeoff remains outside authoritative Project Context',async()=>{
   const navigation=await import(new URL('../lib/ui/navigation.ts',import.meta.url).href);
   assert.equal(navigation.resolveProjectRoute('/takeoff/set-1'),null);
 });
+
+test('active Takeoff exposes 2D and 3D only',()=>{
+  const workstation=read('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx');
+  assert.doesNotMatch(workstation,/['"]split['"]/);
+});
 ~~~
 
-- [ ] **Step 3: Run the new tests and confirm RED**
+Later tasks extend this same file with the direct-component contracts when those components are introduced.
+
+- [ ] **Step 3: Run the pure-state test and confirm RED**
 
 Run:
 
 ~~~bash
-pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/specialist-workstation.test.ts tests/ui-takeoff-specialist-reference.test.ts
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/specialist-workstation.test.ts
 ~~~
 
-Expected: FAIL because specialistWorkstation.ts and direct specialist components do not exist.
+Expected: FAIL because lib/takeoff/specialistWorkstation.ts does not exist. The baseline source contract itself should already pass.
 
 - [ ] **Step 4: Implement the pure state module only**
 
@@ -184,6 +185,15 @@ export type TakeoffSelection={
   conditionVersionId:string|null;
   roleKey:string|null;
   measurementId:string|null;
+};
+
+export type ConditionRoleMeasurementRequest={
+  requestId:string;
+  conditionVersionId:string;
+  roleKey:string;
+  roleLabel:string;
+  assemblyVersionId:string;
+  objectName:string;
 };
 
 export function resolveTakeoffViewMode(value:unknown):TakeoffViewMode|null{
@@ -205,7 +215,7 @@ pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-str
 pnpm typecheck
 ~~~
 
-Expected: PASS for pure-state/navigation tests. The architecture test remains RED until later tasks create the UI units.
+Expected: PASS for every Task 1 test. No task is committed with a deliberately failing contract.
 
 - [ ] **Step 6: Commit**
 
@@ -280,7 +290,27 @@ Do not feed Project identity into resolveProjectRoute or the global Project Cont
 
 - [ ] **Step 4: Implement the compact identity component**
 
-Use CarezStatus plus current Button/Link primitives and semantic tokens only. Render Open Estimate always when estimate exists and Open Project only when project exists.
+Use CarezStatus plus current Button/Link primitives and semantic tokens only:
+
+~~~tsx
+export function TakeoffWorkspaceIdentity(props:TakeoffWorkspaceIdentityProps){
+  return <header data-slot="takeoff-workspace-identity">
+    <div>
+      <p>Takeoff</p>
+      <h1>{props.takeoffName}</h1>
+      <div>{props.estimateLabel}{props.revisionLabel?' · '+props.revisionLabel:''}</div>
+      {props.project?<div>{props.project.jobNumber+' · '+props.project.name}</div>:null}
+    </div>
+    <div>
+      {props.locked?<CarezStatus tone="blocked" label="Read only"/>:null}
+      <Link href={'/estimates/'+props.estimateId}>Open Estimate</Link>
+      {props.project?<Link href={'/projects/'+props.project.id}>Open Project</Link>:null}
+    </div>
+  </header>;
+}
+~~~
+
+Use the existing buttonVariants/Button styling rather than raw unstyled links in the finished component. Do not render Project Context.
 
 - [ ] **Step 5: Add exact Project Overview source-estimate lookup**
 
@@ -357,9 +387,24 @@ pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-str
 
 - [ ] **Step 3: Implement TakeoffContextNavigator**
 
-Use an explicit prop contract:
+Define the row and prop contracts explicitly:
 
 ~~~ts
+export type TakeoffConditionNavigatorRow={
+  conditionId:string;
+  conditionVersionId:string;
+  code:string;
+  name:string;
+  family:string;
+  color:string|null;
+  primaryRoleLabel:string|null;
+  primaryUnit:string|null;
+  measurementCount:number;
+  productionLabel:string|null;
+  stateLabel:string;
+  hidden:boolean;
+};
+
 export type TakeoffContextNavigatorProps={
   tab:TakeoffNavigatorTab;
   onTabChange:(tab:TakeoffNavigatorTab)=>void;
@@ -382,16 +427,35 @@ export type TakeoffContextNavigatorProps={
 
 Conditions is the fresh-entry default. Show explicit scale state and Condition state text. Do not fabricate a Zone hierarchy.
 
+Keep the existing createProjectConcreteConditionPilot action and move the existing family/code/name creation flow into a compact Dialog opened by + Condition:
+
+~~~tsx
+<Dialog open={createOpen} onOpenChange={setCreateOpen}>
+  <DialogContent>
+    <DialogHeader><DialogTitle>New Condition</DialogTitle></DialogHeader>
+    <ConditionFamilyPicker value={family} onChange={setFamily}/>
+    <Input value={code} onChange={event=>setCode(event.target.value)}/>
+    <Input value={name} onChange={event=>setName(event.target.value)}/>
+    <DialogFooter>
+      <Button onClick={createCondition} disabled={locked||pending}>Create Condition</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+~~~
+
+Use the existing archetype catalog for the family picker; do not add a new family taxonomy.
+
 - [ ] **Step 4: Implement bounded Condition duplication using existing schema/RPCs**
 
 The server action must:
 
 1. call editableTakeoffSet;
 2. load the source Condition/version and verify same company/set;
-3. create a new Condition identity through carez_create_project_concrete_condition with copied governed input groups/provenance and a unique new code/name;
-4. copy source module configuration into the new draft only through existing draft-owned module rows;
-5. intentionally copy no measurement-role assignments, outputs, holds, generated Estimate lineage, or persisted geometry;
-6. revalidate Takeoff/Estimate surfaces.
+3. extend conditionContext to return userId so cloned draft module rows retain created_by provenance;
+4. create a new Condition identity through carez_create_project_concrete_condition with copied governed input groups/provenance and a unique new code/name;
+5. delete only the newly generated default module rows for the new draft, then insert copies of the source draft/verified module rows with the new condition_version_id and created_by=userId; this preserves repeatable module instances without touching the source;
+6. intentionally copy no measurement-role assignments, outputs, holds, generated Estimate lineage, or persisted geometry;
+7. revalidate Takeoff/Estimate surfaces.
 
 Return:
 
@@ -572,6 +636,7 @@ git commit -m "refactor: extract condition properties editor"
 
 **Files:**
 - Create: components/takeoff/TakeoffDrawingCanvas.tsx
+- Create: components/takeoff/TakeoffDrawingCanvas.module.css
 - Modify: components/takeoff/TakeoffDrawingWorkspace.tsx
 - Modify: components/takeoff/TakeoffDrawingWorkspace.module.css
 - Modify: tests/ui-takeoff-specialist-reference.test.ts
@@ -622,6 +687,24 @@ export type ConditionRoleMeasurementRequest={
   roleLabel:string;
   assemblyVersionId:string;
   objectName:string;
+};
+
+export type TakeoffDrawingDataProps={
+  takeoffSet:any;
+  estimate:any;
+  pdfUrl:string;
+  sourceTitle:string;
+  initialSheets:any[];
+  scaleRegions:any[];
+  initialMeasurements:any[];
+  measurementSummaries:any[];
+  assemblies:any[];
+  versions:any[];
+  variables:any[];
+  sections:any[];
+  riskClasses:any[];
+  methodProfiles:any[];
+  locked:boolean;
 };
 
 export type TakeoffDrawingCanvasProps=TakeoffDrawingDataProps&{
@@ -696,7 +779,7 @@ Expected: PASS.
 - [ ] **Step 9: Commit**
 
 ~~~bash
-git add components/takeoff/TakeoffDrawingCanvas.tsx components/takeoff/TakeoffDrawingWorkspace.tsx components/takeoff/TakeoffDrawingWorkspace.module.css tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/condition-measurement-update.test.ts tests/scale-regions.test.ts
+git add components/takeoff/TakeoffDrawingCanvas.tsx components/takeoff/TakeoffDrawingCanvas.module.css components/takeoff/TakeoffDrawingWorkspace.tsx components/takeoff/TakeoffDrawingWorkspace.module.css tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/condition-measurement-update.test.ts tests/scale-regions.test.ts
 git commit -m "refactor: extract authoritative takeoff canvas"
 ~~~
 
@@ -946,6 +1029,7 @@ git commit -m "refactor: compose specialist takeoff workstation"
 **Files:**
 - Modify: app/takeoff/[setId]/TakeoffDrawingPage.module.css
 - Modify: components/takeoff/TakeoffSpecialistWorkspace.module.css
+- Modify: components/takeoff/TakeoffDrawingCanvas.module.css
 - Modify: components/takeoff/TakeoffContextNavigator.module.css
 - Modify: components/takeoff/ConditionProperties.module.css
 - Modify: components/takeoff/TakeoffWorksheet.module.css
@@ -971,6 +1055,7 @@ test('active specialist path has no compatibility overlay or hard-coded palette'
   const sources=[
     read('components/takeoff/TakeoffConditionWorkflowShell.tsx'),
     read('components/takeoff/TakeoffSpecialistWorkspace.tsx'),
+    read('components/takeoff/TakeoffDrawingCanvas.module.css'),
     read('components/takeoff/TakeoffContextNavigator.module.css'),
     read('components/takeoff/ConditionProperties.module.css'),
     read('components/takeoff/TakeoffWorksheet.module.css'),
@@ -1064,7 +1149,7 @@ Touch/tablet retains native pointer behavior. Visible keyboard focus remains ind
 Run:
 
 ~~~bash
-grep -R "IntegratedTakeoffConditionWorkspace\|TakeoffShadcnTheme\|ConditionPropertiesDirectionA" app components lib tests docs --exclude-dir=.next
+grep -R "IntegratedTakeoffConditionWorkspace\|TakeoffShadcnTheme\|ConditionPropertiesDirectionA" app components lib tests --exclude-dir=.next
 ~~~
 
 For each retired file, delete it only if the search shows no required active or legacy consumer. If a legacy consumer remains, keep the file and remove only active Condition-first imports.
@@ -1164,14 +1249,13 @@ Confirm:
 
 - [ ] **Step 4: Commit any validation-only regression fix as its own bounded commit**
 
-Only if validation found a concrete defect:
+Only if validation found a concrete defect, return to the owning Task 1–8 test first, reproduce RED, make the smallest correction, rerun that task's GREEN command, then commit exactly those changed files with:
 
 ~~~bash
-git add <only-the-regression-files>
-git commit -m "fix: harden specialist takeoff acceptance"
+git commit -am "fix: harden specialist takeoff acceptance"
 ~~~
 
-Do not create a no-op commit.
+If the fix creates a new file, stage that explicit new filename before the commit. Do not use git add -A here and do not create a no-op commit.
 
 - [ ] **Step 5: Push current staging and verify GitHub Actions**
 
