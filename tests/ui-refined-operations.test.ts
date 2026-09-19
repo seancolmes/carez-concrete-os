@@ -179,3 +179,14 @@ test('reference slice stays on the accepted Carez component system',()=>{
   assert.doesNotMatch(sources,/from ['"]chakra-ui/);
   assert.doesNotMatch(sources,/#[0-9a-fA-F]{3,8}\b/);
 });
+
+
+test('reference slice preserves semantic severity and keyboard interaction boundaries',()=>{
+  const today=read('app/page.tsx');
+  const projects=read('components/projects/JobsOperationsBoard.tsx');
+
+  assert.match(today,/const attentionStatusTone=attention\.some/);
+  assert.match(today,/resolveOperationalState\(row\.state\)/);
+  assert.match(projects,/event\.currentTarget===event\.target/);
+  assert.match(projects,/aria-label=\{'Job inspector: '\+selected\.name\}/);
+});
