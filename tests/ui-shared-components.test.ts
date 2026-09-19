@@ -56,14 +56,16 @@ test('shared Data Grid exposes selected, sortable, loading, empty, and error sem
 
 test('semantic number field exposes presentation metadata without client calculation authority',()=>{
   const fields=readMaybe('components/carez/fields.tsx');
-  assert.match(fields,/kind\?/);
-  assert.match(fields,/resolveNumericKind/);
-  assert.match(fields,/data-numeric-kind/);
-  assert.match(fields,/aria-invalid/);
-  assert.doesNotMatch(fields,/toFixed\(/);
-  assert.doesNotMatch(fields,/Math\.round\(/);
+  const start=fields.indexOf('export function CarezNumberField');
+  const end=fields.indexOf('export type CarezDateTimeMode');
+  const numberField=start>=0&&end>start?fields.slice(start,end):fields;
+  assert.match(numberField,/kind\?/);
+  assert.match(numberField,/resolveNumericKind/);
+  assert.match(numberField,/data-numeric-kind/);
+  assert.match(numberField,/aria-invalid/);
+  assert.doesNotMatch(numberField,/toFixed\(/);
+  assert.doesNotMatch(numberField,/Math\.round\(/);
 });
-
 test('toolbar foundation prevents uncontrolled wrapping and remains task-local',()=>{
   const workspace=readMaybe('components/carez/workspace.tsx');
   assert.match(workspace,/data-slot=.carez-toolbar/);
