@@ -68,3 +68,36 @@ test('Today is exception-first and uses shared operational components',()=>{
   assert.doesNotMatch(page,/function OperatingMetric/);
   assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
 });
+
+
+test('Projects uses the canonical grid, status, and Inspector foundations',()=>{
+  const board=read('components/projects/JobsOperationsBoard.tsx');
+  const page=read('app/projects/page.tsx');
+
+  assert.match(board,/CarezDataGrid/);
+  assert.match(board,/CarezInspector/);
+  assert.match(board,/CarezStatus/);
+  assert.match(board,/resolveOperationalState/);
+  assert.match(board,/resolvePriority/);
+  assert.match(board,/aria-selected|selected=\{selectedRow\}/);
+  assert.match(board,/event\.key===['"]Enter['"]/);
+  assert.match(board,/Open Project/);
+  assert.match(board,/matchMedia\(['"]\(min-width: 1536px\)['"]\)/);
+  assert.match(board,/Sheet/);
+  assert.doesNotMatch(board,/function ToneBadge/);
+  assert.doesNotMatch(board,/amber-|red-|green-|blue-/);
+
+  assert.match(page,/href="\/schedule"/);
+  assert.match(page,/New direct job/);
+  assert.doesNotMatch(page,/CarezProjectContextBar/);
+});
+
+test('Projects selection does not broaden authoritative project context',async()=>{
+  const navigation=await import(new URL('lib/ui/navigation.ts',root).href);
+  assert.equal(navigation.resolveProjectRoute('/'),null);
+  assert.equal(navigation.resolveProjectRoute('/projects'),null);
+  assert.deepEqual(
+    navigation.resolveProjectRoute('/projects/project-1'),
+    {projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'},
+  );
+});
