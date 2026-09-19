@@ -190,3 +190,12 @@ test('reference slice preserves semantic severity and keyboard interaction bound
   assert.match(projects,/event\.currentTarget===event\.target/);
   assert.match(projects,/aria-label=\{'Job inspector: '\+selected\.name\}/);
 });
+
+
+test('Projects supports keyboard selection without hijacking child controls',()=>{
+  const projects=read('components/projects/JobsOperationsBoard.tsx');
+
+  assert.match(projects,/event\.key===['"] ['"]/);
+  assert.match(projects,/event\.preventDefault\(\);setSelectedId\(row\.id\)/);
+  assert.match(projects,/Space selects; Enter or double-click opens the project/);
+});
