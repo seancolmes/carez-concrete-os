@@ -422,3 +422,520 @@ pnpm typecheck
 git add components/takeoff/TakeoffContextNavigator.tsx components/takeoff/TakeoffContextNavigator.module.css app/takeoff/[setId]/conditionActions.ts tests/ui-takeoff-specialist-reference.test.ts tests/concrete-condition-authoring.test.ts
 git commit -m "feat: add takeoff context navigator"
 ~~~
+
+
+### Task 4: Extract the single governed Condition Properties editor
+
+**Files:**
+- Create: components/takeoff/useConditionEditor.ts
+- Create: components/takeoff/ConditionProperties.tsx
+- Create: components/takeoff/ConditionProperties.module.css
+- Modify: tests/ui-takeoff-specialist-reference.test.ts
+- Modify: tests/qa-condition-workstation.test.ts
+- Modify: tests/concrete-condition-authoring.test.ts
+
+**Interfaces:**
+- Consumes: conditionData, measurements, sections, assemblies/versions required for compatibility role measurement, locked flag, and existing conditionActions.
+- Produces:
+  - useConditionEditor({setId,conditionData,measurements,sections,assemblies,assemblyVersions,locked})
+  - ConditionProperties driven by selected Condition/editor state.
+  - requestConditionSelection(...) that either applies the requested selection or opens the unsaved-change guard.
+  - startRoleMeasurement(role) returns a direct role-measurement request object; it does not dispatch a CustomEvent.
+
+- [ ] **Step 1: Add RED single-authority and dirty-guard tests**
+
+~~~ts
+test('Condition Properties is the only active property authority',()=>{
+  const properties=read('components/takeoff/ConditionProperties.tsx');
+  assert.match(properties,/Scope/);
+  assert.match(properties,/Concrete/);
+  assert.match(properties,/Forms/);
+  assert.match(properties,/Rebar/);
+  assert.match(properties,/Labor/);
+  assert.match(properties,/Review/);
+  assert.match(properties,/Save & Recalculate/);
+  assert.doesNotMatch(properties,/createPortal|querySelector|CustomEvent/);
+});
+
+test('dirty Condition selection requires an explicit decision',()=>{
+  const editor=read('components/takeoff/useConditionEditor.ts');
+  assert.match(editor,/pendingSwitch/);
+  assert.match(editor,/discard/);
+  assert.match(editor,/saveAndSwitch/);
+});
+~~~
+
+- [ ] **Step 2: Run tests and verify RED**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/concrete-condition-authoring.test.ts
+~~~
+
+Expected: FAIL because the extracted editor/Properties files do not exist.
+
+- [ ] **Step 3: Move current draft/dirty/save logic into useConditionEditor without changing calculation authority**
+
+Preserve these current behaviors from IntegratedTakeoffConditionWorkspace:
+
+- draftFromVersion;
+- prepareConditionAuthoringInputs;
+- prepareConditionRoleAssignments;
+- module enable/input edits;
+- repeatable module configurations;
+- explicit saveAndRecalculateConcreteConditionPilot;
+- upgradeProjectConcreteConditionDraftToLatest;
+- primary-role requirement;
+- exact dirty signature;
+- unsaved-switch guard;
+- existing issue routing.
+
+Representative hook return shape:
+
+~~~ts
+return {
+  selectedVersionId,
+  selectedSummary,
+  definition,
+  draft,
+  moduleConfigurations,
+  roleSelections,
+  dirty,
+  saveState,
+  availableTabs,
+  propertyTab,
+  pendingSwitch,
+  requestConditionSelection,
+  choosePendingSwitchAction,
+  updateInput,
+  updateModule,
+  setRole,
+  startRoleMeasurement,
+  saveAndRecalculate,
+  upgradeContract,
+};
+~~~
+
+No quantity, Direct Cost, or Sell calculation moves into the hook.
+
+- [ ] **Step 4: Extract ConditionProperties presentation**
+
+Use CarezSaveState, CarezStatus, CarezFeedback, CarezProvenance, CarezNumberField and current shadcn controls.
+
+Scope is the first tab. Present primary and secondary roles in estimator language:
+
+~~~tsx
+<Button onClick={()=>onStartRoleMeasurement(primaryRole)}>
+  {'Measure '+primaryRole.label}
+</Button>
+~~~
+
+Calculated outputs are read-only. Unknown, pending, held, not-included, and price-missing states remain explicit.
+
+- [ ] **Step 5: Implement the unsaved-switch actions exactly**
+
+The guard supports:
+
+~~~ts
+type DirtySwitchAction='cancel'|'discard'|'save-and-switch';
+~~~
+
+- cancel keeps the current Condition/draft;
+- discard restores the persisted selected version, then applies the pending selection;
+- save-and-switch calls the existing Save & Recalculate action and applies the pending selection only after success;
+- save failure keeps the current draft visible and does not switch.
+
+Add tests for all four outcomes, including save failure.
+
+- [ ] **Step 6: Pin contract-upgrade and provenance behavior**
+
+Update qa-condition-workstation.test.ts so contract/version action and the statement that verified Condition history is never changed point to ConditionProperties/useConditionEditor instead of the retiring integrated monolith.
+
+Provenance labels are rendered only from persisted provenance; no value-based inference.
+
+- [ ] **Step 7: Run targeted tests/typecheck**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/concrete-condition-authoring.test.ts tests/condition-repeatable-role-linkage.test.ts
+pnpm typecheck
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+~~~bash
+git add components/takeoff/useConditionEditor.ts components/takeoff/ConditionProperties.tsx components/takeoff/ConditionProperties.module.css tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/concrete-condition-authoring.test.ts
+git commit -m "refactor: extract condition properties editor"
+~~~
+
+### Task 5: Extract the authoritative 2D canvas and replace role-measurement events with callbacks
+
+**Files:**
+- Create: components/takeoff/TakeoffDrawingCanvas.tsx
+- Modify: components/takeoff/TakeoffDrawingWorkspace.tsx
+- Modify: components/takeoff/TakeoffDrawingWorkspace.module.css
+- Modify: tests/ui-takeoff-specialist-reference.test.ts
+- Modify: tests/qa-condition-workstation.test.ts
+- Modify: tests/condition-first-cutover.test.ts
+- Modify: tests/condition-measurement-update.test.ts
+- Modify: tests/scale-regions.test.ts
+
+**Interfaces:**
+- Consumes: exact existing geometry helpers/server actions and workspaceProps.
+- Produces:
+  - ConditionRoleMeasurementRequest
+  - TakeoffDrawingCanvasProps with direct active-sheet/selection/role-request callbacks.
+  - TakeoffDrawingWorkspace as the legacy Assembly Builder wrapper around TakeoffDrawingCanvas plus legacy panes/dock.
+
+- [ ] **Step 1: Add RED direct-canvas assertions**
+
+~~~ts
+test('Condition-first drawing uses a direct canvas API instead of browser events',()=>{
+  const canvas=read('components/takeoff/TakeoffDrawingCanvas.tsx');
+  assert.match(canvas,/roleMeasurementRequest/);
+  assert.match(canvas,/onMeasurementCommitted/);
+  assert.match(canvas,/onActiveSheetChange/);
+  assert.match(canvas,/onSelectedMeasurementChange/);
+  assert.doesNotMatch(canvas,/carez:start-condition-takeoff|CustomEvent/);
+});
+~~~
+
+Add a behavioral/pure helper test that an LF/SF role request with no valid scale yields scale-required state and leaves the request/Condition context intact.
+
+- [ ] **Step 2: Run drawing/scale tests and verify RED**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/condition-measurement-update.test.ts tests/scale-regions.test.ts
+~~~
+
+- [ ] **Step 3: Extract the current drawing engine with no geometry-semantic rewrite**
+
+Move existing PDF render, normalized page-coordinate geometry, zoom/pan, drawing state, cutouts, vertex edit, duplicate, history, calibration, snap, ortho, and persistence behavior into TakeoffDrawingCanvas.
+
+Use this direct interface shape:
+
+~~~ts
+export type ConditionRoleMeasurementRequest={
+  requestId:string;
+  conditionVersionId:string;
+  roleKey:string;
+  roleLabel:string;
+  assemblyVersionId:string;
+  objectName:string;
+};
+
+export type TakeoffDrawingCanvasProps=TakeoffDrawingDataProps&{
+  activeSheetId:string|null;
+  selectedMeasurementId:string|null;
+  roleMeasurementRequest:ConditionRoleMeasurementRequest|null;
+  conditionPresentation:{hiddenMeasurementIds:string[];colors:Record<string,string>};
+  onActiveSheetChange:(sheetId:string|null)=>void;
+  onSelectedMeasurementChange:(measurementId:string|null)=>void;
+  onMeasurementCommitted:(measurementId:string)=>void;
+  onRoleMeasurementRequestConsumed:(requestId:string)=>void;
+};
+~~~
+
+The canvas continues to call the existing drawing server actions. It does not calculate Condition outputs.
+
+- [ ] **Step 4: Preserve the legacy wrapper**
+
+TakeoffDrawingWorkspace continues to support the Assembly Builder fallback by composing TakeoffDrawingCanvas with its existing legacy navigator, Inspector, and TakeoffQuantityDock.
+
+The Condition-first specialist route will later render TakeoffDrawingCanvas directly and will not render those legacy panes.
+
+- [ ] **Step 5: Replace the role-start CustomEvent path**
+
+Remove the Condition-first listener for carez:start-condition-takeoff from the direct canvas path.
+
+The request arrives through roleMeasurementRequest. After successful commit:
+
+~~~ts
+onMeasurementCommitted(createdMeasurementId);
+onRoleMeasurementRequestConsumed(roleMeasurementRequest.requestId);
+~~~
+
+The owning specialist controller/editor performs role assignment by stable measurement ID.
+
+- [ ] **Step 6: Preserve scale/calibration behavior and pending intent**
+
+For LF/SF measurement requests:
+
+- if current scale is invalid, do not create geometry;
+- retain roleMeasurementRequest;
+- expose Scale required and route/open calibration;
+- after calibration succeeds, the same request can begin without losing the active Condition/role.
+
+EA/count behavior follows the existing geometry contract and does not invent a scale requirement if current domain behavior does not require one.
+
+- [ ] **Step 7: Preserve exact keyboard/tool behavior**
+
+Keep:
+
+- cursor-centered wheel zoom;
+- Space/middle-mouse pan;
+- M/E/D/K;
+- Arrow nudge;
+- Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z;
+- PageUp/PageDown;
+- S/O;
+- Enter/Esc;
+- typing-target guards.
+
+M activates the pending/current Condition role measurement when one exists rather than requiring the estimator to reason about a generic assembly.
+
+- [ ] **Step 8: Run geometry/scale/QA tests**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/condition-measurement-update.test.ts tests/scale-regions.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/ui-takeoff-specialist-reference.test.ts
+pnpm typecheck
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
+
+~~~bash
+git add components/takeoff/TakeoffDrawingCanvas.tsx components/takeoff/TakeoffDrawingWorkspace.tsx components/takeoff/TakeoffDrawingWorkspace.module.css tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/condition-measurement-update.test.ts tests/scale-regions.test.ts
+git commit -m "refactor: extract authoritative takeoff canvas"
+~~~
+
+### Task 6: Build the six-view Quantity / Estimate Worksheet
+
+**Files:**
+- Create: lib/takeoff/specialistWorksheet.ts
+- Create: components/takeoff/TakeoffWorksheet.tsx
+- Create: components/takeoff/TakeoffWorksheet.module.css
+- Create: tests/specialist-worksheet.test.ts
+- Modify: app/takeoff/[setId]/page.tsx
+- Modify: app/takeoff/actions.ts only if set-specific revalidation is needed
+- Modify: tests/condition-worksheet.test.ts
+- Modify: tests/ui-takeoff-specialist-reference.test.ts
+- Modify: tests/estimate-worksheet.test.ts
+
+**Interfaces:**
+- Consumes: measurements, Condition summaries/versions/roles/modules/outputs/holds, Estimate sections, sheets, and existing legacy takeoff_measurement_outputs lineage/provenance.
+- Produces:
+  - buildSpecialistWorksheetModel(input) returning quantities, resources, labor, pricing, holds, recap.
+  - TakeoffWorksheet with selected IDs and direct callbacks.
+  - No Sell/margin/customer-price edits.
+
+- [ ] **Step 1: Add RED pure projection tests**
+
+~~~ts
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {buildSpecialistWorksheetModel} from '../lib/takeoff/specialistWorksheet.ts';
+
+test('missing price is unknown and partial rather than zero-cost authority',()=>{
+  const model=buildSpecialistWorksheetModel(fixtureWithMissingRebarPrice());
+  assert.equal(model.pricing[0].pricingState,'price_required');
+  assert.equal(model.pricing[0].unitCost,null);
+  assert.equal(model.recap.directCostComplete,false);
+});
+
+test('pending recalculation does not publish stale Condition output as current',()=>{
+  const model=buildSpecialistWorksheetModel(fixtureWithPendingCondition());
+  assert.equal(model.quantities[0].state,'pending');
+  assert.equal(model.recap.pendingConditions,1);
+});
+
+test('recap never adds incompatible LF SF and EA into one quantity total',()=>{
+  const model=buildSpecialistWorksheetModel(fixtureWithMixedUnits());
+  assert.equal('totalQuantity' in model.recap,false);
+});
+~~~
+
+Define the three small fixtures in tests/specialist-worksheet.test.ts with literal measurement/output/hold rows. They must not call Supabase.
+
+- [ ] **Step 2: Run tests and verify RED**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/specialist-worksheet.test.ts tests/condition-worksheet.test.ts
+~~~
+
+- [ ] **Step 3: Expand only route SELECT fields already present in schema**
+
+For project_condition_outputs select:
+
+~~~text
+id,condition_version_id,module_instance_id,driver_measurement_role_id,
+output_key,output_instance_key,label,resource_class,production_quantity,
+production_unit,status,estimated_man_hours,unit_cost,direct_cost,
+pricing_status,provenance,legacy_takeoff_output_id,generated_estimate_item_id
+~~~
+
+For legacy takeoff_measurement_outputs include id, catalog_item_id, resource_behavior, cost_source and existing output facts needed by the projector.
+
+No migration.
+
+- [ ] **Step 4: Implement the pure projector**
+
+Projection rules:
+
+- Quantities: raw measurement + Condition role + current production-output state.
+- Resources: non-labor resource_class outputs; preserve installed/production versus procurement outputs by existing output identity; do not invent procurement demand.
+- Labor: labor resource_class plus estimated_man_hours and available production basis.
+- Pricing: unit_cost/direct_cost/pricing_status/provenance/generated Estimate lineage.
+- Holds: open project_condition_holds plus pricing/labor incompleteness, with explicit destination metadata.
+- Recap: unit-compatible aggregates only; directCostComplete is false if any included costed scope is unresolved.
+
+Cost source/provenance is display evidence only. The projector never recalculates price.
+
+- [ ] **Step 5: Implement TakeoffWorksheet while preserving mature dock mechanics**
+
+Carry forward:
+
+- vertical resize;
+- collapse;
+- virtualization;
+- This Sheet / All Sheets;
+- search;
+- selected-row synchronization;
+- resizable columns;
+- double-click column reset;
+- device-local per-view widths.
+
+Expose exactly:
+
+~~~ts
+const WORKSHEET_VIEWS=['quantities','resources','labor','pricing','holds','recap'] as const;
+~~~
+
+Use shared Carez status/empty/feedback semantics where appropriate.
+
+- [ ] **Step 6: Wire existing direct-cost override only to Direct Cost**
+
+When a project Condition output has legacy_takeoff_output_id and the revision is editable, Pricing can submit that existing output ID to updateTakeoffOutputPrice.
+
+Never add customer price, margin, markup, overhead, reserve, or Sell fields.
+
+After refresh, manual override renders MANUAL OVERRIDE from persisted pricing_status/provenance.
+
+- [ ] **Step 7: Pin supplier-catalog compatibility without ingestion**
+
+Add a fixture whose output provenance/cost source identifies a normalized catalog/vendor source. Assert Resources/Pricing can expose that string and optional catalog reference.
+
+Also assert the active specialist files contain no network/catalog download/import code or named supplier-specific parser.
+
+- [ ] **Step 8: Run focused tests/typecheck**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/specialist-worksheet.test.ts tests/condition-worksheet.test.ts tests/estimate-worksheet.test.ts tests/ui-takeoff-specialist-reference.test.ts
+pnpm typecheck
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
+
+~~~bash
+git add lib/takeoff/specialistWorksheet.ts components/takeoff/TakeoffWorksheet.tsx components/takeoff/TakeoffWorksheet.module.css app/takeoff/[setId]/page.tsx app/takeoff/actions.ts tests/specialist-worksheet.test.ts tests/condition-worksheet.test.ts tests/estimate-worksheet.test.ts tests/ui-takeoff-specialist-reference.test.ts
+git commit -m "feat: add specialist takeoff worksheet"
+~~~
+
+### Task 7: Compose the direct specialist workstation and derived 3D
+
+**Files:**
+- Create: components/takeoff/TakeoffSpecialistWorkspace.tsx
+- Create: components/takeoff/TakeoffSpecialistWorkspace.module.css
+- Modify: components/takeoff/TakeoffConditionWorkflowShell.tsx
+- Modify: components/takeoff/TakeoffConditionWorkflowShell.module.css
+- Modify: components/takeoff/3d/Takeoff3DViewport.tsx
+- Modify: components/takeoff/3d/Takeoff3DToolbar.tsx
+- Modify: tests/ui-takeoff-specialist-reference.test.ts
+- Modify: tests/qa-condition-workstation.test.ts
+- Modify: tests/condition-first-cutover.test.ts
+- Modify: tests/derived-3d.test.ts
+- Modify: tests/takeoff-3d-selection.test.ts
+
+**Interfaces:**
+- Consumes: Task 1 state, Task 3 navigator, Task 4 editor/Properties, Task 5 canvas, Task 6 Worksheet, existing Takeoff3DViewport.
+- Produces: one direct synchronized Condition-first workspace with no active DOM/portal/event compatibility coupling.
+
+- [ ] **Step 1: Add RED direct-composition assertions**
+
+~~~ts
+test('Condition-first shell composes the specialist workstation directly',()=>{
+  const shell=read('components/takeoff/TakeoffConditionWorkflowShell.tsx');
+  const specialist=read('components/takeoff/TakeoffSpecialistWorkspace.tsx');
+  assert.match(shell,/TakeoffSpecialistWorkspace/);
+  assert.doesNotMatch(shell,/IntegratedTakeoffConditionWorkspace|TakeoffShadcnTheme/);
+  for(const name of ['TakeoffContextNavigator','TakeoffDrawingCanvas','ConditionProperties','TakeoffWorksheet','Takeoff3DViewport']){
+    assert.match(specialist,new RegExp(name));
+  }
+  assert.doesNotMatch(specialist,/createPortal|querySelector|carez:takeoff-|carez:start-condition-takeoff|CustomEvent/);
+});
+~~~
+
+- [ ] **Step 2: Run source/3D tests and verify RED**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/takeoff-3d-selection.test.ts
+~~~
+
+- [ ] **Step 3: Implement the direct controller**
+
+TakeoffSpecialistWorkspace owns presentation/selection state:
+
+~~~ts
+const [navigatorTab,setNavigatorTab]=useState<TakeoffNavigatorTab>('conditions');
+const [viewMode,setViewMode]=useState<TakeoffViewMode>('2d');
+const [activeSheetId,setActiveSheetId]=useState<string|null>(initialSheetId);
+const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
+const [worksheetView,setWorksheetView]=useState<TakeoffWorksheetView>('quantities');
+const [hiddenConditionVersionIds,setHiddenConditionVersionIds]=useState<Set<string>>(new Set());
+const [isolatedConditionVersionId,setIsolatedConditionVersionId]=useState<string|null>(null);
+~~~
+
+Condition selection and dirty guards flow through useConditionEditor. Measurement selection resolves the owning role/Condition by stable IDs.
+
+- [ ] **Step 4: Wire role measurement explicitly**
+
+ConditionProperties startRoleMeasurement → controller creates ConditionRoleMeasurementRequest → TakeoffDrawingCanvas commits measurement → controller/editor assigns the new stable measurement ID to the role → Condition remains dirty until Save & Recalculate.
+
+No global event bus.
+
+- [ ] **Step 5: Wire 2D and derived 3D as one selected-object context**
+
+Keep dynamic client-only Takeoff3DViewport. Feed:
+
+- activeSheetId;
+- selectedMeasurementId;
+- selectedConditionVersionId;
+- derived scene;
+- view state;
+- existing per-sheet camera memory.
+
+3D solid selection calls the same Condition/measurement selection path. A 3D issue selects the owning Condition and destination property tab.
+
+- [ ] **Step 6: Pin 3D failure isolation and preview state**
+
+Tests must prove:
+
+- Takeoff3DViewport contains no source quantity/direct-cost computation;
+- unavailable/held 3D does not gate rendering of TakeoffDrawingCanvas, ConditionProperties, or TakeoffWorksheet;
+- preview scene state renders Preview · unsaved Condition changes;
+- saved/partial scene state is distinguishable without turning 3D into authority.
+
+- [ ] **Step 7: Preserve pane collapse state without events**
+
+TakeoffConditionWorkflowShell owns Navigator/Properties collapse state and passes booleans/callbacks to TakeoffSpecialistWorkspace.
+
+Opening Conditions/Properties uses direct callbacks; remove carez:open-conditions from the active specialist path.
+
+- [ ] **Step 8: Run specialist/3D tests and typecheck**
+
+~~~bash
+pnpm exec node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/derived-3d.test.ts tests/takeoff-3d-selection.test.ts tests/takeoff-3d-camera.test.ts
+pnpm typecheck
+~~~
+
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
+
+~~~bash
+git add components/takeoff/TakeoffSpecialistWorkspace.tsx components/takeoff/TakeoffSpecialistWorkspace.module.css components/takeoff/TakeoffConditionWorkflowShell.tsx components/takeoff/TakeoffConditionWorkflowShell.module.css components/takeoff/3d/Takeoff3DViewport.tsx components/takeoff/3d/Takeoff3DToolbar.tsx tests/ui-takeoff-specialist-reference.test.ts tests/qa-condition-workstation.test.ts tests/condition-first-cutover.test.ts tests/derived-3d.test.ts tests/takeoff-3d-selection.test.ts
+git commit -m "refactor: compose specialist takeoff workstation"
+~~~
