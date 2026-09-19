@@ -3,7 +3,7 @@
 Status: Accepted design-system contract
 Owner: 95 — UX & Design System
 Related decisions: ADR-015, ADR-016
-Implementation owner: Issue #44 while the Carez-wide shadcn conversion remains open
+Implementation sequence: ADR-024 redesign subprojects; current shared-foundation slice is Issue #72
 
 ## Purpose
 
@@ -304,6 +304,39 @@ The ADR-024 Hybrid command shell uses role-priority direct destinations, a struc
 - no motion that delays high-frequency estimator actions;
 - all meaningful animation respects `prefers-reduced-motion`;
 - transitions must preserve focus and not create pointer traps.
+
+## 10. Shared state, Inspector, and Record Header
+
+Issue #72 implements the reusable presentation/state foundation used by later workspace migrations. These contracts are presentation-only and never become domain authority.
+
+### Semantic state
+
+- `CarezStatus` renders text-first neutral/info/success/warning/error/blocked state using ADR-024 semantic tokens; blocked maps to error semantics without losing the explicit `Blocked` label.
+- `CarezSaveState` distinguishes Saved, Saving, Unsaved changes, Validation required, Save failed, Saved on device, and Waiting to sync. Only `Saved` claims server persistence; local/queued states must never imply cloud persistence.
+- `CarezAuthorityState` distinguishes user-confirmed, system-calculated, imported, AI-suggested, versioned, issued, and frozen presentation supplied by the owning workflow. It does not infer or promote authority.
+- `CarezFeedback` provides inline or workspace feedback with appropriate live-region/alert semantics.
+- `CarezProvenance` exposes caller-supplied source/origin detail through concise text or an accessible disclosure; it never fabricates provenance.
+- `CarezEmptyState` composes the source-owned shadcn Empty primitive for neutral/error empty-state treatment.
+
+### Inspector
+
+`CarezInspector` is the canonical dense contextual property surface. Header, body/sections, validation, provenance/status/save-state slots, and footer/actions are explicit compositions. The Inspector owns presentation and keyboard/focus structure only; domain persistence, validation rules, autosave, calculations, and approval authority stay with the owning module.
+
+### Record Header
+
+`CarezRecordHeader` is the canonical compact object/workspace identity surface below global/project context. It supports identifier/eyebrow, title, concise metadata, semantic status, and route-owned actions. It is not a hero/banner system and must wrap responsively without moving page actions into the global shell.
+
+### Project Context Bar
+
+`CarezProjectContextBar` and `CarezProjectSwitcher` are shared Carez compositions. Issue #71 route resolution, accessible-project loading, recent-project behavior, and safe switch mappings remain owned by the shell/navigation logic; extracting presentation does not broaden project scope.
+
+### Numeric and grid foundation
+
+`CarezNumberField` accepts semantic presentation kinds (quantity, count, length, area, volume, currency, unit cost, production rate, percentage, duration) while caller/domain code remains authoritative for value, unit, precision, limits, validation, conversion, and stored rounding.
+
+`CarezDataGrid` provides selected-row and sortable-header semantics, numeric/text alignment, density-token row sizing, sticky headers, loading/empty/error composition, and optional resize affordance. Virtualization, grouping, copy/paste, inline editing, and saved column state remain consumer-driven additions rather than speculative base behavior.
+
+Issue #72 source/build success does not by itself mark this slice accepted. Rendered consumers still require the issue's staging browser acceptance matrix before `CURRENT_STATE.md` is reconciled.
 
 ## Shell compositions built from the pack
 

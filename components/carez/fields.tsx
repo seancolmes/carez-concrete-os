@@ -7,17 +7,28 @@ import {Input} from '@/components/ui/input';
 import {Progress} from '@/components/ui/progress';
 import {Skeleton} from '@/components/ui/skeleton';
 import {cn} from '@/lib/utils';
+import {resolveNumericKind,type CarezNumericKind} from '@/lib/ui/state';
 
 type NumberInputProps = Omit<React.ComponentProps<'input'>,'type'> & {
+  kind?: CarezNumericKind;
   unit?: string;
   prefix?: string;
   derived?: boolean;
 };
 
-export function CarezNumberField({className,unit,prefix,derived,readOnly,...props}:NumberInputProps){
-  return <div className={cn('flex h-8 min-w-0 items-center rounded-md border border-input bg-background/60 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20',derived&&'bg-muted/40',className)}>
+export function CarezNumberField(input:NumberInputProps){
+  const {className,kind='quantity',unit,prefix,derived=false,readOnly,inputMode,...props}=input;
+  const metadata=resolveNumericKind(kind);
+  const ariaInvalid=props['aria-invalid'];
+  return <div
+    data-slot="carez-number-field"
+    data-numeric-kind={kind}
+    data-state={derived?'derived':readOnly?'read-only':'editable'}
+    aria-invalid={ariaInvalid}
+    className={cn('flex h-[var(--density-control-height)] min-w-0 items-center rounded-md border border-input bg-background/60 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20',derived&&'bg-muted/50',readOnly&&!derived&&'bg-muted/25',ariaInvalid&&'border-destructive',className)}
+  >
     {prefix?<span className="pl-2.5 text-xs text-muted-foreground">{prefix}</span>:null}
-    <Input {...props} type="number" readOnly={readOnly||derived} className="h-7 flex-1 border-0 bg-transparent px-2 font-mono tabular-nums shadow-none focus-visible:ring-0"/>
+    <Input {...props} type="number" inputMode={inputMode??metadata?.inputMode} readOnly={readOnly||derived} aria-invalid={ariaInvalid} className="h-[calc(var(--density-control-height)-2px)] flex-1 border-0 bg-transparent px-2 font-mono tabular-nums shadow-none focus-visible:ring-0"/>
     {unit?<span className="pr-2.5 text-xs font-medium text-muted-foreground">{unit}</span>:null}
   </div>;
 }
@@ -47,9 +58,9 @@ export function CarezDateTimeRange({startName,endName,startValue,endValue,onStar
 }
 
 function formatBytes(bytes:number){
-  if(bytes<1024)return `${bytes} B`;
-  if(bytes<1024*1024)return `${(bytes/1024).toFixed(1)} KB`;
-  return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+  if(bytes<1024)return bytes+' B';
+  if(bytes<1024*1024)return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/(1024*1024)).toFixed(1)+' MB';
 }
 
 export function CarezFileUpload({files,onFilesChange,accept,multiple=false,maxBytes,disabled=false,label='Add file',hint,required=false,capture,className}:{
@@ -71,7 +82,7 @@ export function CarezFileUpload({files,onFilesChange,accept,multiple=false,maxBy
 
   const commit=(incoming:File[])=>{
     const next=incoming.filter(file=>!maxBytes||file.size<=maxBytes);
-    if(maxBytes&&next.length!==incoming.length)setError(`One or more files exceed ${formatBytes(maxBytes)}.`);else setError('');
+    if(maxBytes&&next.length!==incoming.length)setError('One or more files exceed '+formatBytes(maxBytes)+'.');else setError('');
     onFilesChange(multiple?next:next.slice(0,1));
   };
 
@@ -96,10 +107,10 @@ export function CarezFileUpload({files,onFilesChange,accept,multiple=false,maxBy
       </span>
     </button>
     {files.length?<div className="divide-y rounded-md border border-border/80 bg-card/40">
-      {files.map((file,index)=><div key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-2 px-3 py-2">
+      {files.map((file,index)=><div key={file.name+'-'+file.lastModified+'-'+index} className="flex items-center gap-2 px-3 py-2">
         <FileText className="size-4 shrink-0 text-muted-foreground"/>
         <div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{file.name}</div><div className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</div></div>
-        <Button type="button" variant="ghost" size="icon-xs" onClick={()=>onFilesChange(files.filter((_,i)=>i!==index))} disabled={disabled} aria-label={`Remove ${file.name}`}><X/></Button>
+        <Button type="button" variant="ghost" size="icon-xs" onClick={()=>onFilesChange(files.filter((_,i)=>i!==index))} disabled={disabled} aria-label={'Remove '+file.name}><X/></Button>
       </div>)}
     </div>:null}
     {error?<div role="alert" className="text-xs text-destructive">{error}</div>:null}
@@ -108,12 +119,13 @@ export function CarezFileUpload({files,onFilesChange,accept,multiple=false,maxBy
 
 export function CarezLoadingState({label='Loading',progress,className}:{label?:string;progress?:number|null;className?:string}){
   const determinate=typeof progress==='number'&&Number.isFinite(progress);
+  const bounded=determinate?Math.max(0,Math.min(100,progress!)):null;
   return <div className={cn('space-y-2',className)} role="status" aria-live="polite">
-    <div className="flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none"/><span>{label}</span>{determinate?<span className="ml-auto font-mono tabular-nums">{Math.max(0,Math.min(100,Math.round(progress!)))}%</span>:null}</div>
-    {determinate?<Progress value={Math.max(0,Math.min(100,progress!))}/>:<div className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/3 animate-[carez-indeterminate_1.2s_ease-in-out_infinite] rounded-full bg-foreground/65 motion-reduce:animate-none"/></div>}
+    <div className="flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none"/><span>{label}</span>{bounded!=null?<span className="ml-auto font-mono tabular-nums">{bounded}%</span>:null}</div>
+    {bounded!=null?<Progress value={bounded}/>:<div className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/3 animate-[carez-indeterminate_1.2s_ease-in-out_infinite] rounded-full bg-foreground/65 motion-reduce:animate-none"/></div>}
   </div>;
 }
 
 export function CarezLoadingSkeleton({rows=4,className}:{rows?:number;className?:string}){
-  return <div className={cn('space-y-2',className)} aria-hidden="true">{Array.from({length:rows}).map((_,index)=><Skeleton key={index} className="h-8 w-full rounded-md"/>)}</div>;
+  return <div className={cn('space-y-2',className)} aria-hidden="true">{Array.from({length:rows}).map((_,index)=><Skeleton key={index} className="h-[var(--density-row-height)] w-full rounded-md"/>)}</div>;
 }

@@ -1,6 +1,7 @@
 import {redirect,notFound} from 'next/navigation';
 import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
+import {CarezRecordHeader} from '@/components/carez/record-header';
 import {Badge} from '@/components/ui/badge';
 import {buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
@@ -67,18 +68,16 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-   <header className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-start xl:justify-between">
-    <div className="min-w-0">
-     <div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="secondary">{p.job_number}</Badge></div>
-     <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
-     <p className="mt-1 text-sm text-muted-foreground">{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?` · ${p.customers.name}`:''}</p>
-    </div>
-    <div className="flex flex-wrap items-center gap-2">
+   <CarezRecordHeader
+    eyebrow={<Badge variant="secondary">{p.job_number}</Badge>}
+    title={p.name}
+    description={<>{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?' · '+p.customers.name:''}</>}
+    actions={<>
      <Link className={buttonVariants({size:'sm'})} href="/field/review">Review Crew Time</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Plan Pour</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Order Materials</Link>
-    </div>
-   </header>
+    </>}
+   />
 
    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
     <Metric label="Contract" value={money(f.adjusted_contract||p.contract_value)} help="Original contract plus approved changes."/>

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import {BankSyncPulse} from '@/components/PlaidBankControls';
 import {OutlookSyncPulse} from '@/components/OutlookSyncPulse';
+import {CarezProjectContextBar} from '@/components/carez/project-context';
+export {CarezProjectSwitcher} from '@/components/carez/project-context';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Command,CommandDialog,CommandEmpty,CommandGroup,CommandInput,CommandItem,CommandList} from '@/components/ui/command';
 import {
@@ -29,7 +31,6 @@ import {
   normalizeNavigationPreference,normalizeRecentDestinationIds,normalizeRecentProjectIds,prependRecentId,
   recentDestinationsStorageKey,recentProjectsStorageKey,resetNavigationPreference,resolveActiveDestination,
   resolveProjectRoute,togglePinnedDestination,type NavigationDestination,type NavigationIconKey,
-  type ProjectRouteContext,
 } from '@/lib/ui/navigation';
 
 type ShellIdentity={userId:string;companyId:string;role:string|null};
@@ -53,14 +54,6 @@ function writeDeviceJson(key:string,value:unknown){try{window.localStorage.setIt
 function isWorkstation(pathname:string){
   const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];
   return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment))||/^\/estimates\/[^/]+/.test(pathname);
-}
-
-export function CarezProjectSwitcher({label='Carez workspace',detail='Company',onClick}:{label?:string;detail?:string;onClick?:()=>void}){
-  return <Button type="button" variant="ghost" size="sm" className="h-7 min-w-0 max-w-[min(72vw,30rem)] justify-start gap-2 px-2 text-left" onClick={onClick}>
-    <BriefcaseBusiness className="size-3.5 shrink-0 text-muted-foreground"/>
-    <span className="min-w-0"><span className="block truncate text-xs font-medium">{label}</span><span className="hidden truncate text-[10px] leading-3 text-muted-foreground sm:block">{detail}</span></span>
-    <ChevronDown className="ml-1 size-3 shrink-0 text-muted-foreground"/>
-  </Button>;
 }
 
 function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestination[];pathname:string}){
@@ -164,14 +157,6 @@ function CarezProjectPicker({open,onOpenChange,projects,recentProjectIds,activeP
       <CommandGroup heading="All projects">{remaining.map(renderProject)}</CommandGroup>
     </CommandList></Command>
   </SheetContent></Sheet>;
-}
-
-function CarezProjectContextBar({project,context,onOpenProjectSwitcher}:{project:ProjectOption;context:ProjectRouteContext;onOpenProjectSwitcher:()=>void}){
-  return <div className="flex h-9 items-center gap-2 border-b border-border bg-muted/20 px-2.5 md:px-3">
-    <span className="hidden text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground sm:inline">Project</span>
-    <CarezProjectSwitcher label={project.name} detail={project.jobNumber||project.location||'Project'} onClick={onOpenProjectSwitcher}/>
-    <span className="ml-auto shrink-0 rounded-md border border-border/70 bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground">{context.workspaceLabel}</span>
-  </div>;
 }
 
 function CarezCommandMenu({open,onOpenChange,onNavigate,recentDestinationIds,projects,recentProjectIds}:{open:boolean;onOpenChange:(open:boolean)=>void;onNavigate:(href:string)=>void;recentDestinationIds:string[];projects:ProjectOption[];recentProjectIds:string[]}){
@@ -307,7 +292,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     <BankSyncPulse/><OutlookSyncPulse/>
     <div className="relative z-40 shrink-0 bg-background">
       <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} pinnedIds={pinnedIds} pinnedDestinations={pinnedDestinations} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenManager={()=>setManagerOpen(true)}/>
-      {projectContext&&activeProject?<CarezProjectContextBar project={activeProject} context={projectContext} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}
+      {projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}
     </div>
     <main aria-label={activeDestination?.label||'Carez workspace'} className={workstation?'min-h-0 min-w-0 flex-1 overflow-hidden pb-14 md:pb-0':'min-h-0 min-w-0 flex-1 overflow-auto bg-background p-4 pb-20 md:p-5'}>{children}</main>
     <CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate} recentDestinationIds={recentDestinationIds} projects={projects} recentProjectIds={recentProjectIds}/>
