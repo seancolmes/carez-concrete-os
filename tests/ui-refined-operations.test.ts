@@ -101,3 +101,42 @@ test('Projects selection does not broaden authoritative project context',async()
     {projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'},
   );
 });
+
+
+test('Project Overview follows the approved operating-record hierarchy',()=>{
+  const page=read('app/projects/[id]/page.tsx');
+
+  assert.match(page,/CarezRecordHeader/);
+  assert.match(page,/CarezOperatingMetricStrip/);
+  assert.match(page,/CarezStatus/);
+  assert.match(page,/CarezFeedback|CarezEmptyState/);
+  assert.match(page,/CarezDataGrid/);
+  assert.match(page,/resolveProjectRecordStatus/);
+
+  const attention=page.indexOf('What Needs Your Attention');
+  const operating=page.indexOf('Operating Position');
+  const field=page.indexOf('Field & Production');
+  const cost=page.indexOf('Cost & Forecast');
+  const commercial=page.indexOf('Commercial & Billing');
+  const next=page.indexOf('Next Job Action');
+
+  assert.ok(attention>=0&&operating>attention);
+  assert.ok(field>operating);
+  assert.ok(cost>field);
+  assert.ok(commercial>cost);
+  assert.ok(next>commercial);
+
+  assert.match(page,/order-3 lg:order-6/);
+  assert.match(page,/order-4 lg:order-3/);
+  assert.match(page,/const budgetAvailable=Boolean\(budgetR\.data\)/);
+  assert.match(page,/const billingAvailable=Boolean\(billingR\.data\)/);
+  assert.match(page,/No authoritative budget snapshot|Approve an estimate to establish the baseline/);
+  assert.match(page,/Need Progress/);
+
+  for(const href of ['/field/review','/pour-control','/procurement','/forecast','/billing','/change-orders']){
+    assert.ok(page.includes('href="'+href+'"'),'missing '+href+' action');
+  }
+
+  assert.doesNotMatch(page,/function Metric/);
+  assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
+});
