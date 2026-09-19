@@ -126,8 +126,8 @@ test('Project Overview follows the approved operating-record hierarchy',()=>{
   assert.ok(commercial>cost);
   assert.ok(next>commercial);
 
-  assert.match(page,/order-3 lg:order-6/);
-  assert.match(page,/order-4 lg:order-3/);
+  assert.match(page,/order-3[^\"]*lg:order-6/);
+  assert.match(page,/order-4[^\"]*lg:order-3/);
   assert.match(page,/const budgetAvailable=Boolean\(budgetR\.data\)/);
   assert.match(page,/const billingAvailable=Boolean\(billingR\.data\)/);
   assert.match(page,/No authoritative budget snapshot|Approve an estimate to establish the baseline/);
