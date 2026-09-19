@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-15  
+Last reconciled: 2026-09-18  
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -13,7 +13,18 @@ User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MOD
 - Nik tests only the stable staging Vercel URL.
 - Unaccepted work is never pushed to `main` merely to simplify testing.
 
+## Development-agent architecture
+
+- The primary interactive implementation path is the local Carez Codex workstation.
+- Codex Web UI provides the browser interface while the real Codex `app-server` remains the coding agent/runtime.
+- The isolated Codex home routes through local OmniRoute to Ollama; the current default local model is `gpt-oss:20b`.
+- OmniRoute routing was verified with successful `provider=ollama-local`, `model=gpt-oss:20b`, `status=200` requests.
+- Workstation provider/auth/model state remains outside the repository; Carez source has no runtime dependency on Codex Web UI, OmniRoute, Ollama, OpenCode, or a hosted AI plan.
+- Root `CODEX.md` is now the canonical model-independent Codex execution contract; `docs/workflow/LOCAL_CODEX_WORKSTATION.md` owns the current workstation topology.
+- GitHub Actions → Vercel staging → browser QA remains the acceptance chain after local implementation.
+
 ## Protected implemented baseline
+
 
 - Supabase/PostgreSQL tenant model and RLS remain authoritative.
 - PDF is Takeoff visual reference; persisted stable page-coordinate vector geometry is quantity authority.

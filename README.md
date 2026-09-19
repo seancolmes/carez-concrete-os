@@ -10,12 +10,34 @@ Private concrete-contractor operating system covering preconstruction, plans, Ta
 - `docs/ROADMAP.md` — sequence
 - `docs/modules/` — product/module contracts
 - `docs/decisions/` — durable architecture decisions
-- `AGENTS.md` — connected-agent implementation rules
-- `CODEX.md` — low-token Codex Cloud implementation contract
+- `docs/workflow/DEVELOPMENT_WORKFLOW.md` — development/release loop
+- `docs/workflow/LOCAL_CODEX_WORKSTATION.md` — current local Codex implementation architecture
+- `AGENTS.md` — connected-agent rules
+- `CODEX.md` — canonical Codex execution contract
 
-## Architecture
+## Product architecture
 
 Concrete-native modular monolith; Supabase/PostgreSQL source of truth; server-authoritative deterministic calculations; RLS/tenant isolation; immutable/versioned commercial lineage; desktop professional workstation and mobile field-first.
+
+## Development architecture
+
+The primary interactive implementation path is local-first:
+
+```text
+Carez control chat / connected tools
+→ Codex Web UI
+→ Codex app-server
+→ isolated CODEX_HOME
+→ OmniRoute
+→ local Ollama inference
+→ staging
+→ GitHub Actions
+→ Vercel staging
+→ browser QA
+```
+
+The Codex/Ollama workstation is development tooling, not a Carez runtime dependency. Secrets and provider configuration stay outside the repository. OpenCode and hosted Codex Cloud are not required by the canonical workflow.
+
 
 ## Validation
 
@@ -29,6 +51,6 @@ Use `pnpm check` for the full local validation chain. UI work additionally requi
 
 ## Environment
 
-Keep secrets in the hosting/development environment. Never commit service-role keys, DB passwords, banking tokens, or production secrets.
+Keep secrets in the hosting/development environment. Never commit service-role keys, DB passwords, banking tokens, model-provider keys, local Codex auth, or production secrets.
 
 Common variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `PLAID_CLIENT_ID`, `PLAID_SECRET`.

@@ -9,14 +9,17 @@ Use the source that owns the question. Do not preload the repository.
 3. `docs/modules/` — module/product contracts.
 4. `docs/CURRENT_STATE.md` — current verified implementation/blockers.
 5. `docs/ROADMAP.md` — sequence.
-6. GitHub issues/PRs/history — active and historical implementation evidence.
-7. Vercel/browser evidence — deployment/rendered acceptance.
+6. `AGENTS.md` + `CODEX.md` + `docs/workflow/` — development-agent/runtime workflow.
+7. GitHub issues/PRs/history — active and historical implementation evidence.
+8. Vercel/browser evidence — deployment/rendered acceptance.
 
 ## Read map
 
 | Need | Start with |
 | --- | --- |
 | Bounded code task | `AGENTS.md` or `CODEX.md`, target files |
+| Local Codex runtime | `workflow/LOCAL_CODEX_WORKSTATION.md` |
+| Development cycle | `workflow/DEVELOPMENT_WORKFLOW.md` |
 | Current priority | `CURRENT_STATE.md`, then `ROADMAP.md` |
 | Branch/release | `BRANCH_AND_RELEASE_MODEL.md` |
 | Module behavior | owning `modules/*.md` |
@@ -35,12 +38,15 @@ Use the source that owns the question. Do not preload the repository.
 - `decisions/`
 - `design-system/CAREZ_COMPONENT_PACK.md`
 - `workflow/DEVELOPMENT_WORKFLOW.md`
-- root `AGENTS.md` — connected-agent implementation rules
-- root `CODEX.md` — Codex Cloud low-token implementation rules
+- `workflow/LOCAL_CODEX_WORKSTATION.md`
+- root `AGENTS.md` — connected-agent rules
+- root `CODEX.md` — canonical Codex execution contract
 
 ## Documentation discipline
 
 Keep active documentation small. Remove superseded designs, finished checklists, duplicate workflow files, chat handoffs, and implementation checkpoints after their surviving truth is absorbed into canonical owners. Git history preserves the evidence.
+
+Existing `docs/superpowers/` files are supporting design/implementation artifacts only; they are not an agent execution framework and must not override `AGENTS.md`, `CODEX.md`, or `docs/workflow/`. Delete them when their unresolved behavior has been absorbed by canonical owners.
 
 Supporting detailed designs may remain only while they still own unresolved implementation behavior. They cannot override Architecture, active ADRs, module contracts, Current State, or the branch/release model.
 

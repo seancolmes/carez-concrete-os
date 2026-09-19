@@ -1,13 +1,19 @@
-name: Carez OS Branch Build
+name: Carez OS Validation
 
 on:
   push:
     branches:
       - main
       - staging
-      - carez-os-full-build
       - 'carez-*'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carez-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -40,4 +46,4 @@ jobs:
       - name: Build
         run: pnpm build
 
-# This workflow intentionally validates main, staging, and active carez-* development branches.
+# staging/main are permanent; carez-* is reserved for exceptional temporary implementation branches.
