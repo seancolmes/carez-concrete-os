@@ -433,9 +433,16 @@ Keep the existing createProjectConcreteConditionPilot action and move the existi
 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
   <DialogContent>
     <DialogHeader><DialogTitle>New Condition</DialogTitle></DialogHeader>
-    <ConditionFamilyPicker value={family} onChange={setFamily}/>
-    <Input value={code} onChange={event=>setCode(event.target.value)}/>
-    <Input value={name} onChange={event=>setName(event.target.value)}/>
+    <Select value={family} onValueChange={value=>setFamily(value as ConditionArchetypeKey)}>
+      <SelectTrigger><SelectValue placeholder="Condition family"/></SelectTrigger>
+      <SelectContent>
+        {Object.entries(CONDITION_ARCHETYPES).map(([key,item])=>
+          <SelectItem key={key} value={key}>{item.name}</SelectItem>
+        )}
+      </SelectContent>
+    </Select>
+    <Input value={code} onChange={event=>setCode(event.target.value)} aria-label="Condition code"/>
+    <Input value={name} onChange={event=>setName(event.target.value)} aria-label="Condition name"/>
     <DialogFooter>
       <Button onClick={createCondition} disabled={locked||pending}>Create Condition</Button>
     </DialogFooter>
@@ -443,7 +450,7 @@ Keep the existing createProjectConcreteConditionPilot action and move the existi
 </Dialog>
 ~~~
 
-Use the existing archetype catalog for the family picker; do not add a new family taxonomy.
+Use the existing CONDITION_ARCHETYPES catalog for the family choices; do not add a new family taxonomy.
 
 - [ ] **Step 4: Implement bounded Condition duplication using existing schema/RPCs**
 
@@ -803,33 +810,97 @@ git commit -m "refactor: extract authoritative takeoff canvas"
   - TakeoffWorksheet with selected IDs and direct callbacks.
   - No Sell/margin/customer-price edits.
 
+Define the pure projector input explicitly:
+
+~~~ts
+export type SpecialistWorksheetInput={
+  measurements:Array<{
+    id:string;sheet_id:string|null;estimate_section_id:string|null;
+    name:string;location:string|null;raw_quantity:number;raw_unit:string;
+  }>;
+  conditions:Array<{
+    condition_version_id:string;code:string;name:string;measurement_count:number;
+  }>;
+  roles:Array<{
+    condition_version_id:string;measurement_id:string;role_key:string;role_instance_key:string;
+  }>;
+  modules:Array<{
+    condition_version_id:string;module_key:string;instance_key:string;label:string;enabled:boolean;
+  }>;
+  outputs:Array<{
+    id:string;condition_version_id:string;module_instance_id:string|null;
+    driver_measurement_role_id:string|null;output_key:string;output_instance_key:string;
+    label:string;resource_class:string;production_quantity:number|null;production_unit:string;
+    status:string;estimated_man_hours:number;unit_cost:number;direct_cost:number;
+    pricing_status:string;provenance:Record<string,unknown>;
+    legacy_takeoff_output_id:string|null;generated_estimate_item_id:string|null;
+  }>;
+  holds:Array<{
+    id:string;condition_version_id:string;output_id:string|null;
+    hold_code:string;status:string;message:string;
+  }>;
+  sections:Array<{id:string;name:string}>;
+  sheets:Array<{id:string;sheet_number:string|null;page_number:number}>;
+  legacyOutputs:Array<{
+    id:string;measurement_id:string;catalog_item_id:string|null;
+    cost_source:string|null;resource_behavior:string|null;
+  }>;
+  pendingConditionVersionIds:Set<string>;
+};
+~~~
+
 - [ ] **Step 1: Add RED pure projection tests**
 
 ~~~ts
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildSpecialistWorksheetModel} from '../lib/takeoff/specialistWorksheet.ts';
+import {buildSpecialistWorksheetModel,type SpecialistWorksheetInput} from '../lib/takeoff/specialistWorksheet.ts';
+
+const base:SpecialistWorksheetInput={
+  measurements:[{id:'m1',sheet_id:'s1',estimate_section_id:'sec1',name:'North footing',location:'North',raw_quantity:84,raw_unit:'LF'}],
+  conditions:[{condition_version_id:'cv1',code:'F-01',name:'Strip Footing',measurement_count:1}],
+  roles:[{condition_version_id:'cv1',measurement_id:'m1',role_key:'footing_run',role_instance_key:'default'}],
+  modules:[],
+  outputs:[],
+  holds:[],
+  sections:[{id:'sec1',name:'Footings'}],
+  sheets:[{id:'s1',sheet_number:'S2.1',page_number:2}],
+  legacyOutputs:[],
+  pendingConditionVersionIds:new Set<string>(),
+};
 
 test('missing price is unknown and partial rather than zero-cost authority',()=>{
-  const model=buildSpecialistWorksheetModel(fixtureWithMissingRebarPrice());
+  const input:SpecialistWorksheetInput={...base,outputs:[{
+    id:'o1',condition_version_id:'cv1',module_instance_id:null,driver_measurement_role_id:null,
+    output_key:'reinforcing.installed_lb',output_instance_key:'default',label:'#5 Rebar',
+    resource_class:'material',production_quantity:517,production_unit:'LB',status:'ready',
+    estimated_man_hours:0,unit_cost:0,direct_cost:0,pricing_status:'missing_price',
+    provenance:{},legacy_takeoff_output_id:'lo1',generated_estimate_item_id:'ei1',
+  }]};
+  const model=buildSpecialistWorksheetModel(input);
   assert.equal(model.pricing[0].pricingState,'price_required');
   assert.equal(model.pricing[0].unitCost,null);
   assert.equal(model.recap.directCostComplete,false);
 });
 
 test('pending recalculation does not publish stale Condition output as current',()=>{
-  const model=buildSpecialistWorksheetModel(fixtureWithPendingCondition());
+  const model=buildSpecialistWorksheetModel({...base,pendingConditionVersionIds:new Set(['cv1'])});
   assert.equal(model.quantities[0].state,'pending');
   assert.equal(model.recap.pendingConditions,1);
 });
 
 test('recap never adds incompatible LF SF and EA into one quantity total',()=>{
-  const model=buildSpecialistWorksheetModel(fixtureWithMixedUnits());
+  const measurements=[
+    base.measurements[0],
+    {id:'m2',sheet_id:'s1',estimate_section_id:'sec1',name:'Slab',location:null,raw_quantity:1842,raw_unit:'SF'},
+    {id:'m3',sheet_id:'s1',estimate_section_id:'sec1',name:'Pads',location:null,raw_quantity:4,raw_unit:'EA'},
+  ];
+  const model=buildSpecialistWorksheetModel({...base,measurements});
   assert.equal('totalQuantity' in model.recap,false);
 });
 ~~~
 
-Define the three small fixtures in tests/specialist-worksheet.test.ts with literal measurement/output/hold rows. They must not call Supabase.
+The fixtures are literal and local; these tests never call Supabase.
 
 - [ ] **Step 2: Run tests and verify RED**
 
