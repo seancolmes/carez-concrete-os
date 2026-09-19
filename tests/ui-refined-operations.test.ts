@@ -187,7 +187,7 @@ test('reference slice preserves semantic severity and keyboard interaction bound
 
   assert.match(today,/const attentionStatusTone=attention\.some/);
   assert.match(today,/resolveOperationalState\(row\.state\)/);
-  assert.match(projects,/event\.currentTarget===event\.target/);
+  assert.match(projects,/event\.currentTarget!==event\.target/);
   assert.match(projects,/aria-label=\{'Job inspector: '\+selected\.name\}/);
 });
 
