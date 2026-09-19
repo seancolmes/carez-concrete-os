@@ -1,13 +1,15 @@
-import {redirect,notFound} from 'next/navigation';
+import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
-import {CarezRecordHeader} from '@/components/carez/record-header';
-import {Badge} from '@/components/ui/badge';
+import {
+ CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,
+ CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,
+ CarezEmptyState,CarezFeedback,CarezOperatingMetric,CarezOperatingMetricStrip,
+ CarezRecordHeader,CarezStatus,
+} from '@/components/carez';
 import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
-import {Empty,EmptyDescription,EmptyHeader,EmptyTitle} from '@/components/ui/empty';
-import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
 import {createClient} from '@/lib/supabase/server';
+import {resolveProjectRecordStatus} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
@@ -15,20 +17,10 @@ const num=(n:any)=>Number(n||0);
 const pct=(n:any)=>`${num(n).toFixed(1)}%`;
 const hrs=(n:any)=>`${num(n).toFixed(1)} hr`;
 
-type MetricTone='neutral'|'success'|'warning'|'danger';
-
-function Metric({label,value,help,tone='neutral'}:{label:string;value:string;help?:string;tone?:MetricTone}){
- return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/30',tone==='warning'&&'border-warning/30',tone==='success'&&'border-success/25')}>
-  <CardHeader className="gap-1 px-4">
-   <CardDescription className="text-xs font-medium">{label}</CardDescription>
-   <CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-warning',tone==='success'&&'text-success')}>{value}</CardTitle>
-  </CardHeader>
-  {help&&<CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>}
- </Card>;
-}
+type ProjectWarning={tone:'watch'|'bad';title:string;copy:string;href:string;action:string};
 
 function KeyValueRows({rows}:{rows:Array<[string,string]>}){
- return <div className="divide-y divide-border">{rows.map(([label,value])=><div className="flex items-center justify-between gap-4 py-3 text-sm" key={label}><span className="text-muted-foreground">{label}</span><strong className="text-right font-mono font-medium tabular-nums">{value}</strong></div>)}</div>;
+ return <dl className="divide-y divide-border">{rows.map(([label,value])=><div className="flex items-center justify-between gap-4 py-2.5 text-sm" key={label}><dt className="text-muted-foreground">{label}</dt><dd className="text-right font-mono font-medium tabular-nums">{value}</dd></div>)}</dl>;
 }
 
 export default async function ProjectCommandPage({params}:{params:Promise<{id:string}>}){
@@ -50,6 +42,11 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
   supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true})
  ]);
  const p:any=projectR.data;if(!p)notFound();
+ const financialAvailable=Boolean(financialR.data);
+ const budgetAvailable=Boolean(budgetR.data);
+ const billingAvailable=Boolean(billingR.data);
+ const commitmentAvailable=Boolean(commitR.data);
+ const forecastAvailable=Boolean(forecastR.data);
  const f:any=financialR.data||{},b:any=budgetR.data||{},bill:any=billingR.data||{},commit:any=commitR.data||{},fc:any=forecastR.data||{};
  const prod:any[]=prodR.data||[],shifts:any[]=shiftR.data||[],cos:any[]=coR.data||[],pours:any[]=pourR.data||[];
  const waiting=shifts.filter(s=>s.status==='submitted');const clocked=shifts.filter(s=>s.status==='open');const gpsFlags=shifts.filter(s=>s.clock_in_inside_geofence===false||s.clock_out_inside_geofence===false).length;
@@ -57,7 +54,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
  const forecastVariance=num(fc.forecast_variance_to_budget);const forecastMargin=num(fc.forecast_margin_at_completion);const targetMargin=num(f.target_margin_percent||p.target_margin_percent);
  const activeCO=cos.filter(c=>c.status!=='approved').length;const approvedCO=cos.filter(c=>c.status==='approved').length;
  const nextPour=pours.find(x=>x.scheduled_date&&new Date(`${x.scheduled_date}T23:59:59`).getTime()>=Date.now())||pours[0];
- const warnings:any[]=[];
+ const warnings:ProjectWarning[]=[];
  if(waiting.length)warnings.push({tone:'watch',title:`${waiting.length} timecard${waiting.length===1?'':'s'} waiting for approval`,copy:'Review employee GPS, hours and tasks before payroll/job cost.',href:'/field/review',action:'Review Time'});
  if(gpsFlags)warnings.push({tone:'bad',title:`${gpsFlags} open/submitted shift${gpsFlags===1?'':'s'} need GPS review`,copy:'At least one clock-in or clock-out is outside the jobsite radius.',href:'/field/review',action:'Check GPS'});
  if(num(b.labor_hours_remaining)<0)warnings.push({tone:'bad',title:`Labor is ${Math.abs(num(b.labor_hours_remaining)).toFixed(1)} hours over budget`,copy:'Remaining work needs a production plan before more labor is burned.',href:'/forecast',action:'Review Forecast'});
@@ -66,12 +63,22 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
  if(num(bill.overdue_ar)>0)warnings.push({tone:'bad',title:`Customer has ${money(bill.overdue_ar)} past due`,copy:'Collections need attention before more cash is committed.',href:'/billing',action:'Review Billing'});
  if(activeCO)warnings.push({tone:'watch',title:`${activeCO} change order${activeCO===1?' is':'s are'} not approved`,copy:'Track extra work carefully so unapproved scope does not become free work.',href:'/change-orders',action:'Review COs'});
 
+ const projectStatus=resolveProjectRecordStatus(p.status);
+ const costRows=[
+  ['Labor',num(b.actual_direct_labor_cost),num(b.budget_direct_labor_cost)],
+  ['Materials',num(b.actual_material_cost),num(b.budget_material_cost)],
+  ['Equipment',num(b.actual_equipment_cost),num(b.budget_equipment_cost)],
+  ['Subs / Other',num(b.actual_subcontractor_cost)+num(b.actual_other_direct_cost),num(b.budget_subcontractor_cost)+num(b.budget_other_direct_cost)],
+  ['Total Company Cost',num(b.actual_total_company_cost),num(b.budget_total_company_cost)],
+ ] as const;
+
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
    <CarezRecordHeader
-    eyebrow={<Badge variant="secondary">{p.job_number}</Badge>}
+    eyebrow={<span className="font-mono text-xs font-semibold text-muted-foreground">{p.job_number}</span>}
     title={p.name}
     description={<>{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?' · '+p.customers.name:''}</>}
+    status={projectStatus?<CarezStatus tone={projectStatus.tone} label={projectStatus.label}/>:<CarezStatus tone="neutral" label={String(p.status||'Unknown')}/>}
     actions={<>
      <Link className={buttonVariants({size:'sm'})} href="/field/review">Review Crew Time</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Plan Pour</Link>
@@ -79,65 +86,162 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
     </>}
    />
 
-   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-    <Metric label="Contract" value={money(f.adjusted_contract||p.contract_value)} help="Original contract plus approved changes."/>
-    <Metric label="Budget Used" value={pct(budgetUsed)} help={b.label?`Against ${b.label}.`:'Approve an estimate to establish the baseline.'} tone={budgetUsed>=100?'danger':budgetUsed>=85?'warning':'success'}/>
-    <Metric label="Labor Hours Used" value={num(b.budget_labor_hours)>0?pct(laborUsed):'No Budget'} help={`${hrs(b.actual_labor_hours)} used · ${hrs(b.labor_hours_remaining)} remaining.`} tone={laborUsed>=100?'danger':laborUsed>=85?'warning':'neutral'}/>
-    <Metric label="Customer Owes Us" value={money(bill.outstanding_ar)} help={num(bill.overdue_ar)>0?`${money(bill.overdue_ar)} is past due.`:'No overdue customer balance.'} tone={num(bill.overdue_ar)>0?'danger':num(bill.outstanding_ar)>0?'warning':'neutral'}/>
-    <Metric label="Money Already Ordered" value={money(commit.open_po_commitments)} help={`${num(commit.open_po_count)} open purchase order${num(commit.open_po_count)===1?'':'s'}.`}/>
-    <Metric label="Where Job Is Headed" value={fc.project_id?`${forecastMargin.toFixed(1)}% margin`:'Need Progress'} help={fc.project_id?`${money(forecastVariance)} vs budget at completion.`:'Update scope progress to build a forecast.'} tone={forecastVariance<0?'danger':forecastMargin<targetMargin?'warning':'success'}/>
+   <div className="flex flex-col gap-6">
+    <section className="order-1 space-y-3" aria-labelledby="project-attention-heading">
+     <div className="flex items-end justify-between gap-4">
+      <div><h2 id="project-attention-heading" className="text-lg font-semibold tracking-tight">What Needs Your Attention</h2><p className="mt-1 text-sm text-muted-foreground">Payroll, GPS, budget, collections and change-order exceptions for this job.</p></div>
+      <CarezStatus tone={warnings.some(w=>w.tone==='bad')?'error':warnings.length?'warning':'neutral'} label={warnings.length+' item'+(warnings.length===1?'':'s')}/>
+     </div>
+     {warnings.length===0
+      ?<CarezFeedback tone="success" title="Nothing urgent on this job">No payroll, GPS, budget, collections or change-order warnings are showing.</CarezFeedback>
+      :<div className="space-y-2">{warnings.map((warning,index)=><CarezFeedback key={index} tone={warning.tone==='bad'?'error':'warning'} title={warning.title}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><span>{warning.copy}</span><Link className={buttonVariants({variant:'outline',size:'sm'})} href={warning.href}>{warning.action}</Link></div>
+       </CarezFeedback>)}</div>}
+    </section>
+
+    <section className="order-2 space-y-3" aria-labelledby="project-operating-heading">
+     <div><h2 id="project-operating-heading" className="text-lg font-semibold tracking-tight">Operating Position</h2><p className="mt-1 text-sm text-muted-foreground">Contract, budget, labor, receivables, commitments and forecast position.</p></div>
+     <CarezOperatingMetricStrip columns={6}>
+      <CarezOperatingMetric label="Contract" value={money(f.adjusted_contract||p.contract_value)} help="Original contract plus approved changes."/>
+      <CarezOperatingMetric label="Budget Used" value={budgetAvailable?pct(budgetUsed):'No Budget'} help={budgetAvailable?(b.label?`Against ${b.label}.`:'Current approved budget position.'):'Approve an estimate to establish the baseline.'} tone={!budgetAvailable?'neutral':budgetUsed>=100?'error':budgetUsed>=85?'warning':'neutral'}/>
+      <CarezOperatingMetric label="Labor Hours Used" value={budgetAvailable&&num(b.budget_labor_hours)>0?pct(laborUsed):budgetAvailable?'No Labor Budget':'No Budget'} help={budgetAvailable?`${hrs(b.actual_labor_hours)} used · ${hrs(b.labor_hours_remaining)} remaining.`:'No authoritative budget snapshot.'} tone={!budgetAvailable?'neutral':laborUsed>=100?'error':laborUsed>=85?'warning':'neutral'}/>
+      <CarezOperatingMetric label="Customer Owes Us" value={billingAvailable?money(bill.outstanding_ar):'Unavailable'} help={billingAvailable?(num(bill.overdue_ar)>0?`${money(bill.overdue_ar)} is past due.`:'No overdue customer balance.'):'Billing summary unavailable.'} tone={!billingAvailable?'neutral':num(bill.overdue_ar)>0?'error':num(bill.outstanding_ar)>0?'warning':'neutral'}/>
+      <CarezOperatingMetric label="Money Already Ordered" value={commitmentAvailable?money(commit.open_po_commitments):'Unavailable'} help={commitmentAvailable?`${num(commit.open_po_count)} open purchase order${num(commit.open_po_count)===1?'':'s'}.`:'Commitment summary unavailable.'}/>
+      <CarezOperatingMetric label="Where Job Is Headed" value={forecastAvailable&&fc.project_id?`${forecastMargin.toFixed(1)}% margin`:'Need Progress'} help={forecastAvailable&&fc.project_id?`${money(forecastVariance)} vs budget at completion.`:'Update scope progress to build a forecast.'} tone={!forecastAvailable||!fc.project_id?'neutral':forecastVariance<0?'error':forecastMargin<targetMargin?'warning':'neutral'}/>
+     </CarezOperatingMetricStrip>
+    </section>
+
+    <section className="order-4 space-y-4 lg:order-3" aria-labelledby="project-field-production-heading">
+     <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Operations</p><h2 id="project-field-production-heading" className="mt-1 text-lg font-semibold tracking-tight">Field & Production</h2><p className="mt-1 text-sm text-muted-foreground">What is happening on site and what the crew is actually producing.</p></div>
+
+     {shiftR.error?<CarezFeedback tone="error" title="Field activity unavailable">Current employee shift activity could not be loaded for this project.</CarezFeedback>:<>
+      <CarezOperatingMetricStrip columns={4} aria-label="Crew today">
+       <CarezOperatingMetric label="Clocked In Now" value={String(clocked.length)}/>
+       <CarezOperatingMetric label="Waiting Approval" value={String(waiting.length)} tone={waiting.length?'warning':'neutral'}/>
+       <CarezOperatingMetric label="GPS Flags" value={String(gpsFlags)} tone={gpsFlags?'warning':'neutral'}/>
+       <CarezOperatingMetric label="Actual Labor Hours" value={budgetAvailable?hrs(b.actual_labor_hours):'Unavailable'} help={budgetAvailable?undefined:'No authoritative budget snapshot.'}/>
+      </CarezOperatingMetricStrip>
+      <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review">Review Employee Time</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field">Field Logs</Link></div>
+     </>}
+
+     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="min-w-0 space-y-2">
+       <div><h3 className="text-sm font-semibold">Actual Production</h3><p className="mt-0.5 text-xs text-muted-foreground">Verified quantities divided by approved crew man-hours.</p></div>
+       {prodR.error?<CarezFeedback tone="error" title="Production history unavailable">Measured production history could not be loaded for this project.</CarezFeedback>:<CarezDataGrid
+        isEmpty={prod.length===0}
+        empty={<CarezEmptyState title="No measured production yet" description="When employees clock tasks and you verify quantities, the actual rates appear here."/>}
+       >
+        <CarezDataGridTable>
+         <CarezDataGridHead><CarezDataGridRow>
+          <CarezDataGridHeaderCell>Date</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell>Task</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric>Built</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric>Crew MH</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric>Rate</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric>Estimating Factor</CarezDataGridHeaderCell>
+         </CarezDataGridRow></CarezDataGridHead>
+         <CarezDataGridBody>{prod.map(row=><CarezDataGridRow key={row.work_date+'-'+row.production_task_id}>
+          <CarezDataGridCell>{row.work_date}</CarezDataGridCell>
+          <CarezDataGridCell className="font-medium">{row.task_name}</CarezDataGridCell>
+          <CarezDataGridCell numeric>{num(row.quantity_completed).toFixed(1)} {row.unit}</CarezDataGridCell>
+          <CarezDataGridCell numeric>{num(row.man_hours).toFixed(1)} MH</CarezDataGridCell>
+          <CarezDataGridCell numeric>{num(row.units_per_man_hour).toFixed(2)} {row.unit}/MH</CarezDataGridCell>
+          <CarezDataGridCell numeric>{num(row.man_hours_per_unit).toFixed(3)} MH/{row.unit}</CarezDataGridCell>
+         </CarezDataGridRow>)}</CarezDataGridBody>
+        </CarezDataGridTable>
+       </CarezDataGrid>}
+      </div>
+
+      <div className="rounded-md border border-border bg-background p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Next Pour</h3><p className="mt-0.5 text-xs text-muted-foreground">Upcoming concrete placement.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Pour Control</Link></div>
+       <div className="mt-4">
+        {pourR.error?<CarezFeedback tone="error" title="Pour plan unavailable">Current pour-plan data could not be loaded.</CarezFeedback>:!nextPour?<CarezEmptyState title="No pour is currently planned" description="Open Pour Control when the next concrete placement is ready to schedule."/>:<div className="space-y-2">
+         <div className="text-sm font-medium">{nextPour.name}</div>
+         <div className="font-mono text-xl font-semibold tracking-tight tabular-nums">{nextPour.scheduled_date||'Date not set'}</div>
+         <div className="text-sm text-muted-foreground">{num(nextPour.expected_concrete_yards).toFixed(1)} CY</div>
+         <CarezStatus tone={nextPour.status==='completed'?'success':nextPour.status==='cancelled'?'error':'info'} label={String(nextPour.status||'Unknown').replace(/_/g,' ')}/>
+        </div>}
+       </div>
+      </div>
+     </div>
+    </section>
+
+    <section className="order-5 space-y-4 lg:order-4" aria-labelledby="project-cost-forecast-heading">
+     <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Cost</p><h2 id="project-cost-forecast-heading" className="mt-1 text-lg font-semibold tracking-tight">Cost & Forecast</h2><p className="mt-1 text-sm text-muted-foreground">Actual cost against the frozen budget and where the job is headed.</p></div>
+     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="rounded-md border border-border bg-background p-3">
+       <h3 className="text-sm font-semibold">Budget vs Actual</h3>
+       <p className="mt-0.5 text-xs text-muted-foreground">What the job has used compared with the authoritative budget.</p>
+       <div className="mt-3">
+        {!budgetAvailable?<CarezEmptyState title="No authoritative budget snapshot" description="Approve an estimate to establish the job-cost baseline."/>:<div className="overflow-x-auto">
+         <div className="min-w-[34rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)_8rem_8rem] border-b border-border px-2 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"><span>Cost</span><span className="text-right">Actual</span><span className="text-right">Budget</span></div>
+          {costRows.map(([label,actual,budget],index)=><div key={label} className={cn('grid grid-cols-[minmax(0,1fr)_8rem_8rem] items-center px-2 py-2.5 text-sm',index<costRows.length-1&&'border-b border-border/70',label==='Total Company Cost'&&'font-semibold')}>
+           <span>{label}</span><span className="text-right font-mono tabular-nums">{money(actual)}</span><span className="text-right font-mono tabular-nums">{money(budget)}</span>
+          </div>)}
+         </div>
+        </div>}
+       </div>
+      </div>
+
+      <div className="rounded-md border border-border bg-background p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Forecast</h3><p className="mt-0.5 text-xs text-muted-foreground">Expected completion position.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/forecast">Open Forecast</Link></div>
+       <div className="mt-3">
+        {!forecastAvailable||!fc.project_id?<CarezEmptyState title="Need Progress" description="Update scope progress to build a forecast."/>:<KeyValueRows rows={[
+         ['Forecast margin',forecastMargin.toFixed(1)+'%'],
+         ['Target margin',targetMargin.toFixed(1)+'%'],
+         ['Variance to budget',money(forecastVariance)],
+        ]}/>}
+       </div>
+      </div>
+     </div>
+    </section>
+
+    <section className="order-6 space-y-4 lg:order-5" aria-labelledby="project-commercial-heading">
+     <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Commercial</p><h2 id="project-commercial-heading" className="mt-1 text-lg font-semibold tracking-tight">Commercial & Billing</h2><p className="mt-1 text-sm text-muted-foreground">What is authorized, billed, collected, owed, and still commercially exposed.</p></div>
+     <div className="grid gap-4 xl:grid-cols-2">
+      <div className="rounded-md border border-border bg-background p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Billing / Collections</h3><p className="mt-0.5 text-xs text-muted-foreground">Customer billing and collection position.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/billing">Billing</Link></div>
+       <div className="mt-3">{!billingAvailable?<CarezEmptyState title="Billing summary unavailable" description="No authoritative billing summary is available for this project."/>:<KeyValueRows rows={[
+        ['Authorized Work',money(bill.authorized_contract)],
+        ['Billed',money(bill.billed_contract)],
+        ['Not Yet Billed',money(bill.unbilled_contract)],
+        ['Cash Collected',money(bill.cash_collected)],
+        ['Still Owed',money(bill.outstanding_ar)],
+       ]}/>}</div>
+      </div>
+
+      <div className="rounded-md border border-border bg-background p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Change Orders</h3><p className="mt-0.5 text-xs text-muted-foreground">Extra work and approval status.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/change-orders">Open COs</Link></div>
+       <div className="mt-3">
+        {coR.error?<CarezFeedback tone="error" title="Change orders unavailable">Current change-order data could not be loaded.</CarezFeedback>:cos.length===0?<CarezEmptyState title="No active change orders" description="No draft, submitted, or approved change orders are currently returned for this project."/>:<div className="divide-y divide-border">{cos.slice(0,5).map(co=><div className="flex items-center justify-between gap-4 py-3" key={co.id}>
+         <div className="min-w-0"><div className="text-sm font-medium">{co.co_number} — {co.title}</div><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><CarezStatus tone={co.status==='approved'?'success':co.status==='submitted'?'info':'neutral'} label={String(co.status||'Unknown').replace(/_/g,' ')}/><span>field: {co.field_work_status||'not started'}</span></div></div>
+         <strong className="font-mono text-sm font-medium tabular-nums">{money(co.proposed_sell_price)}</strong>
+        </div>)}</div>}
+        {!coR.error?<div className="mt-3 text-xs text-muted-foreground">{approvedCO} approved · {activeCO} still awaiting approval</div>:null}
+       </div>
+      </div>
+     </div>
+    </section>
+
+    <section className="order-3 space-y-3 lg:order-6" aria-labelledby="project-next-action-heading">
+     <div className="rounded-md border border-border bg-muted/15 px-4 py-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next Job Action</div>
+      <h2 id="project-next-action-heading" className="mt-2 text-lg font-semibold tracking-tight">{p.next_action||'No next action entered yet.'}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">The next physical or management action currently recorded for this project.</p>
+     </div>
+     <div className="flex flex-wrap gap-2" aria-label="Related workflows">
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field/review">Review Crew Time</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Procurement</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/change-orders">Change Orders</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/forecast">Forecast</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/billing">Billing</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Pour Control</Link>
+     </div>
+    </section>
    </div>
 
-   <Card className="shadow-none">
-    <CardHeader className="flex-row items-center justify-between gap-4">
-     <div><CardTitle>What Needs Your Attention</CardTitle><CardDescription>Payroll, GPS, budget, collections and change-order exceptions for this job.</CardDescription></div>
-     <Badge variant={warnings.some((w:any)=>w.tone==='bad')?'destructive':'secondary'}>{warnings.length} item{warnings.length===1?'':'s'}</Badge>
-    </CardHeader>
-    <CardContent>
-     {warnings.length===0?<div className="rounded-lg border border-success/25 bg-success/5 px-4 py-3"><div className="text-sm font-medium text-success">Nothing urgent on this job</div><div className="mt-1 text-sm text-muted-foreground">No payroll, GPS, budget, collections or change-order warnings are showing.</div></div>:<div className="divide-y divide-border rounded-lg border">{warnings.map((w:any,i)=><div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" key={i}><div className="min-w-0"><div className={cn('text-sm font-medium',w.tone==='bad'?'text-destructive':'text-warning')}>{w.title}</div><div className="mt-1 text-sm text-muted-foreground">{w.copy}</div></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href={w.href}>{w.action}</Link></div>)}</div>}
-    </CardContent>
-   </Card>
-
-   <section className="space-y-3">
-    <div><p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Field</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Crew Today</h2><p className="text-sm text-muted-foreground">Employee clock status and approvals for this job.</p></div>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-     <Metric label="Clocked In Now" value={String(clocked.length)}/>
-     <Metric label="Waiting Approval" value={String(waiting.length)} tone={waiting.length?'warning':'neutral'}/>
-     <Metric label="GPS Flags" value={String(gpsFlags)} tone={gpsFlags?'warning':'neutral'}/>
-     <Metric label="Actual Labor Hours" value={hrs(b.actual_labor_hours)}/>
-    </div>
-    <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review">Review Employee Time</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field">Field Logs</Link></div>
-   </section>
-
-   <Card className="shadow-none">
-    <CardHeader><CardTitle>What the Crew Is Actually Producing</CardTitle><CardDescription>Verified quantities divided by approved crew man-hours.</CardDescription></CardHeader>
-    <CardContent>{prod.length===0?<Empty className="min-h-40 border bg-muted/20"><EmptyHeader><EmptyTitle>No measured production yet</EmptyTitle><EmptyDescription>When employees clock tasks and you verify quantities, the actual rates appear here.</EmptyDescription></EmptyHeader></Empty>:<div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Task</TableHead><TableHead>Built</TableHead><TableHead>Crew MH</TableHead><TableHead>Rate</TableHead><TableHead>Estimating Factor</TableHead></TableRow></TableHeader><TableBody>{prod.map(r=><TableRow key={`${r.work_date}-${r.production_task_id}`}><TableCell>{r.work_date}</TableCell><TableCell className="font-medium">{r.task_name}</TableCell><TableCell className="font-mono tabular-nums">{num(r.quantity_completed).toFixed(1)} {r.unit}</TableCell><TableCell className="font-mono tabular-nums">{num(r.man_hours).toFixed(1)} MH</TableCell><TableCell className="font-mono tabular-nums">{num(r.units_per_man_hour).toFixed(2)} {r.unit}/MH</TableCell><TableCell className="font-mono tabular-nums">{num(r.man_hours_per_unit).toFixed(3)} MH/{r.unit}</TableCell></TableRow>)}</TableBody></Table></div>}</CardContent>
-   </Card>
-
-   <div className="grid gap-4 xl:grid-cols-2">
-    <Card className="shadow-none"><CardHeader><CardTitle>Budget vs Actual</CardTitle><CardDescription>What we estimated compared with what the job has used.</CardDescription></CardHeader><CardContent><KeyValueRows rows={[
-     ['Labor',`${money(b.actual_direct_labor_cost)} / ${money(b.budget_direct_labor_cost)}`],
-     ['Materials',`${money(b.actual_material_cost)} / ${money(b.budget_material_cost)}`],
-     ['Equipment',`${money(b.actual_equipment_cost)} / ${money(b.budget_equipment_cost)}`],
-     ['Subs / Other',`${money(num(b.actual_subcontractor_cost)+num(b.actual_other_direct_cost))} / ${money(num(b.budget_subcontractor_cost)+num(b.budget_other_direct_cost))}`],
-     ['Total Company Cost',`${money(b.actual_total_company_cost)} / ${money(b.budget_total_company_cost)}`],
-    ]}/></CardContent></Card>
-    <Card className="shadow-none"><CardHeader><CardTitle>Get Paid</CardTitle><CardDescription>Customer billing and collections for this job.</CardDescription></CardHeader><CardContent><KeyValueRows rows={[
-     ['Authorized Work',money(bill.authorized_contract)],['Billed',money(bill.billed_contract)],['Not Yet Billed',money(bill.unbilled_contract)],['Cash Collected',money(bill.cash_collected)],['Still Owed',money(bill.outstanding_ar)],
-    ]}/><div className="mt-4"><Link className={buttonVariants({size:'sm'})} href="/billing">Billing</Link></div></CardContent></Card>
-   </div>
-
-   <div className="grid gap-4 xl:grid-cols-2">
-    <Card className="shadow-none"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>Change Orders</CardTitle><CardDescription>Extra work and approval status.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/change-orders">Open COs</Link></CardHeader><CardContent><div className="divide-y divide-border">{cos.length===0?<div className="py-3 text-sm text-muted-foreground">No active change orders.</div>:cos.slice(0,5).map(c=><div className="flex items-center justify-between gap-4 py-3" key={c.id}><div className="min-w-0"><div className="text-sm font-medium">{c.co_number} — {c.title}</div><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge variant={c.status==='approved'?'secondary':c.status==='submitted'?'default':'outline'}>{c.status}</Badge><span>field: {c.field_work_status||'not started'}</span></div></div><strong className="font-mono text-sm font-medium tabular-nums">{money(c.proposed_sell_price)}</strong></div>)}</div><div className="mt-3 text-xs text-muted-foreground">{approvedCO} approved · {activeCO} still awaiting approval</div></CardContent></Card>
-    <Card className="shadow-none"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>Next Pour</CardTitle><CardDescription>Upcoming concrete placement for this project.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Pour Control</Link></CardHeader><CardContent>{!nextPour?<div className="text-sm text-muted-foreground">No pour is currently planned.</div>:<div className="space-y-2"><div className="text-sm font-medium">{nextPour.name}</div><div className="font-mono text-2xl font-semibold tracking-tight tabular-nums">{nextPour.scheduled_date||'Date not set'}</div><div className="text-sm text-muted-foreground">{num(nextPour.expected_concrete_yards).toFixed(1)} CY · {nextPour.status}</div></div>}</CardContent></Card>
-   </div>
-
-   <section className="space-y-3">
-    <Card className="border-primary/20 bg-primary/5 shadow-none"><CardContent className="py-5"><p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Next Job Action</p><p className="mt-2 text-lg font-semibold tracking-tight">{p.next_action||'No next action entered yet.'}</p></CardContent></Card>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-     {[['Approve Crew Time','GPS, hours and tasks','/field/review'],['Buy Materials','Quotes, POs and bills','/procurement'],['Extra Work','Protect change-order work','/change-orders'],['Job Forecast','See where cost and margin are headed','/forecast'],['Get Paid','Invoice and collect customer money','/billing'],['Plan a Pour','Cash and cost check before placement','/pour-control']].map(([title,copy,href])=><Link className="group rounded-lg border bg-card p-4 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={href} key={href}><div className="text-sm font-medium group-hover:text-accent-foreground">{title}</div><div className="mt-1 text-sm text-muted-foreground">{copy}</div></Link>)}
-    </div>
-   </section>
+   {!financialAvailable?<p className="sr-only">Project financial summary unavailable; project contract data remains the fallback for the record header.</p>:null}
   </div>
  </AppShell>;
 }
