@@ -289,14 +289,13 @@ Shared functional motion language used by shell navigation and interactive primi
 
 ### Global navigation behavior
 
-Category navigation panels may combine:
+The ADR-024 Hybrid command shell uses role-priority direct destinations, a structured `More` menu, first-class command/search, and an optional project-context row. Motion remains functional and restrained:
 
-- opacity 0 → 1;
-- short negative Y translation → 0;
-- very slight scale → 1;
-- animated chevron/indicator;
-- horizontal active-category indicator movement;
-- content/container morph when switching among already-open categories where practical.
+- direct-destination active state changes use ordinary semantic surface/text state rather than decorative movement;
+- menus, sheets, and command surfaces may use the shared short opacity/translation/scale transitions;
+- chevrons or indicators may animate only to communicate open/closed or selected state;
+- navigation transitions must not delay access to estimator, project, field, or finance work;
+- the removed permanent category row is not a motion or layout dependency of the Hybrid shell.
 
 ### Rules
 
@@ -308,15 +307,23 @@ Category navigation panels may combine:
 
 ## Shell compositions built from the pack
 
-The global shell additionally standardizes these Carez-owned compositions:
+The global shell additionally standardizes these Carez-owned responsibilities:
 
-- `CarezTopShell` — compact application header;
-- `CarezCategoryNav` — global category row;
-- `CarezNavPanel` — animated wide dropdown/navigation panel;
-- `CarezProjectSwitcher` — project/company context selection where relevant;
-- `CarezCommandMenu` — global search/command palette.
+- `CarezTopShell` — compact role-adaptive application header with company identity, 3–5 pinned role-priority destinations, structured `More`, search/command, notifications, and account/system access;
+- pinned navigation + `Manage navigation` — versioned device-local pin/unpin/reorder/reset behavior, scoped by authenticated user and company; profile role supplies defaults only and never grants authorization;
+- `CarezProjectSwitcher` / project context bar — compact active-project identity and searchable/recent project switching only when an authoritative project is resolved from `/projects/[id]` or `/job-setup/[projectId]`; global, Takeoff, and Estimate routes do not fabricate project context;
+- `CarezCommandMenu` — global command/search over navigation destinations, accessible projects, and device-local recent workspaces/projects;
+- mobile bottom navigation + `More` sheet — the same navigation model expressed as role-priority mobile destinations with touch-safe access to the complete structured destination set.
 
-Names may change during implementation if repository conventions require it, but the responsibilities stay canonical.
+The shell hierarchy is:
+
+```text
+global shell → optional project context → workspace/object header → route content
+```
+
+Workspace/object headers remain owned by their routes or later shared-header work; page-specific actions do not move into the global shell.
+
+ADR-016 remains the implemented-shell authority until this replacement is browser-accepted on staging. Source implementation, automated validation, or deployment readiness alone does not supersede ADR-016.
 
 ## Module adoption rule
 
@@ -332,4 +339,4 @@ When converting a module:
 
 ## Acceptance
 
-The pack is accepted in implementation only when shared source components exist, are used by representative module surfaces, pass relevant accessibility/keyboard checks, typecheck/tests/build pass, and browser evidence confirms the components behave correctly in the dark Carez workspace.
+The pack is accepted in implementation only when shared source components exist, are used by representative module surfaces, pass relevant accessibility/keyboard checks, typecheck/tests/build pass, and browser evidence confirms the components behave correctly in representative Carez light and dark workspaces.

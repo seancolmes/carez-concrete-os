@@ -25,7 +25,7 @@ import {COMPANY_BRANDING_CHANGED_EVENT,FALLBACK_COMPANY_LOGO,companyLogoPublicUr
 import {
   MAX_DESKTOP_PINNED_DESTINATIONS,MAX_RECENT_DESTINATIONS,MAX_RECENT_PROJECTS,
   NAVIGATION_GROUPS,NAVIGATION_PREFERENCE_VERSION,buildProjectSwitchHref,getDestinationById,
-  getRoleDefaultDestinationIds,matchesDestinationPath,movePinnedDestination,navigationPreferenceStorageKey,
+  getRoleDefaultDestinationIds,movePinnedDestination,navigationPreferenceStorageKey,
   normalizeNavigationPreference,normalizeRecentDestinationIds,normalizeRecentProjectIds,prependRecentId,
   recentDestinationsStorageKey,recentProjectsStorageKey,resetNavigationPreference,resolveActiveDestination,
   resolveProjectRoute,togglePinnedDestination,type NavigationDestination,type NavigationIconKey,
@@ -67,7 +67,7 @@ function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestinat
   return <nav aria-label="Pinned Carez navigation" className="flex min-w-0 items-center gap-0.5">
     {destinations.map(destination=>{
       const Icon=NAVIGATION_ICONS[destination.icon];
-      const active=matchesDestinationPath(pathname,destination.href);
+      const active=resolveActiveDestination(pathname)?.id===destination.id;
       return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined}
         className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1.5 px-2 text-xs',active&&'bg-muted text-foreground')}>
         <Icon className="size-3.5 text-muted-foreground"/><span className="truncate">{destination.label}</span>
@@ -86,7 +86,7 @@ function CarezMoreMenu({pinnedIds,pathname,onNavigate,onManage,className}:{pinne
         if(!items.length)return null;
         return <DropdownMenuGroup key={group.id}>
           <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
-          {items.map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <DropdownMenuItem key={destination.id} onClick={()=>onNavigate(destination.href)} className={cn('min-h-8 gap-2',matchesDestinationPath(pathname,destination.href)&&'bg-accent text-accent-foreground')}>
+          {items.map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <DropdownMenuItem key={destination.id} onClick={()=>onNavigate(destination.href)} className={cn('min-h-8 gap-2',active?.id===destination.id&&'bg-accent text-accent-foreground')}>
             <Icon className="size-3.5 text-muted-foreground"/><span className="min-w-0 flex-1 truncate">{destination.label}</span>
           </DropdownMenuItem>})}
         </DropdownMenuGroup>;
@@ -194,14 +194,14 @@ function CarezCommandMenu({open,onOpenChange,onNavigate,recentDestinationIds,pro
 function CarezMobileMoreSheet({open,onOpenChange,pathname,onNavigate,onManage}:{open:boolean;onOpenChange:(open:boolean)=>void;pathname:string;onNavigate:(href:string)=>void;onManage:()=>void}){
   return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="left" className="w-[88vw] max-w-sm gap-0 p-0">
     <SheetHeader className="border-b border-border"><SheetTitle>More</SheetTitle><SheetDescription>All Carez destinations by business domain.</SheetDescription></SheetHeader>
-    <div className="min-h-0 flex-1 overflow-y-auto p-2">{NAVIGATION_GROUPS.map(group=><section key={group.id} className="mb-3"><div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">{group.label}</div><div className="space-y-0.5">{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=matchesDestinationPath(pathname,destination.href);return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} onClick={event=>{event.preventDefault();onNavigate(destination.href)}} className={cn('flex min-h-11 items-center gap-2 rounded-md px-2.5 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30',active&&'bg-muted text-foreground')}><Icon className="size-4 text-muted-foreground"/><span>{destination.label}</span></Link>})}</div></section>)}</div>
+    <div className="min-h-0 flex-1 overflow-y-auto p-2">{NAVIGATION_GROUPS.map(group=><section key={group.id} className="mb-3"><div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">{group.label}</div><div className="space-y-0.5">{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=resolveActiveDestination(pathname)?.id===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} onClick={event=>{event.preventDefault();onNavigate(destination.href)}} className={cn('flex min-h-11 items-center gap-2 rounded-md px-2.5 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30',active&&'bg-muted text-foreground')}><Icon className="size-4 text-muted-foreground"/><span>{destination.label}</span></Link>})}</div></section>)}</div>
     <SheetFooter className="border-t border-border"><Button type="button" variant="outline" className="h-11 justify-start" onClick={()=>{onOpenChange(false);onManage()}}><SlidersHorizontal/>Manage navigation</Button></SheetFooter>
   </SheetContent></Sheet>;
 }
 
 function CarezMobileBottomNav({destinations,pathname,onOpenMore}:{destinations:NavigationDestination[];pathname:string;onOpenMore:()=>void}){
   return <nav aria-label="Primary mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-border bg-background/98 px-1 backdrop-blur-xl md:hidden">
-    {destinations.slice(0,3).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=matchesDestinationPath(pathname,destination.href);return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} className={cn('flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40',active&&'text-foreground')}><Icon className="size-4"/><span className="max-w-full truncate">{destination.label}</span></Link>})}
+    {destinations.slice(0,3).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=resolveActiveDestination(pathname)?.id===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} className={cn('flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40',active&&'text-foreground')}><Icon className="size-4"/><span className="max-w-full truncate">{destination.label}</span></Link>})}
     <Button type="button" variant="ghost" className="h-auto min-w-0 flex-1 flex-col gap-0.5 rounded-md px-1 text-[10px] font-normal text-muted-foreground" onClick={onOpenMore}><Ellipsis className="size-4"/><span>More</span></Button>
   </nav>;
 }
