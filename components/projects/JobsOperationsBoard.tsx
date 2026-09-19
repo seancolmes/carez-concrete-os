@@ -155,7 +155,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
           onClick={()=>setSelectedId(row.id)}
           onDoubleClick={()=>router.push(`/projects/${row.id}`)}
           tabIndex={0}
-          onKeyDown={event=>{if(event.key==='Enter')router.push(`/projects/${row.id}`)}}
+          onKeyDown={event=>{if(event.key==='Enter'&&event.currentTarget===event.target)router.push(`/projects/${row.id}`)}}
         >
           <CarezDataGridCell className="min-w-60">
             <div className="flex items-start gap-3">
@@ -206,7 +206,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
     </div>
 
     <Sheet open={Boolean(selected&&!wideInspector)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
-      {selected&&!wideInspector?<SheetContent className="w-[94vw] overflow-hidden p-0 sm:max-w-md"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
+      {selected&&!wideInspector?<SheetContent aria-label={'Job inspector: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-md"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
     </Sheet>
   </div>;
 }

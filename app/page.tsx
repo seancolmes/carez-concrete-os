@@ -11,6 +11,7 @@ import {buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Progress} from '@/components/ui/progress';
 import {createClient} from '@/lib/supabase/server';
+import {resolveOperationalState} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
@@ -22,8 +23,6 @@ const fmtShortDate=(v?:string|null)=>v?new Intl.DateTimeFormat('en-US',{month:'s
 const fmtTime=(v?:string|null)=>{if(!v)return '';const [h,m]=String(v).split(':').map(Number);const d=new Date();d.setHours(h,m||0,0,0);return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);};
 const joinedProject=(item:any)=>Array.isArray(item?.projects)?item.projects[0]:item?.projects;
 const joinedCustomer=(project:any)=>Array.isArray(project?.customers)?project.customers[0]:project?.customers;
-const titleCase=(v?:string|null)=>String(v||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
-
 type AttentionTone='danger'|'warning'|'info';
 type Attention={priority:number;tone:AttentionTone;subject:string;issue:string;when:string;href:string;action:string;};
 export default async function HomePage(){
@@ -127,6 +126,7 @@ export default async function HomePage(){
     if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Cashflow'});
   }
   attention.sort((a,b)=>a.priority-b.priority);
+  const attentionStatusTone=attention.some(item=>item.tone==='danger')?'error':attention.some(item=>item.tone==='warning')?'warning':attention.length?'info':'neutral';
 
   const openProposals=(proposals||[]).filter((row:any)=>['sent','viewed','needs_reply'].includes(row.conversion_stage));
   const needsReply=openProposals.filter((row:any)=>row.conversion_stage==='needs_reply').length;
@@ -162,7 +162,7 @@ export default async function HomePage(){
             <h2 id="today-attention-heading" className="text-sm font-semibold">Management attention</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Field blockers, cash exceptions, and follow-ups in consequence order.</p>
           </div>
-          <CarezStatus tone={attention.length?'error':'neutral'} label={String(attention.length)}/>
+          <CarezStatus tone={attentionStatusTone} label={String(attention.length)}/>
         </div>
         {attention.length===0
           ?<div className="p-3"><CarezEmptyState title="No urgent exceptions" description="Today's work can run from the current plan."/></div>
@@ -256,11 +256,12 @@ export default async function HomePage(){
               const p=row.project;
               const location=[p.city,p.state].filter(Boolean).join(', ');
               const nextOperation=row.next?.title||(row.state==='hold'?'Clear current hold':num(row.r.ready_operations)>0?'Choose next ready operation':p.next_action||'Plan next work');
+              const operational=resolveOperationalState(row.state);
               const readiness=row.state==='hold'?{tone:'blocked' as const,label:'Blocked'}:row.state==='ready'?{tone:'success' as const,label:'Ready'}:{tone:'neutral' as const,label:'Plan'};
               const hasBudget=Boolean(row.budget?.project_id);
               return <CarezDataGridRow key={p.id}>
                 <CarezDataGridCell><Link href={'/projects/'+p.id} className="font-medium hover:text-primary">{p.job_number} · {p.name}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<span className="block text-[11px] font-normal text-muted-foreground">{location}</span>:null}</Link></CarezDataGridCell>
-                <CarezDataGridCell><CarezStatus tone={p.status==='on_hold'?'blocked':'info'} label={titleCase(p.status)}/></CarezDataGridCell>
+                <CarezDataGridCell>{operational?<CarezStatus tone={operational.tone} label={operational.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
                 <CarezDataGridCell><span className="font-medium">{nextOperation}</span>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':num(row.r.blocked_operations)+' operation'+(num(row.r.blocked_operations)===1?'':'s')+' blocked'}</span>:null}</CarezDataGridCell>
                 <CarezDataGridCell numeric>{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></CarezDataGridCell>
                 <CarezDataGridCell><span className="font-medium">{row.field.working?row.field.working+' working':'—'}</span><span className="mt-0.5 block text-xs text-muted-foreground">{row.field.review?row.field.review+' timecard review':row.field.working?'Active field shift':'No active shift'}</span></CarezDataGridCell>
