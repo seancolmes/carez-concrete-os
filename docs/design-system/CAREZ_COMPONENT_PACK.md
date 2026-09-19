@@ -336,7 +336,7 @@ Issue #72 implements the reusable presentation/state foundation used by later wo
 
 `CarezDataGrid` provides selected-row and sortable-header semantics, numeric/text alignment, density-token row sizing, sticky headers, loading/empty/error composition, and optional resize affordance. Virtualization, grouping, copy/paste, inline editing, and saved column state remain consumer-driven additions rather than speculative base behavior.
 
-Issue #72 source/build success does not by itself mark this slice accepted. Rendered consumers still require the issue's staging browser acceptance matrix before `CURRENT_STATE.md` is reconciled.
+Issue #72 passed authenticated staging browser QA on 2026-09-19 at staging SHA `40259ae36e11091239841e5bfadc7c3dd24623c0`. The shared component/state foundation is therefore accepted for reuse by the refined-operations and specialist reference slices; unadopted components still receive workflow-specific browser acceptance when later consumed.
 
 ## Shell compositions built from the pack
 

@@ -14,6 +14,16 @@ Outcome:
 - authenticated shell and Takeoff visual QA complete;
 - no geometry, lineage, RLS, or migration regressions.
 
+## P0.2 — Precision Grid shared UI foundation
+
+Outcome:
+- Issue #63 Precision Grid token/theme/density foundation is accepted;
+- Issue #71 role-adaptive Hybrid global shell + authoritative project-context navigation is accepted;
+- Issue #72 shared component/state/accessibility foundation is accepted, including semantic status/save/authority/provenance/feedback, Inspector, Record Header, shared Project Context Bar, semantic Number Field variants, and Data Grid state/accessibility foundations;
+- the next UI/UX implementation gate is the independently planned refined-operations reference slice `Today → Project → Project Overview`;
+- the specialist `Project → Takeoff` reference slice follows only after the refined-operations slice is accepted;
+- broad module migration does not begin until both reference expressions prove the shared system in rendered staging.
+
 ## P0.5 — Concrete Condition + 3D Takeoff foundation
 
 Outcome:
