@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-18  
+Last reconciled: 2026-09-19  
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -33,7 +33,7 @@ User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MOD
 - Platform Condition Archetype → Company Condition Template → Project Concrete Condition ownership is versioned; published/verified history remains immutable.
 - Pricing overrides and commercial-document issuance snapshots remain preserved.
 - Production Quantity, Direct Cost, and Sell remain separate concepts.
-- ADR-024 Precision Grid is the active application visual/theme/token/density authority. ADR-016 remains the currently implemented shell until the dedicated role-adaptive shell/navigation subproject replaces it; ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
+- ADR-024 Precision Grid is the active application visual/theme/token/density and implemented global shell/navigation authority. Issue #71's role-adaptive Hybrid command shell is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
 - Accepted Job Spine / bid-to-field commercial and execution lineage remains the architecture baseline.
 - Derived 3D is verification from authoritative persisted 2D/Condition facts, not a second quantity engine.
 
@@ -65,19 +65,26 @@ Issue #55 is no longer an active sequencing gate. Do not reopen or re-test it wi
 
 ## Global UI / shared system state
 
-Issue #44 is **accepted/closed** at staging SHA `388b8f35682ddd23c9c9f69a907d65d724e63fa2`; the prior dark-shadcn route conversion, compatibility-layer removal, and route-family browser acceptance are historical baseline, not an active implementation gate.
+Issue #44 is **accepted/closed** at staging SHA `388b8f35682ddd23c9c9f69a907d65d724e63fa2`; that broad shadcn route-conversion effort is historical baseline, not an active implementation gate.
+
+Issue #63 — Precision Grid token/theme/density foundation — is **accepted** on staging.
+
+Issue #71 — role-adaptive global shell + navigation context — is **accepted/passed** as of 2026-09-19 at staging SHA `876737182fc3eec1ea38e67a04cf87dfa0d6ed1f`. Matching GitHub Actions validation passed, the matching Vercel staging deployment reached READY, and authenticated browser QA passed desktop, project-context/switching, navigation personalization, command palette, responsive/mobile behavior, and light/dark presentation.
 
 Implemented on staging:
 
-- source-owned shadcn/Base UI primitives, Tailwind v4, semantic dark tokens, and shared Carez components;
-- ADR-016 compact top menubar in `components/AppShell.tsx`;
-- permanent global desktop left rail removed;
+- source-owned shadcn/Base UI primitives, Tailwind v4, ADR-024 Precision Grid semantic light/dark tokens, density controls, and shared Carez components;
+- ADR-024 Hybrid command shell in `components/AppShell.tsx`: company identity, 3–5 role-priority destinations, structured `More`, command/search, notifications affordance, and account/system access;
+- canonical navigation model and deterministic shell logic in `lib/ui/navigation.ts`;
+- versioned device-local navigation personalization scoped by authenticated user + company, with pin/unpin/reorder/reset and bounded role defaults;
+- command palette navigation plus accessible-project and recent-workspace/project sources;
+- project context row only for authoritative `/projects/[id]` and `/job-setup/[projectId]` routes, with safe project-switch route preservation/fallback;
+- role-priority mobile bottom navigation plus touch-safe `More` sheet;
+- permanent global desktop left rail and ADR-016 static category shell are not part of the accepted runtime;
 - shared Carez Data Grid, Number Field, Date/Time Field/Range, Condition Tree, Toolbar, Resizable Workspace, File Upload, Loading States, Motion helpers, Related Tools, and Switch patterns;
-- `/schedule` source conversion exists but rendered acceptance remains pending;
-- Settings/company branding is implemented with tenant-scoped storage/RLS and commercial-document snapshot preservation;
-- `app/carez-shadcn-compat.css` and remaining legacy structural presentation are still temporary migration debt and must be removed before Issue #44 closes.
+- Settings/company branding remains implemented with tenant-scoped storage/RLS and commercial-document snapshot preservation.
 
-A successful source/build/deployment checkpoint is not rendered acceptance. Pending Issue #44 surfaces still require authenticated browser QA on the stable staging URL.
+ADR-016 is now historical for compatible retained principles; ADR-024 governs the accepted global shell/navigation behavior. Do not regress to the old static category shell or a permanent desktop left rail.
 
 ## Derived 3D verification
 
@@ -87,9 +94,9 @@ Signed-in stable-staging browser acceptance and bounded expansion remain pending
 
 ## Active priorities
 
-Issue #63 — Precision Grid canonical authority + token foundation — is accepted on staging. The accepted foundation includes first-class Light/Dark/System preference, pre-hydration theme resolution, device-local appearance persistence, Inter + IBM Plex Mono typography roles, Precision Grid semantic light/dark tokens, root default/compact/comfortable density state, and Settings appearance controls. This does not imply that the later role-adaptive shell, project-context layer, shared-component expansion, or route/module redesign slices are implemented.
+Issue #63 — Precision Grid canonical authority + token foundation — is accepted on staging. Issue #71 — Global shell + navigation context — is also accepted on staging. Together they establish the current application-wide theme/token/density foundation and role-adaptive project-aware shell, without implying that Subproject 3 shared-component/state expansion or the later Today/Project/Takeoff reference-slice redesigns are complete.
 
-1. Continue the approved Carez OS major UI/UX redesign through the next independently planned subproject: Global shell + navigation context. Preserve ADR-024 and the accepted Issue #63 foundation while doing so.
+1. Independently plan the next Carez OS UI/UX redesign slice before implementation. The next redesign work begins from the accepted Issue #63 + Issue #71 foundation; do not reopen or reimplement those completed slices without a regression or explicit follow-on requirement.
 2. Continue Issue #41 derived-3D acceptance/expansion from the accepted current Condition contracts and authoritative persisted 2D geometry.
 3. Resolve Issue #59 before any production migration promotion or `staging` → `main` release that depends on the canonical QA migration chain.
 4. Preserve only active canonical/supporting documentation in the repository tree. Superseded working documents and completed implementation checkpoint files should be deleted after their surviving truth is absorbed by canonical owners; Git history and closed issues preserve historical evidence.

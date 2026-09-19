@@ -1,11 +1,11 @@
 # ADR-016 — Top navigation shell and shared Carez component pack
 
-Status: Accepted
+Status: Accepted historical principles; global shell details superseded by ADR-024
 Date: 2026-09-04
 Owner: 95 — UX & Design System
 Supersedes: ADR-006 in full; the shell-specific portions of ADR-012, ADR-015, the Takeoff module spec, and the Concrete Condition workstation target where they require a permanent global left app rail.
 
-Transition under ADR-024: this ADR remains the current implemented shell contract until the dedicated role-adaptive Hybrid command-shell/project-context subproject is implemented and browser-accepted. ADR-024 is already authoritative for visual theme, token, density, and the approved end-state shell architecture. No permanent global desktop left rail returns.
+Transition completed under ADR-024: Issue #71's role-adaptive Hybrid command-shell/project-context implementation passed authenticated staging browser QA on 2026-09-19 at staging SHA `876737182fc3eec1ea38e67a04cf87dfa0d6ed1f`. ADR-024 is now the implemented global shell/navigation authority. This ADR remains historical authority only for compatible retained principles such as no permanent global desktop left rail, quiet global chrome, contextual module panes, tenant branding, and source-owned shared Carez components.
 
 ## Context
 

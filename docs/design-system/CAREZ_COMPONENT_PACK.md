@@ -323,7 +323,7 @@ global shell → optional project context → workspace/object header → route 
 
 Workspace/object headers remain owned by their routes or later shared-header work; page-specific actions do not move into the global shell.
 
-ADR-016 remains the implemented-shell authority until this replacement is browser-accepted on staging. Source implementation, automated validation, or deployment readiness alone does not supersede ADR-016.
+Issue #71 passed authenticated staging browser QA on 2026-09-19 at staging SHA `876737182fc3eec1ea38e67a04cf87dfa0d6ed1f`. ADR-024 is therefore the implemented global shell/navigation authority. ADR-016 remains historical for compatible retained principles and no longer governs the superseded static-category shell.
 
 ## Module adoption rule
 

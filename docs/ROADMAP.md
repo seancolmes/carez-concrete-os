@@ -5,10 +5,13 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 ## P0.1 — Shell + Takeoff acceptance
 
 Outcome:
-- ADR-016 Option D single compact desktop application menubar with inline global categories and anchored animated menus replaces both the permanent global desktop left rail and the superseded stacked second global navigation row;
-- module-specific contextual panes remain inside their owning workspaces;
+- ADR-024 role-adaptive Hybrid command shell is the accepted global shell: company identity, 3–5 role-priority destinations, structured `More`, first-class command/search, notifications affordance, and account/system controls;
+- versioned device-local navigation personalization supports pin/unpin/reorder/reset without changing authorization;
+- project context appears only when an authoritative Project is resolved, and project switching preserves only explicitly safe workspace mappings;
+- mobile uses role-priority bottom navigation plus `More`, while module-specific contextual panes remain inside their owning workspaces;
+- the permanent global desktop left rail and ADR-016 static category shell remain retired;
 - first shared Carez component pack is introduced and reused across converted surfaces;
-- authenticated Takeoff visual QA complete;
+- authenticated shell and Takeoff visual QA complete;
 - no geometry, lineage, RLS, or migration regressions.
 
 ## P0.5 — Concrete Condition + 3D Takeoff foundation
