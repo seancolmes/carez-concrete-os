@@ -126,7 +126,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
 
   const grid=<CarezDataGrid
     toolbar={toolbar}
-    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select a row to inspect. Enter or double-click opens the project.</span></>}
+    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select a row to inspect. Space selects; Enter or double-click opens the project.</span></>}
     isEmpty={filtered.length===0}
     empty={<CarezEmptyState title="No jobs match this view" description="Adjust or reset the current filters." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/>}
   >
@@ -155,7 +155,11 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
           onClick={()=>setSelectedId(row.id)}
           onDoubleClick={()=>router.push(`/projects/${row.id}`)}
           tabIndex={0}
-          onKeyDown={event=>{if(event.key==='Enter'&&event.currentTarget===event.target)router.push(`/projects/${row.id}`)}}
+          onKeyDown={event=>{
+            if(event.currentTarget!==event.target)return;
+            if(event.key===' '){event.preventDefault();setSelectedId(row.id);return;}
+            if(event.key==='Enter')router.push(`/projects/${row.id}`);
+          }}
         >
           <CarezDataGridCell className="min-w-60">
             <div className="flex items-start gap-3">
