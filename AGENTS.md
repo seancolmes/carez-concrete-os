@@ -36,7 +36,7 @@ When connected GitHub/Vercel/Supabase tools are available, ChatGPT may inspect, 
 
 ## UI
 
-ADR-024 is the active Precision Grid visual/theme/token/density authority. ADR-016 remains the implemented shell until its dedicated replacement slice. ADR-020 remains the Takeoff workstation authority. Reuse `docs/design-system/CAREZ_COMPONENT_PACK.md`. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed tokens, or a second component system.
+ADR-024 is the active Precision Grid visual/theme/token/density and implemented global shell/navigation authority. Issue #71 is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 remains the Takeoff workstation authority. Reuse `docs/design-system/CAREZ_COMPONENT_PACK.md`. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed tokens, or a second component system.
 
 ## Validate
 
