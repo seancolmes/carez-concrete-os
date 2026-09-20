@@ -37,7 +37,7 @@ export type TakeoffContextNavigatorProps={
   conditions:TakeoffConditionNavigatorRow[];
   selectedConditionVersionId:string|null;
   onSelectCondition:(conditionVersionId:string)=>void;
-  onCreateCondition:()=>void;
+  onCreateCondition:(input:{archetypeKey:ConditionArchetypeKey;code:string;name:string})=>void|Promise<void>;
   onDuplicateCondition:(conditionVersionId:string)=>void;
   hiddenConditionVersionIds:Set<string>;
   isolatedConditionVersionId:string|null;
@@ -84,10 +84,15 @@ export function TakeoffContextNavigator(props:TakeoffContextNavigatorProps){
       event.preventDefault();selectRow(index);
     }
   };
-  const createCondition=()=>{
+  const createCondition=async()=>{
     if(props.locked||pending||!code.trim()||!name.trim())return;
     setPending(true);
-    Promise.resolve(props.onCreateCondition()).finally(()=>{setPending(false);setCreateOpen(false);});
+    try{
+      await props.onCreateCondition({archetypeKey:family,code:code.trim(),name:name.trim()});
+      setCreateOpen(false);
+    }finally{
+      setPending(false);
+    }
   };
 
   return <nav className={styles.navigator} aria-label="Takeoff context navigator" onKeyDown={event=>event.stopPropagation()}>
