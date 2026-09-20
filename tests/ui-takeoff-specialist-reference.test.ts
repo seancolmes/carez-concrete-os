@@ -93,3 +93,20 @@ test('Condition-first drawing uses a direct canvas API instead of browser events
   assert.match(canvas,/onRoleMeasurementRequestConsumed/);
   assert.doesNotMatch(canvas,/carez:start-condition-takeoff|CustomEvent/);
 });
+
+
+test('specialist worksheet exposes exactly six governed views and mature dock mechanics',()=>{
+  const worksheet=read('components/takeoff/TakeoffWorksheet.tsx');
+  const projector=read('lib/takeoff/specialistWorksheet.ts');
+  assert.match(projector,/WORKSHEET_VIEWS=\['quantities','resources','labor','pricing','holds','recap'\] as const/);
+  assert.match(worksheet,/This Sheet/);
+  assert.match(worksheet,/All Sheets/);
+  assert.match(worksheet,/Resize Quantity \/ Estimate Worksheet/);
+  assert.match(worksheet,/columnResizeHandle/);
+  assert.match(worksheet,/onDoubleClick/);
+  assert.match(worksheet,/localStorage/);
+  assert.match(worksheet,/visibleRows/);
+  assert.match(worksheet,/selectedMeasurementId/);
+  assert.match(worksheet,/selectedConditionVersionId/);
+  assert.doesNotMatch(worksheet,/customer.?price|margin|markup|overhead|reserve|sell.?price/i);
+});

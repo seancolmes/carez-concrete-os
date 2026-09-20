@@ -51,3 +51,17 @@ test('Condition worksheet uses installed rebar and Condition labor instead of co
   assert.match(projected.status, /Qty ready/);
   assert.equal(projected.pricingMissing, 2);
 });
+
+
+test('specialist worksheet preserves the legacy Not calculated and Pending trust contract', async () => {
+  const { buildSpecialistWorksheetModel } = await import('../lib/takeoff/specialistWorksheet.ts');
+  const base = {
+    measurements: [{ id: 'm1', sheet_id: 's1', estimate_section_id: null, name: 'Run', location: null, raw_quantity: 10, raw_unit: 'LF' }],
+    conditions: [{ condition_version_id: 'v1', code: 'F1', name: 'Footing', measurement_count: 1 }],
+    roles: [{ condition_version_id: 'v1', measurement_id: 'm1', role_key: 'run', role_instance_key: 'default' }],
+    modules: [], outputs: [], holds: [], sections: [], sheets: [{ id: 's1', sheet_number: 'S1', page_number: 1 }],
+    legacyOutputs: [], pendingConditionVersionIds: new Set<string>(),
+  };
+  assert.equal(buildSpecialistWorksheetModel(base).quantities[0].state, 'unknown');
+  assert.equal(buildSpecialistWorksheetModel({ ...base, pendingConditionVersionIds: new Set(['v1']) }).quantities[0].state, 'pending');
+});

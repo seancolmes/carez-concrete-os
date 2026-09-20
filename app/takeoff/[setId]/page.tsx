@@ -9,6 +9,7 @@ import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNam
 import pageStyles from './TakeoffDrawingPage.module.css';
 import { resolveDerived3DSnapshot } from '@/lib/takeoff/conditions/derived3d/resolve.server';
 import { TakeoffWorkspaceIdentity } from '@/components/takeoff/TakeoffWorkspaceIdentity';
+import { buildSpecialistWorksheetModel } from '@/lib/takeoff/specialistWorksheet';
 
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
@@ -99,7 +100,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   let summaries: any[] = [];
   if (measurementIds.length) {
     const { data } = await supabase.from('takeoff_measurement_outputs')
-      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
+      .select('id,measurement_id,component_key,label,estimate_item_type,catalog_item_id,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace,generated_estimate_item_id')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
     summaries = data || [];
@@ -190,7 +191,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         .in('condition_version_id', conditionVersionIds)
         .order('sort_order'),
       supabase.from('project_condition_outputs')
-        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id')
+        .select('id,condition_version_id,module_instance_id,driver_measurement_role_id,output_key,output_instance_key,label,resource_class,production_quantity,production_unit,status,estimated_man_hours,unit_cost,direct_cost,pricing_status,provenance,legacy_takeoff_output_id,generated_estimate_item_id')
         .eq('company_id', companyId)
         .in('condition_version_id', conditionVersionIds)
         .order('output_key'),
@@ -228,6 +229,79 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       reconciliation: conditionReconciliation || [],
     };
   }
+
+  conditionData.specialistWorksheetModel = buildSpecialistWorksheetModel({
+    measurements: (measurements || []).map((row: any) => ({
+      id: String(row.id),
+      sheet_id: row.sheet_id ? String(row.sheet_id) : null,
+      estimate_section_id: row.estimate_section_id ? String(row.estimate_section_id) : null,
+      name: String(row.name || 'Takeoff'),
+      location: row.location ? String(row.location) : null,
+      raw_quantity: Number(row.raw_quantity || 0),
+      raw_unit: String(row.raw_unit || ''),
+    })),
+    conditions: (conditionData.conditions || []).map((row: any) => ({
+      condition_version_id: String(row.condition_version_id),
+      code: String(row.code || ''),
+      name: String(row.name || ''),
+      measurement_count: Number(row.measurement_count || 0),
+    })),
+    roles: (conditionData.roles || []).map((row: any) => ({
+      condition_version_id: String(row.condition_version_id),
+      measurement_id: String(row.measurement_id),
+      role_key: String(row.role_key),
+      role_instance_key: String(row.role_instance_key || 'default'),
+    })),
+    modules: (conditionData.modules || []).map((row: any) => ({
+      condition_version_id: String(row.condition_version_id),
+      module_key: String(row.module_key),
+      instance_key: String(row.instance_key || 'default'),
+      label: String(row.label || row.module_key || ''),
+      enabled: Boolean(row.enabled),
+    })),
+    outputs: (conditionData.outputs || []).map((row: any) => ({
+      id: String(row.id),
+      condition_version_id: String(row.condition_version_id),
+      module_instance_id: row.module_instance_id ? String(row.module_instance_id) : null,
+      driver_measurement_role_id: row.driver_measurement_role_id ? String(row.driver_measurement_role_id) : null,
+      output_key: String(row.output_key || ''),
+      output_instance_key: String(row.output_instance_key || 'default'),
+      label: String(row.label || row.output_key || ''),
+      resource_class: String(row.resource_class || ''),
+      production_quantity: row.production_quantity === null || row.production_quantity === undefined ? null : Number(row.production_quantity),
+      production_unit: String(row.production_unit || ''),
+      status: String(row.status || ''),
+      estimated_man_hours: Number(row.estimated_man_hours || 0),
+      unit_cost: Number(row.unit_cost || 0),
+      direct_cost: Number(row.direct_cost || 0),
+      pricing_status: String(row.pricing_status || ''),
+      provenance: (row.provenance || {}) as Record<string, unknown>,
+      legacy_takeoff_output_id: row.legacy_takeoff_output_id ? String(row.legacy_takeoff_output_id) : null,
+      generated_estimate_item_id: row.generated_estimate_item_id ? String(row.generated_estimate_item_id) : null,
+    })),
+    holds: (conditionData.holds || []).map((row: any) => ({
+      id: String(row.id),
+      condition_version_id: String(row.condition_version_id),
+      output_id: row.output_id ? String(row.output_id) : null,
+      hold_code: String(row.hold_code || ''),
+      status: String(row.status || ''),
+      message: String(row.message || ''),
+    })),
+    sections: (sections || []).map((row: any) => ({ id: String(row.id), name: String(row.name || '') })),
+    sheets: (sheets || []).map((row: any) => ({
+      id: String(row.id),
+      sheet_number: row.sheet_number ? String(row.sheet_number) : null,
+      page_number: Number(row.page_number || 0),
+    })),
+    legacyOutputs: summaries.map((row: any) => ({
+      id: String(row.id),
+      measurement_id: String(row.measurement_id),
+      catalog_item_id: row.catalog_item_id ? String(row.catalog_item_id) : null,
+      cost_source: row.cost_source ? String(row.cost_source) : null,
+      resource_behavior: row.resource_behavior ? String(row.resource_behavior) : null,
+    })),
+    pendingConditionVersionIds: new Set<string>(),
+  });
 
   conditionData.derived3DSnapshot = resolveDerived3DSnapshot(companyId, setId, conditionData, measurements || [], sheets || [], scaleRegions || []);
 

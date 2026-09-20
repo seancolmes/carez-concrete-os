@@ -51,3 +51,12 @@ test('direct costs land in one and only one worksheet bucket', () => {
     total: 500,
   });
 });
+
+
+test('specialist Takeoff pricing exposes Direct Cost override only', () => {
+  const source = readFileSync(new URL('../components/takeoff/TakeoffWorksheet.tsx', import.meta.url), 'utf8');
+  assert.match(source, /updateTakeoffOutputPrice/);
+  assert.match(source, /legacyTakeoffOutputId/);
+  assert.match(source, /name="unit_cost"/);
+  assert.doesNotMatch(source, /customer.?price|margin|markup|overhead|reserve|sell.?price|name="sell"/i);
+});

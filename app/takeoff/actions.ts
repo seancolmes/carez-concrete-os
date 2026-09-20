@@ -105,12 +105,14 @@ export async function createAssemblyMeasurement(fd: FormData) {
 
 export async function updateTakeoffOutputPrice(fd: FormData) {
   const outputId = String(fd.get('output_id') || '');
+  const takeoffSetId = String(fd.get('takeoff_set_id') || '');
   const unitCost = num(fd.get('unit_cost'));
   if (!outputId || !Number.isFinite(unitCost) || unitCost < 0) throw new Error('Enter a valid unit cost.');
   const { supabase } = await ctx();
   const { error } = await supabase.rpc('carez_update_takeoff_output_price', { p_output_id: outputId, p_unit_cost: unitCost });
   if (error) throw new Error(error.message);
   revalidatePath('/takeoff');
+  if (takeoffSetId) revalidatePath(`/takeoff/${takeoffSetId}`);
   revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');
 }
