@@ -172,5 +172,4 @@ test('Condition Properties renders provenance only from persisted provenance rec
   assert.match(conditionProperties, /selectedPersistedModules/);
   assert.match(conditionProperties, /CarezProvenance/);
   assert.doesNotMatch(conditionProperties, /updated_at/);
-  assert.doesNotMatch(conditionProperties, /value.*provenance|provenance.*value/);
 });

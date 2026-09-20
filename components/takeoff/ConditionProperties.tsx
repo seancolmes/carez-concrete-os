@@ -111,8 +111,8 @@ export function ConditionProperties({editor,locked=false,onStartRoleMeasurement,
   const decide=(action:DirtySwitchAction)=>void choosePendingSwitchAction(action);
   const editable=Boolean(!locked&&!saveState.pending&&selectedVersion?.status==='draft');
 
-  const moduleKeys=useMemo(
-    ()=>[...new Set((moduleConfigurations||[]).map((module:any)=>String(module.moduleKey)))],
+  const moduleKeys=useMemo<string[]>(
+    ()=>Array.from(new Set<string>((moduleConfigurations||[]).map((module:any)=>String(module.moduleKey)))),
     [moduleConfigurations],
   );
 
