@@ -6,6 +6,26 @@ import {resolveProjectRoute} from '../lib/ui/navigation.ts';
 const read=(path:string)=>
   readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
+
+
+test('Condition Properties is the only active property authority',()=>{
+  const properties=read('components/takeoff/ConditionProperties.tsx');
+  for(const label of ['Scope','Concrete','Forms','Rebar','Labor','Review','Save &amp; Recalculate']){
+    assert.match(properties,new RegExp(label));
+  }
+  assert.match(properties,/ConditionModuleEditor/);
+  assert.match(properties,/ConditionRolePicker/);
+  assert.doesNotMatch(properties,/createPortal|querySelector|CustomEvent/);
+});
+
+test('dirty Condition selection requires an explicit decision',()=>{
+  const editor=read('components/takeoff/useConditionEditor.ts');
+  assert.match(editor,/pendingSwitch/);
+  assert.match(editor,/executeDirtySwitchAction/);
+  assert.match(editor,/requestConditionSelection/);
+  assert.doesNotMatch(editor,/CustomEvent|querySelector|createPortal/);
+});
+
 test('Takeoff remains outside authoritative Project Context',()=>{
   assert.equal(resolveProjectRoute('/takeoff/set-1'),null);
 });

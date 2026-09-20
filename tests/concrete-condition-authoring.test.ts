@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { conditionArchetype } from '../lib/takeoff/conditions/catalog.ts';
+import { executeDirtySwitchAction } from '../lib/takeoff/specialistWorkstation.ts';
 import {
   conditionCodeFromName,
   conditionMeasurementMatchesRole,
@@ -86,4 +87,42 @@ test('transactional Condition duplication copies modules but no calculated or ge
   assert.match(migration, /insert into public\.project_condition_module_instances/);
   assert.match(migration, /auth\.uid\(\)/);
   assert.doesNotMatch(migration, /insert into public\.(project_condition_measurement_roles|project_condition_outputs|project_condition_holds|takeoff_measurements|estimate_items)/);
+});
+
+
+function dirtySwitchHarness(saveResult=true){
+  const calls:string[]=[];
+  return{
+    calls,
+    handlers:{
+      restorePersisted:()=>{calls.push('restore');},
+      save:async()=>{calls.push('save');return saveResult;},
+      clearPending:()=>{calls.push('clear');},
+      applyPending:()=>{calls.push('apply');},
+    },
+  };
+}
+
+test('dirty switch cancel keeps the current Condition draft', async () => {
+  const harness=dirtySwitchHarness();
+  assert.equal(await executeDirtySwitchAction('cancel',harness.handlers),false);
+  assert.deepEqual(harness.calls,['clear']);
+});
+
+test('dirty switch discard restores persisted state before applying the pending selection', async () => {
+  const harness=dirtySwitchHarness();
+  assert.equal(await executeDirtySwitchAction('discard',harness.handlers),true);
+  assert.deepEqual(harness.calls,['restore','clear','apply']);
+});
+
+test('dirty switch save-and-switch applies the pending selection only after successful save', async () => {
+  const harness=dirtySwitchHarness(true);
+  assert.equal(await executeDirtySwitchAction('save-and-switch',harness.handlers),true);
+  assert.deepEqual(harness.calls,['save','clear','apply']);
+});
+
+test('dirty switch save failure keeps the current draft and pending selection visible', async () => {
+  const harness=dirtySwitchHarness(false);
+  assert.equal(await executeDirtySwitchAction('save-and-switch',harness.handlers),false);
+  assert.deepEqual(harness.calls,['save']);
 });

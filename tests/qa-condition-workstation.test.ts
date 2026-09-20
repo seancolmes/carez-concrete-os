@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+const conditionProperties = readFileSync('components/takeoff/ConditionProperties.tsx', 'utf8');
+const conditionEditor = readFileSync('components/takeoff/useConditionEditor.ts', 'utf8');
 const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
 const workspaceStyles = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
@@ -156,9 +158,19 @@ test('3D elevation reference exposes governed choices required by projection', (
 });
 
 test('Condition contract version is visible and an older editable Strip draft has a governed latest-contract upgrade action', () => {
-  assert.match(workstation, /Contract v\{contractVersion\}/);
-  assert.match(workstation, /Upgrade to v\{latestContractVersion\}/);
+  assert.match(conditionProperties, /Contract v\{contractVersion\}/);
+  assert.match(conditionProperties, /Upgrade to v\{latestContractVersion\}/);
+  assert.match(conditionEditor, /upgradeProjectConcreteConditionDraftToLatest/);
+  assert.match(conditionEditor, /canUpgrade/);
   assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v5/);
   assert.match(conditionActions, /carez_ensure_strip_footing_v5_template/);
-  assert.match(workstation, /Verified Condition history is never changed/);
+  assert.match(conditionProperties, /Verified Condition history is never changed/);
+});
+
+test('Condition Properties renders provenance only from persisted provenance records', () => {
+  assert.match(conditionProperties, /persistedInputProvenance/);
+  assert.match(conditionProperties, /selectedPersistedModules/);
+  assert.match(conditionProperties, /CarezProvenance/);
+  assert.doesNotMatch(conditionProperties, /updated_at/);
+  assert.doesNotMatch(conditionProperties, /value.*provenance|provenance.*value/);
 });

@@ -69,3 +69,34 @@ export function resolveConditionPresentationState(
   if(input.pricingMissing>0)return {label:'Qty ready · Price missing'};
   return {label:'Ready'};
 }
+
+export type DirtySwitchAction='cancel'|'discard'|'save-and-switch';
+
+export type DirtySwitchHandlers={
+  restorePersisted:()=>void;
+  save:()=>Promise<boolean>;
+  clearPending:()=>void;
+  applyPending:()=>void;
+};
+
+export async function executeDirtySwitchAction(
+  action:DirtySwitchAction,
+  handlers:DirtySwitchHandlers,
+){
+  if(action==='cancel'){
+    handlers.clearPending();
+    return false;
+  }
+  if(action==='discard'){
+    handlers.restorePersisted();
+    handlers.clearPending();
+    handlers.applyPending();
+    return true;
+  }
+  const saved=await handlers.save();
+  if(saved){
+    handlers.clearPending();
+    handlers.applyPending();
+  }
+  return saved;
+}
