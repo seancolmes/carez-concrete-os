@@ -52,6 +52,8 @@ test('navigator pins keyboard ownership and row navigation',()=>{
   assert.match(nav,/ArrowRight/);
   assert.match(nav,/event\.key==='Enter'/);
   assert.match(nav,/event\.stopPropagation\(\)/);
+  assert.match(nav,/groupHeaderRef\.current\?\.focus\(\)/);
+  assert.match(nav,/onKeyDown=\{onGroupHeaderKeyDown\}/);
 });
 
 test('navigator passes New Condition values through its explicit async callback',()=>{

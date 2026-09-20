@@ -61,6 +61,7 @@ export function TakeoffContextNavigator(props:TakeoffContextNavigatorProps){
   const [pending,setPending]=useState(false);
   const [collapsed,setCollapsed]=useState<Record<TakeoffNavigatorTab,boolean>>({plans:false,conditions:false,zones:false});
   const rowRefs=useRef<Array<HTMLButtonElement|null>>([]);
+  const groupHeaderRef=useRef<HTMLButtonElement|null>(null);
   const activeRows=tab==='plans'?props.sheets:tab==='conditions'?props.conditions:[];
   const scaleBySheet=useMemo(()=>new Map(props.scaleRegions.map(region=>[String(region.sheet_id??region.sheetId),region])),[props.scaleRegions]);
 
@@ -77,11 +78,20 @@ export function TakeoffContextNavigator(props:TakeoffContextNavigatorProps){
       const next=Math.max(0,Math.min(activeRows.length-1,index+offset));
       rowRefs.current[next]?.focus();
     }else if(event.key==='ArrowLeft'){
-      event.preventDefault();setCollapsed(current=>({...current,[tab]:true}));
+      event.preventDefault();
+      groupHeaderRef.current?.focus();
+      setCollapsed(current=>({...current,[tab]:true}));
     }else if(event.key==='ArrowRight'){
       event.preventDefault();setCollapsed(current=>({...current,[tab]:false}));
     }else if(event.key==='Enter'){
       event.preventDefault();selectRow(index);
+    }
+  };
+  const onGroupHeaderKeyDown=(event:KeyboardEvent<HTMLButtonElement>)=>{
+    if(event.key==='ArrowLeft'){
+      event.preventDefault();setCollapsed(current=>({...current,[tab]:true}));
+    }else if(event.key==='ArrowRight'){
+      event.preventDefault();setCollapsed(current=>({...current,[tab]:false}));
     }
   };
   const createCondition=async()=>{
@@ -100,7 +110,7 @@ export function TakeoffContextNavigator(props:TakeoffContextNavigatorProps){
       {TABS.map(item=><button key={item.key} type="button" role="tab" aria-selected={tab===item.key} className={tab===item.key?styles.tabActive:styles.tab} onClick={()=>props.onTabChange(item.key)}>{item.label}</button>)}
     </div>
     <div className={styles.groupHeader}>
-      <button type="button" aria-expanded={!collapsed[tab]} onClick={()=>setCollapsed(current=>({...current,[tab]:!current[tab]}))}>
+      <button ref={groupHeaderRef} type="button" aria-expanded={!collapsed[tab]} onKeyDown={onGroupHeaderKeyDown} onClick={()=>setCollapsed(current=>({...current,[tab]:!current[tab]}))}>
         {collapsed[tab]?<ChevronRight/>:<ChevronDown/>}{TABS.find(item=>item.key===tab)?.label}
       </button>
       {tab==='conditions'?<Button type="button" size="sm" variant="ghost" disabled={props.locked} onClick={()=>setCreateOpen(true)}><Plus/>Condition</Button>:null}
