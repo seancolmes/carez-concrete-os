@@ -101,4 +101,16 @@
 .sheetName{font-size:12px;line-height:1.28;font-weight:650;color:inherit}
 .sheetStatus,.sheetStatusReady,.sheetStatusHold{display:none!important;border:0!important;outline:0!important;box-shadow:none!important}
 
-.legacyCanvasHost{display:flex;min-width:0;min-height:0;height:100%;flex:1;flex-direction:column}
+
+/* Direct specialist canvas uses ADR-024 semantic tokens; legacy wrapper omits this class. */
+.directCanvas{background:var(--background);color:var(--foreground)}
+.directCanvas .workspace,.directCanvas .center,.directCanvas .canvasViewport{background:var(--background);color:var(--foreground);border-color:var(--border)}
+.directCanvas .toolbar,.directCanvas .statusBar{background:var(--card);color:var(--foreground);border-color:var(--border)}
+.directCanvas .toolGroup{border-color:var(--border)}
+.directCanvas .toolButton,.directCanvas .iconTool{color:var(--muted-foreground);border-color:transparent;background:transparent}
+.directCanvas .toolButton:hover,.directCanvas .iconTool:hover{background:var(--accent);border-color:var(--border);color:var(--accent-foreground)}
+.directCanvas .toolButtonActive,.directCanvas .toggleActive{background:var(--accent);border-color:var(--ring);color:var(--accent-foreground);box-shadow:inset 0 -2px var(--ring)}
+.directCanvas .measureButton{color:var(--primary)}
+.directCanvas .finishButton{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.directCanvas .paper{background:var(--card);box-shadow:0 0 0 1px var(--border),0 8px 24px color-mix(in oklch,var(--foreground) 14%,transparent)}
+.directCanvas .loading,.directCanvas .statusHint,.directCanvas .statusMessage{color:var(--muted-foreground)}

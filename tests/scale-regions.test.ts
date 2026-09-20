@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { formatArchitecturalLength } from '../lib/takeoff/lengthFormat.ts';
+import { resolveRoleMeasurementStartState } from '../lib/takeoff/specialistWorkstation.ts';
 import {
   boundsFromPoints,
   detectScaleCandidates,
@@ -61,4 +62,23 @@ test('scale-region bounds validate geometry and normalize two corners', () => {
   assert.deepEqual(bounds, { x: 0.1, y: 0.2, width: 0.30000000000000004, height: 0.3 });
   assert.equal(geometryFitsScaleBounds({ type: 'polyline', points: [{ x: 0.2, y: 0.3 }, { x: 0.3, y: 0.4 }] }, bounds), true);
   assert.equal(geometryFitsScaleBounds({ type: 'polyline', points: [{ x: 0.2, y: 0.3 }, { x: 0.8, y: 0.8 }] }, bounds), false);
+});
+
+
+test('LF and SF role requests retain Condition intent while scale is required', () => {
+  const request = {
+    requestId: 'req-1',
+    conditionVersionId: 'condition-v1',
+    roleKey: 'run',
+    roleLabel: 'Footing run',
+    assemblyVersionId: 'assembly-v1',
+    objectName: 'F1 Footing',
+  };
+  for (const unit of ['LF', 'SF']) {
+    const blocked = resolveRoleMeasurementStartState(request, unit, false);
+    assert.equal(blocked.state, 'scale-required');
+    assert.equal(blocked.request, request);
+  }
+  assert.equal(resolveRoleMeasurementStartState(request, 'EA', false).state, 'ready');
+  assert.equal(resolveRoleMeasurementStartState(request, 'LF', true).state, 'ready');
 });

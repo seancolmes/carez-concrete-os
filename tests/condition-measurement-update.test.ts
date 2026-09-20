@@ -169,3 +169,13 @@ test('PostgreSQL regression: transactional invalidation, shared roles, RLS, hist
     assert.equal(await count('test_sync_calls'), 1);
   } finally { await db.close(); }
 });
+
+
+test('direct canvas reports committed stable measurement ids before consuming the role request', () => {
+  const canvas = readFileSync('components/takeoff/TakeoffDrawingCanvas.tsx', 'utf8');
+  const committed = canvas.indexOf('props.onMeasurementCommitted(String(result.id))');
+  const consumed = canvas.indexOf('props.onRoleMeasurementRequestConsumed(props.roleMeasurementRequest.requestId)');
+  assert.ok(committed >= 0);
+  assert.ok(consumed > committed);
+  assert.doesNotMatch(canvas, /carez:start-condition-takeoff|CustomEvent/);
+});

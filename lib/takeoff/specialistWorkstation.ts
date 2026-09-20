@@ -100,3 +100,20 @@ export async function executeDirtySwitchAction(
   }
   return saved;
 }
+
+
+export type RoleMeasurementStartState=
+  |{state:'idle';request:null}
+  |{state:'scale-required';request:ConditionRoleMeasurementRequest}
+  |{state:'ready';request:ConditionRoleMeasurementRequest};
+
+export function resolveRoleMeasurementStartState(
+  request:ConditionRoleMeasurementRequest|null,
+  primaryUnit:string,
+  hasValidScale:boolean,
+):RoleMeasurementStartState{
+  if(!request)return{state:'idle',request:null};
+  const unit=String(primaryUnit||'').toUpperCase();
+  if((unit==='LF'||unit==='SF')&&!hasValidScale)return{state:'scale-required',request};
+  return{state:'ready',request};
+}

@@ -82,3 +82,14 @@ test('navigator passes New Condition values through its explicit async callback'
   assert.match(nav,/await props\.onCreateCondition\(\{archetypeKey:family,code:code\.trim\(\),name:name\.trim\(\)\}\)/);
   assert.match(nav,/try\{[\s\S]*setCreateOpen\(false\);[\s\S]*\}finally\{[\s\S]*setPending\(false\)/);
 });
+
+
+test('Condition-first drawing uses a direct canvas API instead of browser events',()=>{
+  const canvas=read('components/takeoff/TakeoffDrawingCanvas.tsx');
+  assert.match(canvas,/roleMeasurementRequest/);
+  assert.match(canvas,/onMeasurementCommitted/);
+  assert.match(canvas,/onActiveSheetChange/);
+  assert.match(canvas,/onSelectedMeasurementChange/);
+  assert.match(canvas,/onRoleMeasurementRequestConsumed/);
+  assert.doesNotMatch(canvas,/carez:start-condition-takeoff|CustomEvent/);
+});

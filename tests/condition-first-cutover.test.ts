@@ -6,6 +6,7 @@ const page = readFileSync('app/takeoff/[setId]/page.tsx', 'utf8');
 const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
 const integratedWorkspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
+const canvas = readFileSync('components/takeoff/TakeoffDrawingCanvas.tsx', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const builderContext = readFileSync('components/takeoff/AssemblyBuilderContext.tsx', 'utf8');
 
@@ -22,20 +23,24 @@ test('active Takeoff cuts over only after the governed Condition dependency gate
 test('Condition-first shell mounts the integrated workstation without Scope Recipe authoring', () => {
   assert.match(shell, /IntegratedTakeoffConditionWorkspace/);
   assert.match(integratedWorkspace, /TakeoffDrawingWorkspace/);
+  assert.match(workspace, /TakeoffDrawingCanvas/);
   assert.doesNotMatch(shell, /AssemblyBuilderProvider|AssemblyBuilderComposer|AssemblySystemPresetBar|TakeoffAssemblyBuilderShell/);
   assert.doesNotMatch(integratedWorkspace, /AssemblyBuilderProvider|AssemblyBuilderComposer|AssemblySystemPresetBar|TakeoffAssemblyBuilderShell/);
   assert.doesNotMatch(shell, /<ConcreteConditionAuthoring/);
 });
 
-test('Condition-first workspace removes legacy assembly and Build Plan authoring from the active UI', () => {
-  assert.match(workspace, /conditionAuthoringActive\?<div className=\{styles\.group\}>/);
-  assert.match(workspace, /Legacy recipes and Build Methods stay out of the active workflow/);
-  assert.match(workspace, /!conditionAuthoringActive&&<button[^>]+aria-selected=\{inspectorTab==='buildPlan'\}/);
-  assert.match(workspace, /!conditionAuthoringActive&&inspectorTab==='buildPlan'/);
-  assert.match(workspace, /conditionAuthoringActive\?<div className=\{styles\.statusWarn\}>/);
-  assert.match(workspace, /:selectedVersionRecord&&selectedAssemblyRecord\?<TakeoffAssemblyInputEditor/);
-  assert.match(workspace, /if\(conditionAuthoringActive\)\{openConditions\(\);return;\}/);
-  assert.match(workspace, /if\(event\.key\.toLowerCase\(\)==='d'&&!conditionAuthoringActive/);
+test('legacy drawing wrapper composes the shared canvas while Condition mode keeps legacy authoring out of the active UI', () => {
+  assert.match(workspace, /TakeoffDrawingCanvas/);
+  assert.match(workspace, /carez:start-condition-takeoff/); // compatibility adapter only until direct specialist composition
+  assert.match(canvas, /conditionAuthoringActive\?<div className=\{styles\.group\}>/);
+  assert.match(canvas, /Legacy recipes and Build Methods stay out of the active workflow/);
+  assert.match(canvas, /!conditionAuthoringActive&&<button[^>]+aria-selected=\{inspectorTab==='buildPlan'\}/);
+  assert.match(canvas, /!conditionAuthoringActive&&inspectorTab==='buildPlan'/);
+  assert.match(canvas, /conditionAuthoringActive\?<div className=\{styles\.statusWarn\}>/);
+  assert.match(canvas, /:selectedVersionRecord&&selectedAssemblyRecord\?<TakeoffAssemblyInputEditor/);
+  assert.match(canvas, /props\.roleMeasurementRequest/);
+  assert.match(canvas, /if\(event\.key\.toLowerCase\(\)==='d'&&!conditionAuthoringActive/);
+  assert.doesNotMatch(canvas, /carez:start-condition-takeoff|CustomEvent/);
 });
 
 test('Condition-first quantity worksheet does not expose the legacy Scope Recipe launcher', () => {

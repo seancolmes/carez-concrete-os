@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
+const drawingCanvas = readFileSync('components/takeoff/TakeoffDrawingCanvas.tsx', 'utf8');
+const drawingWorkspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
 const conditionProperties = readFileSync('components/takeoff/ConditionProperties.tsx', 'utf8');
 const conditionEditor = readFileSync('components/takeoff/useConditionEditor.ts', 'utf8');
 const workflowShell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
@@ -172,4 +174,18 @@ test('Condition Properties renders provenance only from persisted provenance rec
   assert.match(conditionProperties, /selectedPersistedModules/);
   assert.match(conditionProperties, /CarezProvenance/);
   assert.doesNotMatch(conditionProperties, /updated_at/);
+});
+
+
+test('authoritative 2D canvas keeps drawing persistence and direct specialist callbacks', () => {
+  assert.match(drawingCanvas, /createDrawingMeasurement/);
+  assert.match(drawingCanvas, /updateDrawingMeasurementGeometry/);
+  assert.match(drawingCanvas, /saveTakeoffScaleRegion/);
+  assert.match(drawingCanvas, /GeometryCommandHistory/);
+  assert.match(drawingCanvas, /onActiveSheetChange/);
+  assert.match(drawingCanvas, /onSelectedMeasurementChange/);
+  assert.match(drawingCanvas, /onMeasurementCommitted/);
+  assert.match(drawingCanvas, /onRoleMeasurementRequestConsumed/);
+  assert.doesNotMatch(drawingCanvas, /carez:start-condition-takeoff|CustomEvent/);
+  assert.match(drawingWorkspace, /<TakeoffDrawingCanvas/);
 });
