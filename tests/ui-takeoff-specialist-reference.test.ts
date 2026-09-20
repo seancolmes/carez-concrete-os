@@ -32,3 +32,33 @@ test('active Takeoff exposes 2D and 3D only',()=>{
 
   assert.doesNotMatch(workstation,/['"]split['"]/);
 });
+
+test('navigator owns Plans Conditions Zones directly',()=>{
+  const nav=read('components/takeoff/TakeoffContextNavigator.tsx');
+  assert.match(nav,/Plans/);
+  assert.match(nav,/Conditions/);
+  assert.match(nav,/Zones/);
+  assert.match(nav,/onSelectSheet/);
+  assert.match(nav,/onSelectCondition/);
+  assert.match(nav,/onToggleVisibility/);
+  assert.doesNotMatch(nav,/querySelector|createPortal|CustomEvent/);
+});
+
+test('navigator pins keyboard ownership and row navigation',()=>{
+  const nav=read('components/takeoff/TakeoffContextNavigator.tsx');
+  assert.match(nav,/ArrowDown/);
+  assert.match(nav,/ArrowUp/);
+  assert.match(nav,/ArrowLeft/);
+  assert.match(nav,/ArrowRight/);
+  assert.match(nav,/event\.key==='Enter'/);
+  assert.match(nav,/event\.stopPropagation\(\)/);
+  assert.match(nav,/groupHeaderRef\.current\?\.focus\(\)/);
+  assert.match(nav,/onKeyDown=\{onGroupHeaderKeyDown\}/);
+});
+
+test('navigator passes New Condition values through its explicit async callback',()=>{
+  const nav=read('components/takeoff/TakeoffContextNavigator.tsx');
+  assert.match(nav,/onCreateCondition:\(input:\{archetypeKey:ConditionArchetypeKey;code:string;name:string\}\)=>void\|Promise<void>/);
+  assert.match(nav,/await props\.onCreateCondition\(\{archetypeKey:family,code:code\.trim\(\),name:name\.trim\(\)\}\)/);
+  assert.match(nav,/try\{[\s\S]*setCreateOpen\(false\);[\s\S]*\}finally\{[\s\S]*setPending\(false\)/);
+});

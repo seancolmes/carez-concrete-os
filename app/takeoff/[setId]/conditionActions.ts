@@ -124,6 +124,30 @@ export async function createProjectConcreteConditionPilot(input: {
   };
 }
 
+export async function duplicateProjectConcreteConditionPilot(input: {
+  takeoffSetId: string;
+  conditionVersionId: string;
+}) {
+  const { supabase, companyId } = await conditionContext();
+  const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const conditionVersionId = String(input?.conditionVersionId || '').trim();
+  if (!takeoffSetId || !conditionVersionId) throw new Error('Condition version is required.');
+  await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: newVersionId, error } = await supabase.rpc('carez_duplicate_project_concrete_condition', {
+    p_takeoff_set_id: takeoffSetId,
+    p_condition_version_id: conditionVersionId,
+  });
+  if (error) throw new Error(error.message);
+
+  refreshConditionSurfaces(takeoffSetId);
+  return {
+    condition_version_id: newVersionId as string,
+    copied_measurement_roles: 0,
+    copied_outputs: 0,
+  };
+}
+
 export async function deleteProjectConcreteCondition(input: {
   takeoffSetId: string;
   conditionId: string;

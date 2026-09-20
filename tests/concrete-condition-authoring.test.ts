@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { conditionArchetype } from '../lib/takeoff/conditions/catalog.ts';
 import {
   conditionCodeFromName,
@@ -65,4 +66,24 @@ test('role payload is stable, ordered, and excludes unassigned optional roles', 
     { roleKey: 'run', roleInstanceKey: 'run-1', measurementId: 'measurement-lf', sortOrder: 10 },
     { roleKey: 'anchors_embeds', roleInstanceKey: 'anchors_embeds-1', measurementId: 'measurement-ea', sortOrder: 30 },
   ]);
+});
+
+test('Condition duplication uses one transactional RPC without direct row mutation', () => {
+  const action = readFileSync(new URL('../app/takeoff/[setId]/conditionActions.ts', import.meta.url), 'utf8');
+  const duplicate = action.slice(action.indexOf('export async function duplicateProjectConcreteConditionPilot'), action.indexOf('export async function deleteProjectConcreteCondition'));
+  assert.match(duplicate, /carez_duplicate_project_concrete_condition/);
+  assert.equal(duplicate.match(/\.rpc\(/g)?.length, 1);
+  assert.doesNotMatch(duplicate, /\.from\(|\.delete\(|\.insert\(/);
+  assert.match(duplicate, /copied_measurement_roles: 0/);
+  assert.match(duplicate, /copied_outputs: 0/);
+});
+
+test('transactional Condition duplication copies modules but no calculated or geometry lineage', () => {
+  const migration = readFileSync(new URL('../supabase/migrations/20260920210000_transactional_condition_duplication.sql', import.meta.url), 'utf8');
+  assert.match(migration, /carez_duplicate_project_concrete_condition/);
+  assert.match(migration, /carez_create_project_concrete_condition/);
+  assert.match(migration, /delete from public\.project_condition_module_instances/);
+  assert.match(migration, /insert into public\.project_condition_module_instances/);
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.doesNotMatch(migration, /insert into public\.(project_condition_measurement_roles|project_condition_outputs|project_condition_holds|takeoff_measurements|estimate_items)/);
 });
