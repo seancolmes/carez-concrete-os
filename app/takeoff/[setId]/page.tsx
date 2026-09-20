@@ -8,6 +8,7 @@ import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
 import pageStyles from './TakeoffDrawingPage.module.css';
 import { resolveDerived3DSnapshot } from '@/lib/takeoff/conditions/derived3d/resolve.server';
+import { TakeoffWorkspaceIdentity } from '@/components/takeoff/TakeoffWorkspaceIdentity';
 
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
@@ -52,7 +53,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     { data: estimate }, { data: presentation }, { data: document }, { data: sheets }, { data: scaleRegions }, { data: measurements },
     { data: assemblies }, { data: versions }, { data: variables }, { data: sections }, { data: riskClasses }, { data: methodProfiles },
   ] = await Promise.all([
-    supabase.from('estimates').select('id,estimate_number,name,version,status').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
+    supabase.from('estimates').select('id,estimate_number,name,version,status,project_id').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
     supabase.from('proposal_presentations').select('id,proposal_number,status').eq('estimate_id', set.estimate_id).eq('company_id', companyId).limit(1).maybeSingle(),
     set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('takeoff_sheets').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('page_number'),
@@ -112,6 +113,9 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   const locked = Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
   const estimateLabel = estimate ? `${estimate.estimate_number}-R${estimate.version}` : 'Estimate';
+  const { data: project } = estimate?.project_id
+    ? await supabase.from('projects').select('id,job_number,name,source_estimate_id').eq('id', estimate.project_id).eq('company_id', companyId).maybeSingle()
+    : { data: null };
 
   const workspaceProps = {
     takeoffSet: set,
@@ -229,16 +233,18 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
     <div className="takeoff-app-page">
-      <header className={pageStyles.identityStrip}>
-        <div className={pageStyles.identity}>
-          <strong className={pageStyles.title}>{set.name}</strong>
-          <div className={pageStyles.meta}>
-            <span className={pageStyles.estimate}>{estimateLabel}</span>
-            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
-          </div>
-        </div>
-        {locked&&<span className={pageStyles.lock}>Read only</span>}
-      </header>
+      <TakeoffWorkspaceIdentity
+        takeoffName={set.name}
+        estimateId={set.estimate_id}
+        estimateLabel={estimateLabel}
+        estimateStatus={String(estimate?.status||'Unknown').replace(/_/g,' ')}
+        revisionLabel={set.revision_label}
+        project={project?{id:project.id,jobNumber:project.job_number,name:project.name}:null}
+        sheetCount={(sheets||[]).length}
+        conditionCount={(conditionSummaries||[]).length}
+        holdCount={(conditionData.holds||[]).filter((hold:any)=>hold.status==='open').length}
+        locked={locked}
+      />
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 

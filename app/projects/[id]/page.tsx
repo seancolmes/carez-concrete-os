@@ -42,6 +42,11 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
   supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true})
  ]);
  const p:any=projectR.data;if(!p)notFound();
+ const sourceEstimateId=String(p.source_estimate_id||'');
+ const sourceTakeoffs=sourceEstimateId
+  ?(await supabase.from('takeoff_sets').select('id,name,status').eq('company_id',profile.company_id).eq('estimate_id',sourceEstimateId).eq('status','active')).data||[]
+  :[];
+ const originalTakeoff=sourceTakeoffs.length===1?sourceTakeoffs[0]:null;
  const financialAvailable=Boolean(financialR.data);
  const budgetAvailable=Boolean(budgetR.data);
  const billingAvailable=Boolean(billingR.data);
@@ -80,6 +85,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
     description={<>{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?' · '+p.customers.name:''}</>}
     status={projectStatus?<CarezStatus tone={projectStatus.tone} label={projectStatus.label}/>:<CarezStatus tone="neutral" label={String(p.status||'Unknown')}/>}
     actions={<>
+     {originalTakeoff?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/takeoff/${originalTakeoff.id}`}>Original Takeoff</Link>:null}
      <Link className={buttonVariants({size:'sm'})} href="/field/review">Review Crew Time</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Plan Pour</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Order Materials</Link>
