@@ -15,7 +15,7 @@ async function conditionContext() {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!profile?.company_id || profile.role === 'employee') throw new Error('Office access required.');
-  return { supabase, companyId: profile.company_id as string };
+  return { supabase, companyId: profile.company_id as string, userId: user.id };
 }
 
 async function editableTakeoffSet(supabase: any, companyId: string, takeoffSetId: string) {
@@ -121,6 +121,74 @@ export async function createProjectConcreteConditionPilot(input: {
     condition_version_id: conditionVersionId as string,
     compatibility_assembly_version_id: compatibilityAssemblyVersionId,
     condition_code: code,
+  };
+}
+
+export async function duplicateProjectConcreteConditionPilot(input: {
+  takeoffSetId: string;
+  conditionVersionId: string;
+}) {
+  const { supabase, companyId, userId } = await conditionContext();
+  const takeoffSetId = String(input?.takeoffSetId || '').trim();
+  const conditionVersionId = String(input?.conditionVersionId || '').trim();
+  if (!takeoffSetId || !conditionVersionId) throw new Error('Condition version is required.');
+  await editableTakeoffSet(supabase, companyId, takeoffSetId);
+
+  const { data: sourceVersion, error: versionError } = await supabase.from('project_concrete_condition_versions')
+    .select('id,condition_id,template_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,legacy_method_profile_id')
+    .eq('id', conditionVersionId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (versionError) throw new Error(versionError.message);
+  if (!sourceVersion || !['draft', 'verified'].includes(sourceVersion.status)) throw new Error('Project Concrete Condition version not found.');
+
+  const [{ data: sourceCondition, error: conditionError }, { data: sourceModules, error: modulesError }, { data: existingConditions, error: codesError }] = await Promise.all([
+    supabase.from('project_concrete_conditions').select('id,takeoff_set_id,code,name,description').eq('id', sourceVersion.condition_id).eq('company_id', companyId).maybeSingle(),
+    supabase.from('project_condition_module_instances').select('module_key,instance_key,label,enabled,input_values,input_provenance,legacy_child_key,sort_order').eq('condition_version_id', conditionVersionId).eq('company_id', companyId).order('sort_order'),
+    supabase.from('project_concrete_conditions').select('code').eq('takeoff_set_id', takeoffSetId).eq('company_id', companyId),
+  ]);
+  if (conditionError) throw new Error(conditionError.message);
+  if (modulesError) throw new Error(modulesError.message);
+  if (codesError) throw new Error(codesError.message);
+  if (!sourceCondition || sourceCondition.takeoff_set_id !== takeoffSetId) throw new Error('Condition does not belong to this takeoff set.');
+
+  const code = nextAvailableConditionCode(`${sourceCondition.code}-COPY`, (existingConditions || []).map((row: any) => row.code));
+  const name = `${sourceCondition.name} Copy`;
+  const { data: newVersionId, error: createError } = await supabase.rpc('carez_create_project_concrete_condition', {
+    p_takeoff_set_id: takeoffSetId,
+    p_template_version_id: sourceVersion.template_version_id,
+    p_code: code,
+    p_name: name,
+    p_description: sourceCondition.description,
+    p_plan_facts: sourceVersion.plan_facts,
+    p_method_inputs: sourceVersion.method_inputs,
+    p_production_inputs: sourceVersion.production_inputs,
+    p_commercial_inputs: sourceVersion.commercial_inputs,
+    p_drawing_inputs: sourceVersion.drawing_inputs,
+    p_input_provenance: sourceVersion.input_provenance,
+    p_output_overrides: {},
+    p_legacy_method_profile_id: sourceVersion.legacy_method_profile_id,
+  });
+  if (createError) throw new Error(createError.message);
+
+  const { error: deleteDefaultsError } = await supabase.from('project_condition_module_instances')
+    .delete().eq('condition_version_id', newVersionId).eq('company_id', companyId);
+  if (deleteDefaultsError) throw new Error(deleteDefaultsError.message);
+  if (sourceModules?.length) {
+    const { error: copyModulesError } = await supabase.from('project_condition_module_instances').insert(sourceModules.map((module: any) => ({
+      ...module,
+      company_id: companyId,
+      condition_version_id: newVersionId,
+      created_by: userId,
+    })));
+    if (copyModulesError) throw new Error(copyModulesError.message);
+  }
+
+  refreshConditionSurfaces(takeoffSetId);
+  return {
+    condition_version_id: newVersionId as string,
+    copied_measurement_roles: 0,
+    copied_outputs: 0,
   };
 }
 

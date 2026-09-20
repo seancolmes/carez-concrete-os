@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { conditionArchetype } from '../lib/takeoff/conditions/catalog.ts';
 import {
   conditionCodeFromName,
@@ -65,4 +66,15 @@ test('role payload is stable, ordered, and excludes unassigned optional roles', 
     { roleKey: 'run', roleInstanceKey: 'run-1', measurementId: 'measurement-lf', sortOrder: 10 },
     { roleKey: 'anchors_embeds', roleInstanceKey: 'anchors_embeds-1', measurementId: 'measurement-ea', sortOrder: 30 },
   ]);
+});
+
+test('Condition duplication creates a new identity without measurement roles or outputs', () => {
+  const action = readFileSync(new URL('../app/takeoff/[setId]/conditionActions.ts', import.meta.url), 'utf8');
+  const duplicate = action.slice(action.indexOf('export async function duplicateProjectConcreteConditionPilot'), action.indexOf('export async function deleteProjectConcreteCondition'));
+  assert.match(duplicate, /carez_create_project_concrete_condition/);
+  assert.match(duplicate, /project_condition_module_instances/);
+  assert.match(duplicate, /created_by: userId/);
+  assert.match(duplicate, /copied_measurement_roles: 0/);
+  assert.match(duplicate, /copied_outputs: 0/);
+  assert.doesNotMatch(duplicate, /from\('project_condition_measurement_roles'\)|from\('project_condition_outputs'\)|takeoff_measurements/);
 });
