@@ -68,13 +68,22 @@ test('role payload is stable, ordered, and excludes unassigned optional roles', 
   ]);
 });
 
-test('Condition duplication creates a new identity without measurement roles or outputs', () => {
+test('Condition duplication uses one transactional RPC without direct row mutation', () => {
   const action = readFileSync(new URL('../app/takeoff/[setId]/conditionActions.ts', import.meta.url), 'utf8');
   const duplicate = action.slice(action.indexOf('export async function duplicateProjectConcreteConditionPilot'), action.indexOf('export async function deleteProjectConcreteCondition'));
-  assert.match(duplicate, /carez_create_project_concrete_condition/);
-  assert.match(duplicate, /project_condition_module_instances/);
-  assert.match(duplicate, /created_by: userId/);
+  assert.match(duplicate, /carez_duplicate_project_concrete_condition/);
+  assert.equal(duplicate.match(/\.rpc\(/g)?.length, 1);
+  assert.doesNotMatch(duplicate, /\.from\(|\.delete\(|\.insert\(/);
   assert.match(duplicate, /copied_measurement_roles: 0/);
   assert.match(duplicate, /copied_outputs: 0/);
-  assert.doesNotMatch(duplicate, /from\('project_condition_measurement_roles'\)|from\('project_condition_outputs'\)|takeoff_measurements/);
+});
+
+test('transactional Condition duplication copies modules but no calculated or geometry lineage', () => {
+  const migration = readFileSync(new URL('../supabase/migrations/20260920210000_transactional_condition_duplication.sql', import.meta.url), 'utf8');
+  assert.match(migration, /carez_duplicate_project_concrete_condition/);
+  assert.match(migration, /carez_create_project_concrete_condition/);
+  assert.match(migration, /delete from public\.project_condition_module_instances/);
+  assert.match(migration, /insert into public\.project_condition_module_instances/);
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.doesNotMatch(migration, /insert into public\.(project_condition_measurement_roles|project_condition_outputs|project_condition_holds|takeoff_measurements|estimate_items)/);
 });
