@@ -1,47 +1,62 @@
-# Carez Concrete OS — agent rules
+# Carez Concrete OS — agent router
 
 Carez is a concrete-native modular monolith. Repository source + Supabase are implementation truth.
 
-## Execution
+## Always
 
-Use current `staging` for development/QA; `main` is production only. Make the smallest coherent change. Read only target files and direct dependencies; add the owning module/ADR only when needed. Do not restart accepted work or refactor unrelated code.
+- `staging` is development/QA; `main` is production only.
+- Make the smallest coherent change. Read named targets and direct dependencies only.
+- Do not restart accepted work, refactor unrelated code, or invent repository/database/deployment state.
+- Protect Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, source-controlled migrations, deterministic quantities/cost/pricing/financials, immutable commercial lineage, Production Quantity / Direct Cost / Sell separation, 2D Takeoff quantity authority, and human commercial authority.
 
-The canonical development loop is:
+## Route before loading context
+
+Load only the route needed for the task:
+
+- Codex execution, validation, model routing, branches → `CODEX.md`
+- Cross-cutting product architecture → `docs/ARCHITECTURE.md`
+- Local OmniRoute/Ollama workstation → `docs/workflow/LOCAL_CODEX_WORKSTATION.md`
+- Premium Astra/Luna/Terra routing and plugin coordination → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
+- General UI → ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when the task is design-relevant
+- Takeoff → ADR-020 + current Takeoff module contracts
+- Development process/debugging/planning → installed Superpowers skills when relevant
+
+Do not preload `docs/`, old history, unrelated migrations, unrelated routes, or unrelated plugins.
+
+## Authority and plugin precedence
+
+For Carez development work:
 
 ```text
-Carez control chat / connected tools
-→ local Codex workstation
-→ current staging checkout
-→ GitHub staging
-→ GitHub Actions
-→ Vercel staging
-→ browser QA
+Nik / explicit task
+→ AGENTS.md + CODEX.md
+→ Carez routing / approved specs and ADRs
+→ Superpowers + Impeccable
+→ model execution
 ```
 
-Root `CODEX.md` is the sole repository execution contract for Codex. The current primary implementation runtime is local Codex Web UI using the real Codex `app-server`, an isolated `CODEX_HOME`, OmniRoute, and local Ollama inference. Runtime/provider/model configuration lives outside this repository and must not become an application dependency.
+User and repository instructions outrank plugin defaults.
 
-Do not load or apply repository-external implementation workflows. OpenCode is not part of the Carez implementation workflow. Do not gate normal repository work on local model/provider checks; workstation startup owns runtime readiness.
+- If the task says a design/spec/plan is already approved, do not re-brainstorm, rewrite it, or reopen settled product decisions.
+- Superpowers may structure unresolved design, planning, or debugging, but its subagent/review/verification workflows must obey Carez model-routing and premium-stop rules.
+- Impeccable may guide design-relevant implementation, but automatic or explicit review/polish work does not extend a premium run beyond the assigned implementation scope.
 
-When connected GitHub/Vercel/Supabase tools are available, ChatGPT may inspect, coordinate, review, or implement directly. Hosted Codex Cloud is optional, not the canonical Carez implementation path.
+## Execution modes
 
-## Protect
+Routine implementation uses the local Carez Codex path and normal validation in `CODEX.md`.
 
-- Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, source-controlled migrations.
-- Server-authoritative quantities, cost, pricing, and financial values.
-- Immutable/versioned commercial records, Condition-template history, referenced legacy history.
-- Opportunity/takeoff → estimate → proposal → award → project → production → cost/forecast lineage.
-- Production Quantity, Direct Cost, and Sell remain distinct.
-- Persisted stable page-coordinate 2D/vector geometry is Takeoff quantity authority; derived 3D is verification only.
-- Humans remain authoritative for scope, Conditions, means/methods, reinforcing, production rates, pricing, margin, budgets, approvals.
+Premium hosted implementation is opt-in. When Astra is explicitly selected, follow the premium rule:
+
+```text
+IMPLEMENT -> COMMIT -> PUSH -> STOP
+```
+
+The premium implementation turn does not perform post-implementation QA, CI/deployment monitoring, review passes, optional polish, or plugin-driven finish loops unless the current task explicitly assigns that work. Carez control-room tooling handles acceptance separately.
 
 ## UI
 
-ADR-024 is the active Precision Grid visual/theme/token/density and implemented global shell/navigation authority. Issue #71 is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 remains the Takeoff workstation authority. Reuse `docs/design-system/CAREZ_COMPONENT_PACK.md`. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed tokens, or a second component system.
-
-## Validate
-
-Localized edit: targeted check. Normal implementation: `pnpm typecheck` + relevant tests. High-risk data/domain change: add migration/RLS/security verification. GitHub Actions is comprehensive post-push validation; Vercel is staging deployment authority; browser QA is required for rendered acceptance.
+ADR-024 is the active staging visual/theme/token/density authority. Issue #71 is accepted on staging; ADR-016 is historical except where compatible. ADR-020 remains Takeoff authority. Preserve true light/dark/system semantic tokens and the governed component system.
 
 ## Documentation
 
-Durable behavior → owning module/ADR. Verified implementation state → `docs/CURRENT_STATE.md`. Development runtime/workflow → `docs/workflow/`. Remove superseded working/checkpoint docs once surviving truth is canonical; Git history preserves evidence.
+Durable behavior → owning module/ADR. Verified implementation state → `docs/CURRENT_STATE.md`. Development/runtime workflow → `docs/workflow/`. Git history preserves completed evidence.

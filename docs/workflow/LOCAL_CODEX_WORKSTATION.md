@@ -26,6 +26,18 @@ The current Carez workstation uses:
 
 OpenCode is not part of the canonical Carez workflow.
 
+## Premium hosted profile
+
+The local OmniRoute/Ollama path above remains the canonical routine implementation path. Carez also has a separate opt-in **premium hosted** profile for work that materially benefits from GPT-6 Astra.
+
+That profile does not replace, modify, or share the `.codex-omniroute` home. Its source-controlled templates and install procedure are documented in:
+
+```text
+docs/workflow/CAREZ_TOKEN_EFFICIENCY.md
+```
+
+The premium profile uses Astra Low as parent with Luna/Terra workers and enforces `IMPLEMENT -> COMMIT -> PUSH -> STOP`. Validation is performed separately after the premium turn stops.
+
 ## Repository boundary
 
 None of the workstation components above are Carez application dependencies.
