@@ -60,3 +60,121 @@ export async function assignTakeoffMeasurementSection(fd:FormData){
   revalidatePath('/estimates');
   revalidatePath('/takeoff');
 }
+
+const supplierQuoteStatuses=new Set(['requested','received','declined','selected']);
+
+export async function createEstimateSupplierQuoteSet(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const name=String(fd.get('name')||'').trim();
+  if(!estimateId||!name)throw new Error('Estimate and quote set name are required.');
+  const {supabase,user,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {error}=await supabase.from('estimate_supplier_quote_sets').insert({
+    company_id:companyId,
+    estimate_id:estimateId,
+    name,
+    bid_zone:String(fd.get('bid_zone')||'').trim()||null,
+    scope_note:String(fd.get('scope_note')||'').trim()||null,
+    status:'draft',
+    created_by:user.id,
+  });
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+}
+
+export async function createEstimateSupplierQuote(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const quoteSetId=String(fd.get('quote_set_id')||'');
+  const supplierName=String(fd.get('supplier_name')||'').trim();
+  const quoteDate=String(fd.get('quote_date')||'').trim();
+  const expiresAt=String(fd.get('expires_at')||'').trim()||null;
+  const requestedStatus=String(fd.get('status')||'received');
+  if(!estimateId||!quoteSetId||!supplierName||!quoteDate)throw new Error('Quote set, supplier and quote date are required.');
+  if(!supplierQuoteStatuses.has(requestedStatus)||requestedStatus==='selected')throw new Error('Choose a valid supplier quote status.');
+  if(expiresAt&&expiresAt<quoteDate)throw new Error('Quote expiration cannot be before the quote date.');
+  const {supabase,user,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {data:quoteSet,error:quoteSetError}=await supabase.from('estimate_supplier_quote_sets')
+    .select('id,estimate_id,status')
+    .eq('id',quoteSetId).eq('company_id',companyId).maybeSingle();
+  if(quoteSetError||!quoteSet||quoteSet.estimate_id!==estimateId)throw new Error(quoteSetError?.message||'Supplier quote set does not belong to this estimate.');
+  if(quoteSet.status==='archived')throw new Error('Archived supplier quote sets cannot receive new quotes.');
+  const {error}=await supabase.from('estimate_supplier_quotes').insert({
+    company_id:companyId,
+    quote_set_id:quoteSetId,
+    supplier_name:supplierName,
+    supplier_quote_number:String(fd.get('supplier_quote_number')||'').trim()||null,
+    quote_date:quoteDate,
+    expires_at:expiresAt,
+    status:requestedStatus,
+    notes:String(fd.get('notes')||'').trim()||null,
+    created_by:user.id,
+  });
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+}
+
+export async function createEstimateSupplierQuoteLine(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const quoteId=String(fd.get('quote_id')||'');
+  const outputId=String(fd.get('output_id')||'');
+  const quotedUnitCost=requiredEstimateNumber(fd.get('quoted_unit_cost'),'quoted unit cost');
+  if(!estimateId||!quoteId||!outputId||quotedUnitCost<0)throw new Error('Supplier quote, Takeoff output and a valid unit cost are required.');
+  const {supabase,user,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+
+  const {data:quote,error:quoteError}=await supabase.from('estimate_supplier_quotes')
+    .select('id,quote_set_id,status')
+    .eq('id',quoteId).eq('company_id',companyId).maybeSingle();
+  if(quoteError||!quote)throw new Error(quoteError?.message||'Supplier quote not found.');
+  if(quote.status==='declined')throw new Error('Declined supplier quotes cannot receive price lines.');
+
+  const {data:quoteSet,error:quoteSetError}=await supabase.from('estimate_supplier_quote_sets')
+    .select('id,estimate_id,status')
+    .eq('id',quote.quote_set_id).eq('company_id',companyId).maybeSingle();
+  if(quoteSetError||!quoteSet||quoteSet.estimate_id!==estimateId)throw new Error(quoteSetError?.message||'Supplier quote does not belong to this estimate.');
+  if(quoteSet.status==='archived')throw new Error('Archived supplier quote sets cannot receive price lines.');
+
+  const {data:output,error:outputError}=await supabase.from('takeoff_measurement_outputs')
+    .select('id,measurement_id,generated_estimate_item_id,catalog_item_id,label,estimate_item_type,production_unit')
+    .eq('id',outputId).eq('company_id',companyId).maybeSingle();
+  if(outputError||!output)throw new Error(outputError?.message||'Takeoff output not found.');
+  if(output.estimate_item_type==='labor')throw new Error('Supplier quote lines cannot target labor outputs.');
+  const {data:measurement,error:measurementError}=await supabase.from('takeoff_measurements')
+    .select('estimate_id').eq('id',output.measurement_id).eq('company_id',companyId).maybeSingle();
+  if(measurementError||!measurement||measurement.estimate_id!==estimateId)throw new Error(measurementError?.message||'Takeoff output does not belong to this estimate.');
+
+  const quotedUnit=(String(fd.get('quoted_unit')||'').trim()||String(output.production_unit||'')).toUpperCase();
+  if(!quotedUnit)throw new Error('Quoted unit is required.');
+  const {error}=await supabase.from('estimate_supplier_quote_lines').insert({
+    company_id:companyId,
+    quote_id:quoteId,
+    source_takeoff_output_id:output.id,
+    generated_estimate_item_id:output.generated_estimate_item_id||null,
+    catalog_item_id:output.catalog_item_id||null,
+    description:String(fd.get('description')||'').trim()||output.label||'Supplier quoted resource',
+    quoted_unit:quotedUnit,
+    quoted_unit_cost:quotedUnitCost,
+    freight_tax_fee_notes:String(fd.get('freight_tax_fee_notes')||'').trim()||null,
+    source_reference:String(fd.get('source_reference')||'').trim()||null,
+    created_by:user.id,
+  });
+  if(error)throw new Error(error.message);
+  if(quote.status==='requested'){
+    await supabase.from('estimate_supplier_quotes').update({status:'received',updated_at:new Date().toISOString()}).eq('id',quoteId).eq('company_id',companyId);
+  }
+  revalidatePath(`/estimates/${estimateId}`);
+}
+
+export async function selectEstimateSupplierQuoteLine(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const quoteLineId=String(fd.get('quote_line_id')||'');
+  if(!estimateId||!quoteLineId)throw new Error('Estimate and supplier quote line are required.');
+  const {supabase,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {error}=await supabase.rpc('carez_select_estimate_supplier_quote_line',{p_quote_line_id:quoteLineId});
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/estimates');
+  revalidatePath('/takeoff');
+}

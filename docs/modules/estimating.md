@@ -69,6 +69,14 @@ Source description and effective date remain visible. Missing price stays on hol
 
 Bid zones and supplier quote sets may organize pricing without changing physical Condition quantities.
 
+### Supplier quote sets
+
+Supplier quote evidence is scoped to the exact Estimate revision, not to the downstream Project procurement workflow. A quote set may group competing suppliers by bid zone or scope; each quote line references the generated Takeoff output it prices and records supplier identity, quote reference/date/expiry, quoted unit, unit cost, and freight/tax/fee notes.
+
+Selecting a supplier quote is an explicit commercial decision. Selection is server-authoritative, requires the quote and output to belong to the same company and Estimate, requires matching pricing units, never accepts or mutates Production Quantity, and snapshots `supplier_quote` provenance onto the Takeoff output, generated Estimate item, and linked draft Project Concrete Condition output. Verified Conditions and issued/locked Estimate revisions remain immutable.
+
+Pricing coverage is exception-first: missing price, missing labor rate, expired selected quote, available-but-unselected quote evidence, supplier-quote coverage, and manual overrides remain visible before Review/Recap.
+
 ## Labor sequence
 
 Each labor operation shows:

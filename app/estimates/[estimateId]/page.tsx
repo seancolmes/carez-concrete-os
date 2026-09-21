@@ -4,6 +4,7 @@ import {ArrowLeft,ArrowRight,CheckCircle2,FileText,Ruler,ShieldCheck} from 'luci
 import {AppShell} from '@/components/AppShell';
 import {CarezOperatingMetric,CarezOperatingMetricStrip} from '@/components/carez/operating-metric';
 import {EstimateWorksheet} from '@/components/estimates/EstimateWorksheet';
+import {PricingCoverage} from '@/components/estimates/PricingCoverage';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -21,7 +22,7 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();if(!p?.company_id)redirect('/login');if(p.role==='employee')redirect('/employee');
-  const [{data:e},{data:s},{data:sections},{data:items},{data:codes},{data:catalog},{data:crew},{data:risk},{data:budget},{data:proposal},{data:takeoff},{data:measurements},{data:outputs}]=await Promise.all([
+  const [{data:e},{data:s},{data:sections},{data:items},{data:codes},{data:catalog},{data:crew},{data:risk},{data:budget},{data:proposal},{data:takeoff},{data:measurements},{data:outputs},{data:quoteSets}]=await Promise.all([
     supabase.from('estimates').select('*').eq('id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('estimate_financial_summary').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('estimate_sections').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).order('sort_order'),
@@ -34,9 +35,34 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     supabase.from('proposal_presentations').select('id,proposal_number,status,sent_at').eq('company_id',p.company_id).eq('estimate_id',estimateId).order('sent_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('estimate_takeoff_summary').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('takeoff_measurements').select('id,name,location,drawing_reference,raw_quantity,raw_unit,estimate_section_id,created_at').eq('estimate_id',estimateId).eq('company_id',p.company_id).eq('status','active').order('created_at'),
-    supabase.from('takeoff_measurement_outputs').select('id,measurement_id,generated_estimate_item_id,label,pricing_status,cost_source,price_source_kind,price_source_label,price_source_reference,price_effective_date,is_active,estimate_visible').eq('company_id',p.company_id).eq('is_active',true).eq('estimate_visible',true),
+    supabase.from('takeoff_measurement_outputs').select('id,measurement_id,generated_estimate_item_id,label,estimate_item_type,production_quantity,production_unit,unit_cost,catalog_item_id,pricing_status,cost_source,price_source_kind,price_source_id,price_source_label,price_source_reference,price_effective_date,is_active,estimate_visible').eq('company_id',p.company_id).eq('is_active',true).eq('estimate_visible',true),
+    supabase.from('estimate_supplier_quote_sets').select('id,estimate_id,name,bid_zone,scope_note,status,created_at').eq('estimate_id',estimateId).eq('company_id',p.company_id).order('created_at'),
   ]);
   if(!e)notFound();
+
+  const quoteSetIds=(quoteSets||[]).map((row:any)=>row.id);
+  let quotes:any[]=[];
+  if(quoteSetIds.length){
+    const {data,error}=await supabase.from('estimate_supplier_quotes')
+      .select('id,quote_set_id,supplier_name,supplier_quote_number,quote_date,expires_at,status,notes')
+      .eq('company_id',p.company_id)
+      .in('quote_set_id',quoteSetIds)
+      .order('quote_date',{ascending:false});
+    if(error)throw new Error(error.message);
+    quotes=data||[];
+  }
+  const quoteIds=quotes.map((row:any)=>row.id);
+  let quoteLines:any[]=[];
+  if(quoteIds.length){
+    const {data,error}=await supabase.from('estimate_supplier_quote_lines')
+      .select('id,quote_id,source_takeoff_output_id,generated_estimate_item_id,description,quoted_unit,quoted_unit_cost,freight_tax_fee_notes,source_reference')
+      .eq('company_id',p.company_id)
+      .in('quote_id',quoteIds)
+      .order('created_at');
+    if(error)throw new Error(error.message);
+    quoteLines=data||[];
+  }
+  const today=new Date().toISOString().slice(0,10);
 
   const locked=['accepted','approved','superseded'].includes(e.status)||Boolean(proposal);
   const display=`${e.estimate_number}-R${Number(e.version||0)}`;
@@ -97,6 +123,8 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
       <div className="divide-y rounded-lg border border-border bg-muted/10">{[['Price',money(selectedPrice)],['Company cost',money(s?.base_company_cost)],['Revenue reserve',money(s?.revenue_cost_reserve)],['Projected profit',money(s?.projected_profit)]].map(([label,value])=><div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm" key={label}><span className="text-muted-foreground">{label}</span><strong className="font-mono tabular-nums">{value}</strong></div>)}</div>
       </CardContent></Card>
     </section>
+
+    <PricingCoverage estimateId={e.id} measurements={measurements||[]} outputs={outputs||[]} quoteSets={quoteSets||[]} quotes={quotes} quoteLines={quoteLines} locked={locked} today={today}/>
 
     <section className="space-y-4" aria-labelledby="estimate-lines"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cost detail</p><h2 id="estimate-lines" className="mt-1 text-lg font-semibold">Estimate Lines</h2><p className="mt-1 text-sm text-muted-foreground">Takeoff-generated lines are identified so the estimator can see where the price came from without re-entering quantities.</p></div>
       <EstimateWorksheet estimateId={e.id} sections={sections||[]} measurements={measurements||[]} items={items||[]} outputs={outputs||[]} locked={locked}/>
