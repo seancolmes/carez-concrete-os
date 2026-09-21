@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import styles from './LoginSpatialBlueprint.module.css';
 
 const stages = [
@@ -10,10 +10,40 @@ const stages = [
   { label: 'Control', note: 'Carry the scope into the field.' },
 ];
 
+const STAGE_DURATION_MS = 2300;
+
 /** Illustrative geometry only. No project data, records or quantity engine. */
 export function LoginSpatialBlueprint() {
-  const [stage, setStage] = useState(2);
-  return <div className={styles.blueprint} data-stage={stage}>
+  const [stage, setStage] = useState(0);
+  const [autoPlaying, setAutoPlaying] = useState(true);
+
+  useEffect(() => {
+    if (!autoPlaying) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotion.matches) {
+      setAutoPlaying(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (stage < stages.length - 1) setStage(stage + 1);
+      else setAutoPlaying(false);
+    }, STAGE_DURATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [autoPlaying, stage]);
+
+  function selectStage(index: number) {
+    setAutoPlaying(false);
+    setStage(index);
+  }
+
+  return <div
+    className={styles.blueprint}
+    data-stage={stage}
+    data-autoplay={autoPlaying ? 'true' : 'false'}
+    style={{ '--stage-duration': `${STAGE_DURATION_MS}ms` } as CSSProperties}
+  >
     <div className={styles.caption}><span>Carez / Spatial workspace</span><span>Illustrative scope</span></div>
     <svg className={styles.drawing} viewBox="0 0 640 340" role="img" aria-label={`${stages[stage].label}: an illustrative concrete foundation developed from plan linework`}>
       <g className={styles.grid} fill="none">
@@ -53,8 +83,8 @@ export function LoginSpatialBlueprint() {
       <text className={styles.axisLabel} x="583" y="146">B</text>
       <text className={styles.axisLabel} x="330" y="309">Plan datum</text>
     </svg>
-    <div className={styles.stages} role="group" aria-label="Explore the Carez spatial language">
-      {stages.map((item,index)=><button key={item.label} type="button" aria-pressed={stage===index} onClick={()=>setStage(index)}><span>0{index+1}</span>{item.label}</button>)}
+    <div className={styles.stages} role="group" aria-label="Carez spatial workflow stages">
+      {stages.map((item,index)=><button key={item.label} type="button" aria-pressed={stage===index} onClick={()=>selectStage(index)}><span>0{index+1}</span>{item.label}</button>)}
     </div>
     <p className={styles.note} aria-live="polite">{stages[stage].note}</p>
   </div>;

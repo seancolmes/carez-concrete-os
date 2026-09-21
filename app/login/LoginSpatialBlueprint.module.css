@@ -1,28 +1,32 @@
-.blueprint{--line:color-mix(in oklch,var(--shell-foreground) 24%,transparent);width:100%;max-width:720px;align-self:center;border-block:1px solid var(--line);margin-block:22px 18px}
-.caption{display:flex;justify-content:space-between;gap:12px;padding-top:12px;color:var(--shell-muted);font:10px var(--font-ibm-plex-mono),monospace}
-.drawing{display:block;width:100%;max-height:340px;overflow:visible}
-.grid{stroke:var(--line);stroke-width:.6;opacity:.5}
-.datumLines{stroke:var(--line);stroke-width:1;stroke-dasharray:3 6}
-.plan{stroke:var(--primary);stroke-width:1.5}
+.blueprint{--line:color-mix(in oklch,var(--shell-foreground) 20%,transparent);position:relative;isolation:isolate;width:100%;max-width:720px;align-self:center;margin-block:22px 18px;padding:14px 18px 12px;border:1px solid var(--line);border-left:2px solid var(--primary);background:color-mix(in oklch,#0c1118 88%,var(--primary));box-shadow:0 18px 58px rgb(0 0 0 / .22),inset 0 0 0 1px color-mix(in oklch,var(--primary) 8%,transparent);overflow:hidden}
+.blueprint::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.18;background-image:linear-gradient(to right,color-mix(in oklch,var(--primary) 28%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--primary) 18%,transparent) 1px,transparent 1px);background-size:32px 32px}
+.caption{display:flex;justify-content:space-between;gap:12px;color:var(--shell-muted);font:10px var(--font-ibm-plex-mono),monospace;letter-spacing:.035em}
+.drawing{display:block;width:100%;max-height:340px;overflow:visible;filter:drop-shadow(0 18px 28px rgb(0 0 0 / .24))}
+.grid{stroke:var(--line);stroke-width:.6;opacity:.48}
+.datumLines{stroke:color-mix(in oklch,var(--shell-muted) 60%,transparent);stroke-width:1;stroke-dasharray:3 6}
+.plan{stroke:var(--primary);stroke-width:1.65}
 .top{transform:translateY(-64px);transition:transform 220ms ease-out}
-.slab{fill:color-mix(in oklch,var(--shell-foreground) 22%,var(--shell-background));stroke:var(--shell-foreground);stroke-width:1.2;transition:fill 200ms ease}
-.topLine{stroke:var(--shell-foreground);stroke-width:.7;opacity:.4}
-.faceLeft{fill:color-mix(in oklch,var(--shell-foreground) 12%,var(--shell-background));stroke:var(--line)}
-.faceRight{fill:color-mix(in oklch,var(--shell-foreground) 7%,var(--shell-background));stroke:var(--line)}
+.slab{fill:color-mix(in oklch,var(--shell-foreground) 18%,#111820);stroke:var(--shell-foreground);stroke-width:1.2;transition:fill 200ms ease}
+.topLine{stroke:var(--shell-foreground);stroke-width:.7;opacity:.46}
+.faceLeft{fill:color-mix(in oklch,var(--primary) 10%,#161d26);stroke:var(--line)}
+.faceRight{fill:color-mix(in oklch,var(--primary) 5%,#0f151d);stroke:var(--line)}
 .sides,.dimensions,.dimensionText,.control{opacity:1;transition:opacity 180ms ease}
 .dimensions{stroke:var(--shell-muted);stroke-width:1}
 .dimensionText,.axisLabel{fill:var(--shell-muted);font:11px var(--font-ibm-plex-mono),monospace}
 .control{stroke:var(--primary);stroke-width:1.5}
-.control rect{fill:var(--shell-background)}
+.control rect{fill:#101720}
 .control text{stroke:none;fill:var(--shell-foreground);font:11px var(--font-ibm-plex-mono),monospace}
 .blueprint[data-stage="0"] .top,.blueprint[data-stage="1"] .top{transform:translateY(0)}
 .blueprint[data-stage="0"] .slab,.blueprint[data-stage="1"] .slab{fill:transparent;stroke:var(--primary)}
 .blueprint[data-stage="0"] .sides,.blueprint[data-stage="1"] .sides,.blueprint[data-stage="0"] .dimensions,.blueprint[data-stage="0"] .dimensionText,.blueprint:not([data-stage="3"]) .control{opacity:0}
 .stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
-.stages button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--shell-muted);font-size:12px;cursor:pointer;transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease}
+.stages button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--shell-muted);font-size:12px;cursor:pointer;overflow:hidden;transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease}
+.stages button::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--primary)}
 .stages button span{font:10px var(--font-ibm-plex-mono),monospace;opacity:.6}
-.stages button:hover{background:color-mix(in oklch,var(--shell-foreground) 5%,transparent);color:var(--shell-foreground)}
-.stages button[aria-pressed="true"]{border-bottom-color:var(--primary);background:color-mix(in oklch,var(--primary) 8%,transparent);color:var(--shell-foreground)}
-.stages button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
-.note{min-height:22px;margin:10px 0!important;font-size:12px!important;color:var(--shell-muted)}
-@media(prefers-reduced-motion:reduce){.top,.slab,.sides,.dimensions,.dimensionText,.control,.stages button{transition:none}}
+.stages button:hover{background:color-mix(in oklch,var(--primary) 7%,transparent);color:var(--shell-foreground)}
+.stages button[aria-pressed="true"]{border-bottom-color:var(--primary);background:color-mix(in oklch,var(--primary) 10%,transparent);color:var(--shell-foreground)}
+.blueprint[data-autoplay="true"] .stages button[aria-pressed="true"]::after{animation:stageProgress var(--stage-duration) linear forwards}
+.stages button:focus-visible{outline:2px solid var(--ring);outline-offset:-3px}
+.note{min-height:22px;margin:10px 0 0!important;font-size:12px!important;color:var(--shell-muted)}
+@keyframes stageProgress{from{width:0}to{width:100%}}
+@media(prefers-reduced-motion:reduce){.top,.slab,.sides,.dimensions,.dimensionText,.control,.stages button{transition:none}.blueprint[data-autoplay="true"] .stages button[aria-pressed="true"]::after{animation:none}}
