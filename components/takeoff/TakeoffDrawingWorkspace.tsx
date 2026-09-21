@@ -3,23 +3,19 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {
-  Check,ChevronLeft,ChevronRight,Copy,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,PanelLeftClose,
-  PanelLeftOpen,PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,Repeat2,RotateCcw,Ruler,Scissors,
-  Search,Trash2,Undo2,X
+  Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,PanelLeftClose,
+  PanelLeftOpen,PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
 } from 'lucide-react';
 import {
-  createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,duplicateDrawingMeasurement,initializeTakeoffSheets,
+  createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
   saveTakeoffScaleRegion,updateDrawingMeasurementGeometry
 } from '@/app/takeoff/[setId]/actions';
 import {GeometryCommandHistory,type CommandHistorySnapshot,type GeometryCommandKind} from '@/lib/takeoff/commandHistory';
 import {measureDrawingGeometry,roundMeasurement,type DrawingGeometry,type DrawingMeasurement,type NormalizedPoint} from '@/lib/takeoff/geometry';
 import {linearFootprint,parseRenderConfig,resolveDisplayStyle} from '@/lib/takeoff/physicalGeometry';
-import {enumOptions,isAssemblyVariableActive} from '@/lib/takeoff/assemblyContext';
 import {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';
 import {sheetDisplayLabel} from '@/lib/takeoff/sheetMetadata';
 import {boundsFromPoints,calibrationFromDetectedScale,calibrationFromManual,findScaleRegionForPoint,type ScaleCalibration,type ScaleCandidate,type TakeoffScaleRegion} from '@/lib/takeoff/scaleRegions';
-import {TakeoffAssemblyInputEditor} from './TakeoffAssemblyInputEditor';
-import {TakeoffBuildPlanPanel} from './TakeoffBuildPlanPanel';
 import {TakeoffMeasurementHoverOverlay} from './TakeoffMeasurementHoverOverlay';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
@@ -45,7 +41,6 @@ type Props={
   riskClasses:any[];
   methodProfiles:any[];
   locked:boolean;
-  conditionAuthoringActive?:boolean;
   mobileReview?:boolean;
   drawingViewHidden?:boolean;
   conditionMeasurementIds?:string[];
@@ -82,8 +77,7 @@ function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|
 function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,value));}
 
 export function TakeoffDrawingWorkspace(props:Props){
-  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,methodProfiles,locked}=props;
-  const conditionAuthoringActive=Boolean(props.conditionAuthoringActive);
+  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,methodProfiles,locked}=props;
   const mobileReview=Boolean(props.mobileReview);
   const conditionMeasurementIdSet=useMemo(()=>new Set(props.conditionMeasurementIds||[]),[props.conditionMeasurementIds]);
   const router=useRouter();
@@ -122,15 +116,11 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [editGeometry,setEditGeometry]=useState<DrawingGeometry|null>(null);
   const [historySnapshot,setHistorySnapshot]=useState<CommandHistorySnapshot>(()=>historyRef.current.snapshot());
   const conditionDrawRef=useRef<{name:string;roleLabel:string}|null>(null);
-  const [selectedAssemblyId,setSelectedAssemblyId]=useState<string>(conditionAuthoringActive?'':(assemblies.find((assembly:any)=>assembly.category!=='Concrete Conditions')?.id||assemblies[0]?.id||''));
+  const [selectedAssemblyId,setSelectedAssemblyId]=useState<string>('');
   const [conditionDrawActive,setConditionDrawActive]=useState(false);
-  const [assemblySearch,setAssemblySearch]=useState('');
   const [objectName,setObjectName]=useState('');
-  const [sectionId,setSectionId]=useState('');
   const [riskClassCode,setRiskClassCode]=useState('');
   const [selectedMethodProfileId,setSelectedMethodProfileId]=useState<string|null>(null);
-  const [location,setLocation]=useState('');
-  const [drawingReference,setDrawingReference]=useState('');
   const [variableValues,setVariableValues]=useState<Record<string,string>>({});
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('Loading PDF plans…');
@@ -138,7 +128,6 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [spaceHeld,setSpaceHeld]=useState(false);
   const [snapEnabled,setSnapEnabled]=useState(true);
   const [orthoEnabled,setOrthoEnabled]=useState(false);
-  const [repeatMode,setRepeatMode]=useState(true);
   const [sheetsOpen,setSheetsOpen]=useState(true);
   const [inspectorOpen,setInspectorOpen]=useState(true);
   useEffect(()=>{
@@ -153,13 +142,8 @@ export function TakeoffDrawingWorkspace(props:Props){
       setConditionDrawActive(false);
       return;
     }
-    if(!conditionAuthoringActive&&window.matchMedia('(max-width: 900px)').matches){
-      setSheetsOpen(false);
-      setInspectorOpen(false);
-    }
-  },[conditionAuthoringActive,mobileReview]);
-  const [inspectorTab,setInspectorTab]=useState<'takeoffs'|'properties'|'buildPlan'>('takeoffs');
-  const [buildPlanWorkbenchOpen,setBuildPlanWorkbenchOpen]=useState(false);
+  },[mobileReview]);
+  const [inspectorTab,setInspectorTab]=useState<'takeoffs'|'properties'>('takeoffs');
 
   const latestVersionByAssembly=useMemo(()=>{const map=new Map<string,any>();for(const version of versions)if(!map.has(version.assembly_id))map.set(version.assembly_id,version);return map;},[versions]);
   const assemblyMap=useMemo(()=>new Map<string,any>(assemblies.map((a:any)=>[a.id,a])),[assemblies]);
@@ -167,11 +151,6 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedAssembly:any=assemblyMap.get(selectedAssemblyId);
   const selectedVersion:any=selectedAssembly?latestVersionByAssembly.get(selectedAssembly.id):null;
   const selectedVariables=useMemo(()=>selectedVersion?variables.filter((v:any)=>v.assembly_version_id===selectedVersion.id):[],[selectedVersion,variables]);
-  const selectedMethodProfile=useMemo(()=>methodProfiles.find((profile:any)=>profile.id===selectedMethodProfileId&&profile.assembly_version_id===selectedVersion?.id&&profile.status==='verified')||null,[methodProfiles,selectedMethodProfileId,selectedVersion?.id]);
-  const requiredMethodVariables=useMemo(()=>selectedVariables.filter((variable:any)=>variable.requires_verification&&['method_decision','production_assumption','commercial_assumption'].includes(variable.input_role)&&isAssemblyVariableActive(variable,variableValues)),[selectedVariables,variableValues]);
-  const buildPlanRequired=requiredMethodVariables.length>0;
-  const buildPlanReady=!buildPlanRequired||Boolean(selectedMethodProfile&&requiredMethodVariables.every((variable:any)=>String(selectedMethodProfile.method_inputs?.[variable.variable_key]??'')===String(variableValues[variable.variable_key]??'')));
-  const hasBuilderModel=selectedVariables.some((variable:any)=>!['legacy','derived'].includes(variable.input_role||'legacy'));
   const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);
   const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);
   const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);
@@ -200,13 +179,6 @@ export function TakeoffDrawingWorkspace(props:Props){
     return map;
   },[measurementSummaries]);
   const selectedSummary=selectedMeasurement?summaryMap.get(selectedMeasurement.id):null;
-
-  const filteredAssemblies=useMemo(()=>{
-    const visible=assemblies.filter((assembly:any)=>assembly.category!=='Concrete Conditions');
-    const q=assemblySearch.trim().toLowerCase();
-    if(!q)return visible;
-    return visible.filter((a:any)=>[a.code,a.name,a.category,a.description].some(v=>String(v||'').toLowerCase().includes(q)));
-  },[assemblies,assemblySearch]);
 
   useEffect(()=>{
     const startConditionTakeoff=(event:Event)=>{
@@ -364,7 +336,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     viewport.addEventListener('wheel',handleWheel,{passive:false});
     return()=>viewport.removeEventListener('wheel',handleWheel);
-  },[zoom,setZoomAt,buildPlanWorkbenchOpen]);
+  },[zoom,setZoomAt]);
 
   const fitPage=useCallback(()=>{
     if(!renderBox||!viewportRef.current)return;
@@ -408,8 +380,7 @@ export function TakeoffDrawingWorkspace(props:Props){
 
   const finishDraft=useCallback(async()=>{
     if(locked||busy||!selectedAssembly||!selectedVersion||!currentSheet||!renderBox)return;
-    if(conditionAuthoringActive&&!conditionDrawActive){setMessage('Start new scope from Concrete Conditions.');openConditions();return;}
-    if(!conditionAuthoringActive&&!buildPlanReady){setMessage('Verify the current build method before starting takeoff.');return;}
+    if(!conditionDrawActive){setMessage('Start new scope from Concrete Conditions.');openConditions();return;}
     const geometryType:DrawingGeometry['type']=selectedAssembly.primary_measurement==='SF'?'polygon':selectedAssembly.primary_measurement==='EA'?'count':'polyline';
     const minimum=geometryType==='polygon'?3:geometryType==='polyline'?2:1;
     if(draftPoints.length<minimum){setMessage(`${selectedAssembly.primary_measurement} takeoff needs at least ${minimum} point${minimum===1?'':'s'}.`);return;}
@@ -419,15 +390,14 @@ export function TakeoffDrawingWorkspace(props:Props){
     const finalName=objectName.trim()||autoName;
     setBusy(true);
     try{
-      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:sectionId||null,assemblyVersionId:selectedVersion.id,methodProfileId:selectedMethodProfileId,scaleRegionId:draftScaleRegionId,name:finalName,location:location.trim()||null,drawingReference:drawingReference.trim()||null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
+      const result=await createDrawingMeasurement({takeoffSetId:takeoffSet.id,sheetId:currentSheet.id,estimateSectionId:null,assemblyVersionId:selectedVersion.id,methodProfileId:selectedMethodProfileId,scaleRegionId:draftScaleRegionId,name:finalName,location:null,drawingReference:null,riskClassCode:riskClassCode||null,variables:variableValues,geometry:{type:geometryType,points:draftPoints}});
       const holdText=result.inputHolds?` · ${result.inputHolds} input hold${result.inputHolds===1?'':'s'}`:'';
       setMessage(`Saved ${finalName} · ${formatTakeoffMeasurement(result.quantity,result.unit)}${result.perimeterLf?` · ${formatArchitecturalLength(result.perimeterLf)} perimeter`:''}${holdText}`);
       setDraftPoints([]);setDraftScaleRegionId(null);setHoverPoint(null);setObjectName('');setSelectedMeasurementId(null);
-      if(conditionAuthoringActive){setConditionDrawActive(false);setSelectedAssemblyId('');setTool('select');}
-      else setTool(repeatMode?'draw':'select');
+      setConditionDrawActive(false);setSelectedAssemblyId('');setTool('select');
       router.refresh();
     }catch(error:any){setMessage(error?.message||'Could not save drawing measurement.');}finally{setBusy(false);}
-  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,location,objectName,takeoffSet.id,sectionId,drawingReference,riskClassCode,variableValues,repeatMode,router,buildPlanReady,selectedMethodProfileId,conditionAuthoringActive,conditionDrawActive,openConditions]);
+  },[locked,busy,selectedAssembly,selectedVersion,currentSheet,renderBox,draftPoints,draftScaleRegionId,currentMeasurements,objectName,takeoffSet.id,riskClassCode,variableValues,router,selectedMethodProfileId,conditionDrawActive,openConditions]);
 
   function beginEditMeasurement(measurement:any){
     if(locked)return;
@@ -449,7 +419,6 @@ export function TakeoffDrawingWorkspace(props:Props){
   async function saveEdit(){if(!selectedMeasurementId||!editGeometry||!editOriginalRef.current)return;await commitGeometry('MoveVertexCommand',selectedMeasurementId,editOriginalRef.current,editGeometry,'Shape updated');}
   async function finishCutout(){if(!selectedMeasurementId||selectedGeometry?.type!=='polygon'||draftPoints.length<3){setMessage('A cutout needs at least three points.');return;}const after:DrawingGeometry={...copyGeometry(selectedGeometry),holes:[...(selectedGeometry.holes||[]).map(hole=>hole.map(point=>({...point}))),draftPoints.map(point=>({...point}))]};await commitGeometry('CreateCutoutCommand',selectedMeasurementId,selectedGeometry,after,'Cutout saved');}
   async function removeLastCutout(){if(!selectedMeasurementId||selectedGeometry?.type!=='polygon'||!selectedGeometry.holes?.length)return;const after=copyGeometry(selectedGeometry);after.holes=after.holes?.slice(0,-1);await commitGeometry('RemoveCutoutCommand',selectedMeasurementId,selectedGeometry,after,'Last cutout removed');}
-  async function duplicateSelected(){if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{const result=await duplicateDrawingMeasurement(selectedMeasurementId,takeoffSet.id);setMessage(`Duplicated takeoff · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);setSelectedMeasurementId(result.id);router.refresh();}catch(error:any){setMessage(error?.message||'Could not duplicate takeoff.');}finally{setBusy(false);}}
   async function nudgeSelected(dx:number,dy:number){if(!selectedMeasurementId||!selectedGeometry||locked||busy)return;const after=shiftGeometry(selectedGeometry,dx,dy);await commitGeometry('MoveMeasurementCommand',selectedMeasurementId,selectedGeometry,after,'Takeoff nudged');}
 
   async function undoCommitted(){const command=historyRef.current.undoCandidate();if(!command||locked||busy)return;setBusy(true);try{await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.before});historyRef.current.confirmUndo(command.id);setHistorySnapshot(historyRef.current.snapshot());setSelectedMeasurementId(command.measurementId);setMessage(`Undid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not undo the committed change.');}finally{setBusy(false);}}
@@ -492,9 +461,8 @@ export function TakeoffDrawingWorkspace(props:Props){
       if(event.key.toLowerCase()==='v')setTool('select');
       if(event.key.toLowerCase()==='h')setTool('pan');
       if(event.key.toLowerCase()==='c'&&!locked){setCalibrationPoints([]);setTool('calibrate');}
-      if(event.key.toLowerCase()==='m'&&!locked){if(conditionAuthoringActive){openConditions();return;}if(buildPlanReady)setTool('draw');else setMessage('Verify the current build method before starting takeoff.');}
+      if(event.key.toLowerCase()==='m'&&!locked){openConditions();return;}
       if(event.key.toLowerCase()==='e'&&!locked&&selectedGeometry)beginEdit();
-      if(event.key.toLowerCase()==='d'&&!conditionAuthoringActive&&!locked&&selectedGeometry){event.preventDefault();void duplicateSelected();}
       if(event.key.toLowerCase()==='k'&&!locked&&selectedGeometry?.type==='polygon')beginCutout();
       if(event.key==='PageUp'){event.preventDefault();changePage(Math.max(1,pageNumber-1));}
       if(event.key==='PageDown'){event.preventDefault();changePage(Math.min(pdfPageCount||pageNumber,pageNumber+1));}
@@ -503,7 +471,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     const up=(event:KeyboardEvent)=>{if(event.code==='Space')setSpaceHeld(false);};
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady,conditionAuthoringActive,openConditions,props.drawingViewHidden,mobileReview]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,openConditions,props.drawingViewHidden,mobileReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
     if(mobileReview||tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
@@ -512,7 +480,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
     if(tool==='calibrate'){setCalibrationPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
     if(tool==='scaleRegion'){setScaleRegionPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
-    if(tool==='draw'){if(conditionAuthoringActive&&!conditionDrawActive){setMessage('Start new scope from Concrete Conditions.');openConditions();return;}if(!conditionAuthoringActive&&!buildPlanReady){setMessage('Verify the current build method before starting takeoff.');return;}if(!selectedAssembly){setMessage(conditionAuthoringActive?'Concrete Condition geometry is not ready. Reopen Conditions and start the required takeoff.':'Choose a concrete assembly first.');return;}if(selectedAssembly.primary_measurement!=='EA'){const region=findScaleRegionForPoint(currentScaleRegions,resolved.point);if(!region){setMessage('Confirm or create a scale region covering this point.');return;}if(draftScaleRegionId&&draftScaleRegionId!==region.id){setMessage('One takeoff cannot cross between different scale regions.');return;}setDraftScaleRegionId(region.id);}setDraftPoints(points=>[...points,resolved.point]);return;}
+    if(tool==='draw'){if(!conditionDrawActive){setMessage('Start new scope from Concrete Conditions.');openConditions();return;}if(!selectedAssembly){setMessage('Concrete Condition geometry is not ready. Reopen Conditions and start the required takeoff.');return;}if(selectedAssembly.primary_measurement!=='EA'){const region=findScaleRegionForPoint(currentScaleRegions,resolved.point);if(!region){setMessage('Confirm or create a scale region covering this point.');return;}if(draftScaleRegionId&&draftScaleRegionId!==region.id){setMessage('One takeoff cannot cross between different scale regions.');return;}setDraftScaleRegionId(region.id);}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='cutout'){if(selectedGeometry?.type!=='polygon'){setMessage('Select an area takeoff before adding a cutout.');setTool('select');return;}setDraftPoints(points=>[...points,resolved.point]);return;}
     if(tool==='select'){setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;}
   }
@@ -537,11 +505,10 @@ export function TakeoffDrawingWorkspace(props:Props){
   async function removeSelected(){
     if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{await deleteDrawingMeasurement(selectedMeasurementId,takeoffSet.id);historyRef.current.clear();setHistorySnapshot(historyRef.current.snapshot());setMessage('Takeoff object and generated estimate lines removed');setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;router.refresh();}catch(error:any){setMessage(error?.message||'Could not delete object.');}finally{setBusy(false);}
   }
-  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');setZoom(1);if(mobileReview)window.dispatchEvent(new Event('carez:mobile-sheet-selected'));}
-  function cancelTool(){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');}
+  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setConditionDrawActive(false);setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');setZoom(1);if(mobileReview)window.dispatchEvent(new Event('carez:mobile-sheet-selected'));}
+  function cancelTool(){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setConditionDrawActive(false);setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');}
 
   const pageEntries=Array.from({length:pdfPageCount||initialSheets.length||1},(_,index)=>{const number=index+1;return initialSheets.find((s:any)=>Number(s.page_number)===number)||{id:`pending-${number}`,page_number:number,scale_status:'uncalibrated'};});
-  const drawingTypeLabel=selectedAssembly?.primary_measurement==='SF'?'Area':selectedAssembly?.primary_measurement==='EA'?'Count':'Linear';
   const overlayClass=(tool==='pan'||spaceHeld)?(panning?styles.overlayPanning:styles.overlayPan):tool==='select'?styles.overlaySelect:'';
   const workingPoints=tool==='draw'||tool==='cutout'?draftPoints:tool==='scaleRegion'?scaleRegionPoints:calibrationPoints;
   const draftRenderPoints=hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')?[...workingPoints,hoverPoint]:workingPoints;
@@ -549,7 +516,6 @@ export function TakeoffDrawingWorkspace(props:Props){
   const qualityLimited=renderQuality<.98;
   const selectedVersionRecord:any=selectedMeasurement?versionMap.get(selectedMeasurement.assembly_version_id):null;
   const selectedAssemblyRecord:any=selectedVersionRecord?assemblyMap.get(selectedVersionRecord.assembly_id):null;
-  const selectedOutputs=selectedMeasurement?measurementSummaries.filter((row:any)=>row.measurement_id===selectedMeasurement.id):[];
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
   return <div className={styles.workstation} data-mobile-review={mobileReview?'true':'false'}>
@@ -559,36 +525,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheetDisplayLabel(sheet)}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
     </aside>}
 
-    {!conditionAuthoringActive&&buildPlanWorkbenchOpen&&selectedAssembly&&selectedVersion?<section className={styles.buildPlanWorkspace}>
-      <div className={styles.buildPlanWorkspaceHeader}>
-        <div><span>BUILD PLAN WORKBENCH</span><strong>{selectedAssembly.code} · {selectedAssembly.name}</strong><small>Verify how Carez will build this scope before returning to the drawing.</small></div>
-        <button type="button" onClick={()=>setBuildPlanWorkbenchOpen(false)}>Return to Drawing</button>
-      </div>
-      <div className={styles.buildPlanWorkspaceBody}>
-        <aside className={styles.buildPlanSteps}>
-          <div className={styles.buildPlanStepActive}><b>01</b><span><strong>Plan Facts</strong><small>Requirements from the drawings.</small></span></div>
-          <div><b>02</b><span><strong>Means & Methods</strong><small>How Carez will physically build it.</small></span></div>
-          <div><b>03</b><span><strong>Resources</strong><small>Materials, reusable gear and equipment.</small></span></div>
-          <div><b>04</b><span><strong>Production</strong><small>Estimator-reviewed labor assumptions.</small></span></div>
-          <div><b>05</b><span><strong>Review & Verify</strong><small>Lock the method revision to takeoff.</small></span></div>
-        </aside>
-        <div className={styles.buildPlanMain}>
-          <TakeoffBuildPlanPanel
-            takeoffSetId={takeoffSet.id}
-            assembly={selectedAssembly}
-            version={selectedVersion}
-            variables={variables}
-            profiles={methodProfiles}
-            values={variableValues}
-            selectedProfileId={selectedMethodProfileId}
-            locked={locked}
-            onValuesChange={setVariableValues}
-            onProfileChange={setSelectedMethodProfileId}
-            onMessage={setMessage}
-          />
-        </div>
-      </div>
-    </section>:<section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
+    <section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
       <div className={styles.toolbar}>
         {mobileReview?<><div className={styles.mobileReviewTools}>
           <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
@@ -610,7 +547,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
           <button type="button" title="Pan · H or hold Space" className={`${styles.toolButton} ${tool==='pan'?styles.toolButtonActive:''}`} onClick={()=>setTool('pan')}><Hand size={16}/><span>Pan</span></button>
           <button type="button" disabled={locked} title="Set drawing scale · C" className={`${styles.toolButton} ${tool==='calibrate'?styles.toolButtonActive:''}`} onClick={()=>{setCalibrationPoints([]);setInspectorTab('properties');setTool('calibrate');}}><Ruler size={16}/><span>Scale</span></button>
-          {conditionAuthoringActive?<button type="button" disabled={locked} title="Concrete Conditions · M" className={`${styles.toolButton} ${styles.measureButton}`} onClick={openConditions}><Crosshair size={16}/><span>Conditions</span></button>:<button type="button" disabled={locked||!selectedAssembly||!buildPlanReady} title={buildPlanReady?'Measure · M':'Verify build method before measuring'} className={`${styles.toolButton} ${tool==='draw'?styles.toolButtonActive:styles.measureButton}`} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/><span>{drawingTypeLabel}</span></button>}
+          <button type="button" disabled={locked} title="Concrete Conditions · M" className={`${styles.toolButton} ${styles.measureButton}`} onClick={openConditions}><Crosshair size={16}/><span>Conditions</span></button>
           <button type="button" disabled={locked||!selectedGeometry} title="Edit selected shape · E" className={`${styles.toolButton} ${tool==='edit'?styles.toolButtonActive:''}`} onClick={beginEdit}><Pencil size={15}/><span>Edit</span></button>
           <button type="button" disabled={locked||selectedGeometry?.type!=='polygon'} title="Add area cutout · K" className={`${styles.toolButton} ${tool==='cutout'?styles.toolButtonActive:''}`} onClick={beginCutout}><Scissors size={15}/><span>Cutout</span></button>
         </div>
@@ -628,7 +565,6 @@ export function TakeoffDrawingWorkspace(props:Props){
         </div>
 
         <div className={styles.toolbarSpacer}/>
-        {!conditionAuthoringActive&&selectedAssembly&&<div className={styles.currentAssembly}><span>{selectedAssembly.code}</span><strong>{selectedAssembly.name}</strong></div>}
         <div className={styles.zoomGroup}>
           <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
           <button type="button" className={styles.zoomLabel} title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i>HQ</i>}</button>
@@ -690,33 +626,24 @@ export function TakeoffDrawingWorkspace(props:Props){
       </div>
 
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
-    </section>}
+    </section>
 
     {inspectorOpen&&<aside className={styles.inspector}>
       <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Inspector</div><div className={styles.panelMeta}>{currentSheet?`${sheetDisplayLabel(currentSheet)} · ${currentMeasurements.length} takeoff${currentMeasurements.length===1?'':'s'}`:'Preparing sheet'}</div></div><button type="button" className={styles.iconButton} title="Hide inspector" onClick={()=>setInspectorOpen(false)}><PanelRightClose size={16}/></button></div>
       <div className={styles.inspectorTabs} role="tablist" aria-label="Takeoff inspector">
         <button type="button" role="tab" aria-selected={inspectorTab==='takeoffs'} className={inspectorTab==='takeoffs'?styles.inspectorTabActive:''} onClick={()=>setInspectorTab('takeoffs')}>Takeoffs</button>
         <button type="button" role="tab" aria-selected={inspectorTab==='properties'} className={inspectorTab==='properties'?styles.inspectorTabActive:''} onClick={()=>setInspectorTab('properties')}>Properties</button>
-        {!conditionAuthoringActive&&<button type="button" role="tab" aria-selected={inspectorTab==='buildPlan'} className={inspectorTab==='buildPlan'?styles.inspectorTabActive:''} onClick={()=>setInspectorTab('buildPlan')}>Build Plan{buildPlanRequired&&!buildPlanReady?<i/>:null}</button>}
       </div>
       <div className={styles.inspectorBody}>
         {inspectorTab==='takeoffs'&&<>
-          {conditionAuthoringActive?<div className={styles.group}>
-            <div className={styles.groupHead}><div><div className={styles.groupTitle}>Concrete Conditions</div><div className={styles.groupHelp}>Create or open a Condition, then draw the geometry it requires. Legacy recipes and Build Methods stay out of the active workflow.</div></div></div>
+          <div className={styles.group}>
+            <div className={styles.groupHead}><div><div className={styles.groupTitle}>Concrete Conditions</div><div className={styles.groupHelp}>Create or open a Condition, then draw the geometry it requires.</div></div></div>
             {!locked&&<button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair size={16}/> Open Concrete Conditions</button>}
-          </div>:<div className={styles.group}>
-            <div className={styles.groupHead}><div><div className={styles.groupTitle}>Concrete Assembly</div><div className={styles.groupHelp}>Choose what you are measuring. One takeoff drives its resource recipe.</div></div></div>
-            <label className={styles.searchField}><Search size={14}/><input value={assemblySearch} onChange={e=>setAssemblySearch(e.target.value)} placeholder="Find footing, wall, slab, curb…"/></label>
-            <div className={styles.assemblyList}>{filteredAssemblies.length?filteredAssemblies.map((assembly:any)=>{const active=assembly.id===selectedAssemblyId;return <button key={assembly.id} type="button" disabled={locked} className={`${styles.assemblyCard} ${active?styles.assemblyCardActive:''}`} onClick={()=>{setSelectedAssemblyId(assembly.id);setSelectedMeasurementId(null);setTool('select');}}><span className={styles.assemblyUnit}>{assembly.primary_measurement}</span><span><strong>{assembly.name}</strong><small>{assembly.code}{assembly.category?` · ${assembly.category}`:''}</small></span></button>;}):<div className={styles.emptySmall}>No concrete assembly matches that search.</div>}</div>
-            {selectedVersion&&<div className={styles.assemblySource}>V{selectedVersion.version_no} · {selectedVersion.source_label||'Carez assembly'}{selectedVersion.source_reference&&<span>{selectedVersion.source_reference}</span>}</div>}
-          </div>}
+          </div>
 
-          <div className={styles.group}><div className={styles.groupTitle}>This Sheet</div>{currentMeasurements.length?<div className={styles.objectList}>{currentMeasurements.map((measurement:any)=>{const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const summary=summaryMap.get(measurement.id);const geometry=drawingGeometry(measurement.geometry);return <button type="button" key={measurement.id} className={`${styles.objectButton} ${selectedMeasurementId===measurement.id?styles.objectSelected:''}`} onClick={()=>{setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setTool('select');setInspectorTab('properties');}}><span className={styles.objectColor} style={{background:hashColor(assembly?.code||measurement.id)}}/><span><strong>{measurement.name}</strong><small>{conditionAuthoringActive?(conditionMeasurementIdSet.has(measurement.id)?'Concrete Condition':'Legacy takeoff'):(assembly?.name||'Assembly')} · {formatTakeoffMeasurement(measurement.raw_quantity,measurement.raw_unit)}{geometry?.holes?.length?` · ${geometry.holes.length} cutout${geometry.holes.length===1?'':'s'}`:''}</small></span>{summary?.missing?<b className={styles.objectWarn}>!</b>:null}</button>;})}</div>:<div className={styles.emptySmall}>No takeoff on this sheet yet.</div>}</div>
+          <div className={styles.group}><div className={styles.groupTitle}>This Sheet</div>{currentMeasurements.length?<div className={styles.objectList}>{currentMeasurements.map((measurement:any)=>{const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const summary=summaryMap.get(measurement.id);const geometry=drawingGeometry(measurement.geometry);return <button type="button" key={measurement.id} className={`${styles.objectButton} ${selectedMeasurementId===measurement.id?styles.objectSelected:''}`} onClick={()=>{setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setTool('select');setInspectorTab('properties');}}><span className={styles.objectColor} style={{background:hashColor(assembly?.code||measurement.id)}}/><span><strong>{measurement.name}</strong><small>{conditionMeasurementIdSet.has(measurement.id)?'Concrete Condition':'Historical takeoff'} · {formatTakeoffMeasurement(measurement.raw_quantity,measurement.raw_unit)}{geometry?.holes?.length?` · ${geometry.holes.length} cutout${geometry.holes.length===1?'':'s'}`:''}</small></span>{summary?.missing?<b className={styles.objectWarn}>!</b>:null}</button>;})}</div>:<div className={styles.emptySmall}>No takeoff on this sheet yet.</div>}</div>
 
-          {!conditionAuthoringActive&&selectedAssembly&&<div className={styles.inspectorActionStrip}>
-            <div><span>ACTIVE ASSEMBLY</span><strong>{selectedAssembly.code} · {selectedAssembly.name}</strong><small>{buildPlanReady?'Build method ready':'Build Plan verification required'}</small></div>
-            <button type="button" onClick={()=>setInspectorTab(buildPlanReady?'properties':'buildPlan')}>{buildPlanReady?'Properties':'Build Plan'}</button>
-          </div>}
+
         </>}
 
         {inspectorTab==='properties'&&<>
@@ -746,36 +673,15 @@ export function TakeoffDrawingWorkspace(props:Props){
             <div className={styles.groupTitle}>Selected Takeoff</div><div className={styles.selectedTitle}>{selectedMeasurement.name}</div><div className={styles.selectedQty}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</div>
             {selectedGeometry?.type==='polygon'&&<div className={styles.cutoutSummary}><span><b>{selectedCutoutCount}</b> cutout{selectedCutoutCount===1?'':'s'}</span><span><b>{qty(selectedMeasurement.geometry?.cutout_quantity||0)}</b> SF excluded</span><span><b>{formatArchitecturalLength(selectedMeasurement.geometry?.perimeter_lf||0)}</b> edge</span></div>}
             {selectedSummary&&<div className={styles.selectedStats}><span><b>{qty(selectedSummary.mh)}</b> MH</span><span><b>{money(selectedSummary.cost)}</b> direct</span></div>}
-            {selectedSummary?.inputHolds?<div className={styles.statusWarn}>{selectedSummary.inputHolds} generated line{selectedSummary.inputHolds===1?'':'s'} waiting on {conditionAuthoringActive?'required Condition input':'assembly input'}. Geometry and unaffected quantities are saved.</div>:null}
+            {selectedSummary?.inputHolds?<div className={styles.statusWarn}>{selectedSummary.inputHolds} generated line{selectedSummary.inputHolds===1?'':'s'} waiting on required Condition input. Geometry and unaffected quantities are saved.</div>:null}
             {selectedSummary?.priceHolds?<div className={styles.statusWarn}>{selectedSummary.priceHolds} generated line{selectedSummary.priceHolds===1?'':'s'} still need pricing or a labor rate.</div>:null}
-            {conditionAuthoringActive?<div className={styles.statusWarn}>{conditionMeasurementIdSet.has(selectedMeasurement.id)?'Condition-managed takeoff. Plan facts, methods, production, and modules are edited in Concrete Conditions.':'Legacy takeoff preserved for historical lineage. New scope is authored through Concrete Conditions.'}</div>:selectedVersionRecord&&selectedAssemblyRecord?<TakeoffAssemblyInputEditor measurement={selectedMeasurement} version={selectedVersionRecord} assembly={selectedAssemblyRecord} variables={variables} outputs={selectedOutputs} takeoffSetId={takeoffSet.id} locked={locked} onMessage={setMessage}/>:null} 
-            {!locked&&<div className={styles.proActionGrid}>{tool==='edit'?<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void saveEdit()}><Check size={14}/> Save Shape</button><button type="button" className={styles.secondary} onClick={cancelTool}><X size={14}/> Cancel</button></>:<><button type="button" className={styles.secondary} onClick={beginEdit}><Pencil size={14}/> Edit Shape</button>{!conditionAuthoringActive&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void duplicateSelected()}><Copy size={14}/> Duplicate</button>}{selectedGeometry?.type==='polygon'&&<button type="button" className={styles.secondary} onClick={beginCutout}><Scissors size={14}/> Add Cutout</button>}{selectedCutoutCount>0&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void removeLastCutout()}><Undo2 size={14}/> Remove Last</button>}</>}</div>}
+            <div className={styles.statusWarn}>{conditionMeasurementIdSet.has(selectedMeasurement.id)?'Condition-managed takeoff. Plan facts, methods, production, and modules are edited in Concrete Conditions.':'Historical takeoff preserved for lineage. New scope is authored through Concrete Conditions.'}</div>
+            {!locked&&<div className={styles.proActionGrid}>{tool==='edit'?<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void saveEdit()}><Check size={14}/> Save Shape</button><button type="button" className={styles.secondary} onClick={cancelTool}><X size={14}/> Cancel</button></>:<><button type="button" className={styles.secondary} onClick={beginEdit}><Pencil size={14}/> Edit Shape</button>{selectedGeometry?.type==='polygon'&&<button type="button" className={styles.secondary} onClick={beginCutout}><Scissors size={14}/> Add Cutout</button>}{selectedCutoutCount>0&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void removeLastCutout()}><Undo2 size={14}/> Remove Last</button>}</>}</div>}
             {tool==='cutout'&&preview&&<div className={`${styles.previewCard} ${styles.cutoutPreview}`}><span>Net concrete</span><strong>{qty(preview.quantity)} SF</strong><small>{qty(preview.cutoutQuantity||0)} SF total excluded</small><button type="button" disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}><Scissors size={15}/> Save cutout</button></div>}
             {!locked&&<button type="button" className={styles.danger} disabled={busy} onClick={()=>void removeSelected()}><Trash2 size={14}/> Delete takeoff</button>}
-          </div>:conditionAuthoringActive?<div className={styles.group}><div className={styles.groupTitle}>New Takeoff</div><div className={styles.groupHelp}>New measured scope starts from a Concrete Condition so geometry, modules, outputs, and estimate lineage stay together.</div>{!locked&&<button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair size={16}/> Open Concrete Conditions</button>}</div>:selectedAssembly?<div className={styles.group}>
-            <div className={styles.groupTitle}>New Takeoff Properties</div>
-            <div className={styles.propertyAssembly}><span>Assembly</span><strong>{selectedAssembly.code}</strong><small>{selectedAssembly.name}</small></div>
-            <label className={styles.field}><span>Name <em>optional</em></span><input value={objectName} disabled={locked} onChange={e=>setObjectName(e.target.value)} placeholder={`Auto: ${selectedAssembly.name} 1`}/></label>
-            <label className={styles.field}><span>Location / zone <em>optional</em></span><input value={location} disabled={locked} onChange={e=>setLocation(e.target.value)} placeholder="Garage · North wall · Area A"/></label>
-            {selectedVariables.length>0&&<div className={styles.variableGrid}>{selectedVariables.filter((variable:any)=>(!hasBuilderModel||(variable.input_role||'legacy')==='legacy')&&!(variable.variable_key==='perimeter_lf'&&selectedAssembly.primary_measurement==='SF')&&isAssemblyVariableActive(variable,variableValues)).map((variable:any)=><label className={styles.field} key={variable.id}><span>{variable.label}{variable.required?' *':''}</span>{variable.value_type==='boolean'?<label className={styles.checkRow}><input type="checkbox" checked={variableValues[variable.variable_key]==='true'} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.checked?'true':'false'}))}/><span>Enabled</span></label>:variable.value_type==='enum'?<select value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}><option value="">Select…</option>{enumOptions(variable.options).map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:<div className={styles.inputUnit}><input type={['number','dimension','percentage'].includes(variable.value_type)?'number':'text'} step="any" min={variable.min_value??undefined} max={variable.max_value??undefined} value={variableValues[variable.variable_key]??''} disabled={locked} onChange={e=>setVariableValues(values=>({...values,[variable.variable_key]:e.target.value}))}/>{variable.unit&&<b>{variable.unit}</b>}</div>}{variable.help_text&&<small>{variable.help_text}</small>}</label>)}</div>}
-            <label className={styles.checkRow}><input type="checkbox" checked={repeatMode} onChange={e=>setRepeatMode(e.target.checked)}/><Repeat2 size={14}/><span>Keep assembly active after saving</span></label>
-            <details className={styles.advanced}><summary>Advanced job coding</summary><div className={styles.advancedBody}><label className={styles.field}><span>Estimate scope area</span><select value={sectionId} disabled={locked} onChange={e=>setSectionId(e.target.value)}><option value="">Automatic / unassigned</option>{sections.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label className={styles.field}><span>L&I phase</span><select value={riskClassCode} disabled={locked} onChange={e=>setRiskClassCode(e.target.value)}><option value="">Assembly default</option>{riskClasses.map((r:any)=><option key={`${r.code}-${r.tax_year}`} value={r.code}>{r.code} — {r.name}</option>)}</select></label><label className={styles.field}><span>Drawing reference</span><input value={drawingReference} disabled={locked} onChange={e=>setDrawingReference(e.target.value)} placeholder="Automatic from current sheet"/></label></div></details>
-            {!locked&&<button type="button" className={styles.measurePrimary} disabled={!selectedAssembly||!buildPlanReady} onClick={()=>{setDraftPoints([]);setDraftScaleRegionId(null);setTool('draw');}}><Crosshair size={16}/> {buildPlanReady?`Start ${drawingTypeLabel} Takeoff`:'Verify Build Plan to Start'}</button>}
-          </div>:<div className={styles.emptySmall}>Choose a concrete assembly in Takeoffs.</div>}
+          </div>:<div className={styles.group}><div className={styles.groupTitle}>New Takeoff</div><div className={styles.groupHelp}>New measured scope starts from a Concrete Condition so geometry, modules, outputs, and estimate lineage stay together.</div>{!locked&&<button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair size={16}/> Open Concrete Conditions</button>}</div>}
 
-          <details className={styles.shortcuts}><summary>Keyboard & mouse shortcuts</summary><div className={styles.shortcutGrid}><kbd>Wheel</kbd><span>Zoom at cursor</span><kbd>Space</kbd><span>Temporary pan</span><kbd>M</kbd><span>{conditionAuthoringActive?'Open Conditions':'Measure'}</span><kbd>E</kbd><span>Edit selected shape</span><kbd>D</kbd><span>Duplicate selected</span><kbd>K</kbd><span>Add area cutout</span><kbd>Arrows</kbd><span>Nudge selected · Shift × 10</span><kbd>Ctrl Z</kbd><span>Undo committed geometry</span><kbd>Ctrl ⇧ Z</kbd><span>Redo committed geometry</span><kbd>PgUp/Dn</kbd><span>Previous / next sheet</span><kbd>S / O</kbd><span>Snap / ortho</span><kbd>Enter</kbd><span>Finish or save</span><kbd>Esc</kbd><span>Cancel tool</span></div></details>
-        </>}
-
-        {!conditionAuthoringActive&&inspectorTab==='buildPlan'&&<>
-          {selectedAssembly&&selectedVersion?<div className={styles.buildPlanCompact}>
-            <div className={styles.buildPlanCompactHead}><div><span>BUILD PLAN</span><strong>{selectedAssembly.code} · {selectedAssembly.name}</strong></div><b className={buildPlanReady?styles.methodVerified:styles.methodPending}>{buildPlanReady?'VERIFIED':'NEEDS VERIFICATION'}</b></div>
-            <div className={styles.methodProfileSummary}><span>Job method</span><strong>{selectedMethodProfile?`R${selectedMethodProfile.revision_no} · ${selectedMethodProfile.name}`:'No verified method selected'}</strong></div>
-            <div className={styles.methodSummaryGrid}>
-              {selectedVariables.filter((variable:any)=>isAssemblyVariableActive(variable,variableValues)&&['plan_fact','method_decision','production_assumption','commercial_assumption'].includes(variable.input_role)).slice(0,8).map((variable:any)=>{const raw=variableValues[variable.variable_key]??'';const display=variable.value_type==='enum'?(enumOptions(variable.options).find(option=>option.value===raw)?.label||raw):`${raw}${raw&&variable.unit?` ${variable.unit}`:''}`;return <span key={variable.id}><small>{variable.label}</small><b>{display||'—'}</b></span>;})}
-            </div>
-            {buildPlanRequired&&!buildPlanReady&&<div className={styles.buildPlanWarning}>Current means-and-method assumptions must be verified before measurement tools can start.</div>}
-            <button type="button" className={styles.reviewBuildPlan} onClick={()=>setBuildPlanWorkbenchOpen(true)}>{buildPlanReady?'Review / Edit Build Plan':'Complete Build Plan'}</button>
-          </div>:<div className={styles.emptySmall}>Choose an assembly before configuring its Build Plan.</div>}
+          <details className={styles.shortcuts}><summary>Keyboard & mouse shortcuts</summary><div className={styles.shortcutGrid}><kbd>Wheel</kbd><span>Zoom at cursor</span><kbd>Space</kbd><span>Temporary pan</span><kbd>M</kbd><span>Open Conditions</span><kbd>E</kbd><span>Edit selected shape</span><kbd>D</kbd><span>Duplicate selected</span><kbd>K</kbd><span>Add area cutout</span><kbd>Arrows</kbd><span>Nudge selected · Shift × 10</span><kbd>Ctrl Z</kbd><span>Undo committed geometry</span><kbd>Ctrl ⇧ Z</kbd><span>Redo committed geometry</span><kbd>PgUp/Dn</kbd><span>Previous / next sheet</span><kbd>S / O</kbd><span>Snap / ortho</span><kbd>Enter</kbd><span>Finish or save</span><kbd>Esc</kbd><span>Cancel tool</span></div></details>
         </>}
       </div>
     </aside>}
