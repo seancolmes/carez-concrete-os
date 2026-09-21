@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, Boxes, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
 import {
   projectConditionWorksheet,
   type ConditionWorksheetAuthority,
 } from '@/lib/takeoff/conditionWorksheet';
 import { formatTakeoffQuantityValue } from '@/lib/takeoff/lengthFormat';
 import { useTakeoffPaneResize } from '@/lib/takeoff/useTakeoffPaneResize';
-import { useAssemblyBuilderContext } from './AssemblyBuilderContext';
 import styles from './TakeoffQuantityDock.module.css';
 
 type Props = {
@@ -78,7 +77,6 @@ const outputWarnings = (output: any): string[] => {
 
 export function TakeoffQuantityDock({ measurements, outputs, assemblies, versions, sections, sheets, currentSheetId, selectedMeasurementId, onOpenMeasurement }: Props) {
   useTakeoffPaneResize();
-  const builder = useAssemblyBuilderContext();
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const heightDragRef = useRef<{ y: number; height: number } | null>(null);
   const columnDragRef = useRef<{ index: number; x: number; width: number } | null>(null);
@@ -285,7 +283,6 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     <header className={styles.header}>
       <div className={styles.title}><Table2 size={15} /><strong>Quantity Worksheet</strong><span>{filteredRows.length} measurement{filteredRows.length === 1 ? '' : 's'}</span></div>
       {!collapsed && <>
-        {builder.available && <button type="button" className={styles.builderButton} onClick={builder.openLibrary}><Boxes size={13} /><span>{builder.open ? 'Recipes' : 'Scope Recipes'}</span></button>}
         <div className={styles.scope} aria-label="Worksheet scope">
           <button type="button" className={scope === 'sheet' ? styles.active : ''} onClick={() => setScope('sheet')}>This Sheet</button>
           <button type="button" className={scope === 'all' ? styles.active : ''} onClick={() => setScope('all')}>All Sheets</button>
