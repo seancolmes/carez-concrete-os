@@ -454,7 +454,15 @@ export async function prepareConcreteConditionPilotPersistence({
     const path = pathByComponent.get(mapping.legacy_assembly_component_id);
     if (!component || !path) throw new Error(`Compatibility component for ${mapping.output_key} is unavailable.`);
     const price = component.estimate_item_type === 'labor'
-      ? laborRate && { unitCost: laborRate.rate, source: laborRate.source }
+      ? laborRate && {
+        unitCost: laborRate.rate,
+        source: laborRate.source,
+        sourceKind: laborRate.sourceKind,
+        sourceId: laborRate.sourceId,
+        sourceLabel: laborRate.sourceLabel,
+        sourceReference: laborRate.sourceReference,
+        effectiveDate: laborRate.effectiveDate,
+      }
       : await resolveTakeoffCurrentUnitCost(supabase, companyId, component, component.output_unit);
     return {
       outputKey: mapping.output_key,
@@ -468,6 +476,11 @@ export async function prepareConcreteConditionPilotPersistence({
       productionTaskId: component.production_task_id,
       unitCost: price?.unitCost || null,
       costSource: price?.source || null,
+      priceSourceKind: price?.sourceKind || null,
+      priceSourceId: price?.sourceId || null,
+      priceSourceLabel: price?.sourceLabel || null,
+      priceSourceReference: price?.sourceReference || null,
+      priceEffectiveDate: price?.effectiveDate || null,
       baselineSource: component.baseline_source,
       resourceBehavior: component.resource_behavior,
       estimateVisible: component.estimate_visible,
