@@ -143,5 +143,5 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .splitVerification{left:calc(var(--takeoff-navigator-width,260px) + (100% - var(--takeoff-navigator-width,260px))/2)}
-.integrated[data-view-mode="split"] .drawingHost [class*="center"]{margin-right:50%}
+.integrated[data-view-mode="split"] .drawingHost>div:first-child>div:first-child>section{margin-right:50%}
 @media(max-width:860px){.splitVerification{left:50%}}

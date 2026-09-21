@@ -6,7 +6,7 @@
 
 Preview-only `/design-review` renders authenticated routes at 390, 768, or 1280 CSS pixels for review; it is unavailable outside Vercel preview and to unauthenticated/employee users. These are responsive browser frame checks, not physical-device touch testing.
 
-**Acceptance limits:** the connected branch preview has no projects or issued proposals; populated Project Overview/preview and issued commercial states remain unverified in-browser. Its existing published-archetype gate selects the legacy assembly workflow, so governed Plans/Conditions/Zones and derived 3D/Split cannot receive live rendered acceptance with this data. The gate, records, and migrations were not changed to bypass this. Nik's visual approval and those populated/gated checks remain required before integration. Draft PR #77 tracks the candidate and latest preview/check evidence.
+**Environment correction:** initial branch previews inherited the default production Supabase connection instead of staging's branch-specific QA overrides. The initial browser pass used read-only record inspection and device appearance changes; it is not isolated-QA workflow acceptance. Separate Preview overrides for `astra/complete-ui-rewrite` now bind `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the existing Carez Concrete OS QA project. Staging and production entries are unchanged. A fresh deployment and authenticated QA pass are required; no workflow gate or database record was changed to manufacture acceptance. Draft PR #77 tracks the latest deployment and evidence. Nik's visual approval remains required before integration.
 
 
 Last reconciled: 2026-09-20  
