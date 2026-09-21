@@ -86,9 +86,9 @@ Issue #55 Concrete Condition pilot parity is accepted.
 
 Issue #41 synchronized derived 2D/3D verification is closed/completed. Its accepted architecture uses the active PDF plan plane, authoritative persisted 2D geometry, stable shared IDs/selection, governed physical inputs, and derived verification solids. Cross-sheet stacking/registration and direct freeform 3D geometry authoring remain deferred follow-on work.
 
-## P0.5E legacy migration — final staging acceptance pending
+## P0.5E legacy migration — complete on staging
 
-Issue #39 remains open only for Task 7 final reconciliation/documentation and stable-staging acceptance under Epic #43. Tasks 1–6 are implemented.
+Issue #39 is complete on `staging` under Epic #43. Tasks 1–7 are implemented, reconciled, and browser-accepted.
 
 Verified staging / QA evidence:
 
@@ -99,6 +99,7 @@ Verified staging / QA evidence:
 - Task 5 permanent Condition-first Takeoff cutover is merged and browser-accepted.
 - Task 6 legacy Assembly History is read-only, merged, and browser QA **PASS**.
 - Task 6 merge commit on `staging`: `bb5b61be53244a0e8daa8d1c01dcbfa71aa1d9d4`.
+- Task 7 final reconciliation/documentation is merged at `a377f72893492443e0763a026e00838070186f47` and final stable-staging browser QA **PASS**.
 - Final QA classification dry-run after the Task 6 source changes produced **62 mapped**, **2 historical_only**, **17 unsupported_review**, and **1 unreferenced** candidates with zero unexplained migration errors.
 - All **17 unsupported_review** candidates trace to a single pre-Condition QA fixture (`QA FTG Line Pump 100 LF`: one legacy assembly version, one measurement, eight outputs, and seven estimate items). The fixture is intentionally left untouched for unsupported-path regression coverage and is not treated as a supported migration candidate.
 - The controlled editable mapped pilot remains reconciled across **27** outputs: **2 held**, **25 intentionally inactive**, **0 mismatch/unmapped**, with exactly **2** generated estimate items for **2** estimate-visible active outputs and zero orphan/duplicate lineage failures.
@@ -108,7 +109,7 @@ Verified staging / QA evidence:
 
 The **EDGE-style Condition-first estimator workflow** remains the estimating UX contract: named Concrete Conditions, concrete-native module/property organization, direct Takeoff-to-Estimate lineage, and no normal formula-first authoring. Carez retains its own visual system, deterministic engine, versioning, Job Spine, commercial lineage, and production-learning architecture.
 
-Final staging acceptance pending: merge the Task 7 documentation/reconciliation branch, verify the exact staging SHA, and obtain Nik's final browser acceptance before closing Issue #39.
+Final staging acceptance is complete. Issue #39 is closed. No production promotion is implied; `main` remains untouched and Issue #59 still blocks migration-dependent production release.
 
 ## Environment / blockers
 
@@ -117,18 +118,17 @@ Final staging acceptance pending: merge the Task 7 documentation/reconciliation 
 - Issue #59 remains a hard production-release blocker until production Supabase migration history is safely bridged to the canonical staging/QA migration model.
 - Issue #58 remains open pending authenticated staging browser acceptance of the already-implemented Estimate pricing-save fix.
 - QA still lacks `public.next_opportunity_number()`, which blocks successful direct-job creation/populated Project Overview acceptance in that environment.
-- GPU-capable manual browser QA has passed for the accepted Takeoff 2D / Split / 3D workstation behavior; Task 7 still requires final stable-staging acceptance for the completed P0.5E cutover.
+- GPU-capable manual browser QA has passed for the accepted Takeoff 2D / Split / 3D workstation behavior and for the final P0.5E stable-staging cutover.
 
 ## Active workstreams
 
-Two workstreams are legitimately open:
+One cross-cutting UI workstream remains open:
 
 1. **Issue #76 — ADR-025 application-wide Experience System rollout.** The reference slice is accepted; broad propagation, richer purposeful motion, and explicitly deferred spatial/3D experience work remain unfinished.
-2. **Issue #39 — P0.5E legacy recipe migration.** Tasks 1–6 are implemented and accepted; Task 7 final reconciliation/documentation and stable-staging acceptance remain before closure.
 
-Do not claim either workstream finished. Nik decides which stream receives the next cloud implementation budget.
+The P0.5 Concrete Condition foundation, including Issue #39 P0.5E legacy migration and formula-first UI retirement, is accepted on `staging`. The next domain phase is **P1 Estimating** when authorized.
 
-After #39 and P0.5 end-to-end acceptance, advance to P1 Estimating. Issue #59 must be resolved before any migration-dependent `staging` → `main` production release.
+Issue #59 must be resolved before any migration-dependent `staging` → `main` production release.
 
 ## Production rule
 
