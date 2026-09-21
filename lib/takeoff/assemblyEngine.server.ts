@@ -75,18 +75,6 @@ export async function resolveTakeoffCurrentUnitCost(supabase: any, companyId: st
     effectiveDate: null,
   };
   if (component.pricing_strategy === 'manual') return null;
-  if (Number(component.default_unit_cost || 0) > 0) {
-    return {
-      unitCost: Number(component.default_unit_cost),
-      status: 'priced',
-      source: 'assembly version default',
-      sourceKind: 'template_default',
-      sourceId: component.id || null,
-      sourceLabel: 'Assembly version default',
-      sourceReference: component.component_key || component.label || null,
-      effectiveDate: null,
-    };
-  }
   if (!component.catalog_item_id) return null;
 
   const { data: catalog } = await supabase.from('cost_catalog_items').select('id,default_unit,default_unit_cost,name,updated_at').eq('id', component.catalog_item_id).eq('company_id', companyId).maybeSingle();
@@ -130,6 +118,19 @@ export async function resolveTakeoffCurrentUnitCost(supabase: any, companyId: st
       sourceLabel: `Cost catalog · ${catalog.name}`,
       sourceReference: catalog.name,
       effectiveDate: catalog.updated_at ? String(catalog.updated_at).slice(0, 10) : null,
+    };
+  }
+
+  if (Number(component.default_unit_cost || 0) > 0) {
+    return {
+      unitCost: Number(component.default_unit_cost),
+      status: 'priced',
+      source: 'assembly version default',
+      sourceKind: 'template_default',
+      sourceId: component.id || null,
+      sourceLabel: 'Assembly version default',
+      sourceReference: component.component_key || component.label || null,
+      effectiveDate: null,
     };
   }
   return null;
