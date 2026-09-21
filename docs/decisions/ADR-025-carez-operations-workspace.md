@@ -36,6 +36,78 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 - Icons must improve recognition of real construction/business states, not become decoration.
 - Light, dark, and system are first-class.
 
+### Official palette — Carez Cobalt
+
+Nik approved **Cobalt Sky** as the Carez identity palette on 2026-09-21. The product expression is a darker steel-blue operational system: neutral graphite/navy work surfaces, strong cobalt identity, restrained icy-blue spatial highlights, and semantic status accents used only for real state.
+
+Source identity colors:
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--carez-cobalt` | `#0047AB` | brand/action identity, selected edges, strong active states |
+| `--carez-navy` | `#000080` | deep identity anchor; selected fill only where contrast remains accessible |
+| `--carez-ice` | `#82C8E5` | Spatial Blueprint highlight, focus/light technical cue |
+| `--carez-steel` | `#6D8196` | muted technical accent, secondary lines and strong borders |
+
+Dark workspace semantic target:
+
+| Semantic token | Value |
+| --- | --- |
+| `--surface-canvas` | `#0F1722` |
+| `--surface-panel` | `#162331` |
+| `--surface-raised` | `#1D2C3B` |
+| `--text-primary` | `#EAF2F8` |
+| `--text-secondary` | `#C9D6E2` |
+| `--text-muted` | `#B7C6D4` |
+| `--border-default` | `#2C4358` |
+| `--border-strong` | `#6D8196` |
+| `--interaction-primary` | `#82C8E5` |
+| `--interaction-strong` | `#0047AB` |
+| `--interaction-selection` | `#183A63` |
+| `--interaction-focus` | `#82C8E5` |
+| `--spatial-accent` | `#82C8E5` |
+| `--spatial-muted` | `#6D8196` |
+
+Light workspace semantic target:
+
+| Semantic token | Value |
+| --- | --- |
+| `--surface-canvas` | `#F7F9FC` |
+| `--surface-panel` | `#FFFFFF` |
+| `--surface-raised` | `#EDF3F8` |
+| `--text-primary` | `#172131` |
+| `--text-secondary` | `#34495E` |
+| `--text-muted` | `#516477` |
+| `--border-default` | `#C4D0DC` |
+| `--border-strong` | `#6D8196` |
+| `--interaction-primary` | `#0047AB` |
+| `--interaction-strong` | `#000080` |
+| `--interaction-selection` | `#E3F1FA` |
+| `--interaction-focus` | `#0047AB` |
+| `--spatial-accent` | `#82C8E5` |
+| `--spatial-muted` | `#6D8196` |
+
+Semantic status colors are exceptions to the brand palette and must communicate real state rather than decorate surfaces:
+
+| State | Dark | Light |
+| --- | --- | --- |
+| success | `#4DFFBC` | `#087F5B` |
+| warning | `#FFC857` | `#A86100` |
+| danger/error | `#FF4D4D` | `#C73838` |
+| info | `#82C8E5` | `#0047AB` |
+
+Usage rules:
+
+- neutral graphite/navy surfaces carry most of the interface;
+- cobalt is the principal brand/action color, not a page-wide fill;
+- icy blue is the Spatial Blueprint/focus cue, not a generic secondary brand;
+- navy is an identity anchor and must not be used for low-contrast dark-theme text;
+- mint, amber, and red are semantic-only accents;
+- no teal/turquoise cast as the dominant application background;
+- no neon/cyberpunk palette, rainbow status language, or arbitrary local palettes;
+- light theme uses the exact companion tokens above rather than mechanically inverting dark values;
+- all implementation must preserve WCAG AA minimum normal-text contrast.
+
 ### Motion
 
 Motion must answer a functional question: what changed, what is active, where did an item go, or what needs attention?
