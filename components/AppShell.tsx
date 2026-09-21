@@ -62,8 +62,8 @@ function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestinat
       const Icon=NAVIGATION_ICONS[destination.icon];
       const active=resolveActiveDestination(pathname)?.id===destination.id;
       return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined}
-        className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1.5 px-2 text-xs',active&&'bg-muted text-foreground')}>
-        <Icon className="size-3.5 text-muted-foreground"/><span className="truncate">{destination.label}</span>
+        className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1.5 px-2 text-xs',active&&'bg-primary/10 text-foreground shadow-[inset_0_-2px_var(--primary)]')}>
+        <Icon className={cn("size-3.5",active?"text-primary":"text-muted-foreground")}/><span className="truncate">{destination.label}</span>
       </Link>;
     })}
   </nav>;
@@ -72,7 +72,7 @@ function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestinat
 function CarezMoreMenu({pinnedIds,pathname,onNavigate,onManage,className}:{pinnedIds:string[];pathname:string;onNavigate:(href:string)=>void;onManage:()=>void;className?:string}){
   const active=resolveActiveDestination(pathname);
   return <div className={className}><DropdownMenu>
-    <DropdownMenuTrigger className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1 px-2 text-xs',active&&!pinnedIds.includes(active.id)&&'bg-muted text-foreground')}>More <ChevronDown className="size-3"/></DropdownMenuTrigger>
+    <DropdownMenuTrigger className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1 px-2 text-xs',active&&!pinnedIds.includes(active.id)&&'bg-primary/10 text-foreground shadow-[inset_0_-2px_var(--primary)]')}>More <ChevronDown className="size-3"/></DropdownMenuTrigger>
     <DropdownMenuContent align="start" sideOffset={4} className="w-80">
       {NAVIGATION_GROUPS.map(group=>{
         const items=destinationsFor(group.destinationIds).filter(destination=>!pinnedIds.includes(destination.id));
@@ -185,8 +185,8 @@ function CarezMobileMoreSheet({open,onOpenChange,pathname,onNavigate,onManage}:{
 }
 
 function CarezMobileBottomNav({destinations,pathname,onOpenMore}:{destinations:NavigationDestination[];pathname:string;onOpenMore:()=>void}){
-  return <nav aria-label="Primary mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-border bg-background/98 px-1 backdrop-blur-xl md:hidden">
-    {destinations.slice(0,3).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=resolveActiveDestination(pathname)?.id===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} className={cn('flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40',active&&'text-foreground')}><Icon className="size-4"/><span className="max-w-full truncate">{destination.label}</span></Link>})}
+  return <nav aria-label="Primary mobile navigation" className="carez-shell fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-border bg-background/98 px-1 backdrop-blur-xl md:hidden">
+    {destinations.slice(0,3).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];const active=resolveActiveDestination(pathname)?.id===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?'page':undefined} className={cn('flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40',active&&'text-primary')}><Icon className="size-4"/><span className="max-w-full truncate">{destination.label}</span></Link>})}
     <Button type="button" variant="ghost" className="h-auto min-w-0 flex-1 flex-col gap-0.5 rounded-md px-1 text-[10px] font-normal text-muted-foreground" onClick={onOpenMore}><Ellipsis className="size-4"/><span>More</span></Button>
   </nav>;
 }
@@ -290,7 +290,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
 
   return <div className="flex min-h-svh flex-col bg-background text-foreground">
     <BankSyncPulse/><OutlookSyncPulse/>
-    <div className="relative z-40 shrink-0 bg-background">
+    <div className="carez-shell relative z-40 shrink-0 bg-background">
       <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} pinnedIds={pinnedIds} pinnedDestinations={pinnedDestinations} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenManager={()=>setManagerOpen(true)}/>
       {projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}
     </div>
