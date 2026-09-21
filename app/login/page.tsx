@@ -52,7 +52,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative grid min-h-screen w-full grid-cols-1 bg-neutral-950 font-sans text-white select-none overflow-x-hidden lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_auto] lg:overflow-hidden">
+    <main className="relative grid min-h-screen w-full grid-cols-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_auto] bg-neutral-950 font-sans text-white select-none overflow-x-hidden lg:overflow-hidden">
       <StructuralDraftingCanvas />
 
       <div
@@ -119,7 +119,7 @@ export default function LoginPage() {
       </section>
 
       <footer
-        className="relative z-10 w-full border-t border-neutral-900 pt-4 pb-6 px-8 sm:px-12 md:px-16 lg:col-span-2 lg:px-24 bg-neutral-950/90 font-mono text-[10px] tracking-wider text-neutral-500 flex flex-wrap gap-x-2 gap-y-1"
+        className="relative z-10 w-full lg:col-span-2 border-t border-neutral-900 pt-4 pb-6 px-8 sm:px-12 md:px-16 lg:px-24 bg-neutral-950/90 font-mono text-[10px] tracking-wider text-neutral-500 flex flex-wrap gap-x-2 gap-y-1"
         aria-label="Platform capabilities"
       >
         {loginLandingContent.categories.map((category, index) => (
