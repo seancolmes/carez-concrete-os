@@ -81,7 +81,7 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
   {id:'estimates',href:'/estimates',label:'Estimates',hint:'Scope, pricing and review',domain:'estimating',icon:'calculator'},
   {id:'proposals',href:'/proposals',label:'Proposals',hint:'Customer proposal workflow',domain:'estimating',icon:'file'},
   {id:'estimate-audit',href:'/estimates/audit',label:'Estimate audit',hint:'Scope, pricing and risk review',domain:'estimating',icon:'shield'},
-  {id:'assemblies',href:'/takeoff/assemblies',label:'Assemblies',hint:'Concrete scope recipes and resources',domain:'estimating',icon:'library'},
+  {id:'assemblies',href:'/takeoff/assemblies',label:'Assembly history',hint:'Legacy compatibility records',domain:'estimating',icon:'library'},
   {id:'production-intelligence',href:'/takeoff/intelligence',label:'Production intelligence',hint:'Actual production evidence',domain:'estimating',icon:'gauge'},
   {id:'projects',href:'/projects',label:'Projects',hint:'Active jobs and project control',domain:'projects',icon:'briefcase'},
   {id:'job-setup',href:'/job-setup',label:'Job setup',hint:'Turn accepted work into an executable job',domain:'projects',icon:'clipboard-check'},
