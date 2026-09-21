@@ -30,82 +30,57 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 - Manrope is the primary interface/display typeface.
 - IBM Plex Mono is selective technical typography for identifiers, dimensions, aligned technical data, and other cases where mono materially helps.
 - Sentence/title case replaces pervasive uppercase hierarchy.
-- Carez blue is restrained interaction/selection/focus identity, not generic decorative fill.
+- Warm amber is the restrained interaction/focus identity; neutral warm surfaces carry the application and status color remains semantic.
 - Use three depth levels: canvas, operational surface, interactive/selected surface.
 - Tabs require a clear active surface/edge, hover/focus response, and compact professional geometry.
 - Icons must improve recognition of real construction/business states, not become decoration.
 - Light, dark, and system are first-class.
 
-### Official palette — Carez Cobalt
+### Official theme — Claude Amber Remix, adapted for Carez
 
-Nik approved **Cobalt Sky** as the Carez identity palette on 2026-09-21. The product expression is a darker steel-blue operational system: neutral graphite/navy work surfaces, strong cobalt identity, restrained icy-blue spatial highlights, and semantic status accents used only for real state.
+Nik replaced the rejected Carez Cobalt direction on 2026-09-21 with the supplied **Claude Amber Remix** theme. Carez uses its warm neutral/amber color system while preserving Carez typography, density, workstation geometry, and construction-native interaction patterns.
 
-Source identity colors:
+Core light theme:
 
-| Token | Value | Role |
-| --- | --- | --- |
-| `--carez-cobalt` | `#0047AB` | brand/action identity, selected edges, strong active states |
-| `--carez-navy` | `#000080` | deep identity anchor; selected fill only where contrast remains accessible |
-| `--carez-ice` | `#82C8E5` | Spatial Blueprint highlight, focus/light technical cue |
-| `--carez-steel` | `#6D8196` | muted technical accent, secondary lines and strong borders |
-
-Dark workspace semantic target:
-
-| Semantic token | Value |
+| Token | Value |
 | --- | --- |
-| `--surface-canvas` | `#0F1722` |
-| `--surface-panel` | `#162331` |
-| `--surface-raised` | `#1D2C3B` |
-| `--text-primary` | `#EAF2F8` |
-| `--text-secondary` | `#C9D6E2` |
-| `--text-muted` | `#B7C6D4` |
-| `--border-default` | `#2C4358` |
-| `--border-strong` | `#6D8196` |
-| `--interaction-primary` | `#82C8E5` |
-| `--interaction-strong` | `#0047AB` |
-| `--interaction-selection` | `#183A63` |
-| `--interaction-focus` | `#82C8E5` |
-| `--spatial-accent` | `#82C8E5` |
-| `--spatial-muted` | `#6D8196` |
+| `--background` | `#faf9f5` |
+| `--card` | `#f5f4ef` |
+| `--foreground` | `#3d3929` |
+| `--muted` | `#ede9de` |
+| `--muted-foreground` | `#6e6d68` |
+| `--accent` | `#e9e6dc` |
+| `--border` | `#dad9d4` |
+| `--input` | `#b4b2a7` |
+| `--ring` | `#c96442` |
+| `--primary` | `#000000` |
 
-Light workspace semantic target:
+Core dark theme:
 
-| Semantic token | Value |
+| Token | Value |
 | --- | --- |
-| `--surface-canvas` | `#F7F9FC` |
-| `--surface-panel` | `#FFFFFF` |
-| `--surface-raised` | `#EDF3F8` |
-| `--text-primary` | `#172131` |
-| `--text-secondary` | `#34495E` |
-| `--text-muted` | `#516477` |
-| `--border-default` | `#C4D0DC` |
-| `--border-strong` | `#6D8196` |
-| `--interaction-primary` | `#0047AB` |
-| `--interaction-strong` | `#000080` |
-| `--interaction-selection` | `#E3F1FA` |
-| `--interaction-focus` | `#0047AB` |
-| `--spatial-accent` | `#82C8E5` |
-| `--spatial-muted` | `#6D8196` |
+| `--background` | `#262624` |
+| `--card` | `#2c2c2b` |
+| `--foreground` | `#f1f1ef` |
+| `--muted` | `#1b1b19` |
+| `--muted-foreground` | `#b7b5a9` |
+| `--accent` | `#1a1915` |
+| `--border` | `#3e3e38` |
+| `--input` | `#52514a` |
+| `--ring` | `#d97757` |
+| `--primary` | `#ffffff` |
 
-Semantic status colors are exceptions to the brand palette and must communicate real state rather than decorate surfaces:
+Carez semantic tokens derive from the theme rather than introducing a second palette: canvas from background, panel from card, raised from popover, text from foreground/muted foreground, strong border from input, interaction/focus/spatial accent from ring, and selection from accent. Manrope remains the primary UI font and IBM Plex Mono remains the technical font. Existing Carez precision radii/density rules remain authoritative even though the source theme publishes broader defaults.
 
-| State | Dark | Light |
-| --- | --- | --- |
-| success | `#4DFFBC` | `#087F5B` |
-| warning | `#FFC857` | `#A86100` |
-| danger/error | `#FF4D4D` | `#C73838` |
-| info | `#82C8E5` | `#0047AB` |
+Login/landing may use reusable technical grid-pattern geometry as a background/supporting layer. It must read as construction-document space, remain subordinate to content and the Spatial Blueprint, respect reduced-motion, and avoid neon/sci-fi treatment.
 
 Usage rules:
 
-- neutral graphite/navy surfaces carry most of the interface;
-- cobalt is the principal brand/action color, not a page-wide fill;
-- icy blue is the Spatial Blueprint/focus cue, not a generic secondary brand;
-- navy is an identity anchor and must not be used for low-contrast dark-theme text;
-- mint, amber, and red are semantic-only accents;
-- no teal/turquoise cast as the dominant application background;
-- no neon/cyberpunk palette, rainbow status language, or arbitrary local palettes;
-- light theme uses the exact companion tokens above rather than mechanically inverting dark values;
+- warm neutral surfaces dominate;
+- amber is used for focus, technical/spatial emphasis, and selected edges rather than page-wide fill;
+- semantic success/warning/error/info colors communicate real state only;
+- no cobalt/teal theme remnants or module-specific alternate palettes;
+- light, dark, and system remain first-class;
 - all implementation must preserve WCAG AA minimum normal-text contrast.
 
 ### Motion

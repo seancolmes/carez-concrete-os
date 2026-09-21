@@ -47,66 +47,53 @@ Appearance preference is `light | dark | system`; System is default. Root densit
 
 Primary UI/display typography is Manrope. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
-### Official Carez Cobalt color contract
+### Claude Amber Remix color contract
 
-ADR-025 fixes the Carez identity palette to **Cobalt Sky**:
-
-```text
-Cobalt  #0047AB
-Navy    #000080
-Ice     #82C8E5
-Steel   #6D8196
-```
-
-Components consume semantic tokens, never palette names directly.
-
-#### Dark semantic tokens
+ADR-025 uses the supplied **Claude Amber Remix** palette as the Carez color foundation. Components continue to consume semantic Carez tokens rather than hard-coded palette values.
 
 ```css
---surface-canvas: #0F1722;
---surface-panel: #162331;
---surface-raised: #1D2C3B;
---text-primary: #EAF2F8;
---text-secondary: #C9D6E2;
---text-muted: #B7C6D4;
---border-default: #2C4358;
---border-strong: #6D8196;
---interaction-primary: #82C8E5;
---interaction-strong: #0047AB;
---interaction-selection: #183A63;
---interaction-focus: #82C8E5;
---spatial-accent: #82C8E5;
---spatial-muted: #6D8196;
---status-success: #4DFFBC;
---status-warning: #FFC857;
---status-error: #FF4D4D;
---status-info: #82C8E5;
+/* Light */
+--background: #faf9f5;
+--card: #f5f4ef;
+--foreground: #3d3929;
+--muted: #ede9de;
+--muted-foreground: #6e6d68;
+--accent: #e9e6dc;
+--border: #dad9d4;
+--input: #b4b2a7;
+--ring: #c96442;
+--primary: #000000;
+
+/* Dark */
+--background: #262624;
+--card: #2c2c2b;
+--foreground: #f1f1ef;
+--muted: #1b1b19;
+--muted-foreground: #b7b5a9;
+--accent: #1a1915;
+--border: #3e3e38;
+--input: #52514a;
+--ring: #d97757;
+--primary: #ffffff;
 ```
 
-#### Light semantic tokens
+Carez aliases:
 
 ```css
---surface-canvas: #F7F9FC;
---surface-panel: #FFFFFF;
---surface-raised: #EDF3F8;
---text-primary: #172131;
---text-secondary: #34495E;
---text-muted: #516477;
---border-default: #C4D0DC;
---border-strong: #6D8196;
---interaction-primary: #0047AB;
---interaction-strong: #000080;
---interaction-selection: #E3F1FA;
---interaction-focus: #0047AB;
---spatial-accent: #82C8E5;
---spatial-muted: #6D8196;
---status-success: #087F5B;
---status-warning: #A86100;
---status-error: #C73838;
---status-info: #0047AB;
+--surface-canvas: var(--background);
+--surface-panel: var(--card);
+--surface-raised: var(--popover);
+--text-primary: var(--foreground);
+--text-muted: var(--muted-foreground);
+--border-default: var(--border);
+--border-strong: var(--input);
+--interaction-primary: var(--ring);
+--interaction-selection: var(--accent);
+--interaction-focus: var(--ring);
+--spatial-accent: var(--ring);
 ```
 
-Status colors communicate actual state only. Cobalt/ice communicate identity, selection, focus, and spatial context. Neutral surfaces must dominate the frame. Do not reintroduce a teal/turquoise application cast, decorative neon, or module-specific hard-coded palettes.
+The source theme's Outfit/Geist typography is **not** adopted; Manrope and IBM Plex Mono remain the Carez typography authority. Carez also retains its Precision Grid density and control geometry. Reusable grid-pattern visuals are allowed as low-contrast construction-document backgrounds, not as decorative product chrome.
 
 ## 1. Carez Data Grid
 
