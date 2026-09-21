@@ -7,16 +7,11 @@ const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx
 const integratedWorkspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
-const builderContext = readFileSync('components/takeoff/AssemblyBuilderContext.tsx', 'utf8');
-
-test('active Takeoff cuts over only after the governed Condition dependency gate passes', () => {
-  assert.match(page, /const conditionAuthoringActive =/);
-  assert.match(page, /CONDITION_ARCHETYPE_KEYS\.every/);
-  assert.match(page, /\.eq\('status', 'published'\)/);
-  assert.match(page, /\.eq\('engine_key', 'concrete_condition_v1'\)/);
-  assert.match(page, /if \(!conditionAuthoringActive\)/);
-  assert.match(page, /conditionAuthoringActive\s*\? <TakeoffConditionWorkflowShell/);
-  assert.match(page, /: <TakeoffAssemblyBuilderShell/);
+test('normal Takeoff is permanently Condition-first after P0.5E parity', () => {
+  assert.match(page, /<TakeoffConditionWorkflowShell/);
+  assert.doesNotMatch(page, /TakeoffAssemblyBuilderShell|conditionAuthoringActive/);
+  assert.doesNotMatch(workspace, /buildPlan|Legacy recipes and Build Methods stay out of the active workflow/);
+  assert.doesNotMatch(quantityDock, /openLibrary|builderButton/);
 });
 
 test('Condition-first shell mounts the integrated workstation without Scope Recipe authoring', () => {
@@ -27,18 +22,3 @@ test('Condition-first shell mounts the integrated workstation without Scope Reci
   assert.doesNotMatch(shell, /<ConcreteConditionAuthoring/);
 });
 
-test('Condition-first workspace removes legacy assembly and Build Plan authoring from the active UI', () => {
-  assert.match(workspace, /conditionAuthoringActive\?<div className=\{styles\.group\}>/);
-  assert.match(workspace, /Legacy recipes and Build Methods stay out of the active workflow/);
-  assert.match(workspace, /!conditionAuthoringActive&&<button[^>]+aria-selected=\{inspectorTab==='buildPlan'\}/);
-  assert.match(workspace, /!conditionAuthoringActive&&inspectorTab==='buildPlan'/);
-  assert.match(workspace, /conditionAuthoringActive\?<div className=\{styles\.statusWarn\}>/);
-  assert.match(workspace, /:selectedVersionRecord&&selectedAssemblyRecord\?<TakeoffAssemblyInputEditor/);
-  assert.match(workspace, /if\(conditionAuthoringActive\)\{openConditions\(\);return;\}/);
-  assert.match(workspace, /if\(event\.key\.toLowerCase\(\)==='d'&&!conditionAuthoringActive/);
-});
-
-test('Condition-first quantity worksheet does not expose the legacy Scope Recipe launcher', () => {
-  assert.match(builderContext, /available:\s*value !== DEFAULT_ASSEMBLY_BUILDER_CONTEXT/);
-  assert.match(quantityDock, /builder\.available && <button[^>]+builderButton[^>]+onClick=\{builder\.openLibrary\}/);
-});
