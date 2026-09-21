@@ -24,12 +24,22 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
   useEffect(()=>{
     const openConditions=()=>{
       setNavigatorCollapsed(false);
-      setPropertiesCollapsed(false);
+      setPropertiesCollapsed(window.matchMedia('(max-width: 860px)').matches);
     };
-    const showProperties=()=>setPropertiesCollapsed(false);
+    const showProperties=()=>{
+      setPropertiesCollapsed(false);
+      if(window.matchMedia('(max-width: 860px)').matches)setNavigatorCollapsed(true);
+    };
+    const startDrawing=()=>{
+      if(window.matchMedia('(max-width: 860px)').matches){
+        setNavigatorCollapsed(true);
+        setPropertiesCollapsed(true);
+      }
+    };
+    window.addEventListener('carez:start-condition-takeoff',startDrawing);
     window.addEventListener('carez:show-condition-properties',showProperties);
     window.addEventListener('carez:open-conditions',openConditions);
-    return()=>{window.removeEventListener('carez:open-conditions',openConditions);window.removeEventListener('carez:show-condition-properties',showProperties);};
+    return()=>{window.removeEventListener('carez:open-conditions',openConditions);window.removeEventListener('carez:show-condition-properties',showProperties);window.removeEventListener('carez:start-condition-takeoff',startDrawing);};
   },[]);
 
   return <div className={`${styles.shell}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
