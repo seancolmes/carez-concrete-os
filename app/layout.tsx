@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, Manrope } from 'next/font/google';
+import { IBM_Plex_Mono, Inter } from 'next/font/google';
 import { CarezAppearanceProvider } from '@/components/carez/appearance-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import './globals.css';
 import './takeoff-v3.css';
 
-const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   variable: '--font-ibm-plex-mono',
@@ -26,11 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${ibmPlexMono.variable}`}>
+  return <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
     </head>
-    <body className={manrope.className}>
+    <body className={inter.className}>
       <CarezAppearanceProvider>
         <TooltipProvider>{children}</TooltipProvider>
       </CarezAppearanceProvider>

@@ -74,7 +74,7 @@ test('R3F exposes Focus, filters and active-sheet partial-model holds without hi
   assert.match(r3fViewport, /issue\.measurementId === selectedMeasurementId/);
   assert.match(r3fViewport, /3D input required/);
   assert.match(r3fViewport, /3D unavailable for this Takeoff/);
-  assert.match(r3fViewport, /Resolve input/);
+  assert.match(r3fViewport, /Open 2D \/ Condition input/);
   assert.match(r3fViewport, /calibrated && pdfUrl \? <Takeoff3DErrorBoundary/);
   assert.match(r3fViewport, /solids=\{visibleSolids\}/);
   assert.match(r3fViewport, /actions\.current\?\.focusSelected/);
@@ -96,7 +96,9 @@ test('3D and Split share the current authoritative drawing viewport', () => {
   assert.equal(workspaceStyles.includes(retiredSplitClass), false);
   assert.match(workspaceStyles, /data-view-mode="split"/);
   assert.match(workspaceStyles, /margin-right:50%/);
-  assert.match(workstation, /\['2d','3d','split'\]/);
+  assert.match(workstation, /\['2d','split','3d'\]/);
+  assert.match(workstation, /drawingViewHidden=\{viewMode==='3d'\}/);
+  assert.match(workstation, /jumpToDerivedIssue=.*'split'/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
 });

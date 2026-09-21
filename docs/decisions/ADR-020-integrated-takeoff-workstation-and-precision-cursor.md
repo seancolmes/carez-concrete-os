@@ -15,7 +15,7 @@ Presentation transition: ADR-024 supersedes application-wide theme, token, densi
 
 The current Takeoff route combines an older three-pane drawing workstation with a newer Concrete Condition authoring window. The resulting presentation duplicates navigation and properties responsibilities, obscures the drawing surface, and forces the estimator to reason about multiple overlapping interaction systems.
 
-Carez already has an accepted Condition-led architecture: Plans / Conditions / Zones are contextual navigation, the drawing surface is the dominant work area, Condition Properties is the governed editor, and the Quantity / Estimate Worksheet remains permanently available. This decision selects the exact presentation direction for that architecture and adds a shared desktop precision-cursor language.
+Carez already has an accepted Condition-led desktop architecture: Plans / Conditions / Zones are contextual navigation, the drawing surface is the dominant work area, Condition Properties is the governed editor, and the Quantity / Estimate Worksheet remains permanently available on desktop. This decision selects the exact presentation direction for that architecture and adds a shared desktop precision-cursor language.
 
 ## Decision
 
@@ -66,6 +66,29 @@ View-mode state uses the Carez-owned neutral shadcn/Base UI interaction language
 
 Contextual drawing actions such as edit, duplicate, cutout, hide/isolate, properties, and lineage navigation should use Carez-owned shadcn/Base UI context-menu/dropdown patterns instead of permanently occupying inspector space when progressive disclosure is clearer.
 
+## Mobile review-only profile
+
+At **860 px and below**, `/takeoff/[setId]` intentionally becomes a read-only 2D plan-review surface rather than a compressed estimator workstation.
+
+Mobile keeps:
+
+- authoritative 2D plan/PDF viewing and persisted measurement overlays;
+- sheet drawer plus previous/next sheet navigation;
+- touch/pan navigation;
+- zoom, reset, and fit-page controls;
+- page and scale-status context.
+
+Mobile omits:
+
+- Condition Properties and its expand/collapse control;
+- Condition creation/editing and measurement authoring;
+- 3D and Split modes;
+- scale/calibration authoring, edit/cutout, snap/ortho, undo/redo, and related workstation tools;
+- the persistent Quantity / Estimate Worksheet;
+- the duplicate legacy drawing inspector/build-plan authoring surface.
+
+This is a presentation/input-policy boundary only. It does not change persisted geometry, calculations, Conditions, outputs, or commercial authority. Desktop remains the Takeoff authoring environment.
+
 ## Condition Properties
 
 The right pane is the single governed editing surface for the selected Condition / measurement.
@@ -86,7 +109,7 @@ Common job inputs appear first. Advanced or uncommon inputs remain behind disclo
 
 The docked Condition Properties pane uses a stable responsive width and is independently collapsible to a compact edge rail so the estimator can temporarily maximize drawing width without losing the active Condition or property state. Collapse state may persist locally. Horizontal drag-resizing of the docked pane is retired in favor of collapse/restore. If a future explicit floating-properties mode is enabled, that separate floating window may support drag/resize without reintroducing draggable dock boundaries.
 
-On touch/mobile layouts, the native responsive property presentation remains authoritative rather than reproducing desktop collapse rails.
+On mobile layouts at 860 px and below, Condition Properties is intentionally omitted. Mobile Takeoff is a review surface, not a Condition-authoring surface.
 
 ## Quantity / Estimate Worksheet
 
@@ -178,7 +201,8 @@ The redesign is accepted in implementation only when:
 - the normal Condition workflow no longer presents duplicated overlapping inspector/authoring architecture;
 - left navigator and right Condition Properties use predictable expanded widths, collapse independently, and restore without losing selected work state;
 - no horizontal drag-resize affordance remains on those two docked side panes;
-- the bottom Quantity / Estimate Worksheet remains vertically resizable while preserving a useful drawing minimum;
+- the bottom Quantity / Estimate Worksheet remains vertically resizable on desktop while preserving a useful drawing minimum;
+- mobile Takeoff at 860 px and below presents read-only 2D plan review with sheet navigation, pan/zoom, no Condition Properties, no 3D/Split, no authoring tools, and no persistent worksheet;
 - selection is synchronized among navigator, drawing, Condition Properties, worksheet, and 3D where available;
 - the View rail never obscures zoom, measurement, or drawing navigation controls and remains available for future view-only integrations without creating another floating toolbar;
 - cursor/tool states are clear, restrained, and non-distracting;

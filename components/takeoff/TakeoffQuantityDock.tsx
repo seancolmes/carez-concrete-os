@@ -84,6 +84,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
   const columnDragRef = useRef<{ index: number; x: number; width: number } | null>(null);
   const [height, setHeight] = useState(228);
   const [collapsed, setCollapsed] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const [scope, setScope] = useState<'sheet' | 'all'>('sheet');
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
@@ -214,6 +215,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
       }
     };
     const end = () => {
+      setResizing(false);
       heightDragRef.current = null;
       columnDragRef.current = null;
       document.body.style.cursor = '';
@@ -252,13 +254,29 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     window.dispatchEvent(new CustomEvent('carez:takeoff-sheet-change', { detail: { sheetId: currentSheetId } }));
   }, [currentSheetId]);
 
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || collapsed || !selectedMeasurementId) return;
+    const index = filteredRows.findIndex(row => row.measurement.id === selectedMeasurementId);
+    if (index < 0) return; // Respect the estimator's active filters.
+    const top = index * ROW_HEIGHT;
+    if (top < body.scrollTop) body.scrollTop = top;
+    else if (top + ROW_HEIGHT > body.scrollTop + body.clientHeight) body.scrollTop = top + ROW_HEIGHT - body.clientHeight;
+    setScrollTop(body.scrollTop);
+  }, [selectedMeasurementId, collapsed, filteredRows]);
+
   const overscan = 5;
   const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - overscan);
   const count = Math.ceil(viewportHeight / ROW_HEIGHT) + overscan * 2;
   const visibleRows = filteredRows.slice(start, start + count);
 
-  return <section className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`} style={{ height: collapsed ? 38 : height }} aria-label="Takeoff quantity worksheet" data-current-sheet-id={currentSheetId || ''}>
-    {!collapsed && <button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" onPointerDown={event => {
+  return <section className={`${styles.dock} ${collapsed ? styles.collapsed : ''}`} style={{ height: collapsed ? 38 : height }} aria-label="Takeoff quantity worksheet" data-resizing={resizing} data-current-sheet-id={currentSheetId || ''}>
+    {!collapsed && <button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" title="Drag or use Up / Down arrows to resize" onKeyDown={event => {
+      if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      setHeight(current => event.key === 'Home' ? 150 : event.key === 'End' ? 480 : Math.max(150, Math.min(480, current + (event.key === 'ArrowUp' ? 24 : -24))));
+    }} onPointerDown={event => {
+      setResizing(true);
       heightDragRef.current = { y: event.clientY, height };
       document.body.style.cursor = 'ns-resize';
       document.body.style.userSelect = 'none';
@@ -275,10 +293,10 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
         <label className={styles.search}><Search size={13} /><span className="sr-only">Filter worksheet</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter measurements" /></label>
         <div className={styles.totals}><span><b>{quantity(totals.manHours)}</b> MH</span><span><b>{money(totals.cost)}</b> direct{totals.pricingMissing > 0 ? ' partial' : ''}</span>{totals.issues > 0 && <span className={styles.totalWarning}><AlertTriangle size={12} /><b>{totals.issues}</b> issue{totals.issues === 1 ? '' : 's'}</span>}</div>
       </>}
-      <button type="button" className={styles.collapse} aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}>{collapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}<span>{collapsed ? 'Open' : 'Collapse'}</span></button>
+      <button type="button" className={styles.collapse} aria-expanded={!collapsed} aria-controls="takeoff-quantity-grid" onClick={() => setCollapsed(value => !value)}>{collapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}<span>{collapsed ? 'Open' : 'Collapse'}</span></button>
     </header>
 
-    {!collapsed && <div className={styles.grid} role="table" aria-rowcount={filteredRows.length}>
+    <div id="takeoff-quantity-grid" className={styles.grid} role="table" inert={collapsed} aria-hidden={collapsed||undefined} style={{height:height-38,visibility:collapsed?'hidden':undefined}} aria-rowcount={filteredRows.length}>
       <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={gridStyle}>
         {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<button type="button" className={styles.columnResizeHandle} aria-label={`Resize ${label} column`} title="Drag to resize · double-click to reset" onDoubleClick={event => {
           event.preventDefault(); event.stopPropagation();
@@ -310,6 +328,6 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
           </div>
         </div>}
       </div>
-    </div>}
+    </div>
   </section>;
 }

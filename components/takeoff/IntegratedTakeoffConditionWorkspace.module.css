@@ -1,7 +1,7 @@
 .integrated{
   position:relative;
   display:grid;
-  grid-template-columns:minmax(0,1fr) 0 390px;
+  grid-template-columns:minmax(0,1fr) 430px;
   flex:1;
   min-width:0;
   min-height:0;
@@ -41,11 +41,11 @@
 .drawingHost [class*="loading"]{font-size:12px!important}
 .drawingHost [class*="builderButton"]{display:none!important}
 .propertiesPane{display:flex;min-width:0;min-height:0;flex-direction:column;overflow:hidden;border-left:1px solid var(--border);background:var(--background)}
-.propertiesHeader{display:flex;min-height:58px;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--card))}
+.propertiesHeader{display:flex;min-height:68px;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--card))}
 .propertiesHeader>div{min-width:0}
 .propertiesHeader span{display:block;color:var(--muted-foreground);font-size:11px;font-weight:650;letter-spacing:.02em}
-.propertiesHeader strong{display:block;max-width:270px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);font-size:14px}
-.propertiesHeader small{display:block;margin-top:2px;color:var(--muted-foreground);font-size:10px}
+.propertiesHeader strong{display:block;max-width:320px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);font-size:16px;line-height:1.25}
+.propertiesHeader small{display:block;margin-top:4px;color:var(--muted-foreground);font-size:11px;line-height:1.35}
 .viewModeSwitch{display:flex;height:28px;align-items:center;gap:1px;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--muted) 30%,transparent);padding:2px}
 .viewModeSwitch button{height:22px;min-width:34px;border:0;border-radius:var(--radius-sm);background:transparent;padding:0 7px;color:var(--muted-foreground);font-size:10px;font-weight:650;cursor:pointer;transition:background-color 140ms ease,color 140ms ease,opacity 140ms ease}
 .viewModeSwitch button:hover:not(:disabled){background:var(--muted);color:var(--foreground)}
@@ -58,27 +58,29 @@
 .conditionColor[data-family="slab_on_grade"]{background:var(--chart-1)}
 .conditionColor[data-family="pad_column_footing"]{background:var(--warning)}
 .tabsWrap{border-bottom:1px solid var(--border)}
-.tabsList{width:100%;height:39px;justify-content:flex-start;overflow-x:auto;padding:0 7px}
-.tabsList button{height:37px;flex:0 0 auto;padding-inline:9px;font-size:11px}
-.propertiesScroll{min-height:0;flex:1;overflow:auto;padding:8px;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--muted-foreground) 42%,transparent) transparent}
-.propertySection{margin-bottom:8px;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--card) 34%,var(--background))}
-.sectionHead{display:flex;min-height:36px;align-items:center;gap:6px;padding:0 9px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--muted) 22%,transparent)}
+.tabsList{width:100%;height:43px;justify-content:flex-start;overflow-x:auto;padding:0 10px}
+.tabsList button{height:41px;flex:0 0 auto;padding-inline:10px;font-size:11px}
+.propertiesScroll{min-height:0;flex:1;overflow:auto;padding:12px;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--muted-foreground) 42%,transparent) transparent}
+.propertySection{margin-bottom:12px;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--card) 72%,var(--background))}
+.sectionHead{display:flex;min-height:42px;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--muted) 22%,transparent)}
 .sectionHead svg{width:14px;height:14px;color:var(--muted-foreground)}
-.sectionHead strong{color:var(--foreground);font-size:12px}
-.sectionHead small{margin-left:auto;color:var(--muted-foreground);font-size:10px}
-.roleList{display:grid;gap:7px;padding:9px}
-.roleRow{display:grid;grid-template-columns:minmax(92px,.75fr) minmax(122px,1.25fr) auto;align-items:center;gap:7px}
+.sectionHead strong{color:var(--foreground);font-size:13px;line-height:1.25}
+.sectionHead small{margin-left:auto;color:var(--muted-foreground);font-size:11px}
+.roleList{display:grid;gap:10px;padding:12px}
+.roleRow{display:grid;grid-template-columns:minmax(108px,.8fr) minmax(148px,1.2fr) auto;align-items:center;gap:9px}
 .roleRow>div{min-width:0}
 .roleRow>div strong,.roleRow>div small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.roleRow>div strong{color:var(--foreground);font-size:11px}
-.roleRow>div small{margin-top:2px;color:var(--muted-foreground);font-size:10px}
+.roleRow>div strong{color:var(--foreground);font-size:12px}
+.roleRow>div small{margin-top:3px;color:var(--muted-foreground);font-size:11px}
 .roleRow button{height:31px;font-size:10px}
-.fieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:9px}
+.fieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+.dimensionField{grid-column:1/-1}
+.imperialField{width:100%;max-width:320px}
 .compactEmpty,.gridEmpty{padding:14px;text-align:center;color:var(--muted-foreground);font-size:10px;line-height:1.4}
 .moduleReady{display:flex;align-items:center;gap:7px;padding:12px;color:var(--success);font-size:11px}
 .moduleReady svg{width:15px;height:15px}
 .outputMeta{display:block;margin-top:2px;color:var(--muted-foreground);font-size:10px}
-.propertiesFooter{display:flex;min-height:50px;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--card))}
+.propertiesFooter{display:flex;min-height:56px;align-items:center;gap:9px;padding:9px 12px;border-top:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--card))}
 .propertiesFooter>span{min-width:0;flex:1;overflow:hidden;color:var(--muted-foreground);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .propertiesFooter button{height:32px}
 .propertiesEmpty{display:flex;min-height:0;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted-foreground)}
@@ -125,7 +127,7 @@
   .integrated :disabled{cursor:not-allowed!important}
 }
 @media(max-width:1180px){
-  .integrated{grid-template-columns:minmax(0,1fr) 0 350px!important}
+  .integrated{grid-template-columns:minmax(0,1fr) 350px!important}
   .fieldGrid{grid-template-columns:1fr}
   .drawingHost>div:first-child>div:first-child{grid-template-columns:220px minmax(0,1fr)!important}
   .derivedOverlay3d{left:220px}
@@ -145,3 +147,76 @@
 .splitVerification{left:calc(var(--takeoff-navigator-width,260px) + (100% - var(--takeoff-navigator-width,260px))/2)}
 .integrated[data-view-mode="split"] .drawingHost>div:first-child>div:first-child>section{margin-right:50%}
 @media(max-width:860px){.splitVerification{left:50%}}
+
+/* ADR-025: one object, three working views. */
+.spatialRail{gap:12px;padding-inline:42px!important;background:var(--card)}
+.spatialContext{display:flex;align-items:center;gap:8px;min-width:0;flex:1;font-size:11px;color:var(--muted-foreground)}
+.spatialContext>span:not(.datumMark),.spatialContext strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spatialContext strong{color:var(--foreground);font-weight:600;animation:contextArrival 180ms ease-out}
+.datumMark{font:18px var(--font-ibm-plex-mono),monospace;color:var(--primary)}
+.viewAuthority{flex:none;color:var(--muted-foreground);font-size:11px}
+.viewModeSwitch{flex:none;border-color:var(--border);background:var(--background)}
+.viewModeSwitch button{font-size:11px;transition:background-color 180ms ease,color 180ms ease,box-shadow 180ms ease}
+.viewModeSwitch .viewModeActive{color:var(--foreground);background:var(--accent);box-shadow:inset 0 -2px var(--primary)}
+.derivedOverlay{animation:contextArrival 200ms ease-out}
+.integrated[data-view-mode="split"] .derivedOverlay{border-left:2px solid color-mix(in oklch,var(--primary) 45%,var(--border))}
+.propertiesPane{background:var(--card)}
+.propertiesHeader{border-top:2px solid var(--primary)}
+.propertiesHeader>div{animation:contextArrival 180ms ease-out}
+.contextTab,.contextTabActive{transition:background-color 180ms ease,border-color 180ms ease,color 180ms ease}
+.contextTabActive{border-bottom-color:var(--primary);background:var(--accent)}
+.contextBody{animation:contextArrival 180ms ease-out}
+@keyframes contextArrival{from{opacity:.65}to{opacity:1}}
+@media(max-width:1180px){.viewAuthority{display:none}}
+@media(max-width:600px){.spatialRail{gap:6px}.spatialContext>span{display:none}.spatialContext{font-size:10px}}
+@media(prefers-reduced-motion:reduce){
+  .spatialContext strong,.derivedOverlay,.propertiesHeader>div,.contextBody{animation:none}
+  .viewModeSwitch button,.contextTab,.contextTabActive{transition:none}
+}
+
+
+/* Condition Properties — compact CAD/BIM inspector treatment. */
+.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)}
+.propertiesPane{position:relative;background:var(--card)}
+.propertiesResizer{position:absolute;z-index:125;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize;touch-action:none;outline:none}
+.propertiesResizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:1px;background:transparent;transition:background-color 140ms ease,box-shadow 140ms ease}
+.propertiesResizer:hover::after,.propertiesResizer:focus-visible::after{background:var(--ring);box-shadow:0 0 0 2px color-mix(in oklch,var(--ring) 14%,transparent)}
+.propertiesHeader{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
+.conditionSummaryLine{flex:none}
+.tabsWrap{flex:none;background:var(--card)}
+.tabsList{height:44px;gap:0;overflow-x:auto;padding:0 8px;scrollbar-width:none}
+.tabsList::-webkit-scrollbar{display:none}
+.tabsList button{display:inline-flex;height:43px;align-items:center;gap:6px;border-radius:0;padding-inline:9px;font-size:11px;white-space:nowrap}
+.tabsList button[data-state="active"]{background:transparent;color:var(--foreground);box-shadow:inset 0 -2px var(--primary)}
+.tabIndex{font:600 9px var(--font-ibm-plex-mono),ui-monospace,monospace;color:var(--muted-foreground);letter-spacing:.02em}
+.tabsList button[data-state="active"] .tabIndex{color:var(--primary)}
+.propertiesScroll{padding:0 12px 12px}
+.propertySection{margin:0;overflow:visible;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent}
+.propertySection:first-child{border-top:0}
+.sectionHead{min-height:40px;padding:0 4px;border-bottom:0;background:transparent}
+.sectionHead strong{font-size:12px;font-weight:650}
+.sectionHead small{font:500 10px var(--font-ibm-plex-mono),ui-monospace,monospace}
+.roleList,.fieldGrid{padding:10px 4px 12px}
+.roleRow{grid-template-columns:minmax(96px,.8fr) minmax(148px,1.2fr) auto}
+.propertiesFooter{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
+@media(max-width:1180px){.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)!important}}
+@media(max-width:860px){.propertiesResizer{display:none}}
+@media(prefers-reduced-motion:reduce){.propertiesResizer::after{transition:none}}
+
+
+/* Mobile Takeoff is review-only: one 2D plan surface, sheet drawer, no authoring panes. */
+@media(max-width:860px){
+  .integrated[data-mobile-review="true"]{display:grid;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr);height:100%;min-height:0;overflow:hidden}
+  .integrated[data-mobile-review="true"] .drawingHost{height:100%;min-height:0;grid-template-rows:34px minmax(0,1fr)}
+  .integrated[data-mobile-review="true"] .drawingHost>div:first-child>div:first-child>aside:first-child>div:first-child{display:flex!important}
+  .integrated[data-mobile-review="true"] .spatialRail{gap:7px;padding-left:42px!important;padding-right:10px!important}
+  .integrated[data-mobile-review="true"] .spatialContext{font-size:11px}
+  .integrated[data-mobile-review="true"] .spatialContext>span{display:inline}
+  .integrated[data-mobile-review="true"] .spatialContext .datumMark{display:none}
+  .integrated[data-mobile-review="true"] .propertiesPane,
+  .integrated[data-mobile-review="true"] .derivedOverlay{display:none!important}
+}
+
+@media(max-width:860px){
+  .viewModeSwitch,.viewAuthority{display:none!important}
+}

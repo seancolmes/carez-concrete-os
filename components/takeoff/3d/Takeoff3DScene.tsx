@@ -28,10 +28,11 @@ function ActivePlan({ plane, pdfUrl, pageNumber }: { plane: Derived3DSheetPlane;
   return <Takeoff3DPlan plane={plane} pdfUrl={pdfUrl} pageNumber={pageNumber} viewportSize={size} />;
 }
 
-export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onRetry, solids, selectedMeasurementId, onSelectSolid, onMeshIssue }: {
+export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onRetry, solids, selectedMeasurementId, selectedConditionVersionId, issues, onJumpToIssue, onSelectSolid, onMeshIssue }: {
   plane: Derived3DSheetPlane; pdfUrl: string; pageNumber: number;
   memory: Map<string, Takeoff3DCameraMemory>; actions: RefObject<Takeoff3DCameraActions | null>; onRetry: () => void;
   solids: Derived3DSolid[]; selectedMeasurementId: string | null; onSelectSolid: (solid: Derived3DSolid) => void;
+  selectedConditionVersionId: string | null; issues: Derived3DIssue[]; onJumpToIssue: (issue: Derived3DIssue) => void;
   onMeshIssue: (solidId: string, issue: Derived3DIssue | null) => void;
 }) {
   const [graphicsAvailable, setGraphicsAvailable] = useState<boolean | null>(null);
@@ -48,14 +49,14 @@ export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onR
   const far = Math.max(10000, Math.hypot(frame.width, frame.height) * 6);
   if (graphicsAvailable === null) return null;
   if (!graphicsAvailable) return <Takeoff3DUnavailable onRetry={onRetry} />;
-  return <Canvas orthographic dpr={[1, 2]} gl={{ antialias: true, alpha: false }}
+  return <Canvas orthographic dpr={[1, 2]} gl={{ antialias: true, alpha: true }}
     camera={{ near: 0.1, far }} fallback={<Takeoff3DUnavailable onRetry={onRetry} />}>
-    <color attach="background" args={['#090d12']} />
-    <hemisphereLight intensity={0.9} groundColor="#111827" />
+    <hemisphereLight intensity={0.9}  />
     <directionalLight position={[40, 80, -30]} intensity={1.15} />
     <ContextLossGuard />
     <ActivePlan key={`${plane.sheetId}:${pdfUrl}:${pageNumber}`} plane={plane} pdfUrl={pdfUrl} pageNumber={pageNumber} />
-    {solids.map(solid => <Takeoff3DSolid key={solid.id} solid={solid} selected={solid.measurementId === selectedMeasurementId}
+    {solids.map(solid => <Takeoff3DSolid key={solid.id} solid={solid} selected={selectedMeasurementId ? solid.measurementId === selectedMeasurementId : solid.conditionVersionId === selectedConditionVersionId}
+      issue={issues.find(issue => issue.relatedSolidIds?.includes(solid.id) || (issue.measurementId === solid.measurementId && issue.conditionVersionId === solid.conditionVersionId))} onJumpToIssue={onJumpToIssue}
       onSelect={onSelectSolid} onIssue={onMeshIssue} />)}
     <ContactShadows key={solids.map(solid => solid.geometryKey).join('|')} position={[frame.center[0], 0, frame.center[2]]}
       scale={[frame.width, frame.height]} opacity={0.12} blur={0.6} near={0.01} far={10} frames={1} resolution={512} depthWrite={false} />

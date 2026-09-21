@@ -51,7 +51,7 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
   const zones = [...new Set(sheetSolids.map(solid => solid.zone).filter((zone): zone is string => Boolean(zone)))].sort();
   const elevations = [...new Set(sheetSolids.map(solid => solid.shape.top))].sort((a, b) => a - b);
   const renderedSolids = visibleSolids.filter(solid => !meshIssues[solid.id]);
-  const selectedSolids = renderedSolids.filter(solid => solid.measurementId === selectedMeasurementId);
+  const selectedSolids = renderedSolids.filter(solid => selectedMeasurementId ? solid.measurementId === selectedMeasurementId : solid.conditionVersionId === selectedConditionVersionId);
   const selectedIssue = sheetIssues.find(issue => issue.severity === 'hold' && (selectedMeasurementId
     ? issue.measurementId === selectedMeasurementId
     : issue.measurementId === null && issue.conditionVersionId === selectedConditionVersionId));
@@ -91,20 +91,21 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
       <Button size="xs" variant="ghost" disabled={!hasFilters} onClick={showAll}>Show all</Button>
     </div>}
     <div className={styles.canvas}>
+      <span className={styles.datum} aria-hidden="true">+ Plan datum</span>
       {calibrated && pdfUrl ? <Takeoff3DErrorBoundary key={`${activeSheetId}:${attempt}`} onRetry={retry}>
         <Takeoff3DScene plane={plane} pdfUrl={pdfUrl} pageNumber={activePageNumber} memory={cameraMemory ?? localMemory.current} actions={actions} onRetry={retry}
-          solids={visibleSolids} selectedMeasurementId={selectedMeasurementId} onSelectSolid={onSelectSolid} onMeshIssue={onMeshIssue} />
+          solids={visibleSolids} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedConditionVersionId} issues={sheetIssues} onJumpToIssue={onJumpToIssue} onSelectSolid={onSelectSolid} onMeshIssue={onMeshIssue} />
       </Takeoff3DErrorBoundary> : <div className={styles.message} role="status">
         <strong>3D input required</strong>
         <span>{!pdfUrl ? 'The active sheet needs a PDF reference.' : sheetIssues.find(issue => issue.severity === 'hold')?.message ?? 'The active sheet needs calibrated 3D dimensions.'}</span>
         {sheetIssues.find(issue => issue.severity === 'hold') && <Button size="xs" variant="outline" onClick={() => {
           const issue = sheetIssues.find(entry => entry.severity === 'hold'); if (issue) onJumpToIssue(issue);
-        }}>Resolve input</Button>}
+        }}>Open 2D / Condition input</Button>}
       </div>}
-      {calibrated && pdfUrl && displayedIssue && <div className={`${styles.issueOverlay} ${!renderedSolids.length ? styles.centeredIssue : ''}`} role="status">
+      {calibrated && pdfUrl && displayedIssue && <div key={displayedIssue.id} className={`${styles.issueOverlay} ${!renderedSolids.length ? styles.centeredIssue : ''}`} role="status">
         <strong>{displayedIssue.code === '3d_input_required' ? '3D input required' : '3D unavailable for this Takeoff'}</strong>
         <span>{displayedIssue.message}</span>
-        <Button size="xs" variant="outline" onClick={() => onJumpToIssue(displayedIssue)}>Resolve input</Button>
+        <Button size="xs" variant="outline" onClick={() => onJumpToIssue(displayedIssue)}>Open 2D / Condition input</Button>
       </div>}
       {calibrated && pdfUrl && !renderedSolids.length && !displayedIssue && <div className={`${styles.issueOverlay} ${styles.centeredIssue}`} role="status">
         <strong>{hasFilters ? 'No visible concrete' : 'No 3D concrete on this sheet'}</strong>
@@ -112,12 +113,12 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
         {hasFilters && <Button size="xs" variant="outline" onClick={showAll}>Show all</Button>}
       </div>}
       {checksOpen && <div className={styles.checks}>
-        <strong>3D checks</strong>
-        {sheetIssues.length ? sheetIssues.map(issue => <div key={issue.id}>
-          <p>{issue.message}</p><Button size="xs" variant="outline" onClick={() => onJumpToIssue(issue)}>Resolve input</Button>
+        <strong>Verification checks</strong><p>Resolve geometry on the plan and dimensions in Condition Properties.</p>
+        {sheetIssues.length ? sheetIssues.map(issue => <div key={issue.id} data-selected={issue.measurementId ? issue.measurementId === selectedMeasurementId : issue.conditionVersionId === selectedConditionVersionId}>
+          <p>{issue.message}</p><Button size="xs" variant="outline" onClick={() => onJumpToIssue(issue)}>Open 2D / Condition input</Button>
         </div>) : <p>No 3D input issues for this sheet.</p>}
       </div>}
     </div>
-    <div className={styles.hint}>{sheetIssues.some(issue => issue.severity === 'hold') && renderedSolids.length > 0 ? 'Partial model · ' : ''}{!scene.coverage.checksComplete ? 'Checks incomplete · ' : ''}Drag to orbit · Right-drag to pan · Scroll to zoom</div>
+    <div className={styles.hint}>{sheetIssues.some(issue => issue.severity === 'hold') && renderedSolids.length > 0 ? 'Partial model · ' : ''}{!scene.coverage.checksComplete ? 'Checks incomplete · ' : ''}Derived verification · Drag to orbit · Right-drag to pan · Scroll to zoom</div>
   </section>;
 }

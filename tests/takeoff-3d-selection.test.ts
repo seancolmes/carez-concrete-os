@@ -44,12 +44,11 @@ test('R3F uses the workstation selection path without a parallel selection store
   const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
   const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
   const scene = readFileSync('components/takeoff/3d/Takeoff3DScene.tsx', 'utf8');
-  assert.match(workstation, /<Takeoff3DViewport[^>]*selectedMeasurementId=\{selectedMeasurementId\}[^>]*onSelectSolid=\{selectDerivedSolid\}/);
-  assert.match(viewport, /selectedMeasurementId=\{selectedMeasurementId\} onSelectSolid=\{onSelectSolid\}/);
-  assert.match(scene, /selected=\{solid.measurementId === selectedMeasurementId\}/);
+  assert.match(workstation, /<Takeoff3DViewport[^>]*selectedMeasurementId=\{selectedMeasurementId\}[^>]*selectedConditionVersionId=\{selectedVersionId\}[^>]*onSelectSolid=\{selectDerivedSolid\}/);
+  assert.match(viewport, /selectedMeasurementId=\{selectedMeasurementId\} selectedConditionVersionId=\{selectedConditionVersionId\}[^>]*onSelectSolid=\{onSelectSolid\}/);
+  assert.match(scene, /selected=\{selectedMeasurementId \? solid\.measurementId === selectedMeasurementId : solid\.conditionVersionId === selectedConditionVersionId\}/);
   assert.doesNotMatch(viewport + scene, /dispatchEvent|setSelectedMeasurementId/);
 });
-
 test('Condition loading and recalculation cannot overwrite exact selected assignment or revive its sheet', () => {
   const workstation = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
   const loadEffect = workstation.slice(workstation.indexOf('useEffect(()=>{if(!selectedVersion)return;'), workstation.indexOf('useEffect(()=>{if(!availableTabs'));

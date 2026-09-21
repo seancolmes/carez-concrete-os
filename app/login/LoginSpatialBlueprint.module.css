@@ -1,0 +1,32 @@
+.blueprint{--blueprint-accent:var(--ring);--line:color-mix(in oklch,var(--shell-foreground) 20%,transparent);position:relative;isolation:isolate;width:100%;max-width:720px;align-self:center;margin-block:22px 18px;padding:14px 18px 12px;border:1px solid var(--line);border-left:2px solid var(--blueprint-accent);background:color-mix(in oklch,var(--shell-surface) 88%,var(--shell-background));box-shadow:0 18px 58px rgb(0 0 0 / .22),inset 0 0 0 1px color-mix(in oklch,var(--blueprint-accent) 10%,transparent);overflow:hidden}
+.blueprint::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.17;background-image:linear-gradient(to right,color-mix(in oklch,var(--blueprint-accent) 28%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--blueprint-accent) 18%,transparent) 1px,transparent 1px);background-size:32px 32px}
+.caption{display:flex;justify-content:space-between;gap:12px;color:var(--shell-muted);font:10px var(--font-ibm-plex-mono),monospace;letter-spacing:.035em}
+.drawing{display:block;width:100%;max-height:340px;overflow:visible;filter:drop-shadow(0 18px 28px rgb(0 0 0 / .24))}
+.grid{stroke:var(--line);stroke-width:.6;opacity:.48}
+.datumLines{stroke:color-mix(in oklch,var(--shell-muted) 60%,transparent);stroke-width:1;stroke-dasharray:3 6}
+.plan{stroke:var(--blueprint-accent);stroke-width:1.65}
+.top{transform:translateY(-64px);transition:transform 220ms ease-out}
+.slab{fill:color-mix(in oklch,var(--shell-foreground) 12%,var(--shell-surface));stroke:var(--shell-foreground);stroke-width:1.2;transition:fill 200ms ease}
+.topLine{stroke:var(--shell-foreground);stroke-width:.7;opacity:.46}
+.faceLeft{fill:color-mix(in oklch,var(--blueprint-accent) 12%,var(--shell-surface));stroke:var(--line)}
+.faceRight{fill:color-mix(in oklch,var(--blueprint-accent) 6%,var(--shell-background));stroke:var(--line)}
+.sides,.dimensions,.dimensionText,.control{opacity:1;transition:opacity 180ms ease}
+.dimensions{stroke:var(--shell-muted);stroke-width:1}
+.dimensionText,.axisLabel{fill:var(--shell-muted);font:11px var(--font-ibm-plex-mono),monospace}
+.control{stroke:var(--blueprint-accent);stroke-width:1.5}
+.control rect{fill:var(--shell-surface)}
+.control text{stroke:none;fill:var(--shell-foreground);font:11px var(--font-ibm-plex-mono),monospace}
+.blueprint[data-stage="0"] .top,.blueprint[data-stage="1"] .top{transform:translateY(0)}
+.blueprint[data-stage="0"] .slab,.blueprint[data-stage="1"] .slab{fill:transparent;stroke:var(--blueprint-accent)}
+.blueprint[data-stage="0"] .sides,.blueprint[data-stage="1"] .sides,.blueprint[data-stage="0"] .dimensions,.blueprint[data-stage="0"] .dimensionText,.blueprint:not([data-stage="3"]) .control{opacity:0}
+.stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.stages button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--shell-muted);font-size:12px;cursor:pointer;overflow:hidden;transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease}
+.stages button::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--blueprint-accent)}
+.stages button span{font:10px var(--font-ibm-plex-mono),monospace;opacity:.6}
+.stages button:hover{background:color-mix(in oklch,var(--blueprint-accent) 8%,transparent);color:var(--shell-foreground)}
+.stages button[aria-pressed="true"]{border-bottom-color:var(--blueprint-accent);background:color-mix(in oklch,var(--blueprint-accent) 12%,transparent);color:var(--shell-foreground)}
+.blueprint[data-autoplay="true"] .stages button[aria-pressed="true"]::after{animation:stageProgress var(--stage-duration) linear forwards}
+.stages button:focus-visible{outline:2px solid var(--ring);outline-offset:-3px}
+.note{min-height:22px;margin:10px 0 0!important;font-size:12px!important;color:var(--shell-muted)}
+@keyframes stageProgress{from{width:0}to{width:100%}}
+@media(prefers-reduced-motion:reduce){.top,.slab,.sides,.dimensions,.dimensionText,.control,.stages button{transition:none}.blueprint[data-autoplay="true"] .stages button[aria-pressed="true"]::after{animation:none}}

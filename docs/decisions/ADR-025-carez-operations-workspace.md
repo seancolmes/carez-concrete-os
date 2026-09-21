@@ -27,14 +27,66 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 
 ### Visual / interaction language
 
-- Manrope is the primary interface/display typeface.
+- Inter is the primary interface/display typeface.
 - IBM Plex Mono is selective technical typography for identifiers, dimensions, aligned technical data, and other cases where mono materially helps.
 - Sentence/title case replaces pervasive uppercase hierarchy.
-- Carez blue is restrained interaction/selection/focus identity, not generic decorative fill.
+- Indigo is the restrained interaction/focus identity; pale blue-white/white surfaces carry the light application, graphite/black surfaces carry dark mode, and status color remains semantic.
 - Use three depth levels: canvas, operational surface, interactive/selected surface.
 - Tabs require a clear active surface/edge, hover/focus response, and compact professional geometry.
 - Icons must improve recognition of real construction/business states, not become decoration.
 - Light, dark, and system are first-class.
+
+### Official theme — Indigo Harbor, adapted for Carez
+
+Nik superseded Slate Haze on 2026-09-21 with the supplied **Indigo Harbor** theme and visually accepted Indigo Harbor as the final Carez theme for ADR-025 on 2026-09-21. Carez uses its pale blue-white canvas, white operational surfaces, deep harbor-navy shell, and restrained indigo interaction color in light mode; dark mode uses near-black canvas/surfaces with lighter indigo focus and primary interaction.
+
+Core light theme:
+
+| Token | Value |
+| --- | --- |
+| `--background` | `#f3f5fb` |
+| `--card` | `#ffffff` |
+| `--foreground` | `#010101` |
+| `--muted` | `#f5f5f5` |
+| `--muted-foreground` | `#454545` |
+| `--accent` | `#19398d` |
+| `--border` | `#e3e3e3` |
+| `--input` | `#ffffff` |
+| `--ring` | `#324f9a` |
+| `--primary` | `#19398d` |
+| `--sidebar` | `#001B3C` |
+
+Core dark theme:
+
+| Token | Value |
+| --- | --- |
+| `--background` | `#050505` |
+| `--card` | `#0a0a0a` |
+| `--foreground` | `#fafafa` |
+| `--muted` | `#262626` |
+| `--muted-foreground` | `#a1a1a1` |
+| `--accent` | `#404040` |
+| `--border` | `#282828` |
+| `--input` | `#121212` |
+| `--ring` | `#6a8dd8` |
+| `--primary` | `#6a8dd8` |
+| `--sidebar` | `#0a0a0a` |
+
+Inter is the primary Carez interface/display typeface under Indigo Harbor. IBM Plex Mono remains selective technical typography for identifiers, dimensions, aligned technical data, and similar high-value technical contexts.
+
+The Carez top shell maps to Indigo Harbor's sidebar family: deep harbor navy in light mode and near-black in dark mode. Workspace content keeps the supplied background/card separation rather than turning the entire application into a navy surface.
+
+Login/landing and specialist workspaces may use low-contrast technical grid geometry as a supporting layer. It must read as construction-document space, remain subordinate to content, respect reduced-motion, and avoid neon/sci-fi treatment.
+
+Usage rules:
+
+- light work surfaces are predominantly `#f3f5fb` canvas plus white operational panels;
+- `#19398d` indigo is used for primary interaction, selected state, and technical/spatial emphasis rather than page-wide fill;
+- deep `#001B3C` is reserved primarily for shell/navigation identity and bounded high-authority surfaces;
+- semantic success/warning/error/info colors communicate real state only;
+- no Slate Haze, amber, teal-brand, or module-specific competing palette;
+- light, dark, and system remain first-class;
+- all implementation must preserve WCAG AA minimum normal-text contrast.
 
 ### Motion
 

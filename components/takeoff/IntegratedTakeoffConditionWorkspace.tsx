@@ -1,7 +1,7 @@
 'use client';
 
 import {createPortal} from 'react-dom';
-import {useEffect,useMemo,useRef,useState,useTransition} from 'react';
+import {useEffect,useMemo,useRef,useState,useTransition,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {AlertTriangle,CheckCircle2,ChevronDown,Layers3,Plus,RefreshCw,Ruler,Save,Search} from 'lucide-react';
@@ -12,7 +12,7 @@ import {
   upgradeProjectConcreteConditionDraftToLatest,
 } from '@/app/takeoff/[setId]/conditionActions';
 import {CarezConditionTree,type CarezConditionTreeNode} from '@/components/carez/workspace';
-import {CarezNumberField} from '@/components/carez/fields';
+import {CarezFeetInchesField,CarezNumberField} from '@/components/carez/fields';
 import {
   CarezDataGrid,
   CarezDataGridBody,
@@ -107,7 +107,7 @@ type ConditionData={
   holds:ConditionHoldRow[];
   reconciliation:Array<{condition_version_id:string;output_key:string;reconciliation_status:string}>;
 };
-type Props={setId:string;workspaceProps:any;conditionData:ConditionData};
+type Props={setId:string;workspaceProps:any;conditionData:ConditionData;mobileReview?:boolean};
 type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
@@ -130,6 +130,7 @@ const quantity=(value:number|string|null,unit:string)=>value===null?'—':`${Num
 const humanize=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
 const conditionColor=(key:ConditionArchetypeKey)=>key==='slab_on_grade'?'#60a5fa':key==='pad_column_footing'?'#f59e0b':'#34d399';
 const switchId=(...parts:string[])=>`condition-${parts.join('-').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+const isArchitecturalDimension=(input:ConditionInputDefinition):input is ConditionInputDefinition&{unit:'FT'|'IN'}=>input.group==='planFacts'&&input.valueType==='number'&&(input.unit==='FT'||input.unit==='IN');
 
 function currentConditionRows(rows:ConditionSummary[]){
   const latest=new Map<string,ConditionSummary>();
@@ -168,9 +169,10 @@ const tabForHold=(hold:{hold_code?:string;message:string}):PropertyTab=>{
   return'general';
 };
 
-export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
+export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData,mobileReview=false}:Props){
   const router=useRouter();
   const drawingHostRef=useRef<HTMLDivElement|null>(null);
+  const propertyScrollRef=useRef<HTMLDivElement|null>(null);
   const pendingRoleDrawRef=useRef<PendingRoleDraw|null>(null);
   const [sidebarHost,setSidebarHost]=useState<HTMLElement|null>(null);
   const [contextTab,setContextTab]=useState<ContextTab>('plans');
@@ -189,6 +191,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
   const [dockHeight,setDockHeight]=useState(228);
+  const [inspectorWidth,setInspectorWidth]=useState(430);
   const [draft,setDraft]=useState<ConditionInputDraft>({});
   const [moduleEnabled,setModuleEnabled]=useState<Record<string,boolean>>({});
   const [moduleDraft,setModuleDraft]=useState<Record<string,Record<string,unknown>>>({});
@@ -201,6 +204,28 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [createCode,setCreateCode]=useState('STRIP-WALL-FOOTING');
   const [codeTouched,setCodeTouched]=useState(false);
   const [isPending,startTransition]=useTransition();
+
+  useEffect(()=>{
+    if(!mobileReview)return;
+    setViewMode('2d');
+    setContextTab('plans');
+    setCreating(false);
+    setIssuesOpen(false);
+    setUpgradeOpen(false);
+  },[mobileReview]);
+
+  useEffect(()=>{
+    const stored=Number(window.localStorage.getItem('carez.takeoff.condition-properties-width'));
+    if(Number.isFinite(stored)&&stored>=340&&stored<=560)setInspectorWidth(stored);
+  },[]);
+  useEffect(()=>{window.localStorage.setItem('carez.takeoff.condition-properties-width',String(inspectorWidth));},[inspectorWidth]);
+
+  useEffect(()=>{
+    const element=propertyScrollRef.current;
+    if(!element||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    const animation=element.animate([{opacity:.65,transform:'translateY(3px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'ease-out'});
+    return()=>animation.cancel();
+  },[selectedVersionId,propertyTab]);
 
   const locked=Boolean(workspaceProps.locked);
   const estimateId=String(workspaceProps.estimate?.id||workspaceProps.takeoffSet?.estimate_id||'');
@@ -299,6 +324,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   },[conditionWorksheetAuthorities]);
 
   const derived3DScene=useMemo(()=>{
+    if(mobileReview)return buildDerived3DScene({scopeKey:setId,conditions:[],measurements:[],sheets:[]});
     const saved=conditionData.derived3DSnapshot;
     if(!saved)return buildDerived3DScene({scopeKey:setId,conditions:[],measurements:[],sheets:[]});
     if(!dirty||!selectedVersion)return buildDerived3DScene(saved,derivedCache.current);
@@ -310,7 +336,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       return{...source,...effective,concreteProfile:concrete?{enabled:Boolean(concrete.enabled),profile:concrete.inputValues?.profile,topWidthFt:concrete.inputValues?.top_width_ft}:source.concreteProfile,roles:Object.entries(roleSelections).filter(([,id])=>id).map(([roleKey,measurementId])=>({roleKey,measurementId,roleInstanceKey:source.roles.find(role=>role.roleKey===roleKey)?.roleInstanceKey||`${roleKey}-1`}))};
     })};
     return buildDerived3DScene(preview,derivedCache.current);
-  },[conditionData.derived3DSnapshot,setId,dirty,selectedVersion,draft,templateVersion,currentModulesForSignature,roleSelections]);
+  },[conditionData.derived3DSnapshot,setId,dirty,selectedVersion,draft,templateVersion,currentModulesForSignature,roleSelections,mobileReview]);
   const drawingPresentation=useMemo(()=>{
     const hidden=new Set<string>();const colors:Record<string,string>={};
     for(const source of conditionData.derived3DSnapshot?.conditions||[])for(const role of source.roles){
@@ -339,8 +365,23 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const focusMeasurement=(measurementId:string|null)=>{setSelectedMeasurementId(measurementId);const measurement=measurementId?measurements.find((row:any)=>row.id===measurementId):null;if(measurement?.sheet_id)setActiveSheetId(measurement.sheet_id);};
   const primaryMeasurementForVersion=(versionId:string)=>{const contract=contractForVersion(versionId).definition;if(!contract)return null;const primary=contract.roles.find(role=>role.primary);if(!primary)return null;const working=versionId===selectedVersionId?roleSelections[primary.key]||'':'';return working||conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key)?.measurement_id||null;};
   const changeViewMode=(mode:ViewMode)=>{setViewMode(mode);};
+  const beginInspectorResize=(event:ReactPointerEvent<HTMLDivElement>)=>{
+    if(window.innerWidth<=860)return;
+    event.preventDefault();
+    const startX=event.clientX;
+    const startWidth=inspectorWidth;
+    const move=(moveEvent:PointerEvent)=>setInspectorWidth(Math.max(340,Math.min(560,startWidth+(startX-moveEvent.clientX))));
+    const stop=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',stop);};
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',stop,{once:true});
+  };
+  const resizeInspectorByKeyboard=(key:string)=>{
+    if(key==='ArrowLeft')setInspectorWidth(width=>Math.min(560,width+16));
+    if(key==='ArrowRight')setInspectorWidth(width=>Math.max(340,width-16));
+    if(key==='Home')setInspectorWidth(430);
+  };
   const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
-    window.dispatchEvent(new Event('carez:show-condition-properties'));
+    if(!mobileReview)window.dispatchEvent(new Event('carez:show-condition-properties'));
     setSelectedVersionId(versionId);setCreating(false);
     if(nextTab)setPropertyTab(nextTab);if(nextMode)setViewMode(nextMode);
     if(measurementId!==undefined){focusMeasurement(measurementId);return;}
@@ -357,7 +398,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     focusMeasurement(measurementId);
   };
   const selectDerivedSolid=(solid:Derived3DSolid)=>requestConditionSelection(solid.conditionVersionId,false,solid.measurementId);
-  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','3d');
+  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','split');
 
   useEffect(()=>{const findSidebar=()=>setSidebarHost(drawingHostRef.current?.querySelector('aside') as HTMLElement|null);findSidebar();const id=window.setTimeout(findSidebar,0);return()=>window.clearTimeout(id);},[]);
   useEffect(()=>{const host=drawingHostRef.current;if(!host)return;let observer:ResizeObserver|null=null;let timer=0;const attach=()=>{const dock=host.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');if(!dock)return false;const update=()=>setDockHeight(Math.max(38,Math.round(dock.getBoundingClientRect().height)));update();observer=new ResizeObserver(update);observer.observe(dock);return true;};if(!attach())timer=window.setTimeout(()=>{attach();},0);return()=>{if(timer)window.clearTimeout(timer);observer?.disconnect();};},[]);
@@ -402,15 +443,41 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const ids=new Set(assemblies.filter((row:any)=>row.category==='Concrete Conditions'&&row.primary_measurement===role.unit).map((row:any)=>row.id));
     return assemblyVersions.find((version:any)=>ids.has(version.assembly_id))?.id||assemblyVersions.find((version:any)=>assemblies.some((assembly:any)=>assembly.id===version.assembly_id&&assembly.primary_measurement===role.unit))?.id||null;
   };
-  const startTakeoff=(role:any)=>{const assemblyVersionId=assemblyVersionForRole(role);if(!assemblyVersionId||!selectedVersion){setMessage(`No ${role.unit} takeoff is available for this role.`);return;}pendingRoleDrawRef.current={conditionVersionId:selectedVersion.id,roleKey:role.key,existingMeasurementIds:new Set(measurements.map((measurement:any)=>String(measurement.id)))};setViewMode('2d');window.dispatchEvent(new CustomEvent('carez:start-condition-takeoff',{detail:{assemblyVersionId,name:selectedSummary?.name||definition?.name||'Concrete Condition',roleLabel:role.label}}));setContextTab('plans');setMessage(`Drawing ${role.label}.`);};
+  const startTakeoff=(role:any)=>{if(mobileReview){setMessage('Takeoff authoring is available on desktop.');return;}const assemblyVersionId=assemblyVersionForRole(role);if(!assemblyVersionId||!selectedVersion){setMessage(`No ${role.unit} takeoff is available for this role.`);return;}pendingRoleDrawRef.current={conditionVersionId:selectedVersion.id,roleKey:role.key,existingMeasurementIds:new Set(measurements.map((measurement:any)=>String(measurement.id)))};setViewMode('2d');window.dispatchEvent(new CustomEvent('carez:start-condition-takeoff',{detail:{assemblyVersionId,name:selectedSummary?.name||definition?.name||'Concrete Condition',roleLabel:role.label}}));setContextTab('plans');setMessage(`Drawing ${role.label}.`);};
   const chooseFamily=(key:ConditionArchetypeKey)=>{const next=CONDITION_ARCHETYPES[key];setFamily(key);setCreateName(next.name);setCreateCode(conditionCodeFromName(next.name));setCodeTouched(false);};
   const createCondition=()=>{setMessage('Creating condition…');startTransition(async()=>{try{const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});setSelectedVersionId(result.condition_version_id);setCreating(false);setContextTab('conditions');setMessage('');router.refresh();}catch(error:any){setMessage(error?.message||'Could not create condition.');}});};
   const saveCondition=(afterSave?:()=>void)=>{if(!selectedVersion||!definition)return;const roles=prepareConditionRoleAssignments(definition.roles,roleSelections);const primary=definition.roles.find(role=>role.primary);const anchorId=primary?roleSelections[primary.key]:'';if(!anchorId){setMessage(`Assign ${primary?.label||'the primary takeoff'} before calculating.`);return;}const {inputs,provenance}=prepareConditionAuthoringInputs(draft);const modulesForSave=stripModern?moduleConfigurations:selectedModules.map((module,index)=>({moduleKey:module.module_key,instanceKey:module.instance_key,label:module.label,enabled:moduleEnabled[module.module_key]!==false,inputValues:(moduleDraft[module.module_key]||module.input_values) as Record<string,any>,inputProvenance:module.input_provenance as Record<string,any>,legacyChildKey:module.legacy_child_key,sortOrder:module.sort_order||(index+1)*10}));setMessage('Saving…');startTransition(async()=>{try{await saveAndRecalculateConcreteConditionPilot({conditionVersionId:selectedVersion.id,inputs,inputProvenance:provenance,modules:modulesForSave,measurementRoles:roles,compatibilityAnchorMeasurementId:anchorId});setMessage('');afterSave?.();router.refresh();}catch(error:any){setMessage(error?.message||'Could not save condition.');}});};
   const upgradeCondition=()=>{if(!selectedVersion||!latestVersionAvailable)return;setMessage(`Upgrading to Contract v${latestContractVersion}…`);startTransition(async()=>{try{const result=await upgradeProjectConcreteConditionDraftToLatest({takeoffSetId:setId,conditionVersionId:selectedVersion.id});setUpgradeOpen(false);setPropertyTab('general');setOutputsOpen(false);setIssuesOpen(false);setMessage(result.message||`Contract upgraded to v${result.to_contract_version}. Review and recalculate.`);router.refresh();}catch(error:any){setUpgradeOpen(false);setMessage(error?.message||'Could not upgrade Condition contract.');}});};
 
-  const renderInputs=(inputs:ConditionInputDefinition[])=>!inputs.length?<div className={styles.compactEmpty}>No inputs in this section.</div>:<div className={styles.fieldGrid}>{inputs.map(input=>input.valueType==='boolean'
-    ?<LabeledSwitch key={`${input.group}-${input.key}`} id={switchId(selectedVersionId||'draft',input.group,input.key)} checked={Boolean(draft[input.group]?.[input.key])} onCheckedChange={checked=>updateInput(input,checked?'true':'false')} disabled={locked||isPending} label={input.label} className={direction.switchField}/>
-    :<Field key={`${input.group}-${input.key}`} className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>{input.label}</FieldLabel>{input.valueType==='select'?<Select value={String(draft[input.group]?.[input.key]??'')} onValueChange={value=>updateInput(input,String(value??''))} disabled={locked||isPending}><SelectTrigger className="w-full"><SelectValue placeholder="Select…"/></SelectTrigger><SelectContent align="start">{(input.options||[]).map(option=><SelectItem key={option} value={option}>{humanize(option)}</SelectItem>)}</SelectContent></Select>:input.valueType==='text'?<Input value={String(draft[input.group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>:<CarezNumberField value={String(draft[input.group]?.[input.key]??'')} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>}</Field>)}</div>;
+  const renderInputs=(inputs:ConditionInputDefinition[])=>{
+    if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
+    return <div className={styles.fieldGrid}>{inputs.map(input=>{
+      if(input.valueType==='boolean')return <LabeledSwitch key={`${input.group}-${input.key}`} id={switchId(selectedVersionId||'draft',input.group,input.key)} checked={Boolean(draft[input.group]?.[input.key])} onCheckedChange={checked=>updateInput(input,checked?'true':'false')} disabled={locked||isPending} label={input.label} className={direction.switchField}/>;
+      const value=String(draft[input.group]?.[input.key]??'');
+      const dimension=isArchitecturalDimension(input);
+      const numeric=input.valueType==='number'||input.valueType==='integer';
+      const numericValue=numeric&&value!==''?Number(value):null;
+      const invalidNumber=numericValue!==null&&Number.isFinite(numericValue)&&((input.minimum!==undefined&&numericValue<input.minimum)||(input.maximum!==undefined&&numericValue>input.maximum));
+      const validationText=invalidNumber
+        ?input.minimum!==undefined&&input.maximum!==undefined
+          ?`Allowed range: ${input.minimum}–${input.maximum}${input.unit?` ${input.unit}`:''}.`
+          :input.minimum!==undefined
+            ?`Minimum: ${input.minimum}${input.unit?` ${input.unit}`:''}.`
+            :`Maximum: ${input.maximum}${input.unit?` ${input.unit}`:''}.`
+        :'';
+      return <Field key={`${input.group}-${input.key}`} data-invalid={invalidNumber||undefined} className={`${direction.propertyField} ${dimension?styles.dimensionField:''}`}>
+        <FieldLabel className={direction.propertyFieldLabel}>{input.label}</FieldLabel>
+        {input.valueType==='select'
+          ?<Select value={value} onValueChange={next=>updateInput(input,String(next??''))} disabled={locked||isPending}><SelectTrigger className="w-full"><SelectValue placeholder="Select…"/></SelectTrigger><SelectContent align="start">{(input.options||[]).map(option=><SelectItem key={option} value={option}>{humanize(option)}</SelectItem>)}</SelectContent></Select>
+          :input.valueType==='text'
+            ?<Input value={value} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
+            :dimension
+              ?<CarezFeetInchesField value={value} canonicalUnit={input.unit} onValueChange={next=>updateInput(input,next)} disabled={locked||isPending} ariaLabel={input.label} ariaInvalid={invalidNumber} className={styles.imperialField}/>
+              :<CarezNumberField value={value} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending} aria-invalid={invalidNumber||undefined}/>}
+        {validationText?<span role="alert" className={direction.inlineValidation}>{validationText}</span>:null}
+      </Field>;
+    })}</div>;
+  };
   const renderInputGroup=(group:ConditionInputGroup)=>renderInputs(definition?.inputs.filter(input=>input.group===group)||[]);
   const renderLaborProductivity=()=>{
     if(!definition)return null;
@@ -455,27 +522,52 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const summaryText=dirty?`${workingRoleCount} takeoff${workingRoleCount===1?'':'s'} assigned · unsaved`:`${selectedSummary?.measurement_count||0} takeoff${Number(selectedSummary?.measurement_count||0)===1?'':'s'} · ${activeOutputCount} outputs`;
   const emptyOutputMessage=primaryMeasurementId?'Save & recalculate to calculate outputs.':'Assign the primary takeoff and save to calculate outputs.';
 
-  const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}><div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">{(['plans','conditions','zones'] as ContextTab[]).map(tab=><button key={tab} type="button" role="tab" aria-selected={contextTab===tab} className={contextTab===tab?styles.contextTabActive:styles.contextTab} onClick={()=>setContextTab(tab)}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>{contextTab==='conditions'?<div className={styles.contextBody}><div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>{conditions.length?<CarezConditionTree onVisibilityChange={(node,hidden)=>{const ids=node.children?.map(child=>child.id)||[node.id];setDerivedViewState(current=>({...current,hidden:hidden?[...new Set([...current.hidden,...ids])]:current.hidden.filter(id=>!ids.includes(id))}));}} searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}</div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}</div>,sidebarHost):null;
+  const contextPortal=!mobileReview&&sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}><div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">{(['plans','conditions','zones'] as ContextTab[]).map(tab=><button key={tab} type="button" role="tab" aria-selected={contextTab===tab} className={contextTab===tab?styles.contextTabActive:styles.contextTab} onClick={()=>setContextTab(tab)}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>{contextTab==='conditions'?<div className={styles.contextBody}><div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>{conditions.length?<CarezConditionTree onVisibilityChange={(node,hidden)=>{const ids=node.children?.map(child=>child.id)||[node.id];setDerivedViewState(current=>({...current,hidden:hidden?[...new Set([...current.hidden,...ids])]:current.hidden.filter(id=>!ids.includes(id))}));}} searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}</div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}</div>,sidebarHost):null;
 
-  return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
+  return <div className={styles.integrated} data-mobile-review={mobileReview?'true':'false'} data-context-tab={contextTab} data-view-mode={mobileReview?'2d':viewMode} style={{'--condition-properties-width':`${inspectorWidth}px`} as CSSProperties}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
-      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation}/>
+      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive mobileReview={mobileReview} conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation} drawingViewHidden={!mobileReview&&viewMode==='3d'}/>
       {contextPortal}
-      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
-      {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.splitVerification:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
+      <div className={`${direction.drawingViewModes} ${styles.spatialRail}`} aria-label="Takeoff view controls">
+        <div className={styles.spatialContext} title={`${activeSheetLabel} · ${selectedSummary?.name||'Select a Condition'}`}>
+          <span className={styles.datumMark} aria-hidden="true">+</span>
+          <span>{activeSheetLabel}</span><span aria-hidden="true">/</span>
+          <strong key={selectedMeasurementId||selectedVersionId||'empty'}>{measurements.find((row:any)=>row.id===selectedMeasurementId)?.name||selectedSummary?.name||'Select a Condition'}</strong>
+        </div>
+        {!mobileReview&&<>
+          <span className={styles.viewAuthority}>{viewMode==='2d'?'Plan · Measure':viewMode==='split'?'Plan + verification':'Derived · Verify'}</span>
+          <div className={styles.viewModeSwitch} role="group" aria-label="Takeoff view mode">
+            {(['2d','split','3d'] as ViewMode[]).map(mode=><button key={mode} type="button" aria-pressed={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}
+          </div>
+        </>}
+      </div>
+      {!mobileReview&&viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.splitVerification:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
-    <aside className={styles.propertiesPane} aria-label="Condition Properties">
-      <header className={styles.propertiesHeader}><div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
+    {!mobileReview&&<aside id="takeoff-condition-properties" className={styles.propertiesPane} aria-label="Condition Properties">
+      <div
+        className={styles.propertiesResizer}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize Condition Properties"
+        aria-valuemin={340}
+        aria-valuemax={560}
+        aria-valuenow={inspectorWidth}
+        tabIndex={0}
+        onPointerDown={beginInspectorResize}
+        onDoubleClick={()=>setInspectorWidth(430)}
+        onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'||event.key==='Home'){event.preventDefault();resizeInspectorByKeyboard(event.key);}}}
+      />
+      <header className={styles.propertiesHeader}><div key={selectedVersionId||'new'}><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
 
       {creating?<div className={styles.createPane}><div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <button type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></button>;})}</div><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Condition name</FieldLabel><Input value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></Field><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Code</FieldLabel><Input value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></Field><div className={styles.createActions}><Button variant="outline" onClick={()=>setCreating(false)}>Cancel</Button><Button onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</Button></div><div className={styles.statusLine} role="status">{message}</div></div>
       :!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
         <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<button type="button" className={direction.versionAction} onClick={()=>setUpgradeOpen(true)} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</button>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<button type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></button>:null}</div>
-        <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}><TabsList variant="line" className={styles.tabsList}>{availableTabs.map(tab=><TabsTrigger key={tab} value={tab}>{TAB_LABELS[tab]}</TabsTrigger>)}</TabsList></Tabs>
+        <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}><TabsList variant="line" className={styles.tabsList}>{availableTabs.map((tab,index)=><TabsTrigger key={tab} value={tab}><span className={styles.tabIndex}>{String(index+1).padStart(2,'0')}</span><span>{TAB_LABELS[tab]}</span></TabsTrigger>)}</TabsList></Tabs>
         {selectedIssues.length?<Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}><CollapsibleContent id="condition-issues"><div className={direction.holdsDock} aria-label="Condition issues">{selectedIssues.map(issue=><button key={issue.key} type="button" className={direction.holdRow} onClick={()=>openIssue(issue)}><AlertTriangle/><span className={direction.holdText}><strong>{issue.label}</strong><small>{issue.message}</small></span><span className={direction.holdJump}>{issueDestinationLabel(issue)} →</span></button>)}</div></CollapsibleContent></Collapsible>:null}
-        <div className={styles.propertiesScroll}>
-          {propertyTab==='general'?<><section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Scope / geometry</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const roleAssemblyVersionId=assemblyVersionForRole(role);const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId)&&(!stripV4||role.primary||Boolean(roleAssemblyVersionId&&measurement.assembly_version_id===roleAssemblyVersionId)));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><ConditionRolePicker value={roleSelections[role.key]||''} choices={choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,label:measurement.name,meta:`${quantity(measurement.raw_quantity,measurement.raw_unit)} · ${sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}`};})} placeholder={role.required?'Select takeoff…':'Not used'} emptyLabel={role.required?'No takeoff selected':'Not used'} disabled={locked||isPending} onChange={value=>setRole(role.key,value)}/><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending||(!role.primary&&stripV4&&!roleAssemblyVersionId)}>Draw {role.unit}</Button></div>;})}</div></section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong></div>{renderInputGroup('planFacts')}</section>{stripModern&&!stripV3?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{moduleEditor('concrete')}</section>:null}</>:null}
+        <div ref={propertyScrollRef} className={styles.propertiesScroll}>
+          {propertyTab==='general'?<><section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Scope / geometry</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const roleAssemblyVersionId=assemblyVersionForRole(role);const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId)&&(!stripV4||role.primary||Boolean(roleAssemblyVersionId&&measurement.assembly_version_id===roleAssemblyVersionId)));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><ConditionRolePicker value={roleSelections[role.key]||''} choices={choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,label:measurement.name,meta:`${quantity(measurement.raw_quantity,measurement.raw_unit)} · ${sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}`};})} placeholder={role.required?'Select takeoff…':'Not used'} emptyLabel={role.required?'No takeoff selected':'Not used'} disabled={locked||isPending} onChange={value=>setRole(role.key,value)}/><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending||(!role.primary&&stripV4&&!roleAssemblyVersionId)}>Draw {role.unit}</Button></div>;})}</div></section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong><small>Feet + inches</small></div>{renderInputGroup('planFacts')}</section>{stripModern&&!stripV3?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{moduleEditor('concrete')}</section>:null}</>:null}
           {propertyTab==='concrete'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong><small>Section · mix</small></div>{moduleEditor('concrete')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Order allowance</strong></div>{renderInputs(definition.inputs.filter(input=>input.group==='commercial'&&input.key==='concrete_waste_pct'))}</section></>:null}
           {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong><small>{stripV4?'Sides · bulkheads · system · resources':'Sides · system · resources'}</small></div>{moduleEditor('forms')}</section>:null}
           {propertyTab==='rebar'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Reinforcing</strong><small>Construction-native sets</small></div>{moduleEditor('reinforcing')}</section>:null}
@@ -492,9 +584,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
         </div>
         <footer className={styles.propertiesFooter}><span className={dirty&&!message?direction.dirtyStatus:undefined} role="status">{message||(dirty?'Unsaved changes':'')}</span><Button onClick={()=>saveCondition()} disabled={locked||isPending||selectedVersion.status!=='draft'||!dirty}>{isPending?<RefreshCw className={styles.spin}/>:<Save/>}Save & recalculate</Button></footer>
       </>}
-    </aside>
+    </aside>}
 
-    <Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}><DialogContent showCloseButton={!isPending}><DialogHeader><DialogTitle>Upgrade to Contract v{latestContractVersion}?</DialogTitle><DialogDescription>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated outputs are cleared for review. Verified Condition history is never changed.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</Button><Button onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'}>{isPending?<RefreshCw className={styles.spin}/>:null}Upgrade & review</Button></DialogFooter></DialogContent></Dialog>
+    {!mobileReview&&<Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>}
+    {!mobileReview&&<Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}><DialogContent showCloseButton={!isPending}><DialogHeader><DialogTitle>Upgrade to Contract v{latestContractVersion}?</DialogTitle><DialogDescription>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated outputs are cleared for review. Verified Condition history is never changed.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</Button><Button onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'}>{isPending?<RefreshCw className={styles.spin}/>:null}Upgrade & review</Button></DialogFooter></DialogContent></Dialog>}
   </div>;
 }

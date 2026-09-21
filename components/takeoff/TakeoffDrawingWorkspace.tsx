@@ -3,7 +3,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {
-  Check,Copy,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,PanelLeftClose,
+  Check,ChevronLeft,ChevronRight,Copy,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,PanelLeftClose,
   PanelLeftOpen,PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,Repeat2,RotateCcw,Ruler,Scissors,
   Search,Trash2,Undo2,X
 } from 'lucide-react';
@@ -46,6 +46,8 @@ type Props={
   methodProfiles:any[];
   locked:boolean;
   conditionAuthoringActive?:boolean;
+  mobileReview?:boolean;
+  drawingViewHidden?:boolean;
   conditionMeasurementIds?:string[];
   conditionSelectedMeasurementId?:string|null;
   onConditionMeasurementSelect?:(measurementId:string|null)=>void;
@@ -82,9 +84,10 @@ function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,valu
 export function TakeoffDrawingWorkspace(props:Props){
   const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,riskClasses,methodProfiles,locked}=props;
   const conditionAuthoringActive=Boolean(props.conditionAuthoringActive);
+  const mobileReview=Boolean(props.mobileReview);
   const conditionMeasurementIdSet=useMemo(()=>new Set(props.conditionMeasurementIds||[]),[props.conditionMeasurementIds]);
   const router=useRouter();
-  const openConditions=useCallback(()=>{if(!locked)window.dispatchEvent(new CustomEvent('carez:open-conditions'));},[locked]);
+  const openConditions=useCallback(()=>{if(!locked&&!mobileReview)window.dispatchEvent(new CustomEvent('carez:open-conditions'));},[locked,mobileReview]);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const viewportRef=useRef<HTMLDivElement|null>(null);
   const paperRef=useRef<HTMLDivElement|null>(null);
@@ -139,11 +142,22 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [sheetsOpen,setSheetsOpen]=useState(true);
   const [inspectorOpen,setInspectorOpen]=useState(true);
   useEffect(()=>{
+    if(mobileReview){
+      setSheetsOpen(true);
+      setInspectorOpen(false);
+      setTool('pan');
+      setDraftPoints([]);
+      setCalibrationPoints([]);
+      setScaleRegionPoints([]);
+      setEditGeometry(null);
+      setConditionDrawActive(false);
+      return;
+    }
     if(!conditionAuthoringActive&&window.matchMedia('(max-width: 900px)').matches){
       setSheetsOpen(false);
       setInspectorOpen(false);
     }
-  },[conditionAuthoringActive]);
+  },[conditionAuthoringActive,mobileReview]);
   const [inspectorTab,setInspectorTab]=useState<'takeoffs'|'properties'|'buildPlan'>('takeoffs');
   const [buildPlanWorkbenchOpen,setBuildPlanWorkbenchOpen]=useState(false);
 
@@ -303,12 +317,21 @@ export function TakeoffDrawingWorkspace(props:Props){
         const renderScale=Math.min(displayScale*desiredDpr,maxPixelScale,maxDimensionScale);
         const renderViewport=page.getViewport({scale:Math.max(.05,renderScale)});
         if(cancelled)return;
-        const canvas=canvasRef.current!;const context=canvas.getContext('2d',{alpha:false});if(!context)throw new Error('Canvas is unavailable.');
-        canvas.width=Math.max(1,Math.floor(renderViewport.width));canvas.height=Math.max(1,Math.floor(renderViewport.height));
+        const canvas=canvasRef.current!;
         canvas.style.width=`${displayViewport.width}px`;canvas.style.height=`${displayViewport.height}px`;
         setRenderBox({width:displayViewport.width,height:displayViewport.height,pdfWidth:base.width,pdfHeight:base.height});
         setRenderQuality(renderScale/displayScale);
-        const task=page.render({canvasContext:context,viewport:renderViewport});renderTaskRef.current=task;await task.promise;page.cleanup();
+        // Render the replacement frame offscreen so wheel zoom never clears the visible PDF bitmap.
+        // The current bitmap scales with CSS and remains aligned with the SVG overlay until the sharper frame is ready.
+        const staging=document.createElement('canvas');
+        staging.width=Math.max(1,Math.floor(renderViewport.width));staging.height=Math.max(1,Math.floor(renderViewport.height));
+        const stagingContext=staging.getContext('2d',{alpha:false});if(!stagingContext)throw new Error('Canvas is unavailable.');
+        const task=page.render({canvasContext:stagingContext,viewport:renderViewport});renderTaskRef.current=task;await task.promise;
+        if(cancelled)return;
+        const visible=canvasRef.current;if(!visible)return;
+        visible.width=staging.width;visible.height=staging.height;
+        const context=visible.getContext('2d',{alpha:false});if(!context)throw new Error('Canvas is unavailable.');
+        context.drawImage(staging,0,0);page.cleanup();
       }catch(error:any){if(error?.name!=='RenderingCancelledException')setMessage(error?.message||'Could not render this PDF page.');}
     }
     void render();return()=>{cancelled=true;renderTaskRef.current?.cancel?.();};
@@ -434,7 +457,16 @@ export function TakeoffDrawingWorkspace(props:Props){
 
   useEffect(()=>{
     const down=(event:KeyboardEvent)=>{
-      if(isTypingTarget(event.target))return;
+      if(props.drawingViewHidden||isTypingTarget(event.target))return;
+      if(mobileReview){
+        if(event.key==='+'||event.key==='='){event.preventDefault();setZoomAt(zoom*1.2);return;}
+        if(event.key==='-'){event.preventDefault();setZoomAt(zoom/1.2);return;}
+        if(event.key==='0'){event.preventDefault();setZoomAt(1);return;}
+        if(event.key==='1'){event.preventDefault();fitPage();return;}
+        if(event.key==='PageUp'){event.preventDefault();changePage(Math.max(1,pageNumber-1));return;}
+        if(event.key==='PageDown'){event.preventDefault();changePage(Math.min(pdfPageCount||pageNumber,pageNumber+1));return;}
+        return;
+      }
       if(event.code==='Space'){event.preventDefault();setSpaceHeld(true);return;}
       if(event.key==='Escape'){cancelTool();return;}
       const commandKey=event.ctrlKey||event.metaKey;
@@ -471,10 +503,10 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     const up=(event:KeyboardEvent)=>{if(event.code==='Space')setSpaceHeld(false);};
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady,conditionAuthoringActive,openConditions]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady,conditionAuthoringActive,openConditions,props.drawingViewHidden,mobileReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
-    if(tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
+    if(mobileReview||tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
     if(locked&&tool!=='select')return;
     const raw=overlayPoint(event);if(!raw)return;
     const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
@@ -505,8 +537,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   async function removeSelected(){
     if(!selectedMeasurementId||locked||busy)return;setBusy(true);try{await deleteDrawingMeasurement(selectedMeasurementId,takeoffSet.id);historyRef.current.clear();setHistorySnapshot(historyRef.current.snapshot());setMessage('Takeoff object and generated estimate lines removed');setSelectedMeasurementId(null);setEditGeometry(null);editOriginalRef.current=null;router.refresh();}catch(error:any){setMessage(error?.message||'Could not delete object.');}finally{setBusy(false);}
   }
-  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool('select');setZoom(1);}
-  function cancelTool(){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool('select');}
+  function changePage(next:number){setPageNumber(next);setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setSelectedMeasurementId(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');setZoom(1);if(mobileReview)window.dispatchEvent(new Event('carez:mobile-sheet-selected'));}
+  function cancelTool(){setDraftPoints([]);setDraftScaleRegionId(null);setCalibrationPoints([]);setScaleRegionPoints([]);setPendingScaleCandidate(null);setPendingManualCalibration(null);setEditGeometry(null);editOriginalRef.current=null;setHoverPoint(null);setConditionDrawActive(false);if(conditionAuthoringActive)setSelectedAssemblyId('');setTool(mobileReview?'pan':'select');}
 
   const pageEntries=Array.from({length:pdfPageCount||initialSheets.length||1},(_,index)=>{const number=index+1;return initialSheets.find((s:any)=>Number(s.page_number)===number)||{id:`pending-${number}`,page_number:number,scale_status:'uncalibrated'};});
   const drawingTypeLabel=selectedAssembly?.primary_measurement==='SF'?'Area':selectedAssembly?.primary_measurement==='EA'?'Count':'Linear';
@@ -520,10 +552,10 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedOutputs=selectedMeasurement?measurementSummaries.filter((row:any)=>row.measurement_id===selectedMeasurement.id):[];
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
-  return <div className={styles.workstation}>
+  return <div className={styles.workstation} data-mobile-review={mobileReview?'true':'false'}>
   <div className={`${styles.workspace} ${!sheetsOpen?styles.noSheets:''} ${!inspectorOpen?styles.noInspector:''}`}>
     {sheetsOpen&&<aside className={styles.sidebar}>
-      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Sheets</div><div className={styles.panelMeta}>{sourceTitle} · {pdfPageCount||'…'} pages</div></div><button type="button" className={styles.iconButton} title="Hide sheets" onClick={()=>setSheetsOpen(false)}><PanelLeftClose size={16}/></button></div>
+      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Sheets</div><div className={styles.panelMeta}>{sourceTitle} · {pdfPageCount||'…'} pages</div></div>{!mobileReview&&<button type="button" className={styles.iconButton} title="Hide sheets" onClick={()=>setSheetsOpen(false)}><PanelLeftClose size={16}/></button>}</div>
       <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheetDisplayLabel(sheet)}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
     </aside>}
 
@@ -556,8 +588,23 @@ export function TakeoffDrawingWorkspace(props:Props){
           />
         </div>
       </div>
-    </section>:<section className={styles.center}>
+    </section>:<section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
       <div className={styles.toolbar}>
+        {mobileReview?<><div className={styles.mobileReviewTools}>
+          <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
+        </div>
+        <div className={styles.toolbarSpacer}/>
+        <div className={styles.mobilePageGroup} aria-label="Sheet navigation">
+          <button type="button" className={styles.iconTool} title="Previous sheet" disabled={pageNumber<=1} onClick={()=>changePage(Math.max(1,pageNumber-1))}><ChevronLeft size={15}/></button>
+          <span className={styles.mobilePageLabel}>{pageNumber}/{pdfPageCount||'…'}</span>
+          <button type="button" className={styles.iconTool} title="Next sheet" disabled={pageNumber>=(pdfPageCount||pageNumber)} onClick={()=>changePage(Math.min(pdfPageCount||pageNumber,pageNumber+1))}><ChevronRight size={15}/></button>
+        </div>
+        <div className={styles.zoomGroup}>
+          <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
+          <button type="button" className={styles.zoomLabel} title="Reset zoom" onClick={()=>setZoomAt(1)}>{zoomPercent}%</button>
+          <button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus size={15}/></button>
+          <button type="button" className={styles.iconTool} title="Fit page" onClick={fitPage}><Maximize size={15}/></button>
+        </div></>:<>
         <div className={styles.toolGroup}>
           {!sheetsOpen&&<button type="button" className={styles.toolButton} title="Show sheets" onClick={()=>setSheetsOpen(true)}><PanelLeftOpen size={16}/></button>}
           <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
@@ -590,6 +637,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" className={styles.iconTool} title="Fit page · 1" onClick={fitPage}><Maximize size={15}/></button>
           {!inspectorOpen&&<button type="button" className={styles.iconTool} title="Show takeoff inspector" onClick={()=>setInspectorOpen(true)}><PanelRightOpen size={16}/></button>}
         </div>
+        </>}
       </div>
 
       <div ref={viewportRef} className={styles.canvasViewport}>
@@ -601,7 +649,7 @@ export function TakeoffDrawingWorkspace(props:Props){
             {currentMeasurements.map((measurement:any)=>{
               if(props.conditionPresentation?.hiddenMeasurementIds.includes(measurement.id))return null;
               const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=props.conditionPresentation?.colors[measurement.id]||style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
-              return <g key={measurement.id} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
+              return <g key={measurement.id} className={styles.measurementShape} data-selected={selected} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
                 {geometry.type==='polygon'&&<path d={geometryPath(geometry,renderBox.pdfWidth,renderBox.pdfHeight)} fill={`${color}24`} fillRule="evenodd" stroke={color} strokeWidth={selected?3.2:2} vectorEffect="non-scaling-stroke"/>}
                 {physical.length>=3&&<polygon points={physicalCoords} fill={`${style.color}${Math.round(style.opacity*255).toString(16).padStart(2,'0')}`} stroke={style.borderColor} strokeWidth={selected?style.borderWidth+1:style.borderWidth} strokeDasharray={style.pattern==='dashed'?'6 4':undefined} vectorEffect="non-scaling-stroke"/>}{geometry.type==='polyline'&&<polyline points={coords} fill="none" stroke={color} strokeWidth={selected?4:2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
                 {geometry.type==='count'&&points.map((point,index)=><g key={index}><circle cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r={selected?6:5} fill={`${color}45`} stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth-5} y1={point.y*renderBox.pdfHeight} x2={point.x*renderBox.pdfWidth+5} y2={point.y*renderBox.pdfHeight} stroke={color} vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth} y1={point.y*renderBox.pdfHeight-5} x2={point.x*renderBox.pdfWidth} y2={point.y*renderBox.pdfHeight+5} stroke={color} vectorEffect="non-scaling-stroke"/></g>)}
@@ -641,7 +689,7 @@ export function TakeoffDrawingWorkspace(props:Props){
         {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}
       </div>
 
-      <div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>
+      {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
     </section>}
 
     {inspectorOpen&&<aside className={styles.inspector}>
@@ -732,7 +780,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       </div>
     </aside>}
   </div>
-  <TakeoffQuantityDock
+  {!mobileReview&&<TakeoffQuantityDock
     measurements={initialMeasurements}
     outputs={measurementSummaries}
     assemblies={assemblies}
@@ -746,6 +794,6 @@ export function TakeoffDrawingWorkspace(props:Props){
       if(sheet&&Number(sheet.page_number)!==pageNumber)changePage(Number(sheet.page_number));
       setSelectedMeasurementId(measurement.id);setTool('select');setInspectorOpen(true);setInspectorTab('properties');
     }}
-  />
+  />}
   </div>;
 }

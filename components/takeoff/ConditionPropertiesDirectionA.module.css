@@ -1,5 +1,5 @@
 .drawingViewModes{position:relative;z-index:20;grid-row:1;grid-column:1;display:flex;width:100%!important;min-width:0;align-items:center;justify-content:flex-end;padding:2px 8px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:color-mix(in oklch,var(--background) 94%,var(--card));box-shadow:none;backdrop-filter:none}
-.conditionSummaryLine{display:flex;min-height:34px;align-items:center;gap:7px;padding:6px 10px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--muted) 8%);font-size:11px;color:var(--muted-foreground)}
+.conditionSummaryLine{display:flex;min-height:40px;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--background) 92%,var(--muted) 8%);font-size:11px;color:var(--muted-foreground)}
 .conditionSummaryLine strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);font-size:12px;font-weight:650}
 .summaryMeta{margin-left:auto;flex:none;white-space:nowrap;color:var(--muted-foreground);font-size:11px;font-variant-numeric:tabular-nums}
 .summaryHold{display:inline-flex;flex:none;align-items:center;gap:4px;border:1px solid color-mix(in oklch,var(--warning) 35%,var(--border));border-radius:var(--radius-sm);background:color-mix(in oklch,var(--warning) 10%,transparent);padding:2px 6px;color:var(--warning);font-size:10px;font-weight:650;cursor:pointer}
@@ -19,15 +19,15 @@
 .holdText strong{font-size:11px;color:var(--warning)}
 .holdText small{margin-top:1px;font-size:10px;color:var(--muted-foreground)}
 .holdJump{color:var(--muted-foreground);font-size:10px}
-.switchField{min-height:38px;align-items:center!important;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);padding:0 9px}
-.switchFieldLabel{min-width:0;flex:1;cursor:pointer;color:var(--foreground)!important;font-size:11px!important;font-weight:650!important}
-.propertyField{gap:4px!important;min-width:0}
-.propertyFieldLabel{color:var(--muted-foreground)!important;font-size:11px!important;font-weight:650!important}
-.moduleControlRow{display:flex;min-height:44px;align-items:center;gap:10px;padding:7px 9px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--muted) 20%,transparent)}
+.switchField{min-height:42px;align-items:center!important;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);padding:0 9px}
+.switchFieldLabel{min-width:0;flex:1;cursor:pointer;color:var(--foreground)!important;font-size:12px!important;font-weight:650!important}
+.propertyField{gap:6px!important;min-width:0}
+.propertyFieldLabel{color:var(--muted-foreground)!important;font-size:12px!important;font-weight:650!important}
+.moduleControlRow{display:flex;min-height:48px;align-items:center;gap:10px;padding:8px 11px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--muted) 20%,transparent)}
 .moduleControlRow>div{min-width:0;flex:1}
 .moduleControlRow strong,.moduleControlRow small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.moduleControlRow strong{font-size:11px;color:var(--foreground)}
-.moduleControlRow small{margin-top:1px;font-size:10px;color:var(--muted-foreground)}
+.moduleControlRow strong{font-size:12px;color:var(--foreground)}
+.moduleControlRow small{margin-top:2px;font-size:11px;color:var(--muted-foreground)}
 .collapsibleTrigger{width:100%;border:0;color:inherit;text-align:left;cursor:pointer}
 .outputSummary{margin-left:auto;color:var(--muted-foreground);font-size:10px;font-variant-numeric:tabular-nums}
 .outputSummaryHeld{color:var(--warning)}
@@ -37,3 +37,6 @@
 .cleanStatus{color:transparent!important}
 @media(max-width:860px){.drawingViewModes{padding-inline:38px}.versionNotice{display:none}}
 @media(prefers-reduced-motion:reduce){.outputChevron,.issueChevron{transition:none}}
+
+.inlineValidation{display:block;margin-top:1px;color:var(--destructive);font-size:10px;line-height:1.35}
+.propertyField[data-invalid="true"] .propertyFieldLabel{color:var(--destructive)!important}
