@@ -47,12 +47,16 @@ test('only a sheet without memory initializes; same-sheet updates never refit', 
   assert.equal(shouldInitializeCamera(null, 'A4', false), true);
 });
 
-test('camera integration is independent of selection, regeneration and issue changes', () => {
+test('camera integration stays domain-independent while spatial navigation is bounded and interruptible', () => {
   const controls = readFileSync('components/takeoff/3d/Takeoff3DControls.tsx', 'utf8');
   const viewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
   assert.doesNotMatch(controls, /scene\.hash|geometryKey|selectedMeasurementId|conditionRevision|issueCount/);
-  assert.match(controls, /if \(previousSheetId.current === sheetId\) return/);
+  assert.match(controls, /if \(previousSheetId\.current === sheetId\) return/);
+  assert.match(controls, /SPATIAL_TRANSITION_MS/);
+  assert.match(controls, /useFrame\(\(_, delta\) => \{/);
+  assert.match(controls, /if \(!move\) return/);
+  assert.match(controls, /onStart=\{\(\) => \{ transition\.current = null; \}\}/);
+  assert.match(controls, /if \(!from \|\| reducedMotion\)/);
   assert.match(controls, /onEnd=\{save\}/);
-  assert.doesNotMatch(controls, /onChange=\{save\}|useFrame/);
-  assert.match(viewport, /key=\{`\$\{activeSheetId\}:\$\{attempt\}`\}/);
+  assert.match(viewport, /key=\{\`\$\{activeSheetId\}:\$\{attempt\}\`\}/);
 });
