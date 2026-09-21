@@ -55,7 +55,7 @@ The premium implementation turn does not perform post-implementation QA, CI/depl
 
 ## UI
 
-ADR-024 is the active staging visual/theme/token/density authority. Issue #71 is accepted on staging; ADR-016 is historical except where compatible. ADR-020 remains Takeoff authority. Preserve true light/dark/system semantic tokens and the governed component system.
+On `astra/complete-ui-rewrite`, Issue #76 and ADR-025 — Carez Operations Workspace — are the approved presentation authority for the rewrite. They supersede ADR-024 presentation and ADR-016 shell arrangement on this branch while preserving protected domain behavior, light/dark/system semantics, and the governed component system. ADR-020 remains authoritative for Takeoff quantity/domain invariants; Takeoff presentation changes are limited by the approved rewrite scope. Nik must visually approve this branch before staging integration.
 
 ## Documentation
 

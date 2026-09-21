@@ -6,7 +6,6 @@ import {Button} from '@/components/ui/button';
 import {ConditionDeletionManager} from './ConditionDeletionManager';
 import {IntegratedTakeoffConditionWorkspace} from './IntegratedTakeoffConditionWorkspace';
 import styles from './TakeoffConditionWorkflowShell.module.css';
-import themeStyles from './TakeoffShadcnTheme.module.css';
 
 type Props={
   setId:string;
@@ -16,18 +15,34 @@ type Props={
 
 export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionData}:Props){
   const [navigatorCollapsed,setNavigatorCollapsed]=useState(false);
-  const [propertiesCollapsed,setPropertiesCollapsed]=useState(false);
+  const [propertiesCollapsed,setPropertiesCollapsed]=useState(true);
+
+  useEffect(()=>{
+    if(window.matchMedia('(max-width: 860px)').matches)setNavigatorCollapsed(true);
+  },[]);
 
   useEffect(()=>{
     const openConditions=()=>{
       setNavigatorCollapsed(false);
-      setPropertiesCollapsed(false);
+      setPropertiesCollapsed(window.matchMedia('(max-width: 860px)').matches);
     };
+    const showProperties=()=>{
+      setPropertiesCollapsed(false);
+      if(window.matchMedia('(max-width: 860px)').matches)setNavigatorCollapsed(true);
+    };
+    const startDrawing=()=>{
+      if(window.matchMedia('(max-width: 860px)').matches){
+        setNavigatorCollapsed(true);
+        setPropertiesCollapsed(true);
+      }
+    };
+    window.addEventListener('carez:start-condition-takeoff',startDrawing);
+    window.addEventListener('carez:show-condition-properties',showProperties);
     window.addEventListener('carez:open-conditions',openConditions);
-    return()=>window.removeEventListener('carez:open-conditions',openConditions);
+    return()=>{window.removeEventListener('carez:open-conditions',openConditions);window.removeEventListener('carez:show-condition-properties',showProperties);window.removeEventListener('carez:start-condition-takeoff',startDrawing);};
   },[]);
 
-  return <div className={`${styles.shell} ${themeStyles.theme}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
+  return <div className={`${styles.shell}`} data-navigator-collapsed={navigatorCollapsed?'true':'false'} data-properties-collapsed={propertiesCollapsed?'true':'false'}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData}/>
     <ConditionDeletionManager setId={setId} locked={Boolean(workspaceProps.locked)} conditions={conditionData?.conditions||[]}/>
     <Button

@@ -34,7 +34,7 @@ export default async function CashAccountsPage(){
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cash Accounts</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Plaid-connected bank accounts should normally update Carez automatically. Manual cash accounts are only the fallback for cash or accounts we cannot connect.</p></header>
+      <header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cash Accounts</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Plaid-connected bank accounts should normally update Carez automatically. Manual cash accounts are only the fallback for cash or accounts we cannot connect.</p></header>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants()} href="/banking">Connected Banking</Link><Link className={buttonVariants({variant:'outline'})} href="/cashflow">Back to Cash</Link></div>
     </div>
 

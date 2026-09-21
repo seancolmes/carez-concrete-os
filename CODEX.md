@@ -28,7 +28,7 @@ This is the repository execution contract for Codex. Do not load repository-exte
 - Production Quantity, Direct Cost, and Sell as distinct concepts.
 - Persisted page-coordinate 2D/vector geometry as Takeoff quantity authority; derived 3D is verification only.
 - Human authority over scope, Conditions, means/methods, reinforcing, production rates, pricing, margin, budgets, and approvals.
-- Current governed UI/Takeoff authorities referenced by root `AGENTS.md`.
+- Current governed UI/Takeoff authorities referenced by root `AGENTS.md`; on `astra/complete-ui-rewrite`, Issue #76 / ADR-025 govern the approved rewrite presentation while ADR-020 continues to protect Takeoff quantity/domain invariants.
 
 ## Plugin coordination
 

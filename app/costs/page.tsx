@@ -40,7 +40,7 @@ export default async function CostsPage(){
  const jobMap=new Map((budget||[]).map((x:any)=>[x.project_id,x]));
 
  return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-  <header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Job costs</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">What Each Job Actually Cost</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Employee labor comes from approved time. Vendor bills come from Purchasing. Use this screen for direct job costs that do not already enter Carez somewhere else.</p></header>
+  <header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Job costs</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">What Each Job Actually Cost</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Employee labor comes from approved time. Vendor bills come from Purchasing. Use this screen for direct job costs that do not already enter Carez somewhere else.</p></header>
 
   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
    <Metric label="Direct Labor" value={money(labor)} help="From approved employee/owner field time."/>

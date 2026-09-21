@@ -1,5 +1,8 @@
 # ADR-016 — Top navigation shell and shared Carez component pack
 
+Presentation supersession: Issue #76 authorizes ADR-025 Carez Operations Workspace on the rewrite branch. The presentation decisions below are historical where superseded by ADR-025; domain and measurement invariants remain protected.
+
+
 Status: Accepted historical principles; global shell details superseded by ADR-024
 Date: 2026-09-04
 Owner: 95 — UX & Design System

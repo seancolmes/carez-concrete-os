@@ -53,3 +53,5 @@ Supporting detailed designs may remain only while they still own unresolved impl
 ## UI authority
 
 ADR-024 owns the Precision Grid visual/theme/token/density architecture and approved end-state Carez OS interaction direction. ADR-016 remains the current implemented desktop-shell contract until the dedicated shell/navigation subproject replaces it. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants. Shared UI belongs in `design-system/CAREZ_COMPONENT_PACK.md`; modules must not create competing design systems or revive legacy presentation layers.
+
+Active rewrite candidate: [ADR-025 — Carez Operations Workspace](decisions/ADR-025-carez-operations-workspace.md), authorized by Issue #76.

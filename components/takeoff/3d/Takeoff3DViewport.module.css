@@ -5,6 +5,7 @@
 .canvas canvas{touch-action:none}
 .message{display:flex;height:100%;min-height:160px;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:24px;text-align:center;background:var(--background)}
 .message span{max-width:420px;font-size:12px;color:var(--muted-foreground)}
+.message[role="alert"]{position:absolute;inset:0;z-index:3}
 .hint{padding:5px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--muted-foreground)}
 .checks{position:absolute;z-index:2;top:8px;right:8px;max-width:min(340px,calc(100% - 16px));max-height:calc(100% - 16px);overflow:auto;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--popover);box-shadow:0 4px 16px rgb(0 0 0 / .2);font-size:12px}
 .checks>div{padding-block:10px;border-bottom:1px solid var(--border)}

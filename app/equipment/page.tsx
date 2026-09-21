@@ -37,7 +37,7 @@ export default async function EquipmentPage(){
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-   <header><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assets & stock</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Equipment & Inventory</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Know where the tools are, what needs service, and what supplies are running low.</p></header>
+   <header className="carez-page-heading"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assets & stock</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Equipment & Inventory</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Know where the tools are, what needs service, and what supplies are running low.</p></header>
 
    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Equipment and inventory summary">
     <Metric label="Active Equipment" value={(assets||[]).length} help="Trucks, trailers, tools and equipment being tracked."/>

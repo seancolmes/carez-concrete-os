@@ -40,7 +40,7 @@ export default async function SettingsPage(){
 
   return <AppShell userName={name}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">System</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Settings</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Company connections, operating rules, and the labor-cost settings Carez uses behind the scenes.</p></header>
+      <header className="carez-page-heading"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">System</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Settings</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Company connections, operating rules, and the labor-cost settings Carez uses behind the scenes.</p></header>
 
       {profile?.company_id?<section className="space-y-4">
         <SectionHeading kicker="Company" title="Branding" description="Company identity used by the Carez workspace and new commercial documents."/>

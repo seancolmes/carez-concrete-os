@@ -9,7 +9,7 @@ import {
 test('specialist views expose only the approved modes',()=>{
   assert.equal(resolveTakeoffViewMode('2d'),'2d');
   assert.equal(resolveTakeoffViewMode('3d'),'3d');
-  assert.equal(resolveTakeoffViewMode('split'),null);
+  assert.equal(resolveTakeoffViewMode('split'),'split');
   assert.equal(resolveTakeoffViewMode(null),null);
 
   assert.equal(resolveTakeoffWorksheetView('quantities'),'quantities');

@@ -88,14 +88,15 @@ test('R3F exposes Focus, filters and active-sheet partial-model holds without hi
   assert.doesNotMatch(r3fViewport, /sourceQuantities|raw_quantity|production_quantity|direct_cost/);
 });
 
-test('3D toggles in the current drawing viewport and Split is not exposed', () => {
+test('3D and Split share the current authoritative drawing viewport', () => {
   const retiredSplitClass = ['derived', 'Overlay', 'Split'].join('');
   assert.doesNotMatch(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:260px\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
   assert.equal(workspaceStyles.includes(retiredSplitClass), false);
-  assert.doesNotMatch(workspaceStyles, /data-view-mode="split"/);
-  assert.doesNotMatch(workstation, /\['2d','3d','split'\]/);
+  assert.match(workspaceStyles, /data-view-mode="split"/);
+  assert.match(workspaceStyles, /margin-right:50%/);
+  assert.match(workstation, /\['2d','3d','split'\]/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
 });

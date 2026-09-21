@@ -6,7 +6,7 @@ import {usePathname,useRouter} from 'next/navigation';
 import {
   ArrowDown,ArrowUp,Banknote,BarChart3,Bell,BriefcaseBusiness,Calculator,CalendarDays,ChevronDown,
   ClipboardCheck,ClipboardList,CreditCard,Ellipsis,FileText,Gauge,Hammer,HardHat,Home,Inbox,KeyRound,
-  Landmark,LibraryBig,ListChecks,Minus,PackageCheck,Plus,Receipt,ReceiptText,RotateCcw,Ruler,Search,
+  Landmark,LibraryBig,ListChecks,LayoutGrid,Minus,PackageCheck,Plus,Receipt,ReceiptText,RotateCcw,Ruler,Search,
   Settings,ShieldCheck,ShoppingCart,SlidersHorizontal,TrendingUp,Users,Wallet,Wrench,type LucideIcon,
 } from 'lucide-react';
 import {BankSyncPulse} from '@/components/PlaidBankControls';
@@ -53,7 +53,7 @@ function readDeviceJson(key:string):unknown{try{const raw=window.localStorage.ge
 function writeDeviceJson(key:string,value:unknown){try{window.localStorage.setItem(key,JSON.stringify(value))}catch{}}
 function isWorkstation(pathname:string){
   const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];
-  return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment))||/^\/estimates\/[^/]+/.test(pathname);
+  return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment));
 }
 
 function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestination[];pathname:string}){
@@ -69,49 +69,28 @@ function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestinat
   </nav>;
 }
 
-function CarezMoreMenu({pinnedIds,pathname,onNavigate,onManage,className}:{pinnedIds:string[];pathname:string;onNavigate:(href:string)=>void;onManage:()=>void;className?:string}){
-  const active=resolveActiveDestination(pathname);
-  return <div className={className}><DropdownMenu>
-    <DropdownMenuTrigger className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-7 gap-1 px-2 text-xs',active&&!pinnedIds.includes(active.id)&&'bg-primary/10 text-foreground shadow-[inset_0_-2px_var(--primary)]')}>More <ChevronDown className="size-3"/></DropdownMenuTrigger>
-    <DropdownMenuContent align="start" sideOffset={4} className="w-80">
-      {NAVIGATION_GROUPS.map(group=>{
-        const items=destinationsFor(group.destinationIds).filter(destination=>!pinnedIds.includes(destination.id));
-        if(!items.length)return null;
-        return <DropdownMenuGroup key={group.id}>
-          <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
-          {items.map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <DropdownMenuItem key={destination.id} onClick={()=>onNavigate(destination.href)} className={cn('min-h-8 gap-2',active?.id===destination.id&&'bg-accent text-accent-foreground')}>
-            <Icon className="size-3.5 text-muted-foreground"/><span className="min-w-0 flex-1 truncate">{destination.label}</span>
-          </DropdownMenuItem>})}
-        </DropdownMenuGroup>;
-      })}
-      <DropdownMenuSeparator/>
-      <DropdownMenuItem onClick={onManage} className="min-h-8 gap-2"><SlidersHorizontal className="size-3.5"/>Manage navigation</DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu></div>;
-}
-
 export function CarezTopShell({userName,logoUrl,pathname,pinnedIds,pinnedDestinations,onNavigate,onOpenCommand,onOpenManager}:{userName:string;logoUrl:string;pathname:string;pinnedIds:string[];pinnedDestinations:NavigationDestination[];onNavigate:(href:string)=>void;onOpenCommand:()=>void;onOpenManager:()=>void}){
+  const [directoryOpen,setDirectoryOpen]=useState(false);
+  const active=resolveActiveDestination(pathname);
   const initial=userName.trim().charAt(0).toUpperCase()||'C';
-  return <header className="flex h-11 items-center border-b border-border bg-background/96 px-2.5 backdrop-blur-xl md:px-3">
-    <Link href="/" prefetch={false} className="flex h-11 shrink-0 items-center rounded-sm pr-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
-      <img src={logoUrl} alt="Company logo" className="h-5 max-w-32 object-contain object-left"/>
-    </Link>
-    <span className="hidden h-5 w-px shrink-0 bg-border lg:block"/>
-    <div className="hidden min-w-0 flex-1 items-center gap-1 pl-1 lg:flex">
-      <CarezPinnedNav destinations={pinnedDestinations} pathname={pathname}/>
-      <CarezMoreMenu pinnedIds={pinnedIds} pathname={pathname} onNavigate={onNavigate} onManage={onOpenManager}/>
-    </div>
-    <CarezMoreMenu className="hidden md:block lg:hidden" pinnedIds={pinnedIds} pathname={pathname} onNavigate={onNavigate} onManage={onOpenManager}/>
-    <div className="ml-auto flex shrink-0 items-center gap-1">
-      <Button type="button" variant="outline" size="sm" onClick={onOpenCommand} className="hidden h-8 min-w-44 justify-start gap-2 border-border/80 bg-muted/15 px-2.5 text-muted-foreground xl:inline-flex"><Search className="size-3.5"/><span>Search Carez</span><kbd className="ml-auto rounded-sm border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">Ctrl K</kbd></Button>
-      <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" onClick={onOpenCommand}/>} className="xl:hidden"><Search/></TooltipTrigger><TooltipContent>Search Carez</TooltipContent></Tooltip>
-      <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm"/>}><Bell/></TooltipTrigger><TooltipContent>Notifications</TooltipContent></Tooltip>
-      <Link href="/settings" prefetch={false} className={cn(buttonVariants({variant:'ghost',size:'sm'}),'h-8 gap-2 px-1.5')}>
-        <span className="flex size-6 items-center justify-center rounded-full border border-border bg-muted text-[10px] font-semibold">{initial}</span>
-        <span className="hidden max-w-28 truncate text-xs 2xl:inline">{userName}</span>
-      </Link>
-    </div>
-  </header>;
+  return <>
+    <header className="carez-masthead">
+      <Link href="/" prefetch={false} aria-label="Carez home" className="carez-brand"><img src={logoUrl} alt="Company logo"/><span>OPERATIONS</span></Link>
+      <span className="carez-masthead-rule"/>
+      <Button type="button" variant="ghost" onClick={()=>setDirectoryOpen(true)} className="carez-directory-trigger"><LayoutGrid/><span>Workspaces</span><ChevronDown className="size-3"/></Button>
+      <span className="carez-current-workspace">{active?.label||'Workspace'}</span>
+      <div className="ml-auto flex items-center gap-2">
+        <Button type="button" variant="outline" onClick={onOpenCommand} className="carez-search-trigger" aria-label="Search Carez"><Search/><span>Find a project or workspace</span><kbd>⌘ / Ctrl K</kbd></Button>
+        <Link href="/settings" prefetch={false} aria-label={`Settings for ${userName}`} className="carez-account"><span>{initial}</span><span>{userName}</span></Link>
+      </div>
+    </header>
+    <div className="carez-favorites"><span className="carez-favorites-label">QUICK ACCESS</span><CarezPinnedNav destinations={pinnedDestinations} pathname={pathname}/><Button variant="ghost" size="icon-sm" aria-label="Manage navigation" onClick={onOpenManager}><SlidersHorizontal/></Button></div>
+    <Sheet open={directoryOpen} onOpenChange={setDirectoryOpen}><SheetContent side="left" className="carez-directory w-[94vw] sm:max-w-3xl">
+      <SheetHeader><SheetTitle>Workspaces</SheetTitle><SheetDescription>From the first takeoff to the final payment.</SheetDescription></SheetHeader>
+      <nav aria-label="All Carez workspaces" className="carez-directory-grid">{NAVIGATION_GROUPS.map(group=><section key={group.id}><h2>{group.label}</h2>{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?.id===destination.id?'page':undefined} onClick={event=>{event.preventDefault();setDirectoryOpen(false);onNavigate(destination.href)}}><Icon/><span><strong>{destination.label}</strong><small>{destination.hint}</small></span>{pinnedIds.includes(destination.id)?<span className="carez-directory-pin" aria-label="Pinned">•</span>:null}</Link>})}</section>)}</nav>
+      <SheetFooter><Button variant="outline" onClick={()=>{setDirectoryOpen(false);onOpenManager()}}><SlidersHorizontal/>Customize quick access</Button></SheetFooter>
+    </SheetContent></Sheet>
+  </>;
 }
 
 function CarezNavigationManager({open,onOpenChange,pinnedIds,role,onChange,onReset}:{open:boolean;onOpenChange:(open:boolean)=>void;pinnedIds:string[];role:string|null;onChange:(ids:string[])=>void;onReset:()=>void}){
@@ -151,7 +130,7 @@ function CarezProjectPicker({open,onOpenChange,projects,recentProjectIds,activeP
     <BriefcaseBusiness/><div className="min-w-0"><div className="truncate text-sm font-medium">{project.jobNumber?`${project.jobNumber} · `:''}{project.name}</div><div className="truncate text-xs text-muted-foreground">{[project.status,project.location].filter(Boolean).join(' · ')||'Project overview'}</div></div>
   </CommandItem>;
   return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="right" className="w-[92vw] gap-0 p-0 sm:max-w-md">
-    <SheetHeader className="border-b border-border"><SheetTitle>Switch project</SheetTitle><SheetDescription>Search projects available under the current company and RLS policy.</SheetDescription></SheetHeader>
+    <SheetHeader className="border-b border-border"><SheetTitle>Switch project</SheetTitle><SheetDescription>Find an accessible project by name or job number.</SheetDescription></SheetHeader>
     <Command className="min-h-0 flex-1 rounded-none"><CommandInput placeholder="Search project name or job number..." autoFocus/><CommandList className="max-h-none flex-1"><CommandEmpty>No accessible project found.</CommandEmpty>
       {recent.length?<CommandGroup heading="Recent">{recent.map(renderProject)}</CommandGroup>:null}
       <CommandGroup heading="All projects">{remaining.map(renderProject)}</CommandGroup>
@@ -288,13 +267,14 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
 
   if(immersive)return <div className="min-h-svh bg-background text-foreground">{children}</div>;
 
-  return <div className="flex min-h-svh flex-col bg-background text-foreground">
+  return <div className="carez-app flex min-h-svh flex-col bg-background text-foreground">
+    <a href="#carez-workspace" className="carez-skip-link">Skip to workspace</a>
     <BankSyncPulse/><OutlookSyncPulse/>
     <div className="carez-shell relative z-40 shrink-0 bg-background">
       <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} pinnedIds={pinnedIds} pinnedDestinations={pinnedDestinations} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenManager={()=>setManagerOpen(true)}/>
       {projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}
     </div>
-    <main aria-label={activeDestination?.label||'Carez workspace'} className={workstation?'min-h-0 min-w-0 flex-1 overflow-hidden pb-14 md:pb-0':'min-h-0 min-w-0 flex-1 overflow-auto bg-background p-4 pb-20 md:p-5'}>{children}</main>
+    <main id="carez-workspace" tabIndex={-1} aria-label={activeDestination?.label||'Carez workspace'} className={workstation?'carez-workstation min-h-0 min-w-0 flex-1 overflow-hidden pb-14 md:pb-0':'carez-workspace min-h-0 min-w-0 flex-1 overflow-auto bg-background'}>{children}</main>
     <CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate} recentDestinationIds={recentDestinationIds} projects={projects} recentProjectIds={recentProjectIds}/>
     <CarezMobileMoreSheet open={mobileOpen} onOpenChange={setMobileOpen} pathname={pathname} onNavigate={navigate} onManage={()=>setManagerOpen(true)}/>
     <CarezNavigationManager open={managerOpen} onOpenChange={setManagerOpen} pinnedIds={pinnedIds} role={shellIdentity?.role||null} onChange={updatePinnedIds} onReset={resetPinnedIds}/>
@@ -302,3 +282,4 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     <CarezMobileBottomNav destinations={pinnedDestinations} pathname={pathname} onOpenMore={()=>setMobileOpen(true)}/>
   </div>;
 }
+

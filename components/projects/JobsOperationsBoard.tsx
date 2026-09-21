@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useState,type ReactNode} from 'react';
+import {useMemo,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
-import {FilterX,MoreHorizontal,Search,SlidersHorizontal} from 'lucide-react';
+import {FilterX,MoreHorizontal,Search,SlidersHorizontal,CheckCheck,ShieldAlert,HardHat,Wallet,BriefcaseBusiness,ArrowUpRight,MapPin,Activity,FileText} from 'lucide-react';
 import {
   CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,
   CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,
-  CarezEmptyState,CarezInspector,CarezInspectorBody,CarezInspectorFooter,
-  CarezInspectorHeader,CarezInspectorSection,CarezOperatingMetric,
-  CarezOperatingMetricStrip,CarezStatus,
+  CarezInspector,CarezInspectorBody,CarezInspectorFooter,
+  CarezInspectorHeader,CarezInspectorSection,CarezStatus,
 } from '@/components/carez';
+import {CarezSectionHeading,CarezOperationalPulse,CarezExperienceEmpty} from '@/components/carez/experience';
+import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {
@@ -72,16 +73,6 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
   const [attention,setAttention]=useState('all');
   const [sort,setSort]=useState('priority');
   const [selectedId,setSelectedId]=useState<string|null>(null);
-  const [wideInspector,setWideInspector]=useState(false);
-
-  useEffect(()=>{
-    const media=window.matchMedia('(min-width: 1536px)');
-    const update=()=>setWideInspector(media.matches);
-    update();
-    media.addEventListener('change',update);
-    return()=>media.removeEventListener('change',update);
-  },[]);
-
   const stages=useMemo(()=>Array.from(new Set(rows.map(row=>row.projectStatus).filter(Boolean))).sort(),[rows]);
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
@@ -112,9 +103,8 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
   const toolbar=<div className="flex w-full flex-wrap items-center gap-2">
     <div className="relative min-w-56 flex-1 lg:max-w-sm">
       <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
-      <Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search jobs, customers, locations..." className="h-8 pl-8 text-xs"/>
+      <Input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search jobs, customers, locations" placeholder="Search jobs, customers, locations..." className="h-8 pl-8 text-xs"/>
     </div>
-    <select className={filterSelect} value={status} onChange={e=>setStatus(e.target.value)} aria-label="Job status"><option value="active">Active jobs</option><option value="ready">Ready</option><option value="hold">Hold</option><option value="planning">In progress</option><option value="setup">Waiting</option><option value="completed">Complete</option><option value="all">All jobs</option></select>
     <select className={filterSelect} value={stage} onChange={e=>setStage(e.target.value)} aria-label="Project stage"><option value="all">All stages</option>{stages.map(item=><option key={item} value={item}>{titleCase(item)}</option>)}</select>
     <select className={filterSelect} value={attention} onChange={e=>setAttention(e.target.value)} aria-label="Attention filter"><option value="all">All attention</option><option value="attention">Needs attention</option><option value="clear">Clear</option></select>
     <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -126,9 +116,9 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
 
   const grid=<CarezDataGrid
     toolbar={toolbar}
-    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select a row to inspect. Space selects; Enter or double-click opens the project.</span></>}
+    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select to preview · Enter to open project</span></>}
     isEmpty={filtered.length===0}
-    empty={<CarezEmptyState title="No jobs match this view" description="Adjust or reset the current filters." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/>}
+    empty={rows.length===0?<CarezExperienceEmpty icon={<BriefcaseBusiness/>} title="Your next job starts here." description="Accepted proposals create projects ready for setup. For emergency or direct work, use New direct job above." actions={<Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>View proposals<ArrowUpRight/></Link>}/>:<CarezExperienceEmpty icon={<Search/>} title="No jobs match this view" description="Try another state, search, or stage to find the work you need." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/> }
   >
     <CarezDataGridTable>
       <CarezDataGridHead>
@@ -151,7 +141,9 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
         return <CarezDataGridRow
           key={row.id}
           selected={selectedRow}
-          className="cursor-pointer"
+          className="carez-job-row cursor-pointer"
+          data-state={row.state}
+          data-field-active={row.activeShifts>0||undefined}
           onClick={()=>setSelectedId(row.id)}
           onDoubleClick={()=>router.push(`/projects/${row.id}`)}
           tabIndex={0}
@@ -164,13 +156,13 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
           <CarezDataGridCell className="min-w-60">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 rounded-md bg-accent px-1.5 py-1 font-mono text-[10px] font-semibold text-primary">{row.jobNumber||'—'}</span>
-              <div className="min-w-0"><div className="truncate font-medium">{row.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{row.customer}</div><div className="truncate text-[11px] text-muted-foreground">{row.location}</div></div>
+              <div className="min-w-0"><div className="truncate text-sm font-bold">{row.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{row.customer}</div><div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin aria-hidden="true" className="size-3 shrink-0"/><span className="truncate">{row.location}</span></div></div>
             </div>
           </CarezDataGridCell>
           <CarezDataGridCell>{state?<CarezStatus tone={state.tone} label={state.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
-          <CarezDataGridCell className="min-w-64"><div className="font-medium">{row.nextStep}</div>{row.reasons[0]&&row.attention?<div className="mt-0.5 max-w-72 whitespace-normal text-xs text-muted-foreground">{row.reasons[0]}</div>:null}</CarezDataGridCell>
+          <CarezDataGridCell className="min-w-64"><div className="max-w-72 whitespace-normal font-semibold">{row.nextStep}</div>{row.reasons[0]&&row.attention?<div className="mt-0.5 max-w-72 whitespace-normal text-xs text-muted-foreground">{row.reasons[0]}</div>:null}</CarezDataGridCell>
           <CarezDataGridCell numeric><div className="font-medium">{shortDate(row.scheduleDate)}</div><div className="mt-0.5 font-sans text-xs text-muted-foreground">{row.scheduleDate?'Next field date':'Not scheduled'}</div></CarezDataGridCell>
-          <CarezDataGridCell><div className="font-medium">{row.activeShifts?`${row.activeShifts} active`:'—'}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.pendingTimecards?`${row.pendingTimecards} timecard review`:row.gpsExceptions?`${row.gpsExceptions} GPS review`:'No active shift'}</div></CarezDataGridCell>
+          <CarezDataGridCell><div className={cn('flex items-center gap-1.5 font-semibold',row.activeShifts>0&&'text-primary')}><HardHat aria-hidden="true" className="size-3.5"/>{row.activeShifts?`${row.activeShifts} active`:'—'}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.pendingTimecards?`${row.pendingTimecards} timecard review`:row.gpsExceptions?`${row.gpsExceptions} GPS review`:row.activeShifts?'In the field':'No active shift'}</div></CarezDataGridCell>
           <CarezDataGridCell numeric>
             {row.budgetAvailable?<div className="min-w-36"><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className={cn('font-medium',row.budgetUsed>=100&&'text-destructive')}>{row.budgetUsed.toFixed(0)}%</span><span className={cn('text-muted-foreground',row.laborRemaining<0&&'text-destructive')}>{row.laborRemaining.toFixed(1)} MH left</span></div><Progress value={Math.max(0,Math.min(100,row.budgetUsed))}/></div>:<span className="text-xs font-sans text-muted-foreground">No authoritative budget snapshot</span>}
           </CarezDataGridCell>
@@ -195,22 +187,31 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
     </CarezDataGridTable>
   </CarezDataGrid>;
 
-  return <div className="space-y-4">
-    <CarezOperatingMetricStrip columns={5} aria-label="Job operations metrics">
-      <CarezOperatingMetric label="Ready to move" value={String(metrics.ready)} help="Jobs with a physical operation ready to start."/>
-      <CarezOperatingMetric label="Hard holds" value={String(metrics.holds)} help="Setup, inspection or prerequisites block work." tone={metrics.holds?'error':'neutral'}/>
-      <CarezOperatingMetric label="Needs attention" value={String(metrics.attention)} help="Field, labor, billing or budget exceptions." tone={metrics.attention?'warning':'neutral'}/>
-      <CarezOperatingMetric label="Field active" value={String(metrics.fieldJobs)} help={`${metrics.activeShifts} active field shift${metrics.activeShifts===1?'':'s'} right now.`} tone={metrics.fieldJobs?'info':'neutral'}/>
-      <CarezOperatingMetric label="Customers owe" value={money(metrics.customersOwe)} help={metrics.overdue?`${money(metrics.overdue)} is past due.`:'No overdue customer balance.'} tone={metrics.overdue?'error':metrics.customersOwe?'warning':'neutral'}/>
-    </CarezOperatingMetricStrip>
-
-    <div className={cn('grid min-w-0 gap-4',selected&&wideInspector&&'2xl:grid-cols-[minmax(0,1fr)_22rem]')}>
-      <div className="min-w-0">{grid}</div>
-      {selected&&wideInspector?<JobInspector row={selected} onNavigate={navigate}/>:null}
-    </div>
-
-    <Sheet open={Boolean(selected&&!wideInspector)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
-      {selected&&!wideInspector?<SheetContent aria-label={'Job inspector: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-md"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
+  return <div className="carez-operations-board space-y-5">
+    <CarezOperationalPulse label="Job operations metrics" items={[
+      {label:'Current jobs',value:rows.filter(row=>row.state!=='completed').length,detail:'Open jobs across the operation.',icon:<BriefcaseBusiness/>,tone:'primary'},
+      {label:'Ready to move',value:metrics.ready,detail:'Physical operations ready to start.',icon:<CheckCheck/>,tone:'success'},
+      {label:'Hard holds',value:metrics.holds,detail:metrics.attention+' jobs need attention.',icon:<ShieldAlert/>,tone:metrics.holds?'danger':'neutral'},
+      {label:'Field active',value:metrics.fieldJobs,detail:`${metrics.activeShifts} active field shifts right now.`,icon:<HardHat/>,tone:'primary'},
+      {label:'Customers owe',value:money(metrics.customersOwe),detail:metrics.overdue?`${money(metrics.overdue)} is past due.`:'No overdue customer balance.',icon:<Wallet/>,tone:metrics.overdue?'warning':'neutral',href:'/billing'},
+    ]}/>
+    <CarezSectionHeading icon={<Activity/>} title="Current work" description="Find the constraint. Line up the next operation." action={<span className="text-xs text-muted-foreground">{metrics.attention} need attention</span>}/>
+    <Tabs value={status} onValueChange={value=>setStatus(String(value))}>
+      <div className="carez-tab-viewport">
+        <TabsList variant="experience" aria-label="Project operating state">
+          <TabsTrigger value="active">Current work</TabsTrigger>
+          <TabsTrigger value="ready"><CheckCheck/>Ready</TabsTrigger>
+          <TabsTrigger value="hold"><ShieldAlert/>Hold</TabsTrigger>
+          <TabsTrigger value="planning">In progress</TabsTrigger>
+          <TabsTrigger value="setup">Waiting</TabsTrigger>
+          <TabsTrigger value="completed">Complete</TabsTrigger>
+          <TabsTrigger value="all">All jobs</TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value={status} className="min-w-0">{grid}</TabsContent>
+    </Tabs>
+    <Sheet open={Boolean(selected)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
+      {selected?<SheetContent aria-label={'Job preview: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-lg"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
     </Sheet>
   </div>;
 }
@@ -268,7 +269,7 @@ function JobInspector({row,onNavigate,sheet=false}:{row:JobsBoardRow;onNavigate:
           <InspectorRow label="Customer balance">{row.billingAvailable?money(row.customerOwed):'Not available'}</InspectorRow>
           <InspectorRow label="Past due">{row.billingAvailable?money(row.overdue):'Not available'}</InspectorRow>
         </dl>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">Approved change orders, committed cost and actual cost are not exposed by the current Jobs summary query, so this inspector does not fabricate them.</p>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">Approved change orders, committed cost and actual cost are not exposed by the current Jobs summary query, and are not available in this summary.</p>
       </CarezInspectorSection>
     </CarezInspectorBody>
 
@@ -298,3 +299,4 @@ function InspectorMetric({label,value}:{label:string;value:number}){
 function InspectorRow({label,children}:{label:string;children:ReactNode}){
   return <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-3 py-2.5"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="min-w-0 text-right text-xs font-medium">{children}</dd></div>;
 }
+

@@ -1,5 +1,10 @@
 # Carez shared component pack
 
+## Active presentation authority — ADR-025
+
+On `astra/complete-ui-rewrite`, Issue #76 replaces Precision Grid presentation with Carez Operations Workspace. Source-owned accessible primitives retain their APIs. The shared masthead, workspace directory, favorite destinations, record headings, metric ledgers, and technical tables form one system. Specialist CSS consumes the same semantic tokens directly; the wildcard Takeoff theme adapter is removed. Project details use a dismissible sheet at all widths. Condition Properties starts collapsed and opens without losing editor state. Historical foundation notes below describe API and behavior lineage, not a competing visual target.
+
+
 Status: Accepted design-system contract
 Owner: 95 — UX & Design System
 Related decisions: ADR-015, ADR-016

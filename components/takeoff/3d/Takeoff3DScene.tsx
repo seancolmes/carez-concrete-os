@@ -34,8 +34,20 @@ export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onR
   solids: Derived3DSolid[]; selectedMeasurementId: string | null; onSelectSolid: (solid: Derived3DSolid) => void;
   onMeshIssue: (solidId: string, issue: Derived3DIssue | null) => void;
 }) {
+  const [graphicsAvailable, setGraphicsAvailable] = useState<boolean | null>(null);
+  useEffect(() => {
+    // Renderer startup can reject asynchronously, outside React's error boundary.
+    // Keep the verification pane useful when the browser has disabled WebGL.
+    const probe = document.createElement('canvas');
+    let context: WebGL2RenderingContext | null = null;
+    try { context = probe.getContext('webgl2'); } catch { /* Unsupported graphics context. */ }
+    setGraphicsAvailable(Boolean(context));
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+  }, []);
   const frame = sheetPlaneFrame(plane);
   const far = Math.max(10000, Math.hypot(frame.width, frame.height) * 6);
+  if (graphicsAvailable === null) return null;
+  if (!graphicsAvailable) return <Takeoff3DUnavailable onRetry={onRetry} />;
   return <Canvas orthographic dpr={[1, 2]} gl={{ antialias: true, alpha: false }}
     camera={{ near: 0.1, far }} fallback={<Takeoff3DUnavailable onRetry={onRetry} />}>
     <color attach="background" args={['#090d12']} />

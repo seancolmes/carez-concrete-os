@@ -15,7 +15,7 @@ const dt=(v:any)=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numer
 const stageLabel=(v:string)=>({sent:'Sent · not viewed',viewed:'Viewed',needs_reply:'Needs reply',accepted:'Accepted',declined:'Declined',expired:'Expired',revoked:'Link off',superseded:'Superseded'} as any)[v]||v;
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-amber-700')}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
 }
 
 export default async function ProposalsPage(){
@@ -46,7 +46,7 @@ export default async function ProposalsPage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Proposals</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Prepare one immutable customer offer, track engagement, respond to questions, and keep the winning revision connected to the awarded job.</p></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><FileText/>Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link></div>
       </header>
@@ -55,7 +55,7 @@ export default async function ProposalsPage(){
         {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
       </nav>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
         <Metric label="Ready to send" value={String(ready.length)} help="Estimate revisions waiting for proposal prep."/>
         <Metric label="Needs reply" value={String(needs.length)} help="Customer question, change request, or response." tone={needs.length?'warning':'default'}/>
         <Metric label="In market" value={String(market.length)} help="Sent or viewed and awaiting decision." tone={market.length?'success':'default'}/>
@@ -87,12 +87,12 @@ function ProposalCard({row,priority=false}:{row:any;priority?:boolean}){
   const Icon=responses?MessageSquareText:viewed?Eye:FileText;
 
   return <Card className={cn('gap-0 py-0 shadow-none',priority&&'border-amber-500/30')}>
-    <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3"><span className={cn('flex size-9 items-center justify-center rounded-lg bg-accent text-primary',priority&&'bg-amber-500/10 text-amber-700')}><Icon className="size-4"/></span><div className="min-w-0"><p className="font-mono text-[10px] font-semibold text-primary">{proposalNumber}</p><CardTitle className="mt-1 truncate">{customer}</CardTitle><CardDescription className="mt-0.5 truncate">{job}</CardDescription></div><Badge variant={stage==='accepted'?'secondary':priority?'secondary':'outline'} className={cn(stage==='accepted'&&'bg-success/10 text-success',priority&&'bg-amber-500/10 text-amber-700')}>{label}</Badge></CardHeader>
+    <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3"><span className={cn('flex size-9 items-center justify-center rounded-lg bg-accent text-primary',priority&&'bg-warning/10 text-warning')}><Icon className="size-4"/></span><div className="min-w-0"><p className="font-mono text-[10px] font-semibold text-primary">{proposalNumber}</p><CardTitle className="mt-1 truncate">{customer}</CardTitle><CardDescription className="mt-0.5 truncate">{job}</CardDescription></div><Badge variant={stage==='accepted'?'secondary':priority?'secondary':'outline'} className={cn(stage==='accepted'&&'bg-success/10 text-success',priority&&'bg-warning/10 text-warning')}>{label}</Badge></CardHeader>
     <CardContent className="space-y-3 p-4">
       <div><div className="text-xs text-muted-foreground">Customer price</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{money(sell)}</div></div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[
         ['Views',q?Number(q.view_count||0):'—',false],['Responses',responses,responses>0],['Last viewed',q?.last_viewed_at?dt(q.last_viewed_at):'—',false],['Follow-up',q?.follow_up_due?day(q.follow_up_due):'—',Boolean(q?.follow_up_due_now)],
-      ].map(([name,value,attention])=><div key={String(name)} className="rounded-lg border bg-muted/20 p-2.5"><div className="text-[11px] text-muted-foreground">{name}</div><div className={cn('mt-1 text-xs font-medium',attention&&'text-amber-700')}>{value}</div></div>)}</div>
+      ].map(([name,value,attention])=><div key={String(name)} className="rounded-lg border bg-muted/20 p-2.5"><div className="text-[11px] text-muted-foreground">{name}</div><div className={cn('mt-1 text-xs font-medium',attention&&'text-warning')}>{value}</div></div>)}</div>
       <div className="flex gap-2 rounded-lg border bg-muted/20 px-3 py-2.5 text-xs leading-5"><Clock3 className="mt-0.5 size-3.5 shrink-0 text-primary"/><span>{next}</span></div>
     </CardContent>
     <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3"><Link className={buttonVariants({size:'sm'})} href={`/proposals/${e.id}`}>{q?'Open proposal':'Prepare proposal'}<ArrowRight/></Link>{stage==='accepted'&&e.project_id?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/projects/${e.project_id}`}><CheckCircle2/>Open job</Link>:null}</CardFooter>

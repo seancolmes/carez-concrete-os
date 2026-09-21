@@ -30,6 +30,7 @@ const tabsListVariants = cva(
       variant: {
         default: "bg-muted",
         line: "gap-1 bg-transparent",
+        experience: "carez-experience-tabs",
       },
     },
     defaultVariants: {
@@ -80,3 +81,4 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
 }
 
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+

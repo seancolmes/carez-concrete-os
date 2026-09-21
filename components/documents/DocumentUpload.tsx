@@ -1,6 +1,7 @@
 'use client';
 
 import {useMemo,useState} from 'react';
+import {ReceiptText,Truck,FileText,Camera,FolderOpen,CheckCheck} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import {saveDocumentMetadata} from '@/app/documents/actions';
 import {Button} from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function DocumentUpload({companyId,projects,vendors}:{companyId:string;pr
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [files,setFiles]=useState<File[]>([]);
+  const [documentType,setDocumentType]=useState('receipt');
   const supabase=useMemo(()=>createClient(),[]);
 
   async function submit(fd:FormData){
@@ -36,11 +38,18 @@ export function DocumentUpload({companyId,projects,vendors}:{companyId:string;pr
     }finally{setBusy(false);}
   }
 
-  return <form action={submit} className="space-y-4">
-    <div className="space-y-1.5"><label className="text-xs font-medium">Photo / file</label><CarezFileUpload files={files} onFilesChange={setFiles} accept="image/*,.pdf" capture="environment" required disabled={busy} label="Choose or drop a file" hint="Photos and PDF documents"/></div>
+  return <form action={submit} className="carez-capture-form" aria-busy={busy}>
+    <div className="carez-capture-entry">
+      <div className="carez-capture-types" role="group" aria-label="Quick document type">
+        {[{value:'receipt',label:'Receipt',icon:ReceiptText},{value:'concrete_ticket',label:'Concrete ticket',icon:Truck},{value:'vendor_invoice',label:'Invoice',icon:FileText},{value:'photo',label:'Photo',icon:Camera},{value:'other',label:'Other',icon:FolderOpen}].map(({value,label,icon:Icon})=><button key={value} type="button" aria-pressed={documentType===value} disabled={busy} onClick={()=>setDocumentType(value)}><Icon aria-hidden="true"/>{label}</button>)}
+      </div>
+    <div className="carez-capture-drop"><CarezFileUpload files={files} onFilesChange={setFiles} accept="image/*,.pdf" capture="environment" required disabled={busy} label="Take a photo or drop a file" hint="Open camera or browse · Photos and PDFs"/></div>
+      <p className="carez-capture-note"><CheckCheck aria-hidden="true"/>Evidence stays linked to the job and source transaction.</p>
+    </div>
+    <div className="carez-capture-details space-y-4">
     <div className="grid gap-3 md:grid-cols-2">
-      <label className="space-y-1.5 text-xs font-medium"><span>Type</span><select name="document_type" defaultValue="receipt" className={selectClass} disabled={busy}><option value="receipt">Receipt</option><option value="delivery_ticket">Delivery ticket</option><option value="concrete_ticket">Concrete ticket</option><option value="vendor_invoice">Vendor invoice</option><option value="plan">Plan / drawing</option><option value="inspection">Inspection</option><option value="proposal">Proposal / contract</option><option value="photo">Job photo</option><option value="other">Other</option></select></label>
-      <label className="space-y-1.5 text-xs font-medium"><span>Date</span><CarezDateTimeField name="document_date" defaultValue={new Date().toISOString().slice(0,10)} disabled={busy}/></label>
+      <label className="space-y-1.5 text-xs font-medium"><span>Type</span><select name="document_type" value={documentType} onChange={event=>setDocumentType(event.target.value)} className={selectClass} disabled={busy}><option value="receipt">Receipt</option><option value="delivery_ticket">Delivery ticket</option><option value="concrete_ticket">Concrete ticket</option><option value="vendor_invoice">Vendor invoice</option><option value="plan">Plan / drawing</option><option value="inspection">Inspection</option><option value="proposal">Proposal / contract</option><option value="photo">Job photo</option><option value="other">Other</option></select></label>
+      <label className="space-y-1.5 text-xs font-medium"><span>Date</span><CarezDateTimeField name="document_date" defaultValue={new Date().toISOString().slice(0,10)} disabled={busy} className="[color-scheme:light] dark:[color-scheme:dark]"/></label>
     </div>
     <label className="block space-y-1.5 text-xs font-medium"><span>Title</span><Input name="title" required placeholder="Home Depot receipt / Concrete ticket #..." disabled={busy}/></label>
     <div className="grid gap-3 md:grid-cols-2">
@@ -55,5 +64,7 @@ export function DocumentUpload({companyId,projects,vendors}:{companyId:string;pr
     {busy?<CarezLoadingState label="Saving document"/>:null}
     {message?<div role="status" className="text-xs text-muted-foreground">{message}</div>:null}
     <Button type="submit" disabled={busy}>{busy?'Saving…':'Save document'}</Button>
+    </div>
   </form>;
 }
+

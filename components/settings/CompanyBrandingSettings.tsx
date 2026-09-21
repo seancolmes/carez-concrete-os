@@ -83,7 +83,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
   }
 
   return <div className="grid gap-4 lg:grid-cols-[minmax(260px,.7fr)_minmax(0,1.3fr)]">
-    <div className="flex min-h-36 items-center justify-center rounded-md border border-border bg-black/35 p-5">
+    <div className="flex min-h-36 items-center justify-center rounded-md border border-border bg-white p-5">
       <img src={preview||FALLBACK_COMPANY_LOGO} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>
     </div>
     <div className="space-y-3">

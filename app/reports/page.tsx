@@ -87,7 +87,7 @@ export default async function ReportsPage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header>
+      <header className="carez-page-heading">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company performance</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Owner reports</h1>
         <p className="mt-1 max-w-5xl text-sm text-muted-foreground">Job profitability, labor performance, production history, and receivables from the authoritative Carez records already in the system.</p>

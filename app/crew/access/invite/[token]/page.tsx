@@ -21,7 +21,7 @@ export default async function InvitePage({params}:{params:Promise<{token:string}
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-lg flex-col gap-6">
-   <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crew access</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Employee Invite</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Send this private link to {invite.employee_name}. It connects their Carez login to the correct crew record.</p></div>
     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access">Done</Link>
    </header>

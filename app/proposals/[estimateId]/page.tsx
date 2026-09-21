@@ -71,7 +71,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const stage=issued?stageLabel(queue.conversion_stage):'Prep';
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{lead?.contact_name?` · ${lead.contact_name}`:''}{lead?.email?` · ${lead.email}`:''}</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><ArrowLeft/>Proposals</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/estimates/${e.id}`}><FileText/>Estimate</Link></div>
     </header>
@@ -80,7 +80,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
       {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
     </nav>
 
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
       <MetricCard label="Customer Price" value={money(sell)} help="Immutable once this revision is issued." tone="primary"/>
       <MetricCard label="Views" value={issued?String(Number(queue.view_count||0)):'—'} help={issued&&queue.last_viewed_at?`Last viewed ${dt(queue.last_viewed_at)}`:'Customer engagement after issue.'} tone={viewed?'success':'default'}/>
       <MetricCard label="Needs Reply" value={String(responseEvents.length)} help="Unanswered customer responses." tone={responseEvents.length?'warning':'default'}/>

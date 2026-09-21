@@ -110,7 +110,7 @@ type ConditionData={
 type Props={setId:string;workspaceProps:any;conditionData:ConditionData};
 type ContextTab='plans'|'conditions'|'zones';
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
-type ViewMode='2d'|'3d';
+type ViewMode='2d'|'3d'|'split';
 type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode};
 type PendingRoleDraw={conditionVersionId:string;roleKey:string;existingMeasurementIds:Set<string>};
 
@@ -340,6 +340,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const primaryMeasurementForVersion=(versionId:string)=>{const contract=contractForVersion(versionId).definition;if(!contract)return null;const primary=contract.roles.find(role=>role.primary);if(!primary)return null;const working=versionId===selectedVersionId?roleSelections[primary.key]||'':'';return working||conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key)?.measurement_id||null;};
   const changeViewMode=(mode:ViewMode)=>{setViewMode(mode);};
   const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
+    window.dispatchEvent(new Event('carez:show-condition-properties'));
     setSelectedVersionId(versionId);setCreating(false);
     if(nextTab)setPropertyTab(nextTab);if(nextMode)setViewMode(nextMode);
     if(measurementId!==undefined){focusMeasurement(measurementId);return;}
@@ -363,6 +364,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   useEffect(()=>{if(!selectedVersionId&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);if(selectedVersionId&&!conditions.some(row=>row.condition_version_id===selectedVersionId)&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);},[conditions,selectedVersionId]);
   useEffect(()=>{if(!selectedVersion)return;setDraft(draftFromVersion(selectedVersion));setModuleEnabled(Object.fromEntries(selectedModules.map(module=>[module.module_key,Boolean(module.enabled)])));setModuleDraft(Object.fromEntries(selectedModules.filter(module=>module.instance_key==='default').map(module=>[module.module_key,{...(module.input_values||{})}])));setModuleConfigurations(selectedModules.map(toModuleConfiguration));const assigned=conditionData.roles.filter(row=>row.condition_version_id===selectedVersion.id);setRoleSelections(Object.fromEntries(assigned.map(role=>[role.role_key,role.measurement_id])));setLoadedVersionId(selectedVersion.id);setOutputsOpen(false);setIssuesOpen(false);setUpgradeOpen(false);setMessage('');},[selectedVersion?.id,selectedVersion?.updated_at]);
   useEffect(()=>{if(!availableTabs.includes(propertyTab))setPropertyTab('general');},[availableTabs,propertyTab]);
+  useEffect(()=>{if(creating)window.dispatchEvent(new Event('carez:show-condition-properties'));},[creating]);
   useEffect(()=>{const open=()=>{setContextTab('conditions');setCreating(false);};window.addEventListener('carez:open-conditions',open);return()=>window.removeEventListener('carez:open-conditions',open);},[]);
   useEffect(()=>{const sheet=(event:Event)=>{const sheetId=String((event as CustomEvent<{sheetId?:string|null}>).detail?.sheetId||'')||null;setActiveSheetId(sheetId);setSelectedMeasurementId(current=>measurements.some((row:any)=>row.id===current&&row.sheet_id===sheetId)?current:null);};window.addEventListener('carez:takeoff-sheet-change',sheet as EventListener);return()=>window.removeEventListener('carez:takeoff-sheet-change',sheet as EventListener);},[measurements]);
   useEffect(()=>{
@@ -459,8 +461,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation}/>
       {contextPortal}
-      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':'3D'}</button>)}</div></div>
-      {viewMode==='3d'&&<div className={`${styles.derivedOverlay} ${styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
+      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
+      {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.splitVerification:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
