@@ -66,7 +66,7 @@ test('sync and manual override atomically preserve provenance across Takeoff, Es
   const sql = readFileSync(migrationPath, 'utf8');
 
   assert.match(sql, /create or replace function public\.carez_sync_takeoff_measurement_outputs/);
-  assert.match(sql, /v_output\.pricing_status='manual_override'[\s\S]{0,1200}v_price_source_kind:=v_output\.price_source_kind/i);
+  assert.match(sql, /v_output\.pricing_status='manual_override'[\s\S]{0,1200}v_price_source_kind:=coalesce\(v_output\.price_source_kind,'manual_override'\)/i);
   assert.match(sql, /insert into public\.estimate_items\([\s\S]{0,1600}price_source_kind/);
   assert.match(sql, /update public\.estimate_items set[\s\S]{0,1600}price_source_kind=v_price_source_kind/i);
 
