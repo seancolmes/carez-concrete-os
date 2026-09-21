@@ -120,8 +120,8 @@ test('pilot migration commit is transactional, idempotent, and preserves measure
   assert.match(commitSql, /method_profile_id\s*=\s*null/i);
   assert.match(commitSql, /old_assembly_version_id/i);
   assert.match(commitSql, /new_assembly_version_id/i);
-  assert.match(commitSql, /source_run_id/i);
-  assert.match(commitSql, /create unique index[\s\S]{0,260}source_run_id/i);
+  assert.match(commitSql, /dry_run_id/i);
+  assert.match(commitSql, /create unique index[\s\S]{0,320}source_snapshot[\s\S]{0,120}dry_run_id/i);
 
   assert.doesNotMatch(commitSql, /set[\s\S]{0,220}(?:geometry|raw_quantity|raw_unit|sheet_id|scale_region_id)\s*=/i);
   assert.doesNotMatch(commitSql, /p_(?:new|replacement|calculated)_quantity/i);
