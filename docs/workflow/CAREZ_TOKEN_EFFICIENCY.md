@@ -91,7 +91,6 @@ The profile pins:
 - default child: `gpt-5.6-luna`, reasoning `medium`;
 - escalation child: `gpt-5.6-terra`, reasoning `medium`;
 - maximum open child threads: 2;
-- spawned-agent metadata visible;
 - interruption context suppressed.
 
 OpenAI's current Codex configuration supports named profile files under `CODEX_HOME`, `default_subagent_model`, `default_subagent_reasoning_effort`, and a concurrent child-thread limit. Project/provider credentials remain outside this repository.
