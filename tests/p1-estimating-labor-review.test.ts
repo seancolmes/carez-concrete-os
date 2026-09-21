@@ -88,7 +88,7 @@ test('Takeoff resync preserves explicit job MH/unit and explicit labor profile s
   assert.match(sync, /labor_assumption_override_by/i);
   assert.match(sync, /labor_rate_override_by/i);
   assert.match(sync, /v_hours:=round\(v_qty\*v_job_man_hours_per_unit,4\)/i);
-  assert.match(sync, /v_output\.labor_rate_override_by is not null/i);
+  assert.match(sync, /v_output\.labor_rate_override_at is not null/i);
   assert.match(sync, /v_unit_cost:=greatest\(coalesce\(v_output\.unit_cost,0\),0\)/i);
 });
 
