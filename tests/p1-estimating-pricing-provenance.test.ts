@@ -71,10 +71,11 @@ test('sync and manual override atomically preserve provenance across Takeoff, Es
   assert.match(sql, /insert into public\.estimate_items\([\s\S]{0,1600}price_source_kind/);
   assert.match(sql, /update public\.estimate_items set[\s\S]{0,1600}price_source_kind=v_price_source_kind/i);
 
-  assert.match(sql, /create or replace function public\.carez_update_takeoff_output_price\(p_output_id uuid, p_unit_cost numeric\)/);
+  assert.match(sql, /create or replace function public\.carez_update_takeoff_output_price\(p_output_id uuid,\s*p_unit_cost numeric\)/);
   assert.match(sql, /price_source_kind='manual_override'/);
   assert.match(sql, /price_override_by=auth\.uid\(\)/);
-  assert.match(sql, /price_override_at=now\(\)/);
+  assert.match(sql, /v_override_at timestamptz:=now\(\)/);
+  assert.match(sql, /price_override_at=v_override_at/);
   assert.match(sql, /update public\.project_condition_outputs condition_output[\s\S]{0,1800}'source_kind','manual_override'/i);
   assert.doesNotMatch(sql, /p_(?:quantity|production_quantity|raw_quantity)/i);
 });
