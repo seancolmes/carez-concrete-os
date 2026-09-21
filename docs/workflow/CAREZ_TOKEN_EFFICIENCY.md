@@ -71,9 +71,10 @@ Use Terra only when the bounded worker task needs more capability than Luna but 
 
 - Never spawn GPT-6 Astra as a child.
 - Give children a fresh self-contained brief; use `fork_turns: none` when the spawn interface exposes it.
+- Use `agent_type: luna-worker` when role selection is available; use `terra-worker` only for justified escalation or when Luna is rejected by the current spawn allowlist.
 - Normally use one worker. Two is the maximum and only for truly independent work.
 - Workers never spawn more workers.
-- Any plugin-driven dispatch, including Superpowers, must obey this routing.
+- Any plugin-driven dispatch, including Superpowers, must obey this routing even when the plugin would otherwise select a different model tier.
 
 ## Superpowers policy
 
