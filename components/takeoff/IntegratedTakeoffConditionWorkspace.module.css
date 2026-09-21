@@ -133,7 +133,7 @@
 @media(max-width:860px){
   .integrated{display:block;overflow:auto}
   .drawingHost{min-height:654px;grid-template-rows:34px 620px}
-  .propertiesPane{min-height:540px;border-top:1px solid var(--border);border-left:0}
+  .propertiesPane{position:absolute;inset:34px 0 0;z-index:110;min-height:0;border-top:1px solid var(--border);border-left:0}
   .drawingHost>div:first-child>div:first-child{grid-template-columns:minmax(0,1fr)!important}
   .drawingHost>div:first-child>div:first-child>aside:first-child{display:none!important}
   .derivedOverlay3d{left:0}

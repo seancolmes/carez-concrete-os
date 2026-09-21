@@ -35,5 +35,5 @@
 .outputChevronOpen{transform:rotate(180deg)}
 .dirtyStatus{color:var(--warning)!important;font-weight:650}
 .cleanStatus{color:transparent!important}
-@media(max-width:860px){.drawingViewModes{padding-inline:6px}.versionNotice{display:none}}
+@media(max-width:860px){.drawingViewModes{padding-inline:38px}.versionNotice{display:none}}
 @media(prefers-reduced-motion:reduce){.outputChevron,.issueChevron{transition:none}}

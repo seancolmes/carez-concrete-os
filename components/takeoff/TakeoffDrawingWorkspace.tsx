@@ -139,8 +139,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [sheetsOpen,setSheetsOpen]=useState(true);
   const [inspectorOpen,setInspectorOpen]=useState(true);
   useEffect(()=>{
-    if(window.matchMedia('(max-width: 900px)').matches){
-      if(!conditionAuthoringActive)setSheetsOpen(false);
+    if(!conditionAuthoringActive&&window.matchMedia('(max-width: 900px)').matches){
+      setSheetsOpen(false);
       setInspectorOpen(false);
     }
   },[conditionAuthoringActive]);
