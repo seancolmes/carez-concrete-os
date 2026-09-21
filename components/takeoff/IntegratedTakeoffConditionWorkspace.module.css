@@ -202,3 +202,17 @@
 @media(max-width:1180px){.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)!important}}
 @media(max-width:860px){.propertiesResizer{display:none}}
 @media(prefers-reduced-motion:reduce){.propertiesResizer::after{transition:none}}
+
+
+/* Mobile Takeoff is review-only: one 2D plan surface, sheet drawer, no authoring panes. */
+@media(max-width:860px){
+  .integrated[data-mobile-review="true"]{display:grid;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr);height:100%;min-height:0;overflow:hidden}
+  .integrated[data-mobile-review="true"] .drawingHost{height:100%;min-height:0;grid-template-rows:34px minmax(0,1fr)}
+  .integrated[data-mobile-review="true"] .drawingHost>div:first-child>div:first-child>aside:first-child>div:first-child{display:flex!important}
+  .integrated[data-mobile-review="true"] .spatialRail{gap:7px;padding-left:42px!important;padding-right:10px!important}
+  .integrated[data-mobile-review="true"] .spatialContext{font-size:11px}
+  .integrated[data-mobile-review="true"] .spatialContext>span{display:inline}
+  .integrated[data-mobile-review="true"] .spatialContext .datumMark{display:none}
+  .integrated[data-mobile-review="true"] .propertiesPane,
+  .integrated[data-mobile-review="true"] .derivedOverlay{display:none!important}
+}
