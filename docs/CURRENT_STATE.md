@@ -34,6 +34,7 @@ The accepted design direction is:
 - selective spatial/3D treatment where it improves technical or customer-facing experiences;
 - Inter-led hierarchy with IBM Plex Mono reserved for technical alignment;
 - stronger shared tabs, meaningful domain icons, three depth levels, first-class light/dark/system, and no competing component system.
+- final accepted ADR-025 theme: **Indigo Harbor** — pale blue-white/white light workspaces, deep harbor-navy shell, near-black dark mode, Indigo interaction color, Inter primary UI typography, and IBM Plex Mono for technical contexts. Nik visually approved this final theme on 2026-09-21.
 
 ### Accepted reference implementation
 
