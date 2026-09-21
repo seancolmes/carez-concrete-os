@@ -31,6 +31,7 @@ Accepted:
 - ADR-025 design authority;
 - approximately 80% Command Deck / 20% Spatial Blueprint direction;
 - Inter-led hierarchy, meaningful icon language, stronger shared tabs, three depth levels, restrained functional motion rules;
+- final accepted **Indigo Harbor** light/dark theme with deep harbor-navy shell and indigo interaction identity;
 - shared workspace/masthead/favorites language;
 - Today — Daily Command Center;
 - Projects — Operations Board;
