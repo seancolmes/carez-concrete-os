@@ -37,3 +37,6 @@
 .cleanStatus{color:transparent!important}
 @media(max-width:860px){.drawingViewModes{padding-inline:38px}.versionNotice{display:none}}
 @media(prefers-reduced-motion:reduce){.outputChevron,.issueChevron{transition:none}}
+
+.inlineValidation{display:block;margin-top:1px;color:var(--destructive);font-size:10px;line-height:1.35}
+.propertyField[data-invalid="true"] .propertyFieldLabel{color:var(--destructive)!important}
