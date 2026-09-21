@@ -4,6 +4,10 @@ Status: Implementation candidate; Nik's visual acceptance pending
 Date: 2026-09-21
 Authority: Issue #76 and Nik's explicit complete UI/UX rewrite authorization
 
+## Approved experience refinement
+
+Nik approved the Carez Experience System refinement in `docs/superpowers/specs/2026-09-21-carez-experience-system-design.md`. The selected direction is **Command Deck with Spatial Blueprint accents**: a premium construction command center with selective futuristic construction technology. The first implementation scope is intentionally limited to Today, Projects, Documents, and the shared experience primitives they require. Takeoff remains outside route-level redesign for this phase.
+
 ## Decision
 
 Replace the Precision Slate presentation with a single Carez Operations Workspace system. Supersede ADR-024 presentation, ADR-016 shell arrangement, and ADR-020 pane arrangement where described here. Their domain, accessibility, theme preference, navigation personalization, and measurement invariants remain protected.
