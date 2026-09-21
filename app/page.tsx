@@ -1,14 +1,15 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowRight,BriefcaseBusiness,CalendarDays,FileText,Ruler,Wallet} from 'lucide-react';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,CalendarDays,FileText,Ruler,Wallet,CheckCheck,HardHat,ShieldAlert,Activity,Target,ArrowDownUp} from 'lucide-react';
+import {CarezSectionHeading,CarezOperationalPulse,CarezExperienceEmpty} from '@/components/carez/experience';
 import {AppShell} from '@/components/AppShell';
 import {
   CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,
   CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,
-  CarezEmptyState,CarezOperatingMetric,CarezOperatingMetricStrip,CarezStatus,
+  CarezEmptyState,CarezStatus,
 } from '@/components/carez';
 import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Card,CardContent,CardHeader} from '@/components/ui/card';
 import {Progress} from '@/components/ui/progress';
 import {createClient} from '@/lib/supabase/server';
 import {resolveOperationalState} from '@/lib/ui/operations';
@@ -138,67 +139,51 @@ export default async function HomePage(){
   ].sort((a:any,b:any)=>String(a.date).localeCompare(String(b.date)));
   const nextFollowUp=followUps[0]||null;
 
-  const headerStatus=attention.length
-    ?`${attention.length} item${attention.length===1?'':'s'} need attention · ${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'}`
-    :`${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'} · no urgent exceptions`;
+  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',hourCycle:'h23'}).format(new Date()));
+  const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  const firstName=profile.full_name?.trim().split(/\s+/)[0];
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="carez-today-board mx-auto grid w-full max-w-screen-2xl gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{fmtDate(start)}</h1>
-          <p className="mt-1 max-w-4xl text-sm text-muted-foreground">{headerStatus}</p>
+      <header className="carez-command-hero">
+        <div className="carez-command-intro">
+          <p className="carez-dayline"><CalendarDays aria-hidden="true"/>{fmtDate(start)}<span>Today</span></p>
+          <h1>{greeting}{firstName?`, ${firstName}`:''}.</h1>
+          <p className="carez-command-statement">{attention.length?`${attention.length} thing${attention.length===1?' needs':'s need'} your attention.`:'Everything clear today.'}</p>
+          <p className="carez-command-context">{jobsReady} ready to move <span aria-hidden="true">/</span> {crewWorking} active field shift{crewWorking===1?'':'s'}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects</Link>
+        <div className="carez-command-actions">
+          <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects<ArrowUpRight/></Link>
           <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
         </div>
       </header>
 
-      <section aria-labelledby="today-attention-heading" className="carez-attention-board border-y border-border bg-card">
-        <div className="flex items-start justify-between gap-4 border-b border-border px-3 py-2.5">
-          <div>
-            <h2 id="today-attention-heading" className="text-sm font-semibold">Management attention</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Field blockers, cash exceptions, and follow-ups in consequence order.</p>
-          </div>
-          <CarezStatus tone={attentionStatusTone} label={String(attention.length)}/>
-        </div>
+      <section aria-labelledby="today-attention-heading" className="carez-priority-stream">
+        <CarezSectionHeading id="today-attention-heading" icon={<ShieldAlert/>} title="Management attention" description="Clear the constraint. Keep the work moving." action={<CarezStatus tone={attentionStatusTone} label={String(attention.length)}/>}/>
         {attention.length===0
-          ?<div className="p-3"><CarezEmptyState title="No urgent exceptions" description="Today's work can run from the current plan."/></div>
-          :<div className="divide-y divide-border">
-            {attention.slice(0,8).map((item,index)=><Link
-              href={item.href}
-              key={item.subject+'-'+index}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none"
-            >
-              <CarezStatus tone={item.tone==='danger'?'error':item.tone} label={item.tone==='danger'?'Critical':item.tone==='warning'?'Attention':'Follow up'}/>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{item.subject}</span>
-                <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{item.issue}</span>
-                <span className="mt-1 block text-[11px] text-muted-foreground">{item.when}</span>
-              </span>
-              <span className="hidden items-center gap-1 text-xs font-medium text-primary sm:flex">{item.action}<ArrowRight className="size-3"/></span>
-            </Link>)}
-          </div>}
+          ?<CarezExperienceEmpty icon={<CheckCheck/>} tone="success" title="Nothing needs your attention right now." description="No urgent exceptions in the current field, cash, and follow-up queues."/>
+          :<ol className="carez-priority-list">
+            {attention.slice(0,8).map((item,index)=><li key={item.subject+'-'+index} data-tone={item.tone}>
+              <Link href={item.href} className="carez-priority-link">
+                <span className="carez-priority-marker" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>
+                <span className="min-w-0"><span className="carez-priority-subject">{item.subject}</span><span className="carez-priority-reason">{item.issue}</span><span className="carez-priority-time">{item.when}</span></span>
+                <span className="carez-priority-action"><CarezStatus tone={item.tone==='danger'?'error':item.tone} label={item.tone==='danger'?'Critical':item.tone==='warning'?'Attention':'Follow up'}/><span>{item.action}<ArrowRight aria-hidden="true"/></span></span>
+              </Link>
+            </li>)}
+          </ol>}
+        {attention.length>8?<p className="pt-3 text-xs text-muted-foreground">Showing the 8 highest-priority items of {attention.length}. Open the relevant workspace to review the rest.</p>:null}
       </section>
 
-      <CarezOperatingMetricStrip columns={5} aria-label="Today's operating position">
-        <CarezOperatingMetric label="Ready to move" value={String(jobsReady)} help="Jobs with a physical operation ready."/>
-        <CarezOperatingMetric label="Hard holds" value={String(jobsHeld)} help="Inspection, setup, or prerequisite blocks work." tone={jobsHeld?'error':'neutral'}/>
-        <CarezOperatingMetric label="Field active" value={String(activeFieldJobs)} help={crewWorking+' active field shift'+(crewWorking===1?'':'s')+' right now.'} tone={activeFieldJobs?'info':'neutral'}/>
-        <CarezOperatingMetric label="Customers owe" value={money(ar)} help={overdue?money(overdue)+' past due.':'No past-due customer balance.'} tone={overdue?'error':ar?'warning':'neutral'}/>
-        <CarezOperatingMetric label="7-day cash" value={money(cashNet)} help={money(cashIn)+' expected in · '+money(cashOut)+' expected out.'} tone={cashNet<0?'warning':'neutral'}/>
-      </CarezOperatingMetricStrip>
+      <CarezOperationalPulse label="Today's operating position" items={[
+        {label:'Ready to move',value:jobsReady,detail:'Jobs with a physical operation ready.',icon:<CheckCheck/>,tone:'success',href:'/readiness'},
+        {label:'Field active',value:activeFieldJobs,detail:crewWorking+' active field shifts right now.',icon:<HardHat/>,tone:'primary',href:'/field'},
+        {label:'Hard holds',value:jobsHeld,detail:'Inspection, setup, or prerequisite blocks.',icon:<ShieldAlert/>,tone:jobsHeld?'danger':'neutral',href:'/readiness'},
+        {label:'Customers owe',value:money(ar),detail:overdue?money(overdue)+' past due.':'No past-due customer balance.',icon:<Wallet/>,tone:overdue?'warning':'neutral',href:'/billing'},
+        {label:'7-day cash',value:money(cashNet),detail:money(cashIn)+' in · '+money(cashOut)+' out.',icon:<ArrowDownUp/>,tone:cashNet<0?'warning':'primary',href:'/cashflow'},
+      ]}/>
 
       <section className="space-y-3" aria-labelledby="today-production-heading">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 id="today-production-heading" className="text-sm font-semibold">Scheduled production</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Today's field work and whether each operation is physically clear.</p>
-          </div>
-          <Link href="/schedule" className={buttonVariants({variant:'ghost',size:'sm'})}>Full schedule</Link>
-        </div>
+        <CarezSectionHeading id="today-production-heading" icon={<CalendarDays/>} title="Scheduled production" description="Today's field work and whether each operation is physically clear." action={<Link href="/schedule" className={buttonVariants({variant:'ghost',size:'sm'})}>Full schedule<ArrowUpRight/></Link>}/>
         <CarezDataGrid
           isEmpty={todayFieldWork.length===0}
           empty={<CarezEmptyState title="Nothing scheduled today" description="Open Schedule to plan the next ready operation." actions={<Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}>Open schedule</Link>}/>}
@@ -230,14 +215,7 @@ export default async function HomePage(){
       </section>
 
       <section className="space-y-3" aria-labelledby="today-next-heading">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Active jobs</p>
-            <h2 id="today-next-heading" className="mt-1 text-lg font-semibold">What moves next</h2>
-            <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Next physical operation, readiness, live field activity, and budget position.</p>
-          </div>
-          <Link href="/projects" className={buttonVariants({variant:'outline',size:'sm'})}>All projects</Link>
-        </div>
+        <CarezSectionHeading id="today-next-heading" icon={<Activity/>} title="What moves next" description="Current work, next field dates, and the action that moves each job forward." action={<Link href="/projects" className={buttonVariants({variant:'ghost',size:'sm'})}>All projects<ArrowUpRight/></Link>}/>
         <CarezDataGrid
           isEmpty={dashboardJobs.length===0}
           empty={<CarezEmptyState title="No active jobs" description="Accepted proposals and direct jobs will appear here." actions={<Link href="/projects" className={buttonVariants({variant:'outline',size:'sm'})}>Open projects</Link>}/>}
@@ -259,10 +237,10 @@ export default async function HomePage(){
               const operational=resolveOperationalState(row.state);
               const readiness=row.state==='hold'?{tone:'blocked' as const,label:'Blocked'}:row.state==='ready'?{tone:'success' as const,label:'Ready'}:{tone:'neutral' as const,label:'Plan'};
               const hasBudget=Boolean(row.budget?.project_id);
-              return <CarezDataGridRow key={p.id}>
+              return <CarezDataGridRow key={p.id} className="carez-job-row" data-state={row.state}>
                 <CarezDataGridCell><Link href={'/projects/'+p.id} className="font-medium hover:text-primary">{p.job_number} · {p.name}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<span className="block text-[11px] font-normal text-muted-foreground">{location}</span>:null}</Link></CarezDataGridCell>
                 <CarezDataGridCell>{operational?<CarezStatus tone={operational.tone} label={operational.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
-                <CarezDataGridCell><span className="font-medium">{nextOperation}</span>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':num(row.r.blocked_operations)+' operation'+(num(row.r.blocked_operations)===1?'':'s')+' blocked'}</span>:null}</CarezDataGridCell>
+                <CarezDataGridCell><Link href={row.state==='hold'?'/readiness':'/projects/'+p.id} className="inline-flex items-center gap-2 font-semibold text-primary hover:underline">{nextOperation}<ArrowUpRight className="size-3.5"/></Link>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':num(row.r.blocked_operations)+' operation'+(num(row.r.blocked_operations)===1?'':'s')+' blocked'}</span>:null}</CarezDataGridCell>
                 <CarezDataGridCell numeric>{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></CarezDataGridCell>
                 <CarezDataGridCell><span className="font-medium">{row.field.working?row.field.working+' working':'—'}</span><span className="mt-0.5 block text-xs text-muted-foreground">{row.field.review?row.field.review+' timecard review':row.field.working?'Active field shift':'No active shift'}</span></CarezDataGridCell>
                 <CarezDataGridCell><CarezStatus tone={readiness.tone} label={readiness.label}/></CarezDataGridCell>
@@ -273,14 +251,14 @@ export default async function HomePage(){
         </CarezDataGrid>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="shadow-none">
-          <CardHeader><CardTitle>Bid pipeline</CardTitle><CardDescription>Current preconstruction workload from existing lead and proposal state.</CardDescription></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4">
-              {[['Open leads',String(openLeads)],['Proposals out',String(openProposals.length)],['Needs reply',String(needsReply)],['Proposal value',money(openProposalValue)]].map(([label,value])=><div key={label} className="bg-background p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">{value}</div></div>)}
+      <div className="carez-command-domains">
+        <Card className="carez-command-domain" data-domain="bids">
+          <CardHeader><CarezSectionHeading icon={<Target/>} title="Bid pipeline" description="The next work to win."/></CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-4">
+            <div className="carez-bid-numbers">
+              {[['Open leads',String(openLeads)],['Proposals out',String(openProposals.length)],['Needs reply',String(needsReply)],['Proposal value',money(openProposalValue)]].map(([label,value])=><div key={label} className="py-2"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">{value}</div></div>)}
             </div>
-            <div className="flex flex-col gap-3 rounded-md border border-border bg-muted/15 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="carez-follow-up flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0"><div className="text-xs font-medium text-muted-foreground">Next follow-up</div>{nextFollowUp?<><div className="mt-1 truncate text-sm font-medium">{nextFollowUp.label}</div><div className="mt-0.5 text-xs text-muted-foreground">{fmtShortDate(nextFollowUp.date)}</div></>:<div className="mt-1 text-sm text-muted-foreground">No dated follow-up in the current pipeline</div>}</div>
               {nextFollowUp?<Link href={nextFollowUp.href} className={buttonVariants({variant:'outline',size:'sm'})}>Open<ArrowRight/></Link>:null}
             </div>
@@ -293,10 +271,10 @@ export default async function HomePage(){
           </CardContent>
         </Card>
 
-        <Card className="shadow-none">
-          <CardHeader className="grid grid-cols-[1fr_auto] gap-4"><div><CardTitle>Operational cash attention</CardTitle><CardDescription>Current A/R and seven-day cashflow values already modeled in Carez.</CardDescription></div><Link href="/cashflow" className={buttonVariants({variant:'ghost',size:'sm'})}>Cashflow</Link></CardHeader>
-          <CardContent>
-            <dl className="divide-y rounded-md border border-border">
+        <Card className="carez-command-domain" data-domain="cash">
+          <CardHeader><CarezSectionHeading icon={<Wallet/>} title="Operational cash attention" description="Customer balances and the next seven days."/></CardHeader>
+          <CardContent className="flex flex-1 flex-col">
+            <dl className="carez-cash-ledger divide-y divide-border">
               {[
                 ['Customers owe',money(ar),'normal'],
                 ['Past due',money(overdue),overdue?'danger':'normal'],
@@ -305,10 +283,11 @@ export default async function HomePage(){
                 ['7-day net',money(cashNet),cashNet<0?'warning':'normal'],
               ].map(([label,value,tone])=><div key={label} className="flex items-center justify-between gap-6 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-warning')}>{value}</dd></div>)}
             </dl>
-            <div className="mt-4 flex gap-2"><Link href="/billing" className={buttonVariants({variant:'outline',size:'sm'})}><Wallet/>Billing</Link><Link href="/cashflow" className={buttonVariants({variant:'outline',size:'sm'})}>Cashflow</Link></div>
+            <div className="mt-auto flex gap-2 pt-4"><Link href="/billing" className={buttonVariants({variant:'outline',size:'sm'})}><Wallet/>Billing</Link><Link href="/cashflow" className={buttonVariants({variant:'outline',size:'sm'})}>Cashflow</Link></div>
           </CardContent>
         </Card>
       </div>
     </div>
   </AppShell>;
 }
+

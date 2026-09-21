@@ -45,8 +45,8 @@ test('operating metric composition is source-owned and token based',()=>{
 test('Today is exception-first and uses shared operational components',()=>{
   const page=read('app/page.tsx');
 
-  assert.match(page,/CarezOperatingMetricStrip/);
-  assert.match(page,/CarezOperatingMetric/);
+  assert.match(page,/CarezOperationalPulse/);
+  assert.match(page,/CarezSectionHeading/);
   assert.match(page,/CarezStatus/);
   assert.match(page,/CarezDataGrid/);
   assert.match(page,/CarezEmptyState|CarezFeedback/);
@@ -200,3 +200,4 @@ test('Projects supports keyboard selection without hijacking child controls',()=
   assert.match(projects,/event\.preventDefault\(\);setSelectedId\(row\.id\)/);
   assert.match(projects,/Select to preview · Enter to open project/);
 });
+
