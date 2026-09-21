@@ -14,7 +14,7 @@ export function CarezSectionHeading({id,icon,title,description,action,className}
 export type CarezPulseItem={label:string;value:ReactNode;detail:string;icon:ReactNode;tone?:'primary'|'success'|'warning'|'danger'|'neutral';href?:string};
 
 export function CarezOperationalPulse({items,label}:{items:CarezPulseItem[];label:string}){
-  return <div data-slot="carez-operational-pulse" className="carez-operational-pulse" aria-label={label}>
+  return <div data-slot="carez-operational-pulse" className="carez-operational-pulse" role="region" aria-label={label}>
     {items.map(item=>{
       const content=<><span className="carez-pulse-label"><span aria-hidden="true">{item.icon}</span>{item.label}{item.href?<ArrowUpRight aria-hidden="true" className="carez-pulse-arrow"/>:null}</span><strong className="carez-pulse-value">{item.value}</strong><span className="carez-pulse-detail">{item.detail}</span></>;
       return item.href?<Link key={item.label} href={item.href} className="carez-pulse-item" data-tone={item.tone||'neutral'}>{content}</Link>:<div key={item.label} className="carez-pulse-item" data-tone={item.tone||'neutral'}>{content}</div>;

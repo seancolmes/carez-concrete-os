@@ -105,7 +105,6 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
       <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
       <Input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search jobs, customers, locations" placeholder="Search jobs, customers, locations..." className="h-8 pl-8 text-xs"/>
     </div>
-    <select className={filterSelect} value={status} onChange={e=>setStatus(e.target.value)} aria-label="Job status"><option value="active">Active jobs</option><option value="ready">Ready</option><option value="hold">Hold</option><option value="planning">In progress</option><option value="setup">Waiting</option><option value="completed">Complete</option><option value="all">All jobs</option></select>
     <select className={filterSelect} value={stage} onChange={e=>setStage(e.target.value)} aria-label="Project stage"><option value="all">All stages</option>{stages.map(item=><option key={item} value={item}>{titleCase(item)}</option>)}</select>
     <select className={filterSelect} value={attention} onChange={e=>setAttention(e.target.value)} aria-label="Attention filter"><option value="all">All attention</option><option value="attention">Needs attention</option><option value="clear">Clear</option></select>
     <div className="ml-auto flex shrink-0 items-center gap-1.5">
