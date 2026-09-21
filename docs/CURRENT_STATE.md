@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-19  
+Last reconciled: 2026-09-20  
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -36,6 +36,7 @@ User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MOD
 - ADR-024 Precision Grid is the active application visual/theme/token/density and implemented global shell/navigation authority. Issue #71's role-adaptive Hybrid command shell is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
 - Accepted Job Spine / bid-to-field commercial and execution lineage remains the architecture baseline.
 - Derived 3D is verification from authoritative persisted 2D/Condition facts, not a second quantity engine.
+- User-selected Takeoff visual/interaction baseline is source tree `09d39d3fc5f38d2387941b33f90b8834fdc22628`. The later specialist implementation commits were intentionally removed from `staging` and are not implementation authority. The left `Plans | Conditions | Zones` navigator, dominant drawing area, Condition Properties surface, and bottom Quantity Worksheet remain the protected Takeoff composition unless Nik explicitly approves a replacement.
 
 ## Environment / database authority
 
@@ -78,6 +79,7 @@ Subproject 4 — refined-operations reference slice `Today → Project → Proje
 Implemented on staging:
 
 - source-owned shadcn/Base UI primitives, Tailwind v4, ADR-024 Precision Grid semantic light/dark tokens, density controls, and shared Carez components;
+- ADR-024 Precision Slate color expression is the active theme direction: equal light/dark importance, cool-slate readable dark surfaces, darker global chrome framing a brighter workspace, moderate Carez blue, crisp panel borders, semantic status color, and WCAG AA as the minimum normal-text contrast target; browser acceptance remains pending for the new token pass;
 - ADR-024 Hybrid command shell in `components/AppShell.tsx`: company identity, 3–5 role-priority destinations, structured `More`, command/search, notifications affordance, and account/system access;
 - canonical navigation model and deterministic shell logic in `lib/ui/navigation.ts`;
 - versioned device-local navigation personalization scoped by authenticated user + company, with pin/unpin/reorder/reset and bounded role defaults;
@@ -104,9 +106,9 @@ Signed-in stable-staging browser acceptance and bounded expansion remain pending
 
 ## Active priorities
 
-Issues #63, #71, and #72 plus the accepted Subproject 4 refined-operations reference slice establish the current application-wide Precision Grid foundation, role-adaptive project-aware shell, shared component/state/accessibility system, and first rendered operational reference expression. The specialist Takeoff reference slice is the next UI/UX acceptance gate; broad module migration remains blocked until it is accepted.
+Issues #63, #71, and #72 plus the accepted Subproject 4 refined-operations reference slice establish the current application-wide foundation. The immediate UI gate is now the Precision Slate readability pass from the restored `09d39d3` Takeoff baseline. Do not resume the abandoned post-`09d39d3` specialist implementation sequence by assumption.
 
-1. Independently plan and execute Subproject 5 — the specialist reference slice `Project → Takeoff` — from the accepted Issues #63 + #71 + #72 + Subproject 4 foundation. Preserve ADR-020 Takeoff workstation/domain authority, authoritative persisted 2D geometry, derived-3D verification-only behavior, human scope/means-methods authority, existing quantity/calculation lineage, and the accepted global shell/project-context model.
+1. Browser-verify and refine Precision Slate across representative `Today → Project Overview → Estimate → Takeoff` surfaces in light and dark mode. Re-plan any later Takeoff structural rewrite from the restored `09d39d3` baseline, preserving `Plans | Conditions | Zones`, the dominant drawing surface, Condition Properties, and the Quantity Worksheet unless Nik explicitly approves a different composition.
 2. Continue Issue #41 derived-3D acceptance/expansion from the accepted current Condition contracts and authoritative persisted 2D geometry.
 3. Resolve Issue #59 before any production migration promotion or `staging` → `main` release that depends on the canonical QA migration chain.
 4. Preserve only active canonical/supporting documentation in the repository tree. Superseded working documents and completed implementation checkpoint files should be deleted after their surviving truth is absorbed by canonical owners; Git history and closed issues preserve historical evidence.
