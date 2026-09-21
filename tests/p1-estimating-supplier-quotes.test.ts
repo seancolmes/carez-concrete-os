@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migrationPath = 'supabase/migrations/20260921224000_estimate_supplier_quotes.sql';
+const indexMigrationPath = 'supabase/migrations/20260921224500_estimate_supplier_quote_indexes.sql';
 const coveragePath = 'lib/estimating/pricingCoverage.ts';
 const panelPath = 'components/estimates/PricingCoverage.tsx';
 const pagePath = 'app/estimates/[estimateId]/page.tsx';
@@ -114,4 +115,10 @@ test('Estimate workspace exposes supplier quote entry, coverage and explicit sel
   const selection = actions.slice(actions.indexOf('export async function selectEstimateSupplierQuoteLine'));
   assert.match(selection, /carez_select_estimate_supplier_quote_line/);
   assert.doesNotMatch(selection.split('export async function', 2)[0] || selection, /fd\.get\(['"]quantity['"]\)/);
+});
+
+
+test('supplier quote foreign keys have covering indexes', () => {
+  const sql = requireFile(indexMigrationPath, 'P1.2 supplier quote index migration must exist');
+  assert.match(sql, /create index if not exists estimate_supplier_quote_lines_source_output_fk_idx[\s\S]*estimate_supplier_quote_lines\s*\(source_takeoff_output_id\)/i);
 });
