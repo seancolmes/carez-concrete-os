@@ -8,6 +8,7 @@ import {Progress} from '@/components/ui/progress';
 import {Skeleton} from '@/components/ui/skeleton';
 import {cn} from '@/lib/utils';
 import {resolveNumericKind,type CarezNumericKind} from '@/lib/ui/state';
+import {combineImperialLength,splitImperialLength,type ImperialCanonicalUnit} from '@/lib/ui/imperialLength';
 
 type NumberInputProps = Omit<React.ComponentProps<'input'>,'type'> & {
   kind?: CarezNumericKind;
@@ -30,6 +31,26 @@ export function CarezNumberField(input:NumberInputProps){
     {prefix?<span className="pl-2.5 text-xs text-muted-foreground">{prefix}</span>:null}
     <Input {...props} type="number" inputMode={inputMode??metadata?.inputMode} readOnly={readOnly||derived} aria-invalid={ariaInvalid} className="h-[calc(var(--density-control-height)-2px)] flex-1 border-0 bg-transparent px-2 font-mono tabular-nums shadow-none focus-visible:ring-0"/>
     {unit?<span className="pr-2.5 text-xs font-medium text-muted-foreground">{unit}</span>:null}
+  </div>;
+}
+
+export function CarezFeetInchesField({value,canonicalUnit,onValueChange,disabled=false,ariaLabel,className}:{
+  value:string|number;
+  canonicalUnit:ImperialCanonicalUnit;
+  onValueChange:(value:string)=>void;
+  disabled?:boolean;
+  ariaLabel:string;
+  className?:string;
+}){
+  const hasValue=value!==''&&Number.isFinite(Number(value));
+  const parts=hasValue?splitImperialLength(value,canonicalUnit):{feet:0,inches:0};
+  const commit=(feet:string|number,inches:string|number)=>{
+    if(feet===''&&inches===''){onValueChange('');return;}
+    onValueChange(String(combineImperialLength(feet===''?0:feet,inches===''?0:inches,canonicalUnit)));
+  };
+  return <div data-slot="carez-feet-inches-field" className={cn('grid min-w-0 grid-cols-2 gap-2',className)}>
+    <CarezNumberField value={hasValue?String(parts.feet):''} onChange={event=>commit(event.target.value,parts.inches)} unit="ft" min={0} step={1} disabled={disabled} aria-label={ariaLabel+' feet'}/>
+    <CarezNumberField value={hasValue?String(parts.inches):''} onChange={event=>commit(parts.feet,event.target.value)} unit="in" min={0} step="any" disabled={disabled} aria-label={ariaLabel+' inches'}/>
   </div>;
 }
 
