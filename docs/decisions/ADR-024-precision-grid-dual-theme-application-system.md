@@ -28,6 +28,20 @@ The preference contract is `light | dark | system`; System is the default. Light
 
 Semantic token families cover canvas/panel/raised surfaces, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density. Carez blue is restrained interaction/selection/focus identity and never substitutes for success, warning, error, or domain geometry meaning.
 
+### Precision Slate color expression
+
+The accepted Carez color direction is **Precision Slate**.
+
+- Light and dark are equally first-class; neither is a secondary fallback.
+- Dark mode uses a readable cool-slate workspace rather than near-black surfaces.
+- The global shell/chrome is darker than the working surface so the workspace reads as the primary work area.
+- Carez blue is moderately visible in primary actions, active navigation, selection, focus, and selected working context without becoming decorative page fill.
+- Panels use subtle luminance separation plus crisp borders rather than relying on shadow.
+- Normal text must meet WCAG AA contrast at minimum. Estimating, accounting, table, drawing, quantity, dimension, rate, cost, editable-field, table-header, and critical-state information should exceed that minimum where practical.
+- Muted text remains visually secondary but must remain plainly readable.
+- Semantic color is deliberate: blue for interaction/selection, green for success/complete, amber for attention/pending, red for blocked/error/destructive, and cyan/info for informational system state. Takeoff geometry colors remain domain colors rather than general chrome.
+- Data grids and worksheets use clearly differentiated body/header surfaces, visible grid boundaries, restrained hover treatment, and explicit blue-tinted selection.
+
 ### Density
 
 The root density contract is `default | compact | comfortable`. Workspace archetypes may constrain/override the baseline for readability and touch safety. Specialist workspaces remain denser than balanced operations/overview surfaces; mobile remains touch-first.
