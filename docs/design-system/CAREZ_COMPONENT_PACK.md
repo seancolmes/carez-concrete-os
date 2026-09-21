@@ -93,11 +93,15 @@ Carez aliases:
 --interaction-selection: var(--accent);
 --interaction-focus: var(--ring);
 --spatial-accent: var(--primary);
---shell-background: var(--sidebar);
---shell-surface: var(--card);
+
+/* Shell uses the corresponding Slate Haze values explicitly because
+   .carez-shell rebinds the core semantic variables. */
+--shell-background: #f5f4ee;
+--shell-surface: #faf9f5;
+--shell-primary: oklch(0.554 0.046 257.417);
 ```
 
-The theme does **not** replace Carez typography: Manrope and IBM Plex Mono remain authoritative. Slate Haze applies across the shared shell and specialist workspaces through semantic tokens, with no separate module palette. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
+The theme does **not** replace Carez typography: Manrope and IBM Plex Mono remain authoritative. Slate Haze applies across the shared shell and specialist workspaces with no separate module palette. Shell mappings use the corresponding explicit Slate Haze values to avoid recursive custom-property aliases when the shell rebinds semantic tokens. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
 
 ## 1. Carez Data Grid
 
