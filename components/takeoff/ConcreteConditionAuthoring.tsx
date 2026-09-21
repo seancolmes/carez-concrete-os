@@ -219,7 +219,7 @@ export function ConcreteConditionAuthoring({
   const windowRef = useRef<HTMLElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const resizeRef = useRef<ResizeState | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [floating, setFloating] = useState(false);
 
   useEffect(() => {

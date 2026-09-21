@@ -12,8 +12,8 @@ const toneClass:Record<CarezVisualTone,string>={
 
 const columnClass={
   4:'sm:grid-cols-2 xl:grid-cols-4',
-  5:'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5',
-  6:'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6',
+  5:'sm:grid-cols-2 lg:grid-cols-5',
+  6:'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6',
 } as const;
 
 export function CarezOperatingMetric({
