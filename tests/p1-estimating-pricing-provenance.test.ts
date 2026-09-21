@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migrationPath = 'supabase/migrations/20260921210000_estimate_pricing_provenance.sql';
+const indexMigrationPath = 'supabase/migrations/20260921211000_estimate_pricing_provenance_indexes.sql';
 const assemblyEnginePath = 'lib/takeoff/assemblyEngine.server.ts';
 const legacyAdapterPath = 'lib/takeoff/conditions/legacyAdapter.ts';
 const persistencePath = 'lib/takeoff/conditions/persistence.server.ts';
@@ -105,4 +106,12 @@ test('current price resolution follows P1 source precedence before template fall
   const templateDefault = resolver.indexOf("sourceKind: 'template_default'");
 
   assert.ok(vendorBill >= 0 && purchaseOrder > vendorBill && catalog > purchaseOrder && templateDefault > catalog);
+});
+
+
+test('pricing provenance override foreign keys have covering indexes', () => {
+  assert.equal(existsSync(indexMigrationPath), true, 'P1.1 pricing provenance index migration must exist');
+  const sql = readFileSync(indexMigrationPath, 'utf8');
+  assert.match(sql, /create index if not exists takeoff_outputs_price_override_by_idx[\s\S]*takeoff_measurement_outputs\s*\(price_override_by\)/i);
+  assert.match(sql, /create index if not exists estimate_items_price_override_by_idx[\s\S]*estimate_items\s*\(price_override_by\)/i);
 });
