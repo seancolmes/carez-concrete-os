@@ -527,7 +527,9 @@ export async function applyLegacyConditionMigration(input: { dryRunId: string })
       mapped_measurements: (applyItems || []).length,
       results: byStatus,
       migrated: results,
-      cutover_ready: (byStatus.mismatch || 0) === 0 && (byStatus.error || 0) === 0,
+      cutover_ready: (applyItems || []).length > 0
+        && (byStatus.mismatch || 0) === 0
+        && (byStatus.error || 0) === 0,
     };
 
     const { error: completeError } = await supabase.from('condition_legacy_migration_runs')
