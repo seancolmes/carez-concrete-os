@@ -46,6 +46,7 @@ type Props={
   methodProfiles:any[];
   locked:boolean;
   conditionAuthoringActive?:boolean;
+  drawingViewHidden?:boolean;
   conditionMeasurementIds?:string[];
   conditionSelectedMeasurementId?:string|null;
   onConditionMeasurementSelect?:(measurementId:string|null)=>void;
@@ -434,7 +435,7 @@ export function TakeoffDrawingWorkspace(props:Props){
 
   useEffect(()=>{
     const down=(event:KeyboardEvent)=>{
-      if(isTypingTarget(event.target))return;
+      if(props.drawingViewHidden||isTypingTarget(event.target))return;
       if(event.code==='Space'){event.preventDefault();setSpaceHeld(true);return;}
       if(event.key==='Escape'){cancelTool();return;}
       const commandKey=event.ctrlKey||event.metaKey;
@@ -471,7 +472,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     };
     const up=(event:KeyboardEvent)=>{if(event.code==='Space')setSpaceHeld(false);};
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady,conditionAuthoringActive,openConditions]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,buildPlanReady,conditionAuthoringActive,openConditions,props.drawingViewHidden]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
     if(tool==='pan'||event.button===1||spaceHeld){event.preventDefault();const viewport=viewportRef.current;if(!viewport)return;panRef.current={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};setPanning(true);event.currentTarget.setPointerCapture(event.pointerId);return;}
@@ -556,7 +557,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           />
         </div>
       </div>
-    </section>:<section className={styles.center}>
+    </section>:<section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
       <div className={styles.toolbar}>
         <div className={styles.toolGroup}>
           {!sheetsOpen&&<button type="button" className={styles.toolButton} title="Show sheets" onClick={()=>setSheetsOpen(true)}><PanelLeftOpen size={16}/></button>}
@@ -601,7 +602,7 @@ export function TakeoffDrawingWorkspace(props:Props){
             {currentMeasurements.map((measurement:any)=>{
               if(props.conditionPresentation?.hiddenMeasurementIds.includes(measurement.id))return null;
               const stored=drawingGeometry(measurement.geometry);if(!stored)return null;const selected=selectedMeasurementId===measurement.id;const geometry=selected&&tool==='edit'&&editGeometry?editGeometry:stored;const points=geometry.points;const version:any=versionMap.get(measurement.assembly_version_id);const assembly:any=version?assemblyMap.get(version.assembly_id):null;const style=resolveDisplayStyle(assembly?.display_style,hashColor(assembly?.code||measurement.assembly_version_id||measurement.id));const color=props.conditionPresentation?.colors[measurement.id]||style.color;const coords=points.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const scaleRegion=scaleRegionMap.get(measurement.scale_region_id);const measurementCalibration=scaleRegion?.calibration||currentSheet?.calibration;const physical=physicalFootprint(points,version,measurement.variables,measurementCalibration,renderBox,measurement.geometry_anchor,measurement.geometry_offset_in);const physicalCoords=physical.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ');const onSelect=(event:React.MouseEvent)=>{if(tool==='select'){event.stopPropagation();setSelectedMeasurementId(measurement.id);setEditGeometry(null);editOriginalRef.current=null;setInspectorTab('properties');}};
-              return <g key={measurement.id} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
+              return <g key={measurement.id} className={styles.measurementShape} data-selected={selected} onClick={onSelect} style={{cursor:tool==='select'?'pointer':undefined}}>
                 {geometry.type==='polygon'&&<path d={geometryPath(geometry,renderBox.pdfWidth,renderBox.pdfHeight)} fill={`${color}24`} fillRule="evenodd" stroke={color} strokeWidth={selected?3.2:2} vectorEffect="non-scaling-stroke"/>}
                 {physical.length>=3&&<polygon points={physicalCoords} fill={`${style.color}${Math.round(style.opacity*255).toString(16).padStart(2,'0')}`} stroke={style.borderColor} strokeWidth={selected?style.borderWidth+1:style.borderWidth} strokeDasharray={style.pattern==='dashed'?'6 4':undefined} vectorEffect="non-scaling-stroke"/>}{geometry.type==='polyline'&&<polyline points={coords} fill="none" stroke={color} strokeWidth={selected?4:2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
                 {geometry.type==='count'&&points.map((point,index)=><g key={index}><circle cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r={selected?6:5} fill={`${color}45`} stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth-5} y1={point.y*renderBox.pdfHeight} x2={point.x*renderBox.pdfWidth+5} y2={point.y*renderBox.pdfHeight} stroke={color} vectorEffect="non-scaling-stroke"/><line x1={point.x*renderBox.pdfWidth} y1={point.y*renderBox.pdfHeight-5} x2={point.x*renderBox.pdfWidth} y2={point.y*renderBox.pdfHeight+5} stroke={color} vectorEffect="non-scaling-stroke"/></g>)}

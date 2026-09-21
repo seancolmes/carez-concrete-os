@@ -341,12 +341,17 @@ html[data-density='comfortable'] {
 .carez-summary-ledger [data-slot=card-description] { font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
 .carez-today-board { grid-template-columns:minmax(0,1fr); }
 .carez-attention-board { border-top:3px solid var(--primary); }
-.carez-login { min-height:100dvh; display:grid; grid-template-columns:1fr 1fr; }
-.carez-login-intro { display:flex; flex-direction:column; justify-content:space-between; padding:48px; background:var(--shell-background); color:var(--shell-foreground); border-left:8px solid var(--primary); }
+.carez-login { min-height:100dvh; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(360px,1fr); }
+.carez-login-intro { display:flex; min-width:0; flex-direction:column; justify-content:space-between; padding:clamp(28px,4vw,64px); background:var(--shell-background); color:var(--shell-foreground); border-top:3px solid var(--primary); }
+.carez-login-heading { margin-top:clamp(24px,5vh,64px); }
+.carez-login-intro footer { display:flex; flex-wrap:wrap; gap:12px; }
 .carez-login-intro>span,.carez-login-intro footer { font:11px var(--font-ibm-plex-mono),monospace; letter-spacing:.13em; color:var(--shell-muted); }
-.carez-login-intro h1 { margin:16px 0 24px; font-size:clamp(32px,4vw,64px); font-weight:600; line-height:1.08; letter-spacing:-.055em; }
+.carez-login-intro h1 { margin:16px 0 24px; font-size:clamp(32px,3.8vw,60px); font-weight:600; line-height:1.08; letter-spacing:-.055em; }
 .carez-login-intro p { max-width:36ch; color:var(--shell-muted); font-size:14px; line-height:1.7; }
-.carez-login-form { display:grid; place-items:center; padding:32px; background:var(--card); }
+.carez-login-form { display:grid; place-items:center; padding:32px; background:var(--card); border-left:1px solid var(--border); }
+.carez-login-form form input { transition:border-color 180ms ease,box-shadow 180ms ease; }
+.carez-login-form form button { min-height:42px; }
+@media(prefers-reduced-motion:reduce) { .carez-login-form form input { transition:none; } }
 @media(max-width:767px) { .carez-login { grid-template-columns:1fr; } .carez-login-intro { display:none; } .carez-login-form { padding:20px; } }
 [data-slot=carez-data-grid-head] { border-top:2px solid var(--border-strong); }
 [data-slot=carez-data-grid-header-cell] { letter-spacing:.025em; }

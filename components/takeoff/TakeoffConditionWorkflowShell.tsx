@@ -64,6 +64,7 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
       className={`${styles.paneToggle} ${propertiesCollapsed?styles.propertiesExpand:styles.propertiesCollapse}`}
       aria-label={propertiesCollapsed?'Expand Condition Properties':'Collapse Condition Properties'}
       aria-expanded={!propertiesCollapsed}
+      aria-controls="takeoff-condition-properties"
       title={propertiesCollapsed?'Expand properties':'Collapse properties'}
       onClick={()=>setPropertiesCollapsed(value=>!value)}
     >

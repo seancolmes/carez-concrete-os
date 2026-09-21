@@ -52,3 +52,18 @@
 @media(max-width:1180px){.shell{--takeoff-navigator-width:220px}}
 .shell[data-navigator-collapsed="true"]{--takeoff-navigator-width:38px}
 @media(max-width:860px){.shell{--takeoff-navigator-width:0px}}
+
+@media(min-width:861px){
+  .shell>:global([data-context-tab][data-view-mode]),
+  .shell>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child{transition:grid-template-columns 200ms ease-out}
+  .shell>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child{transition:width 200ms ease-out,min-width 200ms ease-out,max-width 200ms ease-out}
+  .shell :global([class*="derivedOverlay"]){transition:left 200ms ease-out}
+}
+.paneToggle{transition:left 200ms ease-out,right 200ms ease-out,background-color 180ms ease,color 180ms ease!important}
+.paneToggle:focus-visible{outline:2px solid var(--ring)!important;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){
+  .shell>:global([data-context-tab][data-view-mode]),
+  .shell>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child,
+  .shell>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child,
+  .shell :global([class*="derivedOverlay"]),.paneToggle{transition:none!important}
+}

@@ -171,6 +171,7 @@ const tabForHold=(hold:{hold_code?:string;message:string}):PropertyTab=>{
 export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,conditionData}:Props){
   const router=useRouter();
   const drawingHostRef=useRef<HTMLDivElement|null>(null);
+  const propertyScrollRef=useRef<HTMLDivElement|null>(null);
   const pendingRoleDrawRef=useRef<PendingRoleDraw|null>(null);
   const [sidebarHost,setSidebarHost]=useState<HTMLElement|null>(null);
   const [contextTab,setContextTab]=useState<ContextTab>('plans');
@@ -201,6 +202,13 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [createCode,setCreateCode]=useState('STRIP-WALL-FOOTING');
   const [codeTouched,setCodeTouched]=useState(false);
   const [isPending,startTransition]=useTransition();
+
+  useEffect(()=>{
+    const element=propertyScrollRef.current;
+    if(!element||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    const animation=element.animate([{opacity:.65,transform:'translateY(3px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'ease-out'});
+    return()=>animation.cancel();
+  },[selectedVersionId,propertyTab]);
 
   const locked=Boolean(workspaceProps.locked);
   const estimateId=String(workspaceProps.estimate?.id||workspaceProps.takeoffSet?.estimate_id||'');
@@ -357,7 +365,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     focusMeasurement(measurementId);
   };
   const selectDerivedSolid=(solid:Derived3DSolid)=>requestConditionSelection(solid.conditionVersionId,false,solid.measurementId);
-  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','3d');
+  const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','split');
 
   useEffect(()=>{const findSidebar=()=>setSidebarHost(drawingHostRef.current?.querySelector('aside') as HTMLElement|null);findSidebar();const id=window.setTimeout(findSidebar,0);return()=>window.clearTimeout(id);},[]);
   useEffect(()=>{const host=drawingHostRef.current;if(!host)return;let observer:ResizeObserver|null=null;let timer=0;const attach=()=>{const dock=host.querySelector<HTMLElement>('[aria-label="Takeoff quantity worksheet"]');if(!dock)return false;const update=()=>setDockHeight(Math.max(38,Math.round(dock.getBoundingClientRect().height)));update();observer=new ResizeObserver(update);observer.observe(dock);return true;};if(!attach())timer=window.setTimeout(()=>{attach();},0);return()=>{if(timer)window.clearTimeout(timer);observer?.disconnect();};},[]);
@@ -459,22 +467,32 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
 
   return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
-      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation}/>
+      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation} drawingViewHidden={viewMode==='3d'}/>
       {contextPortal}
-      <div className={direction.drawingViewModes} aria-label="Takeoff view controls"><div className={styles.viewModeSwitch} role="tablist" aria-label="Takeoff view mode">{(['2d','3d','split'] as ViewMode[]).map(mode=><button key={mode} type="button" role="tab" aria-selected={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}</div></div>
+      <div className={`${direction.drawingViewModes} ${styles.spatialRail}`} aria-label="Takeoff view controls">
+        <div className={styles.spatialContext} title={`${activeSheetLabel} · ${selectedSummary?.name||'Select a Condition'}`}>
+          <span className={styles.datumMark} aria-hidden="true">+</span>
+          <span>{activeSheetLabel}</span><span aria-hidden="true">/</span>
+          <strong key={selectedMeasurementId||selectedVersionId||'empty'}>{measurements.find((row:any)=>row.id===selectedMeasurementId)?.name||selectedSummary?.name||'Select a Condition'}</strong>
+        </div>
+        <span className={styles.viewAuthority}>{viewMode==='2d'?'Plan · Measure':viewMode==='split'?'Plan + verification':'Derived · Verify'}</span>
+        <div className={styles.viewModeSwitch} role="group" aria-label="Takeoff view mode">
+          {(['2d','split','3d'] as ViewMode[]).map(mode=><button key={mode} type="button" aria-pressed={viewMode===mode} className={viewMode===mode?styles.viewModeActive:''} onClick={()=>changeViewMode(mode)}>{mode==='2d'?'2D':mode==='3d'?'3D':'Split'}</button>)}
+        </div>
+      </div>
       {viewMode!=='2d'&&<div className={`${styles.derivedOverlay} ${viewMode==='split'?styles.splitVerification:styles.derivedOverlay3d}`} style={{bottom:dockHeight}}>
         <Takeoff3DViewport scene={derived3DScene} pdfUrl={workspaceProps.pdfUrl} activeSheetId={activeSheetId} activePageNumber={Number(activeSheet?.page_number||1)} activeSheetLabel={activeSheetLabel} selectedMeasurementId={selectedMeasurementId} selectedConditionVersionId={selectedVersionId} viewState={derivedViewState} onViewStateChange={setDerivedViewState} cameraMemory={r3fMemory.current} onSelectSolid={selectDerivedSolid} onJumpToIssue={jumpToDerivedIssue}/>
       </div>}
     </div>
-    <aside className={styles.propertiesPane} aria-label="Condition Properties">
-      <header className={styles.propertiesHeader}><div><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
+    <aside id="takeoff-condition-properties" className={styles.propertiesPane} aria-label="Condition Properties">
+      <header className={styles.propertiesHeader}><div key={selectedVersionId||'new'}><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
 
       {creating?<div className={styles.createPane}><div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <button type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></button>;})}</div><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Condition name</FieldLabel><Input value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></Field><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Code</FieldLabel><Input value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></Field><div className={styles.createActions}><Button variant="outline" onClick={()=>setCreating(false)}>Cancel</Button><Button onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</Button></div><div className={styles.statusLine} role="status">{message}</div></div>
       :!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
         <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<button type="button" className={direction.versionAction} onClick={()=>setUpgradeOpen(true)} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</button>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<button type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></button>:null}</div>
         <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}><TabsList variant="line" className={styles.tabsList}>{availableTabs.map(tab=><TabsTrigger key={tab} value={tab}>{TAB_LABELS[tab]}</TabsTrigger>)}</TabsList></Tabs>
         {selectedIssues.length?<Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}><CollapsibleContent id="condition-issues"><div className={direction.holdsDock} aria-label="Condition issues">{selectedIssues.map(issue=><button key={issue.key} type="button" className={direction.holdRow} onClick={()=>openIssue(issue)}><AlertTriangle/><span className={direction.holdText}><strong>{issue.label}</strong><small>{issue.message}</small></span><span className={direction.holdJump}>{issueDestinationLabel(issue)} →</span></button>)}</div></CollapsibleContent></Collapsible>:null}
-        <div className={styles.propertiesScroll}>
+        <div ref={propertyScrollRef} className={styles.propertiesScroll}>
           {propertyTab==='general'?<><section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Scope / geometry</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const roleAssemblyVersionId=assemblyVersionForRole(role);const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId)&&(!stripV4||role.primary||Boolean(roleAssemblyVersionId&&measurement.assembly_version_id===roleAssemblyVersionId)));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><ConditionRolePicker value={roleSelections[role.key]||''} choices={choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,label:measurement.name,meta:`${quantity(measurement.raw_quantity,measurement.raw_unit)} · ${sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}`};})} placeholder={role.required?'Select takeoff…':'Not used'} emptyLabel={role.required?'No takeoff selected':'Not used'} disabled={locked||isPending} onChange={value=>setRole(role.key,value)}/><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending||(!role.primary&&stripV4&&!roleAssemblyVersionId)}>Draw {role.unit}</Button></div>;})}</div></section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong></div>{renderInputGroup('planFacts')}</section>{stripModern&&!stripV3?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{moduleEditor('concrete')}</section>:null}</>:null}
           {propertyTab==='concrete'?<><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong><small>Section · mix</small></div>{moduleEditor('concrete')}</section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Order allowance</strong></div>{renderInputs(definition.inputs.filter(input=>input.group==='commercial'&&input.key==='concrete_waste_pct'))}</section></>:null}
           {propertyTab==='forms'?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Forms</strong><small>{stripV4?'Sides · bulkheads · system · resources':'Sides · system · resources'}</small></div>{moduleEditor('forms')}</section>:null}

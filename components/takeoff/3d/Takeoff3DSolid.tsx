@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Edges, useCursor } from '@react-three/drei';
+import { Edges, Html, useCursor } from '@react-three/drei';
 import { Color } from 'three';
+import styles from './Takeoff3DViewport.module.css';
 import type { Derived3DIssue, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d/contracts';
 import { buildTakeoffMeshGeometry } from '@/lib/takeoff/3d/meshGeometry';
 import { solidSelectionIdentity } from '@/lib/takeoff/3d/selection';
 
-export function Takeoff3DSolid({ solid, selected, onSelect, onIssue }: {
+export function Takeoff3DSolid({ solid, selected, issue, onJumpToIssue, onSelect, onIssue }: {
   solid: Derived3DSolid; selected: boolean; onSelect: (solid: Derived3DSolid) => void;
+  issue?: Derived3DIssue; onJumpToIssue: (issue: Derived3DIssue) => void;
   onIssue: (solidId: string, issue: Derived3DIssue | null) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -29,6 +31,12 @@ export function Takeoff3DSolid({ solid, selected, onSelect, onIssue }: {
     return () => onIssue(solid.id, null);
   }, [result.error, solid.id, solid.conditionVersionId, solid.measurementId, solid.sheetId, onIssue]);
   const colors = useMemo(() => [0.06, -0.08, -0.14].map(lightness => new Color(solid.color).offsetHSL(0, 0, lightness + (selected ? 0.055 : 0))), [solid.color, selected]);
+  const marker = useMemo<[number, number, number] | null>(() => {
+    if (!result.geometry) return null;
+    result.geometry.computeBoundingBox();
+    const box = result.geometry.boundingBox;
+    return box ? [(box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2] : null;
+  }, [result]);
   if (!result.geometry) return null;
   return <mesh geometry={result.geometry} userData={solidSelectionIdentity(solid)}
     onClick={event => { event.stopPropagation(); onSelect(solid); }}
@@ -39,5 +47,11 @@ export function Takeoff3DSolid({ solid, selected, onSelect, onIssue }: {
       emissive={solid.color} emissiveIntensity={selected ? 0.16 : 0} />)}
     <Edges key={solid.geometryKey} threshold={20} color={selected ? '#020617' : hovered ? '#64748b' : '#18212c'}
       lineWidth={selected ? 2.5 : hovered ? 1.5 : 0.75} />
+    {selected && marker && <Html position={marker} center zIndexRange={[20, 10]}>
+      {issue ? <button type="button" className={styles.spatialIssue} aria-label={`Resolve verification issue: ${issue.message}`}
+        title={issue.message} onPointerDown={event => event.stopPropagation()}
+        onClick={event => { event.stopPropagation(); onJumpToIssue(issue); }}>!<span>Review input</span></button>
+        : <span className={styles.focusMarker} aria-hidden="true">+</span>}
+    </Html>}
   </mesh>;
 }

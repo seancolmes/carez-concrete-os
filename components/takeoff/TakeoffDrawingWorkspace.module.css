@@ -107,3 +107,13 @@
 .liveReadout{background:var(--popover);color:var(--popover-foreground);border-color:var(--primary)}
 .sheetButtonActive{background:var(--accent);color:var(--accent-foreground);box-shadow:inset 3px 0 var(--primary)}
 @media(prefers-reduced-motion:reduce){.toolButton,.sheetButton,.iconButton,.iconTool{transition:none}}
+
+/* Grid is a visual reference only; persisted page coordinates retain authority. */
+.canvasViewport{background-image:linear-gradient(color-mix(in oklch,var(--border) 55%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in oklch,var(--border) 55%,transparent) 1px,transparent 1px);background-size:32px 32px}
+.paper{border-color:var(--border-strong);box-shadow:0 2px 4px rgb(0 0 0 / .12),0 12px 28px rgb(0 0 0 / .16)}
+.paper::before,.paper::after{content:'';position:absolute;width:12px;height:12px;pointer-events:none;border-color:var(--primary);opacity:.7}
+.paper::before{top:-6px;left:-6px;border-top:1px solid;border-left:1px solid}
+.paper::after{bottom:-6px;right:-6px;border-bottom:1px solid;border-right:1px solid}
+.measurementShape>path,.measurementShape>polygon,.measurementShape>polyline{transition:stroke-width 180ms ease,fill 180ms ease}
+.measurementShape[data-selected="true"]{filter:drop-shadow(0 0 1px var(--primary))}
+@media(prefers-reduced-motion:reduce){.measurementShape>path,.measurementShape>polygon,.measurementShape>polyline{transition:none}}

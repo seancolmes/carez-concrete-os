@@ -16,3 +16,18 @@
 .issueOverlay{position:absolute;z-index:1;left:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(360px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--popover);box-shadow:0 4px 16px rgb(0 0 0 / .2);font-size:12px}
 .issueOverlay span{color:var(--muted-foreground)}
 .centeredIssue{left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);width:360px;align-items:center;text-align:center}
+
+/* Semantic blueprint canvas remains available behind transparent WebGL. */
+.canvas{background-color:var(--muted);background-image:linear-gradient(color-mix(in oklch,var(--border) 55%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in oklch,var(--border) 55%,transparent) 1px,transparent 1px);background-size:32px 32px}
+.datum{position:absolute;z-index:1;left:12px;top:10px;pointer-events:none;color:var(--muted-foreground);font:10px var(--font-ibm-plex-mono),monospace}
+.toolbar{background:var(--card)}
+.hint{font-size:11px;background:var(--card)}
+.issueOverlay{border-inline-start:3px solid var(--warning);animation:verificationArrival 200ms ease-out}
+.checks,.filters{animation:verificationArrival 180ms ease-out}
+.checks>div[data-selected="true"]{border-inline-start:2px solid var(--primary);padding-inline-start:8px;background:var(--accent)}
+.spatialIssue{display:flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid var(--warning);border-radius:var(--radius-sm);background:var(--popover);color:var(--warning);font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;animation:verificationArrival 180ms ease-out}
+.spatialIssue span{color:var(--foreground);font-size:11px}
+.spatialIssue:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
+.focusMarker{display:grid;width:22px;height:22px;place-items:center;border:1px solid var(--primary);border-radius:50%;background:var(--background);color:var(--primary);font:16px var(--font-ibm-plex-mono),monospace;pointer-events:none;animation:verificationArrival 180ms ease-out}
+@keyframes verificationArrival{from{opacity:.45}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.issueOverlay,.checks,.filters,.spatialIssue,.focusMarker{animation:none}}
