@@ -159,8 +159,11 @@ begin
 
   v_applied := coalesce(v_item.details->'compatibility_rebind','{}'::jsonb);
   if v_applied->>'status' = 'applied' then
-    if v_measurement.assembly_version_id is distinct from v_target_assembly_version_id then
-      raise exception 'Previously applied compatibility rebind no longer matches the target assembly.';
+    if v_measurement.assembly_version_id is distinct from v_target_assembly_version_id
+       or v_measurement.updated_at is distinct from nullif(v_applied->>'measurement_updated_at','')::timestamptz
+       or v_measurement.raw_quantity is distinct from v_expected_raw_quantity
+       or upper(v_measurement.raw_unit) is distinct from upper(v_expected_raw_unit) then
+      raise exception 'Previously applied compatibility rebind no longer matches the locked measurement snapshot.';
     end if;
     return jsonb_build_object(
       'run_id',v_run.id,
@@ -215,6 +218,7 @@ begin
     'new_assembly_version_id',v_target_assembly_version_id,
     'old_method_profile_id',v_old_method_profile_id,
     'new_method_profile_id',null,
+    'measurement_updated_at',v_after.updated_at,
     'applied_at',now()
   );
 
