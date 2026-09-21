@@ -64,7 +64,16 @@ export async function resolveTakeoffLaborRate(supabase: any, companyId: string, 
 }
 
 export async function resolveTakeoffCurrentUnitCost(supabase: any, companyId: string, component: any, outputUnit: string) {
-  if (component.pricing_strategy === 'none') return { unitCost: 0, status: 'not_priced', source: 'not priced by assembly' };
+  if (component.pricing_strategy === 'none') return {
+    unitCost: 0,
+    status: 'not_priced',
+    source: 'not priced by assembly',
+    sourceKind: null,
+    sourceId: null,
+    sourceLabel: null,
+    sourceReference: null,
+    effectiveDate: null,
+  };
   if (component.pricing_strategy === 'manual') return null;
   if (Number(component.default_unit_cost || 0) > 0) {
     return {
