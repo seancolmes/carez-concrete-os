@@ -81,7 +81,12 @@ if ($BackedUp) {
 Write-Host ""
 Write-Host "This installer did NOT modify config.toml, AGENTS.md, auth.json, MCP servers, plugins, notify settings, or provider credentials."
 Write-Host ""
-Write-Host "Start a new Codex session with:"
+Write-Host "Prerequisite: Superpowers and Impeccable should already be installed/enabled in the hosted Codex plugin environment."
+Write-Host ""
+Write-Host "Recommended premium launcher:"
+Write-Host '  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-carez-astra.ps1'
+Write-Host ""
+Write-Host "Direct profile start (leaves any Impeccable automatic hooks active):"
 Write-Host '  codex --profile carez-astra'
 Write-Host ""
 Write-Host "The premium profile is for hosted ChatGPT-authenticated Codex. The existing .codex-omniroute local workflow remains separate."
