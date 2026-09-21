@@ -7,9 +7,28 @@ CAREZ PREMIUM EXECUTION RULE
 
 Use Astra only for the requested high-value implementation/decision work.
 
-Read only the files named above and direct dependencies required to implement the task. Do not broadly scan the repository or reopen approved design/architecture.
+AUTHORITY
+The explicit task plus Carez AGENTS.md/CODEX.md and approved specs/ADRs outrank plugin defaults.
+If the design/spec/plan is already approved, do not re-brainstorm, re-plan, or reopen it.
 
-If helper work is needed, use Luna first and Terra only when Luna is insufficient. Never spawn another Astra. Use no more than two workers, and give each a fresh bounded brief rather than the full conversation.
+READ SCOPE
+Read only the files named above and direct dependencies required to implement the task.
+Do not broadly scan the repository or reopen approved design/architecture.
+
+WORKERS
+If helper work is needed, use Luna first and Terra only when Luna is insufficient.
+Never spawn another Astra.
+Use no more than two workers, and give each a fresh bounded brief rather than the full conversation.
+Any Superpowers-driven dispatch must obey this same routing.
+
+SUPERPOWERS
+Use relevant process skills only when they materially serve the assigned work.
+For this premium implementation, do not invoke subagent-driven-development reviewer chains, requesting-code-review, verification-before-completion, TDD/reviewer loops, or branch-finishing verification unless this prompt explicitly asks for them.
+
+IMPECCABLE
+For UI work, Impeccable may guide the implementation itself.
+Do not append critique, audit, polish, adapt, detector, or live-browser iteration after the requested implementation unless this prompt explicitly asks for that command.
+Plugin findings do not authorize a second polish/review cycle.
 
 DO NOT perform post-implementation validation:
 - no tests/typecheck/lint unless explicitly requested in this prompt
