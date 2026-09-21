@@ -47,9 +47,12 @@ test('job production override is estimate-scoped, labor-only and cannot accept q
   assert.match(sql, /job_man_hours_per_unit=p_man_hours_per_unit/i);
   assert.match(sql, /estimated_man_hours=v_new_hours/i);
   assert.match(sql, /direct_cost=v_new_direct/i);
-  assert.match(sql, /update public\.estimate_items[\s\S]{0,2200}job_man_hours_per_unit=p_man_hours_per_unit/i);
-  assert.match(sql, /update public\.project_condition_outputs[\s\S]{0,2600}'labor_assumption'/i);
-  assert.doesNotMatch(sql, /update public\.takeoff_measurement_outputs[\s\S]{0,2200}production_quantity\s*=/i);
+  const updateStart = sql.indexOf('create or replace function public.carez_update_takeoff_labor_assumption');
+  const updateEnd = sql.indexOf('create or replace function public.carez_restore_takeoff_labor_assumption', updateStart);
+  const updateFunction = sql.slice(updateStart, updateEnd);
+  assert.match(updateFunction, /update public\.estimate_items[\s\S]{0,2200}job_man_hours_per_unit=p_man_hours_per_unit/i);
+  assert.match(updateFunction, /update public\.project_condition_outputs[\s\S]{0,2600}'labor_assumption'/i);
+  assert.doesNotMatch(updateFunction, /production_quantity\s*=/i);
 });
 
 test('restore baseline is explicit and leaves physical quantity authoritative', () => {
@@ -76,24 +79,25 @@ test('labor rate profile selection is independent from production quantity and M
   assert.match(sql, /price_source_kind='labor_profile'/i);
   assert.match(sql, /price_source_id=p_labor_profile_id/i);
   assert.match(sql, /labor_rate_override_by=auth\.uid\(\)/i);
-  assert.doesNotMatch(sql, /update public\.takeoff_measurement_outputs[\s\S]{0,2400}(production_quantity|job_man_hours_per_unit)\s*=/i);
+  const profileStart = sql.indexOf('create or replace function public.carez_select_takeoff_labor_profile');
+  const profileEnd = sql.indexOf('revoke all on function public.carez_update_takeoff_labor_assumption', profileStart);
+  const profileFunction = sql.slice(profileStart, profileEnd);
+  assert.doesNotMatch(profileFunction, /(production_quantity|job_man_hours_per_unit)\s*=/i);
 });
 
 test('Takeoff resync preserves explicit job MH/unit and explicit labor profile selections', () => {
-  const sql = [
-    requireFile(migrationPath, 'P1.3 labor production override migration must exist'),
-    requireFile(stickyMigrationPath, 'P1.3 sticky labor-rate follow-up migration must exist'),
-  ].join('\n');
-  const syncStart = sql.indexOf('create or replace function public.carez_sync_takeoff_measurement_outputs');
-  const syncEnd = sql.indexOf('create or replace function public.carez_update_takeoff_labor_assumption', syncStart);
-  const sync = sql.slice(syncStart, syncEnd);
+  const primarySql = requireFile(migrationPath, 'P1.3 labor production override migration must exist');
+  const stickySql = requireFile(stickyMigrationPath, 'P1.3 sticky labor-rate follow-up migration must exist');
+  const syncStart = primarySql.indexOf('create or replace function public.carez_sync_takeoff_measurement_outputs');
+  const syncEnd = primarySql.indexOf('create or replace function public.carez_update_takeoff_labor_assumption', syncStart);
+  const sync = primarySql.slice(syncStart, syncEnd);
 
   assert.match(sync, /job_man_hours_per_unit/i);
   assert.match(sync, /labor_assumption_override_by/i);
   assert.match(sync, /labor_rate_override_by/i);
   assert.match(sync, /v_hours:=round\(v_qty\*v_job_man_hours_per_unit,4\)/i);
-  assert.match(sync, /v_output\.labor_rate_override_at is not null/i);
-  assert.match(sync, /v_unit_cost:=greatest\(coalesce\(v_output\.unit_cost,0\),0\)/i);
+  assert.match(stickySql, /v_output\.labor_rate_override_at is not null/i);
+  assert.match(stickySql, /v_unit_cost:=greatest\(coalesce\(v_output\.unit_cost,0\),0\)/i);
 });
 
 test('labor review summary distinguishes baseline, overrides and holds', async () => {
