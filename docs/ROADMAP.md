@@ -4,12 +4,11 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 
 ## Current program state
 
-The Carez UI and domain programs now have two open workstreams:
+The Carez UI program still has one open cross-cutting workstream:
 
 - **Issue #76 / ADR-025 Experience System rollout:** the design authority and three-route reference slice are accepted, but the original complete application-wide rewrite is not finished.
-- **Issue #39 / P0.5E legacy migration:** Tasks 1–2 are implemented; Task 3 is the next unfinished domain checkpoint.
 
-Do not treat either as complete. Nik selects which workstream receives the next cloud implementation budget.
+The P0.5 Concrete Condition foundation is accepted on `staging`. **Issue #39 / P0.5E legacy migration is complete and closed** after supported migration, reconciliation, formula-first UI retirement, read-only legacy history, and final stable-staging browser acceptance. The next domain phase is **P1 Estimating** when authorized.
 
 ## P0.1 — Accepted shell / Takeoff foundation
 
@@ -48,7 +47,7 @@ Still required to satisfy the original Issue #76 complete-rewrite objective:
 
 A new immersive 3D layer is **not** required on every route. Spatial/3D treatment belongs where it materially supports Takeoff, markup/customer review, selected hero/landing, or field-estimating experiences.
 
-## P0.5 — Concrete Condition + derived 3D foundation — OPEN
+## P0.5 — Concrete Condition + derived 3D foundation — COMPLETE ON STAGING
 
 Established:
 
@@ -58,15 +57,17 @@ Established:
 - derived 3D uses the same authoritative 2D data/IDs and remains verification only;
 - Issue #41 synchronized derived 3D is closed/completed.
 
-Remaining gate:
+Accepted closeout:
 
-- **Issue #39 — P0.5E legacy recipe migration and active formula-UI retirement**;
-- preserve referenced published/accepted history;
-- migrate/reconcile only supported editable records through server-authoritative Condition calculation;
-- retire active formula-first UI only after exact dependency/parity proof;
-- complete P0.5 end-to-end reconciliation and stable-staging browser acceptance.
+- **Issue #39 / P0.5E is complete and closed on `staging`**;
+- referenced published/accepted legacy history is preserved;
+- supported editable pilot work migrated/reconciled through the server-authoritative Condition calculation path;
+- active recipe/formula-first Takeoff entry paths are retired;
+- legacy Assembly History is read-only for audit/compatibility;
+- final stable-staging browser acceptance passed;
+- the **EDGE-style Condition-first estimator workflow** remains the estimating UX contract.
 
-Issue #59 remains a production migration blocker and is not bypassed by P0.5E.
+Issue #59 remains a production migration blocker and is not bypassed by P0.5E. Any physical legacy-schema removal is a separate future approved/recoverable migration, not part of this accepted foundation.
 
 ## P1 — Estimating
 
