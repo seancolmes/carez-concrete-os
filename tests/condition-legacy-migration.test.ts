@@ -70,3 +70,31 @@ test('legacy migration dry run inventories lineage without mutating domain recor
   assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
   assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,180}\.update\(/);
 });
+
+
+test('supported pilot migration preparation is editable-only, geometry-preserving, and provenance-complete', () => {
+  const serverSource = readFileSync(serverPath, 'utf8');
+  const actionSource = readFileSync(actionPath, 'utf8');
+
+  assert.match(serverSource, /prepareLegacyPilotMigration/);
+  assert.match(serverSource, /estimateStatus[\s\S]{0,240}draft/);
+  assert.match(serverSource, /proposalCount[\s\S]{0,180}>\s*0/);
+  assert.match(serverSource, /sheet_id/);
+  assert.match(serverSource, /scale_region_id/);
+  assert.match(serverSource, /geometry/);
+  assert.match(serverSource, /raw_quantity/);
+  assert.match(serverSource, /raw_unit/);
+  assert.match(serverSource, /source_measurement_id/);
+  assert.match(serverSource, /source_assembly_version_id/);
+  assert.match(serverSource, /target_template_version_id/);
+  assert.match(serverSource, /target_compatibility_assembly_version_id/);
+  assert.match(serverSource, /geometry_hash/);
+  assert.match(serverSource, /source_output_ids/);
+  assert.match(serverSource, /source_estimate_item_ids/);
+  assert.match(serverSource, /compatibilityRebind/);
+  assert.match(actionSource, /prepareLegacyPilotMigration/);
+  assert.match(actionSource, /migration_preparation/);
+
+  assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
+  assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,240}\.update\(/);
+});
