@@ -1,6 +1,6 @@
 # Module Spec — Takeoff
 
-Status: active flagship workstation; Concrete Condition + R3F 2D/3D workstation implemented on staging, with final acceptance tracked in Issue #41
+Status: active flagship workstation; Condition-first Takeoff + synchronized derived 3D implemented on staging; P0.5E cutover final acceptance tracked in Issue #39
 
 ## Purpose
 
@@ -65,6 +65,8 @@ For a measurement linked to an active Concrete Condition, the worksheet presents
 - Calculation, scope, production, commercial, and pricing exceptions are presented through one categorized issue surface rather than unrelated counters all called “holds.”
 
 ### EDGE-style estimating workbench
+
+The **EDGE-style Condition-first estimator workflow** is the estimating UX contract: the estimator works from named concrete Conditions and concrete-native properties/modules into quantities, labor, pricing readiness, worksheet review, and Estimate lineage without being exposed to formula authoring as the normal workflow. EDGE is a workflow benchmark, not Carez's visual theme or underlying data model.
 
 Concrete Conditions should be workable in the sequence an estimator uses to understand the physical work:
 
@@ -166,11 +168,11 @@ Measurements, role-linked geometry facts, Condition module outputs, 3D projectio
 
 The old Scope Recipe, Project Scope Variant, System Block, Formula Composer, and Recipe Editor vocabulary is retired from the primary workflow through the gated migration in ADR-012.
 
-Existing published recipes/assemblies, formula ASTs, outputs, method profiles, estimate links, and accepted references remain readable and immutable. They may back compatibility adapters until supported records are reconciled to Conditions. Legacy screens become read-only before removal; no referenced history is deleted.
+Existing published recipes/assemblies, formula ASTs, outputs, method profiles, estimate links, and accepted references remain readable and immutable. Supported editable pilot work is reconciled through Concrete Conditions; unsupported or historical compatibility records remain untouched. The legacy Assembly History surface is read-only, active recipe/formula authoring is removed from normal Takeoff, and no referenced history is deleted.
 
 ## Current foundation
 
-P0 geometry/editor/atomic recalculation and the Concrete Condition workstation are implemented. The active 3D path is the client-only R3F/Three.js viewer backed by the exact PDF sheet plane and existing derived scene authority. The SVG pseudo-3D renderer and migration gate are retired from the active path. Current release/acceptance state remains tracked in docs/CURRENT_STATE.md and Issue #41.
+P0 geometry/editor/atomic recalculation and the Concrete Condition workstation are implemented. Issue #41 synchronized derived 2D/3D verification is closed and accepted. The active 3D path is the client-only R3F/Three.js viewer backed by the exact PDF sheet plane and existing derived scene authority. The SVG pseudo-3D renderer and legacy formula-first authoring path are retired from normal Takeoff. Current P0.5E release/acceptance state is tracked in docs/CURRENT_STATE.md and Issue #39.
 
 ## Deferred/next
 

@@ -1,12 +1,12 @@
 # Module Spec — Concrete Condition & Resource Engine
 
-Status: approved P0.5 architecture target; legacy assembly runtime remains active until migrated and verified
+Status: active Condition-first resource architecture; legacy assembly history is read-only compatibility, with final P0.5E acceptance tracked in Issue #39
 
 ## Purpose
 
 Turn authoritative Takeoff geometry plus explicit concrete plan facts, company methods, production assumptions, and commercial inputs into deterministic physical resources, labor, equipment, holds, and estimate lineage without requiring formula authoring during normal estimating.
 
-The repository path remains assembly-resource-engine.md during migration so existing links do not break. **Concrete Condition & Resource Engine** is the active product and architecture name.
+The repository path remains assembly-resource-engine.md so existing links do not break. **Concrete Condition & Resource Engine** is the active product and architecture name. The **EDGE-style Condition-first estimator workflow** remains the estimator-facing UX contract: named Conditions and concrete modules drive deterministic outputs; legacy recipes/formulas remain compatibility/history rather than normal authoring.
 
 ## Product invariants
 
@@ -250,7 +250,7 @@ The compatibility layer may additionally retain legacy assembly version/componen
 
 ## Migration from legacy assemblies/recipes
 
-The migration is additive and dependency-safe.
+The migration is additive and dependency-safe. The Condition-first cutover and read-only legacy-history conversion are implemented on staging; Issue #39 Task 7 owns final reconciliation/documentation and stable-staging acceptance.
 
 1. Inventory legacy assemblies, versions, variables, components, children, formulas, method profiles, measurements, outputs, estimate links, proposals, and accepted references.
 2. Add Condition/archetype/template/module/role structures with company-scoped RLS and immutable version rules.
