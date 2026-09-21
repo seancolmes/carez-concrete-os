@@ -37,6 +37,7 @@ type LaborOutput = {
   unit_cost?: number | string | null;
   direct_cost?: number | string | null;
   pricing_status?: string | null;
+  cost_source?: string | null;
   price_source_kind?: string | null;
   price_source_id?: string | null;
   price_source_label?: string | null;
