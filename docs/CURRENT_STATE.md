@@ -32,7 +32,7 @@ The accepted design direction is:
 - approximately **20% Spatial Blueprint**;
 - purposeful motion only when it communicates state, continuity, focus, activity, or workflow;
 - selective spatial/3D treatment where it improves technical or customer-facing experiences;
-- Manrope-led hierarchy with IBM Plex Mono reserved for technical alignment;
+- Inter-led hierarchy with IBM Plex Mono reserved for technical alignment;
 - stronger shared tabs, meaningful domain icons, three depth levels, first-class light/dark/system, and no competing component system.
 
 ### Accepted reference implementation
