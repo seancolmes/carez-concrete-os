@@ -42,6 +42,9 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
   ]);
   if(!e)notFound();
 
+  const estimateMeasurementIds=new Set((measurements||[]).map((row:any)=>row.id));
+  const estimateOutputs=(outputs||[]).filter((row:any)=>estimateMeasurementIds.has(row.measurement_id));
+
   const quoteSetIds=(quoteSets||[]).map((row:any)=>row.id);
   let quotes:any[]=[];
   if(quoteSetIds.length){
@@ -126,12 +129,12 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
       </CardContent></Card>
     </section>
 
-    <PricingCoverage estimateId={e.id} measurements={measurements||[]} outputs={outputs||[]} quoteSets={quoteSets||[]} quotes={quotes} quoteLines={quoteLines} locked={locked} today={today}/>
+    <PricingCoverage estimateId={e.id} measurements={measurements||[]} outputs={estimateOutputs} quoteSets={quoteSets||[]} quotes={quotes} quoteLines={quoteLines} locked={locked} today={today}/>
 
-    <LaborReview estimateId={e.id} measurements={measurements||[]} outputs={outputs||[]} laborProfiles={laborProfiles||[]} locked={locked}/>
+    <LaborReview estimateId={e.id} measurements={measurements||[]} outputs={estimateOutputs} laborProfiles={laborProfiles||[]} locked={locked}/>
 
     <section className="space-y-4" aria-labelledby="estimate-lines"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cost detail</p><h2 id="estimate-lines" className="mt-1 text-lg font-semibold">Estimate Lines</h2><p className="mt-1 text-sm text-muted-foreground">Takeoff-generated lines are identified so the estimator can see where the price came from without re-entering quantities.</p></div>
-      <EstimateWorksheet estimateId={e.id} sections={sections||[]} measurements={measurements||[]} items={items||[]} outputs={outputs||[]} locked={locked}/>
+      <EstimateWorksheet estimateId={e.id} sections={sections||[]} measurements={measurements||[]} items={items||[]} outputs={estimateOutputs} locked={locked}/>
 
       {!locked&&<details className="rounded-lg border border-border"><summary className="cursor-pointer list-none px-3 py-3 text-sm font-medium">Add Cost Outside the Assembly System</summary><div className="space-y-4 border-t border-border p-3"><div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"><strong>Exception tool:</strong> <span className="text-muted-foreground">use this for a real cost not represented by the concrete takeoff assembly—special rental, one-off subcontractor, unusual material, etc.</span></div><form action={addEstimateItem} className="grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/>
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="exception-section">Scope area</Label><select id="exception-section" className={selectClass} name="section_id" defaultValue=""><option value="">Unassigned / general</option>{(sections||[]).map((section:any)=><option key={section.id} value={section.id}>{section.name}</option>)}</select></div><div className="grid gap-2"><Label htmlFor="exception-type">Cost type</Label><select id="exception-type" className={selectClass} name="item_type" defaultValue="material"><option value="labor">Labor</option><option value="material">Material</option><option value="equipment">Equipment</option><option value="subcontractor">Subcontractor</option><option value="other">Other</option></select></div></div>
