@@ -51,6 +51,10 @@ type TakeoffOutput = {
   label?: string | null;
   pricing_status?: string | null;
   cost_source?: string | null;
+  price_source_kind?: string | null;
+  price_source_label?: string | null;
+  price_source_reference?: string | null;
+  price_effective_date?: string | null;
 };
 
 const money = (value: unknown) => new Intl.NumberFormat('en-US', {
@@ -94,14 +98,22 @@ function WorksheetRow({
   const state = getWorksheetPricingState(item, output);
   const unitCost = Number(item.unit_cost || 0);
   const primaryLabel = output?.label || item.description || 'Estimate line';
+  const provenanceLabel = output?.price_source_label || output?.cost_source || 'assembly output';
+  const provenanceMeta = output
+    ? [
+      output.price_effective_date ? `effective ${output.price_effective_date}` : null,
+      output.price_source_reference,
+    ].filter(Boolean).join(' · ')
+    : '';
   const source = output
-    ? `${String(item.item_type || 'cost').toUpperCase()} · ${output.cost_source || 'assembly output'}`
+    ? `${String(item.item_type || 'cost').toUpperCase()} · ${provenanceLabel}`
     : `${String(item.item_type || 'cost').toUpperCase()} · manual estimate line`;
 
   return <div className={styles.row}>
     <div className={styles.description}>
       <strong>{primaryLabel}</strong>
       <span title={item.description || undefined}>{source}</span>
+      {provenanceMeta ? <span title={provenanceMeta}>{provenanceMeta}</span> : null}
     </div>
     <div className={styles.number}>{formatTakeoffMeasurement(quantity, unit)}</div>
     <div>
