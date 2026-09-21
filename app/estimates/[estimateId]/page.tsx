@@ -34,7 +34,7 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     supabase.from('proposal_presentations').select('id,proposal_number,status,sent_at').eq('company_id',p.company_id).eq('estimate_id',estimateId).order('sent_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('estimate_takeoff_summary').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('takeoff_measurements').select('id,name,location,drawing_reference,raw_quantity,raw_unit,estimate_section_id,created_at').eq('estimate_id',estimateId).eq('company_id',p.company_id).eq('status','active').order('created_at'),
-    supabase.from('takeoff_measurement_outputs').select('id,measurement_id,generated_estimate_item_id,label,pricing_status,cost_source,is_active,estimate_visible').eq('company_id',p.company_id).eq('is_active',true).eq('estimate_visible',true),
+    supabase.from('takeoff_measurement_outputs').select('id,measurement_id,generated_estimate_item_id,label,pricing_status,cost_source,price_source_kind,price_source_label,price_source_reference,price_effective_date,is_active,estimate_visible').eq('company_id',p.company_id).eq('is_active',true).eq('estimate_visible',true),
   ]);
   if(!e)notFound();
 
