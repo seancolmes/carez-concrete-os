@@ -7,12 +7,21 @@ const globals = readFileSync(new URL('app/globals.css', root), 'utf8');
 const layout = readFileSync(new URL('app/layout.tsx', root), 'utf8');
 const block = (pattern: RegExp, source: string) => source.match(pattern)?.[1] ?? '';
 
-const requiredThemeTokens = [
+const inheritedSemanticTokens = [
   '--surface-canvas', '--surface-panel', '--surface-raised',
   '--text-primary', '--text-secondary', '--text-muted',
   '--border-default', '--border-strong',
   '--interaction-primary', '--interaction-selection', '--interaction-focus',
   '--status-success', '--status-warning', '--status-error', '--status-info',
+];
+
+const requiredModeTokens = [
+  '--background', '--foreground', '--card', '--card-foreground',
+  '--popover', '--popover-foreground', '--primary', '--primary-foreground',
+  '--secondary', '--secondary-foreground', '--muted', '--muted-foreground',
+  '--accent', '--accent-foreground', '--destructive', '--destructive-foreground',
+  '--success', '--success-foreground', '--warning', '--warning-foreground',
+  '--info', '--info-foreground', '--border', '--input', '--ring',
 ];
 
 test('light and dark token blocks are independent and complete', () => {
@@ -21,7 +30,8 @@ test('light and dark token blocks are independent and complete', () => {
   const dark = block(/\.dark\s*\{([\s\S]*?)\n\}/, globals);
   assert.ok(light.length > 0);
   assert.ok(dark.length > 0);
-  for (const token of requiredThemeTokens) {
+  for (const token of inheritedSemanticTokens) assert.match(light, new RegExp(`${token}:`));
+  for (const token of requiredModeTokens) {
     assert.match(light, new RegExp(`${token}:`));
     assert.match(dark, new RegExp(`${token}:`));
   }
