@@ -2,7 +2,11 @@
 
 ## Issue #76 branch candidate — 2026-09-21
 
-`astra/complete-ui-rewrite` starts from staging `e06b6f2`. ADR-025 replaces presentation authority on this branch only. The candidate includes a workspace directory/masthead, shared route headings and metric ledgers, full-width Projects with a dismissible preview, semantic specialist styles, and a drawing-first Takeoff default. No domain actions, database migrations, or financial calculations change. Nik's visual acceptance and authenticated browser QA remain pending; the accepted staging history below is unchanged. Do not merge or promote this candidate until approved.
+`astra/complete-ui-rewrite` starts from staging `e06b6f2`. ADR-025 replaces presentation authority on this branch only. The candidate includes a workspace directory/masthead, shared route headings and metric ledgers, full-width Projects with a dismissible preview, semantic specialist styles, and a drawing-first Takeoff default. No domain actions, database migrations, or financial calculations change. Authenticated preview QA has exercised Today, Projects (empty state/filter), Takeoff legacy plans/scale display/worksheet, Estimates and existing estimate detail, Proposals (empty state), Billing, Documents, and Settings. Browser-driven fixes cover shell contrast, estimate-detail scrolling, mobile filters, metric layout, logo contrast, and on-demand Takeoff panels. Local `pnpm typecheck` and `pnpm check` pass (219 tests passed, one skipped); branch GitHub Actions and Vercel previews are passing. The accepted staging history below is unchanged. Do not merge or promote this candidate until approved.
+
+Preview-only `/design-review` renders authenticated routes at 390, 768, or 1280 CSS pixels for review; it is unavailable outside Vercel preview and to unauthenticated/employee users. These are responsive browser frame checks, not physical-device touch testing.
+
+**Acceptance limits:** the connected branch preview has no projects or issued proposals; populated Project Overview/preview and issued commercial states remain unverified in-browser. Its existing published-archetype gate selects the legacy assembly workflow, so governed Plans/Conditions/Zones and derived 3D/Split cannot receive live rendered acceptance with this data. The gate, records, and migrations were not changed to bypass this. Nik's visual approval and those populated/gated checks remain required before integration. Draft PR #77 tracks the candidate and latest preview/check evidence.
 
 
 Last reconciled: 2026-09-20  

@@ -26,3 +26,5 @@ No changes to database schema, tenant isolation, RLS, server actions, quantity/c
 ## Delivery and validation
 
 Work only on astra/complete-ui-rewrite from staging e06b6f2. Preserve the traceable Takeoff baseline 09d39d3. Run targeted checks, pnpm typecheck, pnpm check, GitHub Actions, and desktop/mobile browser QA in both themes. Deploy a branch preview for Nik. Neither staging integration nor production release is authorized. Implementation and rendered acceptance are separate claims.
+
+The authenticated `/design-review` route is preview-only and provides 390/768/1280px frames of real application routes. It creates no records and does not bypass workflow gates. Estimate detail remains a scrollable document workspace; only drawing routes use a fixed-height canvas shell. Legacy condition authoring also starts closed, with its launcher separated from drawing/inspector controls.
