@@ -1,9 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
-import { TakeoffAssemblyBuilderShell } from '@/components/takeoff/TakeoffAssemblyBuilderShell';
 import { TakeoffConditionWorkflowShell } from '@/components/takeoff/TakeoffConditionWorkflowShell';
-import { CONDITION_ARCHETYPE_KEYS } from '@/lib/takeoff/conditions/types';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
 import pageStyles from './TakeoffDrawingPage.module.css';
@@ -18,32 +16,6 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   if (!profile?.company_id) redirect('/login');
   if (profile.role === 'employee') redirect('/employee');
   const companyId = profile.company_id;
-
-  // Dependency gate for retiring active Scope Recipe / Build Method authoring.
-  // Legacy compatibility data remains intact, but the normal workflow only cuts over
-  // when every governed pilot archetype has an active published concrete_condition_v1 contract.
-  const { data: pilotArchetypes, error: pilotArchetypeError } = await supabase
-    .from('platform_condition_archetypes')
-    .select('id,code')
-    .in('code', [...CONDITION_ARCHETYPE_KEYS])
-    .eq('active', true);
-  const pilotArchetypeIds = (pilotArchetypes || []).map((row: any) => row.id);
-  let pilotArchetypeVersions: any[] = [];
-  let pilotVersionError: any = null;
-  if (pilotArchetypeIds.length === CONDITION_ARCHETYPE_KEYS.length) {
-    const result = await supabase
-      .from('platform_condition_archetype_versions')
-      .select('archetype_id,status,engine_key')
-      .in('archetype_id', pilotArchetypeIds)
-      .eq('status', 'published')
-      .eq('engine_key', 'concrete_condition_v1');
-    pilotArchetypeVersions = result.data || [];
-    pilotVersionError = result.error;
-  }
-  const conditionAuthoringActive = !pilotArchetypeError && !pilotVersionError && CONDITION_ARCHETYPE_KEYS.every((key) => {
-    const archetype = (pilotArchetypes || []).find((row: any) => row.code === key);
-    return Boolean(archetype && pilotArchetypeVersions.some((version: any) => version.archetype_id === archetype.id));
-  });
 
   const { data: set } = await supabase.from('takeoff_sets').select('*').eq('id', setId).eq('company_id', companyId).maybeSingle();
   if (!set) notFound();
@@ -65,34 +37,6 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
     supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at,profile_kind,variant_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
   ]);
-
-  let builderData: any = null;
-  if (!conditionAuthoringActive) {
-    const [
-      { data: builderAssemblies }, { data: builderVersions }, { data: builderVariables }, { data: builderComponents },
-      { data: builderChildren }, { data: builderBindings }, { data: builderFolders }, { data: builderCatalogItems },
-    ] = await Promise.all([
-      supabase.from('concrete_assemblies').select('id,folder_id,code,name,category,primary_measurement,description,display_style,direct_takeoff_enabled,active').eq('company_id', companyId).eq('active', true).order('category').order('name'),
-      supabase.from('concrete_assembly_versions').select('id,assembly_id,version_no,status,source_type,source_label,source_reference,default_risk_class_code,assembly_code_snapshot,assembly_name_snapshot,category_snapshot,primary_measurement_snapshot,description_snapshot,render_config,created_at,published_at').eq('company_id', companyId).order('assembly_id').order('version_no', { ascending: false }),
-      supabase.from('concrete_assembly_variables').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
-      supabase.from('concrete_assembly_components').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
-      supabase.from('concrete_assembly_children').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
-      supabase.from('concrete_assembly_property_bindings').select('*').eq('company_id', companyId).order('assembly_version_id').order('sort_order'),
-      supabase.from('concrete_assembly_folders').select('*').eq('company_id', companyId).eq('active', true).order('sort_order').order('name'),
-      supabase.from('cost_catalog_items').select('id,name,description,default_unit,default_unit_cost,vendor_name,sku,cost_code_id').eq('company_id', companyId).eq('active', true).order('name'),
-    ]);
-    builderData = {
-      assemblies: builderAssemblies || [],
-      versions: builderVersions || [],
-      variables: builderVariables || [],
-      components: builderComponents || [],
-      children: builderChildren || [],
-      bindings: builderBindings || [],
-      folders: builderFolders || [],
-      catalogItems: builderCatalogItems || [],
-      measurements: measurements || [],
-    };
-  }
 
   const measurementIds = (measurements || []).map((m: any) => m.id);
   let summaries: any[] = [];
@@ -244,9 +188,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
-      {conditionAuthoringActive
-        ? <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
-        : <TakeoffAssemblyBuilderShell setId={setId} workspaceProps={workspaceProps} builderData={builderData} conditionData={conditionData} />}
+      <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}
     </div>
   </AppShell>;

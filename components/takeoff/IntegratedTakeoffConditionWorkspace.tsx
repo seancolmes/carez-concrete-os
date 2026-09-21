@@ -526,7 +526,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
 
   return <div className={styles.integrated} data-mobile-review={mobileReview?'true':'false'} data-context-tab={contextTab} data-view-mode={mobileReview?'2d':viewMode} style={{'--condition-properties-width':`${inspectorWidth}px`} as CSSProperties}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
-      <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive mobileReview={mobileReview} conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation} drawingViewHidden={!mobileReview&&viewMode==='3d'}/>
+      <TakeoffDrawingWorkspace {...workspaceProps} mobileReview={mobileReview} conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation} drawingViewHidden={!mobileReview&&viewMode==='3d'}/>
       {contextPortal}
       <div className={`${direction.drawingViewModes} ${styles.spatialRail}`} aria-label="Takeoff view controls">
         <div className={styles.spatialContext} title={`${activeSheetLabel} · ${selectedSummary?.name||'Select a Condition'}`}>
