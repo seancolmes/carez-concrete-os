@@ -27,12 +27,12 @@ Premium parent:
 - Do not use premium reasoning for repository discovery, routine edits, tests, QA, log reading, CI, deployment monitoring, or post-implementation review.
 
 Delegation:
-- Default worker is GPT-5.6 Luna. Use a fresh child with fork_turns: none and a complete bounded brief.
-- Use the named Terra worker only when the bounded worker task genuinely needs more capability than Luna.
+- Default worker is GPT-5.6 Luna. Use agent_type luna-worker when role selection is available; otherwise rely on the configured Luna default. Use a fresh child with fork_turns: none and a complete bounded brief.
+- Use agent_type terra-worker only when the bounded worker task genuinely needs more capability than Luna or Luna is rejected by the current spawn allowlist.
 - Never spawn GPT-6 Astra as a child. Never let a child inherit the parent model.
 - Normally use one worker. Use two only for truly independent work where parallelism is cheaper than keeping the parent active.
 - Workers must not spawn more agents.
-- Superpowers dispatches must obey these same routing rules.
+- Superpowers dispatches must obey these same routing rules even when a skill suggests a different model tier. Set Luna/Terra explicitly when the spawn interface exposes model selection.
 
 Superpowers:
 - Use relevant skills for unresolved design, planning, or systematic debugging when they materially help.
