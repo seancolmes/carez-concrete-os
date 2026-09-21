@@ -8,6 +8,8 @@ const integratedWorkspace = readFileSync('components/takeoff/IntegratedTakeoffCo
 const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
 const assemblyHistoryPage = readFileSync('app/takeoff/assemblies/page.tsx', 'utf8');
+const takeoffLanding = readFileSync('app/takeoff/page.tsx', 'utf8');
+const navigation = readFileSync('lib/ui/navigation.ts', 'utf8');
 test('normal Takeoff is permanently Condition-first after P0.5E parity', () => {
   assert.match(page, /<TakeoffConditionWorkflowShell/);
   assert.doesNotMatch(page, /TakeoffAssemblyBuilderShell|conditionAuthoringActive/);
@@ -39,4 +41,13 @@ test('legacy assembly mutation action modules are retired after dependency cutov
   assert.equal(existsSync('app/takeoff/[setId]/assemblyActions.ts'), false);
   assert.equal(existsSync('app/takeoff/[setId]/assemblySystemActions.ts'), false);
   assert.equal(existsSync('app/takeoff/[setId]/scopeVariantActions.ts'), false);
+});
+
+
+test('normal navigation presents legacy assemblies as audit history, not an authoring library', () => {
+  assert.match(takeoffLanding, /Assembly history/);
+  assert.match(takeoffLanding, /read-only compatibility history/i);
+  assert.doesNotMatch(takeoffLanding, /Maintain those recipes separately|Open assembly library/);
+  assert.match(navigation, /label:'Assembly history'/);
+  assert.match(navigation, /hint:'Legacy compatibility records'/);
 });
