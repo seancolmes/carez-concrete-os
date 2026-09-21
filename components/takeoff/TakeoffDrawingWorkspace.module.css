@@ -117,3 +117,34 @@
 .measurementShape>path,.measurementShape>polygon,.measurementShape>polyline{transition:stroke-width 180ms ease,fill 180ms ease}
 .measurementShape[data-selected="true"]{filter:drop-shadow(0 0 1px var(--primary))}
 @media(prefers-reduced-motion:reduce){.measurementShape>path,.measurementShape>polygon,.measurementShape>polyline{transition:none}}
+
+
+/* Mobile review mode intentionally omits Takeoff authoring and the persistent worksheet. */
+.mobileReviewTools{display:flex;align-items:center;gap:2px;flex:none}
+.mobilePageGroup{display:flex;align-items:center;gap:2px;flex:none}
+.mobilePageLabel{display:grid;min-width:42px;height:28px;place-items:center;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--foreground);font:650 10px var(--font-ibm-plex-mono),ui-monospace,monospace}
+.mobileReviewStatus{margin-left:auto;color:var(--muted-foreground);font-weight:650}
+@media(max-width:860px){
+  .workstation[data-mobile-review="true"]{height:100%;min-height:0}
+  .workstation[data-mobile-review="true"] .workspace,
+  .workstation[data-mobile-review="true"] .noSheets,
+  .workstation[data-mobile-review="true"] .noInspector,
+  .workstation[data-mobile-review="true"] .noSheets.noInspector{grid-template-columns:minmax(0,1fr);min-height:0}
+  .workstation[data-mobile-review="true"] .center{grid-template-rows:auto minmax(0,1fr) 28px}
+  .workstation[data-mobile-review="true"] .toolbar{min-height:42px;padding:5px;gap:3px}
+  .workstation[data-mobile-review="true"] .toolButton,
+  .workstation[data-mobile-review="true"] .iconTool{width:30px;height:30px;padding:0}
+  .workstation[data-mobile-review="true"] .toolButton span{display:none}
+  .workstation[data-mobile-review="true"] .zoomLabel{min-width:48px;height:30px}
+  .workstation[data-mobile-review="true"] .mobilePageLabel{height:30px}
+  .workstation[data-mobile-review="true"] .statusbar{min-height:28px;padding-inline:8px;gap:8px}
+  .workstation[data-mobile-review="true"] .sidebar{bottom:0}
+  .workstation[data-mobile-review="true"] .overlay{cursor:grab}
+  .workstation[data-mobile-review="true"] .overlayPanning{cursor:grabbing}
+}
+@media(max-width:430px){
+  .workstation[data-mobile-review="true"] .toolbar{gap:2px}
+  .workstation[data-mobile-review="true"] .toolbarSpacer{min-width:1px}
+  .workstation[data-mobile-review="true"] .mobilePageLabel{min-width:38px}
+  .workstation[data-mobile-review="true"] .zoomLabel{min-width:44px}
+}
