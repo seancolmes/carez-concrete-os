@@ -12,7 +12,7 @@ export default async function LoginPage(){
   if(user){const {data:profile}=await supabase.from('profiles').select('role').eq('id',user.id).maybeSingle();redirect(profile?.role==='employee'?'/employee':'/');}
   return <main className="carez-login bg-neutral-950">
     <StructuralDraftingCanvas/>
-    <section className="carez-login-intro" aria-label="Carez">
+    <section className="carez-login-intro lg:border-r border-neutral-900" aria-label="Carez">
       <header>CAREZ / PROJECT OPERATING SYSTEM</header>
       <div className="carez-login-heading">
         <h1>{loginLandingContent.headline}</h1>
@@ -29,10 +29,10 @@ export default async function LoginPage(){
           >{cta.label}</Link>)}
         </div>
       </div>
-      <footer aria-label="Platform capabilities">
-        {loginLandingContent.categories.map((category,index)=><span key={category}>{index>0&&<i aria-hidden="true">/</i>}{category}</span>)}
-      </footer>
     </section>
     <section className="carez-login-form" id="sign-in" aria-label="Sign in"><LoginForm/></section>
+    <footer className="carez-login-capabilities border-t border-neutral-900 pt-4" aria-label="Platform capabilities">
+      {loginLandingContent.categories.map((category,index)=><span key={category}>{index>0&&<i aria-hidden="true">/</i>}{category}</span>)}
+    </footer>
   </main>;
 }
