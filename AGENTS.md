@@ -16,11 +16,30 @@ Load only the route needed for the task:
 - Codex execution, validation, model routing, branches → `CODEX.md`
 - Cross-cutting product architecture → `docs/ARCHITECTURE.md`
 - Local OmniRoute/Ollama workstation → `docs/workflow/LOCAL_CODEX_WORKSTATION.md`
-- Premium Astra/Luna/Terra routing → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
-- General UI → ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md`
+- Premium Astra/Luna/Terra routing and plugin coordination → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
+- General UI → ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when the task is design-relevant
 - Takeoff → ADR-020 + current Takeoff module contracts
+- Development process/debugging/planning → installed Superpowers skills when relevant
 
-Do not preload `docs/`, old history, unrelated migrations, or unrelated routes.
+Do not preload `docs/`, old history, unrelated migrations, unrelated routes, or unrelated plugins.
+
+## Authority and plugin precedence
+
+For Carez development work:
+
+```text
+Nik / explicit task
+→ AGENTS.md + CODEX.md
+→ Carez routing / approved specs and ADRs
+→ Superpowers + Impeccable
+→ model execution
+```
+
+User and repository instructions outrank plugin defaults.
+
+- If the task says a design/spec/plan is already approved, do not re-brainstorm, rewrite it, or reopen settled product decisions.
+- Superpowers may structure unresolved design, planning, or debugging, but its subagent/review/verification workflows must obey Carez model-routing and premium-stop rules.
+- Impeccable may guide design-relevant implementation, but automatic or explicit review/polish work does not extend a premium run beyond the assigned implementation scope.
 
 ## Execution modes
 
@@ -32,7 +51,7 @@ Premium hosted implementation is opt-in. When Astra is explicitly selected, foll
 IMPLEMENT -> COMMIT -> PUSH -> STOP
 ```
 
-The premium implementation turn does not perform post-implementation QA, CI/deployment monitoring, review passes, or optional polish unless the current task explicitly assigns that work. Carez control-room tooling handles acceptance separately.
+The premium implementation turn does not perform post-implementation QA, CI/deployment monitoring, review passes, optional polish, or plugin-driven finish loops unless the current task explicitly assigns that work. Carez control-room tooling handles acceptance separately.
 
 ## UI
 
