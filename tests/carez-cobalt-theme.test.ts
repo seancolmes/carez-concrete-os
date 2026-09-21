@@ -42,7 +42,7 @@ test('light theme implements the approved Carez Cobalt semantic contract', () =>
 });
 
 test('dark theme implements the approved Carez Cobalt semantic contract', () => {
-  const dark = block('.dark');
+  const dark = block('\n.dark {');
   for (const [token, value] of Object.entries({
     'surface-canvas':'#0F1722',
     'surface-panel':'#162331',
