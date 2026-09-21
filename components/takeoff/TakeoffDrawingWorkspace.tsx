@@ -386,7 +386,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     if(draftPoints.length<minimum){setMessage(`${selectedAssembly.primary_measurement} takeoff needs at least ${minimum} point${minimum===1?'':'s'}.`);return;}
     if(geometryType!=='count'&&!draftScaleRegionId){setMessage('Start the takeoff inside an accepted scale region.');return;}
     const sameAssemblyCount=currentMeasurements.filter((m:any)=>m.assembly_version_id===selectedVersion.id).length;
-    const autoName=`${selectedAssembly.name}${location.trim()?` — ${location.trim()}`:''} ${sameAssemblyCount+1}`;
+    const autoName=`${selectedAssembly.name} ${sameAssemblyCount+1}`;
     const finalName=objectName.trim()||autoName;
     setBusy(true);
     try{
