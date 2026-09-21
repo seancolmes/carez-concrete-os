@@ -162,6 +162,7 @@ test('P0.5E final docs preserve the EDGE-style Condition-first estimator contrac
   const currentState = readFileSync('docs/CURRENT_STATE.md', 'utf8');
   const takeoffSpec = readFileSync('docs/modules/takeoff.md', 'utf8');
   const resourceSpec = readFileSync('docs/modules/assembly-resource-engine.md', 'utf8');
+  const roadmap = readFileSync('docs/ROADMAP.md', 'utf8');
 
   assert.match(takeoffSpec, /EDGE-style estimating workbench/);
   assert.match(takeoffSpec, /EDGE-style Condition-first estimator workflow/i);
@@ -173,7 +174,12 @@ test('P0.5E final docs preserve the EDGE-style Condition-first estimator contrac
   assert.match(currentState, /17 unsupported_review/i);
   assert.match(currentState, /single pre-Condition QA fixture/i);
   assert.match(currentState, /idempotent replay[^\n]*PASS/i);
-  assert.match(currentState, /final staging acceptance pending/i);
+  assert.match(currentState, /P0\.5E legacy migration — complete on staging/i);
+  assert.match(currentState, /Task 7[^\n]*browser[^\n]*PASS/i);
+  assert.match(currentState, /Issue #39 is closed/i);
+  assert.match(roadmap, /P0\.5 — Concrete Condition \+ derived 3D foundation — COMPLETE ON STAGING/i);
+  assert.match(roadmap, /Issue #39 \/ P0\.5E is complete and closed/i);
+  assert.doesNotMatch(currentState, /final staging acceptance pending/i);
 
   assert.doesNotMatch(currentState, /Tasks 1–2 are implemented; Task 3 is the next/);
   assert.doesNotMatch(currentState, /prepareLegacyPilotMigration\(\)[^\n]*not implemented/i);
