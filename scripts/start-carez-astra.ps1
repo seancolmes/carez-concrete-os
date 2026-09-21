@@ -8,10 +8,11 @@ $ErrorActionPreference = "Stop"
 
 $PreviousHookOverride = [Environment]::GetEnvironmentVariable("IMPECCABLE_HOOK_DISABLED", "Process")
 $env:IMPECCABLE_HOOK_DISABLED = "1"
+$ExitCode = 0
 
 try {
     & codex --profile carez-astra @CodexArgs
-    exit $LASTEXITCODE
+    $ExitCode = $LASTEXITCODE
 }
 finally {
     if ($null -eq $PreviousHookOverride) {
@@ -21,3 +22,5 @@ finally {
         $env:IMPECCABLE_HOOK_DISABLED = $PreviousHookOverride
     }
 }
+
+exit $ExitCode
