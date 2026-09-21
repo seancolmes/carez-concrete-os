@@ -73,7 +73,7 @@ export default async function TakeoffPage(){
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Concrete takeoff</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Open the plans, measure the physical work, and let Carez conditions and assemblies build labor, material, equipment, and field quantities behind the drawing.</p></div>
-        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assemblies</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assembly history</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
       </header>
 
       <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Carez estimating workflow">
@@ -140,7 +140,7 @@ export default async function TakeoffPage(){
           })}</div>}
       </section>
 
-      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Concrete assemblies do the heavy lifting</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published assemblies convert plan geometry into concrete, reinforcement, forms, finish labor, and production quantities. Maintain those recipes separately from daily takeoff work.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Open assembly library</Link></CardHeader></Card>
+      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Legacy assembly compatibility history</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published compatibility assemblies remain available for historical Takeoff and estimate lineage. This is read-only compatibility history; new scope is authored through Concrete Conditions.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Assembly history</Link></CardHeader></Card>
     </div>
   </AppShell>;
 }
