@@ -80,7 +80,7 @@ export default async function TakeoffPage(){
         {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===0?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
       </nav>
 
-      <section className="carez-summary-ledger grid gap-px md:grid-cols-2 xl:grid-cols-4">
+      <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
         <Metric label="Working bids" value={String(activeSets.filter((set:any)=>!issued.has(set.estimate_id)).length)} help="Active takeoff revisions."/>
         <Metric label="Measured scope" value={String(activeMeasurements.length)} help="Concrete objects measured or entered."/>
         <Metric label="Needs pricing" value={String(missingOutputs.length)} help="Assembly outputs blocking a clean estimate." tone={missingOutputs.length?'warning':'success'}/>

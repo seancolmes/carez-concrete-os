@@ -80,7 +80,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
       {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
     </nav>
 
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
       <MetricCard label="Customer Price" value={money(sell)} help="Immutable once this revision is issued." tone="primary"/>
       <MetricCard label="Views" value={issued?String(Number(queue.view_count||0)):'—'} help={issued&&queue.last_viewed_at?`Last viewed ${dt(queue.last_viewed_at)}`:'Customer engagement after issue.'} tone={viewed?'success':'default'}/>
       <MetricCard label="Needs Reply" value={String(responseEvents.length)} help="Unanswered customer responses." tone={responseEvents.length?'warning':'default'}/>

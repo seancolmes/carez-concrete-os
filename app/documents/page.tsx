@@ -71,7 +71,7 @@ export default async function DocumentsPage(){
         <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Capture the photo once, then tie it to the job, PO delivery, vendor bill or bank charge it proves.</p>
       </header>
 
-      <section className="carez-summary-ledger grid gap-px md:grid-cols-2 xl:grid-cols-4" aria-label="Document summary">
+      <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4" aria-label="Document summary">
         <Metric icon={Inbox} label="Needs Review" value={queue.length} help="Receipts and tickets waiting to be handled." tone={queue.length?'warning':'success'}/>
         <Metric icon={FolderOpen} label="Need a Job" value={missingJob.length} help="Evidence not assigned to a project." tone={missingJob.length?'warning':'success'}/>
         <Metric icon={FileCheck2} label="Matched" value={matched.length} help="Connected to accounting or procurement."/>

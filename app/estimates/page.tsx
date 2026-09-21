@@ -125,7 +125,7 @@ export default async function EstimatesPage(){
         {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===1?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
       </nav>
 
-      <section className="carez-summary-ledger grid gap-px md:grid-cols-2 xl:grid-cols-4">
+      <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
         <Metric label="Pricing now" value={String(working.length)} help="Editable bid revisions."/>
         <Metric label="Ready for audit" value={String(ready.length)} help="Price and scope marked ready." tone={ready.length?'success':'default'}/>
         <Metric label="Issued / awarded" value={`${issued.length} / ${awarded.length}`} help="Customer-facing and won revisions."/>
