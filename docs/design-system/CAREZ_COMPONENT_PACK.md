@@ -45,38 +45,38 @@ Shared components consume semantic application tokens rather than hard-coded lig
 
 Appearance preference is `light | dark | system`; System is default. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
 
-Primary UI/display typography is Manrope. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
+Primary UI/display typography is Inter. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
-### Slate Haze color contract
+### Indigo Harbor color contract
 
-ADR-025 uses the supplied **Slate Haze** palette as the Carez color foundation. Components consume semantic Carez tokens rather than hard-coded local palettes.
+ADR-025 uses the supplied **Indigo Harbor** palette as the Carez color foundation. Components consume semantic Carez tokens rather than hard-coded local palettes.
 
 ```css
 /* Light */
---background: #faf9f5;
---card: #faf9f5;
---foreground: oklch(0.145 0 0);
---muted: oklch(0.923 0.003 48.717);
---muted-foreground: oklch(0.553 0.013 58.071);
---accent: #e9e6dc;
---border: oklch(0.869 0.005 56.366);
---input: oklch(0.922 0 0);
---ring: oklch(0.554 0.046 257.417);
---primary: oklch(0.704 0.04 256.788);
---sidebar: #f5f4ee;
+--background: #f3f5fb;
+--card: #ffffff;
+--foreground: #010101;
+--muted: #f5f5f5;
+--muted-foreground: #454545;
+--accent: #19398d;
+--border: #e3e3e3;
+--input: #ffffff;
+--ring: #324f9a;
+--primary: #19398d;
+--sidebar: #001B3C;
 
 /* Dark */
---background: #262624;
---card: #262624;
---foreground: #c3c0b6;
---muted: #1b1b19;
---muted-foreground: #b7b5a9;
---accent: #1a1915;
---border: #3e3e38;
---input: #52514a;
---ring: oklch(0.869 0.022 252.894);
---primary: oklch(0.901 0.058 230.902);
---sidebar: #1f1e1d;
+--background: #050505;
+--card: #0a0a0a;
+--foreground: #fafafa;
+--muted: #262626;
+--muted-foreground: #a1a1a1;
+--accent: #404040;
+--border: #282828;
+--input: #121212;
+--ring: #6a8dd8;
+--primary: #6a8dd8;
+--sidebar: #0a0a0a;
 ```
 
 Carez aliases:
@@ -86,22 +86,25 @@ Carez aliases:
 --surface-panel: var(--card);
 --surface-raised: var(--popover);
 --text-primary: var(--foreground);
+--text-secondary: var(--muted-foreground);
 --text-muted: var(--muted-foreground);
 --border-default: var(--border);
---border-strong: var(--input);
+--border-strong: var(--ring);
 --interaction-primary: var(--primary);
 --interaction-selection: var(--accent);
 --interaction-focus: var(--ring);
 --spatial-accent: var(--primary);
 
-/* Shell uses the corresponding Slate Haze values explicitly because
+/* Shell uses explicit Indigo Harbor sidebar values because
    .carez-shell rebinds the core semantic variables. */
---shell-background: #f5f4ee;
---shell-surface: #faf9f5;
---shell-primary: oklch(0.554 0.046 257.417);
+--shell-background: #001B3C;
+--shell-surface: #001B3C;
+--shell-foreground: #f4f5fc;
+--shell-accent: #19398d;
+--shell-primary: #19398d;
 ```
 
-The theme does **not** replace Carez typography: Manrope and IBM Plex Mono remain authoritative. Slate Haze applies across the shared shell and specialist workspaces with no separate module palette. Shell mappings use the corresponding explicit Slate Haze values to avoid recursive custom-property aliases when the shell rebinds semantic tokens. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
+Inter is the primary Carez UI/display font; IBM Plex Mono remains the technical font. Indigo Harbor applies across the shared shell and specialist workspaces with no separate module palette. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
 
 ## 1. Carez Data Grid
 
