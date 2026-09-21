@@ -1,47 +1,71 @@
 # Carez Concrete OS — Modernization Roadmap
 
-Current priority: Issue #76 / ADR-025 is accepted on `staging` at `457be2068a2b42f7883286a4f467f819e7fc049a`. The next sequenced product gate is P0.5E Issue #39 — legacy recipe migration and active formula-UI retirement — followed by P0.5 end-to-end reconciliation before P1 Estimating.
-
-
 This roadmap governs sequence. It does not authorize unrelated rewrites.
 
-## P0.1 — Shell + Takeoff acceptance
+## Current program state
 
-Outcome:
-- ADR-025 Carez Operations Workspace is the accepted global presentation/shell authority: company identity/masthead, workspace directory, favorite destinations, first-class command/search, notifications affordance, account/system controls, and project context without a permanent global desktop left rail;
-- versioned device-local navigation personalization supports pin/unpin/reorder/reset without changing authorization;
-- project context appears only when an authoritative Project is resolved, and project switching preserves only explicitly safe workspace mappings;
-- mobile uses role-priority bottom navigation plus `More`, while module-specific contextual panes remain inside their owning workspaces;
-- the permanent global desktop left rail and ADR-016 static category shell remain retired;
-- first shared Carez component pack is introduced and reused across converted surfaces;
-- authenticated shell and Takeoff visual QA complete;
-- no geometry, lineage, RLS, or migration regressions.
+The Carez UI and domain programs now have two open workstreams:
 
-## P0.2 — Precision Grid shared UI foundation
+- **Issue #76 / ADR-025 Experience System rollout:** the design authority and three-route reference slice are accepted, but the original complete application-wide rewrite is not finished.
+- **Issue #39 / P0.5E legacy migration:** Tasks 1–2 are implemented; Task 3 is the next unfinished domain checkpoint.
 
-Outcome:
-- Issue #63 Precision Grid token/theme/density foundation is accepted;
-- Issue #71 role-adaptive Hybrid global shell + authoritative project-context navigation is accepted;
-- Issue #72 shared component/state/accessibility foundation is accepted, including semantic status/save/authority/provenance/feedback, Inspector, Record Header, shared Project Context Bar, semantic Number Field variants, and Data Grid state/accessibility foundations;
-- Subproject 4 refined-operations reference slice `Today → Project → Project Overview` is accepted on staging and proves the first rendered Overview/Record expression across the shared system;
-- Issue #76 / ADR-025 Carez Operations Workspace is accepted on staging at `457be2068a2b42f7883286a4f467f819e7fc049a`, including the Today, Projects, and Documents reference experiences;
-- broad UI migration is no longer the current sequencing gate; further presentation work follows product/module priorities while preserving ADR-025 and the accepted Takeoff boundary.
+Do not treat either as complete. Nik selects which workstream receives the next cloud implementation budget.
 
-## P0.5 — Concrete Condition + 3D Takeoff foundation
+## P0.1 — Accepted shell / Takeoff foundation
 
-Outcome:
-- active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
-- additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- ADR-020 remains authoritative for Takeoff quantity/domain invariants while ADR-025 governs shared presentation/chrome; preserve the accepted Plans/Conditions/Zones navigator, dominant drawing surface, Condition Properties surface, explicit 2D/3D/Split controls, and vertically resizable Quantity/Estimate Worksheet unless Nik explicitly approves a replacement;
-- an optional future explicit floating-properties mode may be draggable/resizable, but the normal docked side panes do not use horizontal drag-resizing;
-- the shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading States, File Upload and motion patterns are used where applicable instead of route-local equivalents;
-- Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
-- built-in authoritative geometry facts are derived before asking the estimator to redraw duplicate geometry; estimator authority remains explicit where geometry does not determine means/methods;
-- installed/theoretical demand, procurement quantity, reusable inventory demand, Production Quantity, Direct Cost, and Sell remain separately traceable;
-- 2D, 3D, and Split modes share selection and totals; read-only derived 3D exposes representative elevation, overlap/gap, step, and cutout errors;
-- supported legacy recipes/variants remain preserved through the compatibility/history layer while new standard authoring uses Conditions after verified parity;
-- old Recipe Editor/Formula Composer/Assembly Library UI is removed from the active workflow only after dependency and browser-verification gates;
-- no referenced published or accepted history is deleted.
+Outcome already established:
+
+- one source-owned component system;
+- role-aware global navigation/project context without a permanent desktop left rail;
+- first-class light/dark/system;
+- accepted Takeoff Plans/Conditions/Zones navigator, dominant drawing surface, Condition Properties, Quantity Worksheet, and 2D/3D access;
+- authoritative persisted 2D geometry and server/domain calculation;
+- no geometry, lineage, RLS, or migration authority moved into presentation code.
+
+ADR-025 now supersedes prior ADR-024 presentation where it speaks. ADR-020 continues to protect Takeoff quantity/domain invariants.
+
+## P0.2 — Carez Experience System rollout — OPEN
+
+Accepted:
+
+- ADR-025 design authority;
+- approximately 80% Command Deck / 20% Spatial Blueprint direction;
+- Manrope-led hierarchy, meaningful icon language, stronger shared tabs, three depth levels, restrained functional motion rules;
+- shared workspace/masthead/favorites language;
+- Today — Daily Command Center;
+- Projects — Operations Board;
+- Documents — Evidence Hub.
+
+Still required to satisfy the original Issue #76 complete-rewrite objective:
+
+- propagate ADR-025 coherently through remaining high-value routes instead of leaving a three-page reference island;
+- refine Project Overview, Estimate, Proposal/commercial, Billing/finance, Owner Reports, Settings, and other remaining standard routes;
+- implement purposeful motion where state/continuity/activity materially benefits the workflow;
+- apply Spatial Blueprint / 3D treatment selectively to appropriate experiences rather than decoratively;
+- pursue the explicitly deferred Client Package Studio, Markup Sheet, Quick Estimate, and login/landing experience projects when authorized;
+- preserve Takeoff's domain/quantity authority during any future visual refinement.
+
+A new immersive 3D layer is **not** required on every route. Spatial/3D treatment belongs where it materially supports Takeoff, markup/customer review, selected hero/landing, or field-estimating experiences.
+
+## P0.5 — Concrete Condition + derived 3D foundation — OPEN
+
+Established:
+
+- named Concrete Conditions are the normal direction instead of recipe/formula-first authoring;
+- Platform Condition Archetype → Company Condition Template → Project Concrete Condition lineage is versioned;
+- Pad/Column Footing, Strip/Wall Footing, and Slab on Grade pilot families are implemented;
+- derived 3D uses the same authoritative 2D data/IDs and remains verification only;
+- Issue #41 synchronized derived 3D is closed/completed.
+
+Remaining gate:
+
+- **Issue #39 — P0.5E legacy recipe migration and active formula-UI retirement**;
+- preserve referenced published/accepted history;
+- migrate/reconcile only supported editable records through server-authoritative Condition calculation;
+- retire active formula-first UI only after exact dependency/parity proof;
+- complete P0.5 end-to-end reconciliation and stable-staging browser acceptance.
+
+Issue #59 remains a production migration blocker and is not bypassed by P0.5E.
 
 ## P1 — Estimating
 

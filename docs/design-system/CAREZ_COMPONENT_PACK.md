@@ -2,7 +2,7 @@
 
 ## Active presentation authority — ADR-025
 
-On `staging`, ADR-025 Carez Operations Workspace is the accepted presentation authority after Issue #76 integration at `457be2068a2b42f7883286a4f467f819e7fc049a`. Source-owned accessible primitives retain their APIs. The shared masthead, workspace directory, favorite destinations, record headings, metric ledgers, technical tables, experience tabs, and reference-route primitives form one system. Specialist CSS consumes the same semantic tokens directly. Project details use a dismissible sheet at all widths. Condition Properties opens without losing editor state. Historical foundation notes below describe API and behavior lineage, not a competing visual target.
+ADR-025 Carez Operations Workspace / Experience System is the active staging presentation authority. The accepted reference implementation covers shared experience primitives plus Today, Projects, and Documents; application-wide propagation remains open under Issue #76. Source-owned accessible primitives retain their APIs. The shared masthead, workspace directory, favorite destinations, record headings, metric ledgers, technical tables, experience tabs, and reference-route primitives form one system. Specialist workspaces consume the same semantic tokens and domain authority.
 
 
 Status: Accepted design-system contract
@@ -39,13 +39,13 @@ Options should differ in behavior or workflow, not merely color, spacing, or cos
 
 This protocol does not authorize a second design system. External sources remain reference/source pools subject to ADR-015 licensing, accessibility, bundle-cost, architecture, and Carez-token requirements.
 
-## Precision Grid foundation
+## Operations Workspace foundation
 
 Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
 
 Appearance preference is `light | dark | system`; System is default. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
 
-Primary UI typography is Inter Variable. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
+Primary UI/display typography is Manrope. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
 ## 1. Carez Data Grid
 
@@ -283,13 +283,15 @@ Consistent loading, processing, indexing, importing, and background-operation fe
 
 ### Role
 
-Shared functional motion language used by shell navigation and interactive primitives.
+Shared functional motion language used by shell navigation, operational state, queue/file processing, tabs, inspectors, sheets, and other interactions where motion materially communicates change or continuity.
 
 ### Base timing
 
 - micro feedback: approximately 120–150 ms;
+- active tabs / surface lift / focus transitions: approximately 150–250 ms;
 - menus/popovers/dropdowns: approximately 160–190 ms;
 - larger sheets/dialog/layout transitions: approximately 180–220 ms;
+- one-time value/status transitions only when they communicate real state;
 - spring behavior only for direct manipulation or overlays where it improves comprehension.
 
 ### Global navigation behavior
@@ -305,8 +307,9 @@ The ADR-025 Operations Workspace shell carries forward role-priority destination
 ### Rules
 
 - motion must communicate action, state, continuity, direct manipulation, loading, or selection;
-- no perpetual decorative motion;
+- no perpetual decorative motion, looping gradients, or page-wide parallax;
 - no motion that delays high-frequency estimator actions;
+- subtle field/live pulses, queue movement, file-processing transitions, and contextual focus are allowed only when backed by real state;
 - all meaningful animation respects `prefers-reduced-motion`;
 - transitions must preserve focus and not create pointer traps.
 
@@ -346,6 +349,12 @@ Issue #72 implements the reusable presentation/state foundation used by later wo
 `CarezDataGrid` provides selected-row and sortable-header semantics, numeric/text alignment, density-token row sizing, sticky headers, loading/empty/error composition, and optional resize affordance. Virtualization, grouping, copy/paste, inline editing, and saved column state remain consumer-driven additions rather than speculative base behavior.
 
 Issue #72 passed authenticated staging browser QA on 2026-09-19 at staging SHA `40259ae36e11091239841e5bfadc7c3dd24623c0`. The shared component/state foundation is therefore accepted for reuse by the refined-operations and specialist reference slices; unadopted components still receive workflow-specific browser acceptance when later consumed.
+
+## Spatial Blueprint rule
+
+Spatial/3D treatment is selective. Use plan linework, geometry cues, layered depth, or derived 3D only where it improves technical understanding or customer communication. Appropriate surfaces include Takeoff, markup/customer review, selected hero/landing experiences, and future field-estimating flows. Do not add decorative 3D to repetitive forms, accounting, pricing, or dense tables.
+
+Persisted 2D Takeoff geometry remains quantity authority; 3D remains derived verification.
 
 ## Shell compositions built from the pack
 

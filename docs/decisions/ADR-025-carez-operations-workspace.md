@@ -1,36 +1,147 @@
-# ADR-025 — Carez Operations Workspace
+# ADR-025 — Carez Operations Workspace / Experience System
 
-Status: Accepted on staging at `457be2068a2b42f7883286a4f467f819e7fc049a`
-Date: 2026-09-21
-Authority: Issue #76 and Nik's explicit complete UI/UX rewrite authorization
+Status: **Accepted design authority; reference implementation accepted; application-wide rollout incomplete**  
+Date: 2026-09-21  
+Authority: Issue #76 and Nik's explicit complete UI/UX rewrite authorization  
+Accepted reference merge: `457be2068a2b42f7883286a4f467f819e7fc049a`
 
-## Approved experience refinement
+## Context
 
-Nik approved the Carez Experience System refinement in `docs/superpowers/specs/2026-09-21-carez-experience-system-design.md`. The selected direction is **Command Deck with Spatial Blueprint accents**: a premium construction command center with selective futuristic construction technology. The first implementation scope is intentionally limited to Today, Projects, Documents, and the shared experience primitives they require. Takeoff remains outside route-level redesign for this phase.
+Nik rejected incremental Precision Slate restyling as the end state and authorized a complete custom Carez UI/UX rewrite.
+
+The target is a distinctive concrete-contractor operating system rather than a generic SaaS/shadcn application.
+
+The approved experience direction is:
+
+- approximately **80% Command Deck**;
+- approximately **20% Spatial Blueprint**;
+- kinetic behavior only where it materially communicates state or workflow.
+
+Operational pages should feel energized. Technical workspaces should feel focused. Customer-facing surfaces should feel premium.
 
 ## Decision
 
-Replace the Precision Slate presentation with a single Carez Operations Workspace system. Supersede ADR-024 presentation, ADR-016 shell arrangement, and ADR-020 pane arrangement where described here. Their domain, accessibility, theme preference, navigation personalization, and measurement invariants remain protected.
+ADR-025 is the active staging presentation authority.
 
-The visual language uses warm mineral surfaces, ink typography, Carez blue actions, squared controls, ruled information sections, and tabular technical values. Light, dark, and system remain first-class. Colors belong to the semantic token blocks in globals.css; specialist workspaces consume those same tokens. Existing accessible Base UI behavior is retained under source-owned Carez presentation.
+It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 speaks while preserving compatible accessibility/theme/component foundations. ADR-020 and current Takeoff module contracts continue to govern Takeoff quantity/domain invariants.
 
-## Composition
+### Visual / interaction language
 
-- A compact masthead identifies the company and current workspace. An explicit Workspaces directory exposes the complete navigation model in business groups. Search and user settings remain directly accessible.
-- A second, quiet favorites line preserves role defaults, user pinning/reordering, and project context. No permanent global sidebar competes with drawings or financial tables.
-- Standard routes use a consistent record heading, compact metric ledger, section rules, and full-width data surfaces. Forms retain their actions, validation, names, and persistence semantics.
-- Projects retains filtering, sorting, keyboard access, and contextual actions. Its detail preview is a dismissible sheet at every width; it never reserves permanent table width.
-- Takeoff retains Plans, Conditions, Zones, all established drawing tools, Condition Properties, the Quantity Worksheet, scale, and derived 3D. Properties starts collapsed to prioritize the plan and opens through the existing Condition workflow or explicit properties control. Hiding a pane does not unmount its editor or discard unsaved input.
-- Responsive navigation exposes the same destinations. Focus indication, reduced motion, and readable technical data are mandatory. Tables scroll inside their own viewport.
+- Manrope is the primary interface/display typeface.
+- IBM Plex Mono is selective technical typography for identifiers, dimensions, aligned technical data, and other cases where mono materially helps.
+- Sentence/title case replaces pervasive uppercase hierarchy.
+- Carez blue is restrained interaction/selection/focus identity, not generic decorative fill.
+- Use three depth levels: canvas, operational surface, interactive/selected surface.
+- Tabs require a clear active surface/edge, hover/focus response, and compact professional geometry.
+- Icons must improve recognition of real construction/business states, not become decoration.
+- Light, dark, and system are first-class.
+
+### Motion
+
+Motion must answer a functional question: what changed, what is active, where did an item go, or what needs attention?
+
+Approved patterns include:
+
+- 150–250 ms surface/selection transitions;
+- active-tab transitions;
+- one-time value transitions where useful;
+- expandable operational surfaces;
+- status movement;
+- subtle live-field activity indication;
+- queue/file-processing transitions;
+- drawer/sheet continuity;
+- contextual focus/highlight.
+
+Do not use perpetual decorative animation, looping gradients, parallax across work pages, or motion that delays estimating/operations. Respect `prefers-reduced-motion`.
+
+### Spatial Blueprint / 3D
+
+Spatial treatment is selective, not universal.
+
+It is appropriate for:
+
+- Takeoff and derived 3D verification;
+- markup/customer review;
+- selected technical/hero surfaces;
+- future field-estimating experiences;
+- login/landing refinement where authorized.
+
+It is not the default treatment for repetitive forms, accounting, pricing, or dense tables.
+
+Persisted 2D Takeoff geometry remains quantity authority. 3D remains derived verification and may not create an independent quantity/commercial path.
+
+## Accepted reference implementation
+
+The final bounded Astra Experience System task intentionally implemented:
+
+- shared experience primitives needed by the reference pages;
+- typography/section hierarchy;
+- shared tab language;
+- meaningful icon language;
+- restrained transition-level motion primitives;
+- surface/depth and empty-state treatment;
+- Today — Daily Command Center;
+- Projects — Operations Board;
+- Documents — Evidence Hub.
+
+Nik visually accepted this reference slice and PR #77 merged it to staging.
+
+## Rollout status
+
+The reference slice does **not** satisfy the original Issue #76 complete application-wide rewrite by itself.
+
+The final bounded reference task explicitly left these outside scope:
+
+- Takeoff route-level redesign;
+- Estimate;
+- Proposal/commercial surfaces;
+- Billing;
+- Owner Reports;
+- Settings;
+- Client Package Studio;
+- Markup Sheet;
+- Quick Estimate;
+- login/landing;
+- broad route migration.
+
+Issue #76 remains open for coherent application-wide propagation and the explicitly deferred experience projects.
+
+Do not claim that the broader motion system or Spatial Blueprint/3D vision is fully delivered merely because the three reference routes are accepted.
+
+## Takeoff boundary
+
+Takeoff retains:
+
+- Plans;
+- Conditions;
+- Zones;
+- dominant drawing/measurement workspace;
+- governed Condition Properties;
+- Quantity / Estimate Worksheet;
+- authoritative 2D measurement;
+- synchronized derived 3D verification;
+- scale/calibration;
+- established select/pan/draw/edit/cutout/snap/ortho/undo/redo behavior.
+
+Future presentation refinement may recompose panes/interactions only if it preserves or improves estimator efficiency and all ADR-020/domain invariants.
 
 ## Protected boundary
 
-No changes to database schema, tenant isolation, RLS, server actions, quantity/cost/pricing calculations, immutable records, or commercial lineage. Persisted page-coordinate 2D geometry remains quantity authority; 3D remains verification. Production Quantity, Direct Cost, and Sell stay distinct. Human commercial and estimating authority is unchanged.
+ADR-025 does not weaken or replace:
 
-## Delivery and validation
+- Next.js modular-monolith architecture;
+- Supabase/PostgreSQL source of truth;
+- `company_id` tenant isolation/RLS;
+- source-controlled migrations;
+- server-authoritative deterministic quantity/cost/pricing/financial calculations;
+- immutable/versioned commercial records and lineage;
+- Opportunity/Takeoff → Estimate → Proposal → Award → Project → Production → Cost/Forecast lineage;
+- Production Quantity / Direct Cost / Sell separation;
+- persisted page-coordinate 2D geometry as Takeoff quantity authority;
+- human authority over scope, Conditions, means/methods, reinforcing, production assumptions, pricing, margin, budgets, approvals, and final commercial decisions.
 
-Issue #76 was implemented on `astra/complete-ui-rewrite`, visually accepted by Nik, and merged through PR #77 into `staging` at `457be2068a2b42f7883286a4f467f819e7fc049a`. GitHub Actions run `35572008076` passed for the exact merge commit, and Vercel reported success for the same commit. The accepted reference scope includes Today, Projects, Documents, and the shared experience primitives required by those routes. Takeoff remains outside route-level redesign for this phase.
+## Acceptance and future work
 
-The authenticated `/design-review` route was preview-only evidence for 390/768/1280px responsive review and did not create records or bypass workflow gates. The branch-preview Supabase binding was corrected to the QA project before acceptance work continued. Direct-job creation remained blocked by the separate QA `public.next_opportunity_number()` gap, and graphical 3D was not accepted in the non-WebGL review browser; those limits do not alter this presentation decision.
+Reference-slice acceptance is complete. Application-wide ADR-025 rollout remains open under Issue #76.
 
-Future changes follow the normal `staging` workflow. This ADR does not authorize a production release or relax any domain, database, commercial, or Takeoff authority boundary.
+Each future route migration must preserve functional behavior and be browser-accepted on staging. Major spatial/3D or interaction projects should be explicitly scoped rather than inferred from this ADR.

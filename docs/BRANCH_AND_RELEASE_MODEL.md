@@ -6,10 +6,16 @@ This document defines the permanent branch/test model for Carez Concrete OS.
 
 Carez has exactly two permanent branches:
 
-- `staging` — the single development, integration, QA, and user-acceptance line.
+- `staging` — development, integration, QA, and user acceptance.
 - `main` — production only.
 
-Do not create long-lived module, feature, experiment, archive, QA, governance, or release-candidate branches.
+Do not create long-lived module, experiment, archive, QA, governance, or release-candidate branches.
+
+## Source authority
+
+Online GitHub is authoritative. A local checkout is only a replaceable mirror.
+
+If local and remote history disagree, inspect/fetch the online repository and align the mirror to GitHub. Never force authoritative remote history from a stale local checkout.
 
 ## One user-facing QA build
 
@@ -17,50 +23,47 @@ Nik tests only the stable Vercel deployment for `staging`:
 
 `https://carez-concrete-os-git-staging-seancolmes-projects.vercel.app`
 
-Do not ask Nik to choose a commit, branch preview, PR preview, or alternate Vercel URL.
-
-The build identity may show the current staging commit for diagnostics, but the URL stays the same.
+Do not ask Nik to choose a commit preview, PR preview, or alternate Vercel URL for normal staging acceptance.
 
 ## Normal change flow
 
-1. Discuss/approve the idea in the Carez control chat or canonical issue/spec when material.
-2. Start from current `staging`.
-3. Implement with the local Codex workstation; connected ChatGPT/GitHub tools may handle bounded repository maintenance directly when appropriate.
-4. Run the required targeted checks, normally `pnpm typecheck` + relevant tests.
-5. Commit/push to `staging`.
-6. Require the staging GitHub Actions validation to pass.
+1. Discuss/approve the idea in the Carez control room or canonical issue/spec when material.
+2. Verify current online `staging`.
+3. Implement with connected control-room tools or ChatGPT Work/Codex cloud at the lowest suitable model cost.
+4. Run required targeted checks, normally `pnpm typecheck` + relevant tests.
+5. Commit/push to `staging` or a temporary branch targeting `staging`.
+6. Require the matching GitHub Actions validation to pass.
 7. Wait for the stable staging Vercel deployment to update.
-8. Nik tests the same staging URL.
+8. Nik tests the stable staging URL.
 9. Record browser acceptance and update `CURRENT_STATE.md` when verified state changes.
 10. Promote `staging` to `main` only as an explicit production release after acceptance.
 
-The local AI runtime/provider is not a branch or release concern. See `docs/workflow/LOCAL_CODEX_WORKSTATION.md`.
+All agent execution is cloud-hosted and may consume credits/allowance; model routing is a development-cost concern, not a branch/release concern.
 
 ## Temporary branches
 
-A temporary branch is allowed only when technically necessary for substantial isolated coding, a migration that needs review, or work where direct staging changes would create unreasonable risk.
+A temporary branch is allowed only when technically necessary for substantial isolated work or risk containment.
 
-If one is required:
+If required:
 
-- it is an internal implementation detail;
-- it must start from current `staging`;
-- prefer a `carez-*` name so normal CI runs automatically;
-- Nik is not asked to test its preview;
-- it is merged into `staging` after automated validation;
-- it is deleted immediately after integration;
-- user browser QA happens only on the stable staging URL.
+- start from current online `staging`;
+- target `staging`;
+- keep it internal to implementation/review;
+- merge after required validation;
+- retire it after integration;
+- normal user browser QA still occurs on stable `staging`.
 
 ## History and rollback
 
-Git commits, merged PRs, issues, ADRs, module specs, and release history preserve historical evidence. Do not keep stale branches solely as archives.
+Git commits, merged PRs, issues, ADRs, module specs, and release history preserve historical evidence. Do not retain stale branches or working documents solely as archives.
 
 If a rollback point needs a durable label, use a Git tag/release rather than another permanent branch.
 
 ## Vercel
 
-- `staging` is the only QA branch alias Nik should use.
+- `staging` is the canonical QA branch alias.
 - `main` is the production deployment line.
-- Feature-branch deployments may exist transiently because of Git integration, but they are not user-facing test targets and should disappear with temporary branch cleanup.
+- Feature-branch deployments may exist transiently but are not the normal acceptance target.
 
 ## Database authority
 

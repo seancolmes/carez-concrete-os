@@ -10,34 +10,31 @@ Private concrete-contractor operating system covering preconstruction, plans, Ta
 - `docs/ROADMAP.md` — sequence
 - `docs/modules/` — product/module contracts
 - `docs/decisions/` — durable architecture decisions
-- `docs/workflow/DEVELOPMENT_WORKFLOW.md` — development/release loop
-- `docs/workflow/LOCAL_CODEX_WORKSTATION.md` — current local Codex implementation architecture
-- `AGENTS.md` — connected-agent rules
-- `CODEX.md` — canonical Codex execution contract
+- `docs/workflow/DEVELOPMENT_WORKFLOW.md` — current cloud development/release loop
+- `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md` — cloud model routing / premium usage policy
+- `AGENTS.md` — agent routing rules
+- `CODEX.md` — canonical cloud execution contract
 
 ## Product architecture
 
-Concrete-native modular monolith; Supabase/PostgreSQL source of truth; server-authoritative deterministic calculations; RLS/tenant isolation; immutable/versioned commercial lineage; desktop professional workstation and mobile field-first.
+Concrete-native modular monolith; Supabase/PostgreSQL source of truth; server-authoritative deterministic calculations; RLS/tenant isolation; immutable/versioned commercial lineage; persisted 2D Takeoff geometry as quantity authority; derived 3D verification only; desktop professional workstation and mobile field-first.
 
 ## Development architecture
 
-The primary interactive implementation path is local-first:
+Carez implementation is cloud-based:
 
 ```text
-Carez control chat / connected tools
-→ Codex Web UI
-→ Codex app-server
-→ isolated CODEX_HOME
-→ OmniRoute
-→ local Ollama inference
-→ staging
+Carez control room / connected tools
+→ ChatGPT Work/Codex cloud
+→ GitHub staging
 → GitHub Actions
 → Vercel staging
 → browser QA
 ```
 
-The Codex/Ollama workstation is development tooling, not a Carez runtime dependency. Secrets and provider configuration stay outside the repository. OpenCode and hosted Codex Cloud are not required by the canonical workflow.
+Supabase QA is the staging database authority. All model execution may consume credits or allowance. Luna/Terra are lower-cost routing choices, not free execution. Astra is reserved for premium high-value work.
 
+A local Windows checkout may be used as a replaceable mirror, but online GitHub remains authoritative. There is no canonical local Codex/Ollama/OmniRoute implementation stack.
 
 ## Validation
 
@@ -47,10 +44,10 @@ pnpm test
 pnpm build
 ```
 
-Use `pnpm check` for the full local validation chain. UI work additionally requires browser verification of the changed rendered behavior.
+Use `pnpm check` for the full validation chain. UI work additionally requires browser verification of changed rendered behavior.
 
 ## Environment
 
-Keep secrets in the hosting/development environment. Never commit service-role keys, DB passwords, banking tokens, model-provider keys, local Codex auth, or production secrets.
+Keep secrets in hosting/connected environments. Never commit service-role keys, DB passwords, banking tokens, model-provider credentials, or production secrets.
 
 Common variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `PLAID_CLIENT_ID`, `PLAID_SECRET`.

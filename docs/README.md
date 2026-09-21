@@ -4,12 +4,12 @@ Use the source that owns the question. Do not preload the repository.
 
 ## Authority
 
-1. `supabase/` migrations/schema and repository source — implemented truth.
+1. Repository source + Supabase schema/migrations — implemented truth.
 2. `docs/ARCHITECTURE.md` + active ADRs — architecture and durable decisions.
 3. `docs/modules/` — module/product contracts.
-4. `docs/CURRENT_STATE.md` — current verified implementation/blockers.
+4. `docs/CURRENT_STATE.md` — current verified implementation, open work, blockers.
 5. `docs/ROADMAP.md` — sequence.
-6. `AGENTS.md` + `CODEX.md` + `docs/workflow/` — development-agent/runtime workflow.
+6. `AGENTS.md` + `CODEX.md` + `docs/workflow/` — cloud development/model-routing workflow.
 7. GitHub issues/PRs/history — active and historical implementation evidence.
 8. Vercel/browser evidence — deployment/rendered acceptance.
 
@@ -17,14 +17,14 @@ Use the source that owns the question. Do not preload the repository.
 
 | Need | Start with |
 | --- | --- |
-| Bounded code task | `AGENTS.md` or `CODEX.md`, target files |
-| Local Codex runtime | `workflow/LOCAL_CODEX_WORKSTATION.md` |
-| Development cycle | `workflow/DEVELOPMENT_WORKFLOW.md` |
+| Bounded implementation task | `AGENTS.md`, `CODEX.md`, target files |
+| Development/release workflow | `workflow/DEVELOPMENT_WORKFLOW.md` |
+| Cloud model/token routing | `workflow/CAREZ_TOKEN_EFFICIENCY.md` |
 | Current priority | `CURRENT_STATE.md`, then `ROADMAP.md` |
 | Branch/release | `BRANCH_AND_RELEASE_MODEL.md` |
 | Module behavior | owning `modules/*.md` |
 | Architecture/invariant | `ARCHITECTURE.md`, relevant ADR |
-| UI | current source, ADR-025, ADR-020 for Takeoff invariants, `design-system/CAREZ_COMPONENT_PACK.md` |
+| UI | ADR-025, ADR-020 for Takeoff invariants, `design-system/CAREZ_COMPONENT_PACK.md` |
 | DB/RLS | relevant migration + server/domain code |
 | Historical evidence | Git history/issues/PRs only when current sources are insufficient |
 
@@ -38,18 +38,24 @@ Use the source that owns the question. Do not preload the repository.
 - `decisions/`
 - `design-system/CAREZ_COMPONENT_PACK.md`
 - `workflow/DEVELOPMENT_WORKFLOW.md`
-- `workflow/LOCAL_CODEX_WORKSTATION.md`
-- root `AGENTS.md` — connected-agent rules
-- root `CODEX.md` — canonical Codex execution contract
+- `workflow/CAREZ_TOKEN_EFFICIENCY.md`
+- root `AGENTS.md`
+- root `CODEX.md`
 
 ## Documentation discipline
 
-Keep active documentation small. Remove superseded designs, finished checklists, duplicate workflow files, chat handoffs, and implementation checkpoints after their surviving truth is absorbed into canonical owners. Git history preserves the evidence.
+Keep active documentation small.
 
-Existing `docs/superpowers/` files are supporting design/implementation artifacts only; they are not an agent execution framework and must not override `AGENTS.md`, `CODEX.md`, or `docs/workflow/`. Delete them when their unresolved behavior has been absorbed by canonical owners.
+Delete superseded designs, finished implementation plans, duplicate workflow files, chat handoffs, and checkpoint documents after their surviving truth is absorbed into canonical owners. Git history/issues preserve evidence.
 
-Supporting detailed designs may remain only while they still own unresolved implementation behavior. They cannot override Architecture, active ADRs, module contracts, Current State, or the branch/release model.
+Supporting `docs/superpowers/` files may remain only while they own unresolved implementation behavior. They never override Architecture, active ADRs, module contracts, Current State, Roadmap, or repository execution contracts.
+
+The active P0.5E Issue #39 plan remains source-controlled because implementation is unfinished. Completed/superseded UI and 3D planning artifacts are historical Git evidence, not active documentation.
 
 ## UI authority
 
-[ADR-025 — Carez Operations Workspace](decisions/ADR-025-carez-operations-workspace.md) is the active staging presentation authority after Issue #76 acceptance at `457be2068a2b42f7883286a4f467f819e7fc049a`. ADR-024 and ADR-016 remain historical/compatible foundations where not superseded. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants. Shared UI belongs in `design-system/CAREZ_COMPONENT_PACK.md`; modules must not create competing design systems or revive legacy presentation layers.
+ADR-025 — Carez Operations Workspace / Experience System is the active presentation authority.
+
+The approved direction is approximately 80% Command Deck / 20% Spatial Blueprint with purposeful motion and selective spatial/3D treatment where useful. The accepted reference implementation covers shared experience primitives plus Today, Projects, and Documents. Issue #76 remains open because application-wide propagation is incomplete.
+
+ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff quantity/domain invariants. Persisted 2D geometry remains quantity authority; 3D remains derived verification.

@@ -1,62 +1,88 @@
 # Carez Concrete OS — agent router
 
-Carez is a concrete-native modular monolith. Repository source + Supabase are implementation truth.
+Carez is a concrete-native modular monolith. Repository source + connected Supabase/Vercel/GitHub environments are implementation truth.
 
 ## Always
 
 - `staging` is development/QA; `main` is production only.
+- Start substantive repository work from current online `staging`.
 - Make the smallest coherent change. Read named targets and direct dependencies only.
 - Do not restart accepted work, refactor unrelated code, or invent repository/database/deployment state.
 - Protect Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, source-controlled migrations, deterministic quantities/cost/pricing/financials, immutable commercial lineage, Production Quantity / Direct Cost / Sell separation, 2D Takeoff quantity authority, and human commercial authority.
+- The Windows checkout is a replaceable mirror only. Online GitHub is authoritative when local and remote disagree.
+
+## Cloud execution model
+
+Carez development execution is cloud-based:
+
+```text
+Nik / Carez control room
+→ connected ChatGPT tools and/or ChatGPT Work/Codex cloud
+→ GitHub staging
+→ GitHub Actions
+→ Vercel staging
+→ browser QA
+```
+
+Supabase QA is the staging database authority.
+
+There is no canonical local Codex/Ollama/OmniRoute implementation path. Do not route work to a supposed free/local agent. All model execution may consume credits or allowance. Luna/Terra are lower-cost routing options, not free execution.
 
 ## Route before loading context
 
 Load only the route needed for the task:
 
-- Codex execution, validation, model routing, branches → `CODEX.md`
+- Codex/Work execution, validation, model routing, branches → `CODEX.md`
+- Development/release workflow → `docs/workflow/DEVELOPMENT_WORKFLOW.md`
+- Premium-model/token routing → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
 - Cross-cutting product architecture → `docs/ARCHITECTURE.md`
-- Local OmniRoute/Ollama workstation → `docs/workflow/LOCAL_CODEX_WORKSTATION.md`
-- Premium Astra/Luna/Terra routing and plugin coordination → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
-- General UI → ADR-025 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when the task is design-relevant
+- General UI → ADR-025 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when design-relevant
 - Takeoff → ADR-020 + current Takeoff module contracts
 - Development process/debugging/planning → installed Superpowers skills when relevant
 
-Do not preload `docs/`, old history, unrelated migrations, unrelated routes, or unrelated plugins.
+Do not preload old history, unrelated migrations, unrelated routes, or obsolete supporting docs.
 
 ## Authority and plugin precedence
 
-For Carez development work:
-
 ```text
-Nik / explicit task
+Nik / explicit current task
 → AGENTS.md + CODEX.md
-→ Carez routing / approved specs and ADRs
+→ approved Carez specs / ADRs / routing policy
 → Superpowers + Impeccable
 → model execution
 ```
 
 User and repository instructions outrank plugin defaults.
 
-- If the task says a design/spec/plan is already approved, do not re-brainstorm, rewrite it, or reopen settled product decisions.
-- Superpowers may structure unresolved design, planning, or debugging, but its subagent/review/verification workflows must obey Carez model-routing and premium-stop rules.
-- Impeccable may guide design-relevant implementation, but automatic or explicit review/polish work does not extend a premium run beyond the assigned implementation scope.
+- If a design/spec/plan is already approved, do not re-brainstorm or reopen it.
+- Superpowers may structure unresolved planning/debugging, but its dispatch/review/verification workflows must obey Carez model-routing and premium-stop rules.
+- Impeccable may guide design-relevant implementation, but it does not authorize work outside the assigned scope.
 
-## Execution modes
+## Model routing
 
-Routine implementation uses the local Carez Codex path and normal validation in `CODEX.md`.
+- Use ChatGPT control-room tools for planning, inspection, coordination, acceptance, and bounded direct maintenance.
+- Use cloud Work/Codex for substantial implementation.
+- Use Luna first for bounded helper work when available.
+- Escalate to Terra only when Luna is insufficient.
+- Use Astra only for major architecture, high-value design invention, or difficult implementation that materially benefits from premium capability.
+- Never spawn Astra as a child.
 
-Premium hosted implementation is opt-in. When Astra is explicitly selected, follow the premium rule:
+For authorized premium Astra implementation:
 
 ```text
 IMPLEMENT -> COMMIT -> PUSH -> STOP
 ```
 
-The premium implementation turn does not perform post-implementation QA, CI/deployment monitoring, review passes, optional polish, or plugin-driven finish loops unless the current task explicitly assigns that work. Carez control-room tooling handles acceptance separately.
+Unless Nik explicitly assigns validation to the Astra run, Astra does not continue into tests, typecheck, browser QA, review loops, GitHub Actions, Vercel monitoring, or optional polish.
 
 ## UI
 
-ADR-025 — Carez Operations Workspace is the active staging presentation authority after Issue #76 acceptance at staging commit `457be2068a2b42f7883286a4f467f819e7fc049a`. It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 speaks, while preserving their compatible foundations/history. ADR-020 plus the active Takeoff module contracts remain authoritative for Takeoff quantity/domain invariants. Preserve true light/dark/system semantic tokens, the source-owned component system, and the accepted Takeoff composition unless Nik explicitly approves a replacement.
+ADR-025 — Carez Operations Workspace / Experience System is the active staging presentation authority.
+
+The accepted reference implementation covers the shared experience language plus Today, Projects, and Documents. Issue #76 remains open because the original complete application-wide rewrite is not fully propagated. Do not claim the full UI program is complete merely because the reference slice is accepted.
+
+The approved direction is approximately 80% Command Deck / 20% Spatial Blueprint, with purposeful motion and selective spatial/3D treatment where it improves the workflow. ADR-020 plus the active Takeoff module contracts remain authoritative for Takeoff quantity/domain invariants; persisted 2D geometry remains quantity authority and 3D remains derived verification.
 
 ## Documentation
 
-Durable behavior → owning module/ADR. Verified implementation state → `docs/CURRENT_STATE.md`. Development/runtime workflow → `docs/workflow/`. Git history preserves completed evidence.
+Durable behavior → owning module/ADR. Verified implementation state → `docs/CURRENT_STATE.md`. Sequence → `docs/ROADMAP.md`. Development/runtime workflow → `docs/workflow/`. Git history/issues preserve superseded implementation evidence.
