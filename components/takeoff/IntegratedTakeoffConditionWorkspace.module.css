@@ -173,3 +173,32 @@
   .spatialContext strong,.derivedOverlay,.propertiesHeader>div,.contextBody{animation:none}
   .viewModeSwitch button,.contextTab,.contextTabActive{transition:none}
 }
+
+
+/* Condition Properties — compact CAD/BIM inspector treatment. */
+.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)}
+.propertiesPane{position:relative;background:var(--card)}
+.propertiesResizer{position:absolute;z-index:125;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize;touch-action:none;outline:none}
+.propertiesResizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:1px;background:transparent;transition:background-color 140ms ease,box-shadow 140ms ease}
+.propertiesResizer:hover::after,.propertiesResizer:focus-visible::after{background:var(--ring);box-shadow:0 0 0 2px color-mix(in oklch,var(--ring) 14%,transparent)}
+.propertiesHeader{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
+.conditionSummaryLine{flex:none}
+.tabsWrap{flex:none;background:var(--card)}
+.tabsList{height:44px;gap:0;overflow-x:auto;padding:0 8px;scrollbar-width:none}
+.tabsList::-webkit-scrollbar{display:none}
+.tabsList button{display:inline-flex;height:43px;align-items:center;gap:6px;border-radius:0;padding-inline:9px;font-size:11px;white-space:nowrap}
+.tabsList button[data-state="active"]{background:transparent;color:var(--foreground);box-shadow:inset 0 -2px var(--primary)}
+.tabIndex{font:600 9px var(--font-ibm-plex-mono),ui-monospace,monospace;color:var(--muted-foreground);letter-spacing:.02em}
+.tabsList button[data-state="active"] .tabIndex{color:var(--primary)}
+.propertiesScroll{padding:0 12px 12px}
+.propertySection{margin:0;overflow:visible;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent}
+.propertySection:first-child{border-top:0}
+.sectionHead{min-height:40px;padding:0 4px;border-bottom:0;background:transparent}
+.sectionHead strong{font-size:12px;font-weight:650}
+.sectionHead small{font:500 10px var(--font-ibm-plex-mono),ui-monospace,monospace}
+.roleList,.fieldGrid{padding:10px 4px 12px}
+.roleRow{grid-template-columns:minmax(96px,.8fr) minmax(148px,1.2fr) auto}
+.propertiesFooter{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
+@media(max-width:1180px){.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)!important}}
+@media(max-width:860px){.propertiesResizer{display:none}}
+@media(prefers-reduced-motion:reduce){.propertiesResizer::after{transition:none}}
