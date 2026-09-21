@@ -148,3 +148,7 @@
   .workstation[data-mobile-review="true"] .mobilePageLabel{min-width:38px}
   .workstation[data-mobile-review="true"] .zoomLabel{min-width:44px}
 }
+
+@media(max-width:860px){
+  .workstation>[aria-label="Takeoff quantity worksheet"]{display:none!important}
+}
