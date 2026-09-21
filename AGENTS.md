@@ -17,7 +17,7 @@ Load only the route needed for the task:
 - Cross-cutting product architecture → `docs/ARCHITECTURE.md`
 - Local OmniRoute/Ollama workstation → `docs/workflow/LOCAL_CODEX_WORKSTATION.md`
 - Premium Astra/Luna/Terra routing and plugin coordination → `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`
-- General UI → ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when the task is design-relevant
+- General UI → ADR-025 + `docs/design-system/CAREZ_COMPONENT_PACK.md` + Impeccable when the task is design-relevant
 - Takeoff → ADR-020 + current Takeoff module contracts
 - Development process/debugging/planning → installed Superpowers skills when relevant
 
@@ -55,7 +55,7 @@ The premium implementation turn does not perform post-implementation QA, CI/depl
 
 ## UI
 
-On `astra/complete-ui-rewrite`, Issue #76 and ADR-025 — Carez Operations Workspace — are the approved presentation authority for the rewrite. They supersede ADR-024 presentation and ADR-016 shell arrangement on this branch while preserving protected domain behavior, light/dark/system semantics, and the governed component system. ADR-020 remains authoritative for Takeoff quantity/domain invariants; Takeoff presentation changes are limited by the approved rewrite scope. Nik must visually approve this branch before staging integration.
+ADR-025 — Carez Operations Workspace is the active staging presentation authority after Issue #76 acceptance at staging commit `457be2068a2b42f7883286a4f467f819e7fc049a`. It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 speaks, while preserving their compatible foundations/history. ADR-020 plus the active Takeoff module contracts remain authoritative for Takeoff quantity/domain invariants. Preserve true light/dark/system semantic tokens, the source-owned component system, and the accepted Takeoff composition unless Nik explicitly approves a replacement.
 
 ## Documentation
 

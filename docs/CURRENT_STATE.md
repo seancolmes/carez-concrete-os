@@ -1,19 +1,16 @@
 # Carez Concrete OS — Current State
 
-## Issue #76 branch candidate — 2026-09-21
+## Issue #76 / ADR-025 accepted — 2026-09-21
 
-`astra/complete-ui-rewrite` starts from staging `e06b6f2`. ADR-025 replaces presentation authority on this branch only. The candidate includes a workspace directory/masthead, shared route headings and metric ledgers, full-width Projects with a dismissible preview, semantic specialist styles, and a drawing-first Takeoff default. No domain actions, database migrations, or financial calculations change. Authenticated preview QA has exercised Today, Projects (empty state/filter), Takeoff legacy plans/scale display/worksheet, Estimates and existing estimate detail, Proposals (empty state), Billing, Documents, and Settings. Browser-driven fixes cover shell contrast, estimate-detail scrolling, mobile filters, metric layout, logo contrast, and on-demand Takeoff panels. Local `pnpm typecheck` and `pnpm check` pass (221 tests passed, one skipped); branch GitHub Actions and Vercel previews are passing. The accepted staging history below is unchanged. Do not merge or promote this candidate until approved.
+Issue #76 and ADR-025 — Carez Operations Workspace are **accepted on staging** at merge commit `457be2068a2b42f7883286a4f467f819e7fc049a` through PR #77 after Nik's visual approval. ADR-025 is now the active application presentation authority on staging. It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 speaks; ADR-020 and the active Takeoff module contracts continue to protect Takeoff quantity/domain invariants.
 
-Preview-only `/design-review` renders authenticated routes at 390, 768, or 1280 CSS pixels for review; it is unavailable outside Vercel preview and to unauthenticated/employee users. These are responsive browser frame checks, not physical-device touch testing.
+The accepted Carez Experience System reference implementation establishes the shared masthead/workspace language plus the approved Today — Daily Command Center, Projects — Operations Board, and Documents — Evidence Hub experiences. The implementation preserves existing domain actions, database schema, RLS, tenant isolation, deterministic quantity/cost/pricing/financial calculations, and commercial lineage.
 
-**Environment correction:** initial branch previews inherited the default production Supabase connection instead of staging's branch-specific QA overrides. The initial browser pass used read-only record inspection and device appearance changes; it is not isolated-QA workflow acceptance. Separate Preview overrides for `astra/complete-ui-rewrite` now bind `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the existing Carez Concrete OS QA project. Staging and production entries are unchanged. The redeployed candidate was authenticated as Nik Carez QA. A branch-specific build guard now rejects missing or production Supabase bindings. No workflow gate or database record was changed to manufacture acceptance. Draft PR #77 tracks the latest deployment and evidence. Nik's visual approval remains required before integration.
+Validation for the exact staging merge commit passed GitHub Actions run `35572008076`, and Vercel reported success for the same commit. Branch-preview acceptance covered the reference experiences across desktop/mobile responsive layouts and light/dark presentation before Nik approved integration. The prior preview-environment correction remains historical evidence: after the initial preview inherited production Supabase defaults, branch-specific Preview overrides were corrected to the QA project before acceptance work continued.
 
-**Isolated QA evidence and limits:** desktop and 390px responsive review covered Today, Projects filters/empty state, governed Takeoff Plans/Conditions/Zones, calibrated-sheet selection, on-demand properties, retained unsaved form values across pane collapse, worksheet controls, and 2D/3D/Split navigation. Mobile properties use a visible overlay and return to the drawing when a Condition draw action starts. Existing QA estimates retain their cost detail, quantities, price holds, and margin controls; proposal preparation retains readiness checks and disabled issuance when requirements are missing. Billing, Documents, and Settings render with the shared shell and light/dark themes. These checks did not issue a proposal, send a message, approve a budget, or change persisted measurement/financial values.
+Acceptance did **not** manufacture unrelated workflow evidence. QA still lacks `public.next_opportunity_number()`, which blocked populated direct-job creation acceptance, and the review browser did not provide GPU/WebGL rendering for graphical 3D. Those are separate environment/product follow-ups and are not claims made by the Issue #76 presentation acceptance.
 
-Populated Project Overview and direct-job creation acceptance are **blocked**: the QA database has no `public.next_opportunity_number()` RPC. The normal Create direct job action failed with server digest `3758176470`; a read-only database check confirmed the attempted zero-value `QA UI76` fixture was not created. No schema or domain workaround was applied. The browser runtime also disables WebGL, so the visible 3D-unavailable/retry fallback and continued 2D access were verified, but graphical 3D rendering requires a GPU-capable review browser. Full commercial/award/production lifecycle mutation testing and physical-device touch QA are not claimed. This candidate is reviewable, not approved for integration.
-
-
-Last reconciled: 2026-09-20  
+Last reconciled: 2026-09-21  
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MODEL.md`
@@ -46,7 +43,7 @@ User QA target: stable `staging` Vercel alias defined in `BRANCH_AND_RELEASE_MOD
 - Platform Condition Archetype → Company Condition Template → Project Concrete Condition ownership is versioned; published/verified history remains immutable.
 - Pricing overrides and commercial-document issuance snapshots remain preserved.
 - Production Quantity, Direct Cost, and Sell remain separate concepts.
-- ADR-024 Precision Grid is the active application visual/theme/token/density and implemented global shell/navigation authority. Issue #71's role-adaptive Hybrid command shell is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
+- ADR-025 Carez Operations Workspace is the active application presentation/shell authority on staging as of `457be2068a2b42f7883286a4f467f819e7fc049a`. ADR-024 and ADR-016 remain historical/compatible foundations where not superseded. ADR-020 plus the active Takeoff module spec remain authoritative for Takeoff/workstation/domain invariants.
 - Accepted Job Spine / bid-to-field commercial and execution lineage remains the architecture baseline.
 - Derived 3D is verification from authoritative persisted 2D/Condition facts, not a second quantity engine.
 - User-selected Takeoff visual/interaction baseline is source tree `09d39d3fc5f38d2387941b33f90b8834fdc22628`. The later specialist implementation commits were intentionally removed from `staging` and are not implementation authority. The left `Plans | Conditions | Zones` navigator, dominant drawing area, Condition Properties surface, and bottom Quantity Worksheet remain the protected Takeoff composition unless Nik explicitly approves a replacement.
@@ -89,11 +86,13 @@ Issue #72 — shared component/state foundation — is **accepted/passed** as of
 
 Subproject 4 — refined-operations reference slice `Today → Project → Project Overview` — is **accepted/passed** as of 2026-09-19 at staging SHA `c3fce78688a8b7002d3641c9a78a48d4355ddfd5`. GitHub Actions run `35447375963` passed typecheck, domain/UI tests, and build; matching Vercel staging deployment `dpl_Afh47FBy3LfA9dC11MpJ8MFmfKqX` reached READY; authenticated browser QA passed the Today exception-first hierarchy, Projects select → inspect → act workflow, Project Overview operating-record hierarchy, responsive/mobile ordering, keyboard interaction, project-context continuity, and light/dark presentation.
 
+Issue #76 / ADR-025 — Carez Operations Workspace — is **accepted/passed** as of 2026-09-21 at staging SHA `457be2068a2b42f7883286a4f467f819e7fc049a`. GitHub Actions run `35572008076` passed for the merge commit, Vercel reported success for the same commit, and Nik visually accepted the Today, Projects, and Documents reference experiences before PR #77 was merged.
+
 Implemented on staging:
 
-- source-owned shadcn/Base UI primitives, Tailwind v4, ADR-024 Precision Grid semantic light/dark tokens, density controls, and shared Carez components;
-- ADR-024 Precision Slate color expression is the active theme direction: equal light/dark importance, cool-slate readable dark surfaces, darker global chrome framing a brighter workspace, moderate Carez blue, crisp panel borders, semantic status color, and WCAG AA as the minimum normal-text contrast target; browser acceptance remains pending for the new token pass;
-- ADR-024 Hybrid command shell in `components/AppShell.tsx`: company identity, 3–5 role-priority destinations, structured `More`, command/search, notifications affordance, and account/system access;
+- source-owned shadcn/Base UI primitives, Tailwind v4, ADR-025 semantic light/dark tokens, density controls, and shared Carez components;
+- ADR-025 Carez Operations Workspace / Experience System is the active visual direction: premium construction command center with selective Spatial Blueprint accents, Manrope-led hierarchy, meaningful icons, stronger shared tabs, three depth levels, restrained functional motion, and first-class light/dark/system presentation;
+- ADR-025 application shell in `components/AppShell.tsx`: company identity/masthead, workspace directory, favorite destinations, command/search, notifications affordance, account/system access, and project context without a permanent global desktop left rail;
 - canonical navigation model and deterministic shell logic in `lib/ui/navigation.ts`;
 - versioned device-local navigation personalization scoped by authenticated user + company, with pin/unpin/reorder/reset and bounded role defaults;
 - command palette navigation plus accessible-project and recent-workspace/project sources;
@@ -109,22 +108,23 @@ Implemented on staging:
 - Project Overview uses the approved operating-record hierarchy: attention, operating position, field/production, cost/forecast, commercial/billing, and next-job action, with mobile ordering that promotes the next action earlier;
 - Settings/company branding remains implemented with tenant-scoped storage/RLS and commercial-document snapshot preservation.
 
-ADR-016 is now historical for compatible retained principles; ADR-024 governs the accepted global shell/navigation behavior. Do not regress to the old static category shell or a permanent desktop left rail.
+ADR-016 and ADR-024 are historical/compatible foundations where not superseded; ADR-025 governs the accepted staging presentation and global shell/navigation behavior. ADR-020 continues to govern Takeoff quantity/domain invariants. Do not regress to the old static category shell, a permanent desktop left rail, or a competing presentation system.
 
 ## Derived 3D verification
 
-Issue #41 remains open. The accepted architecture uses server-resolved facts, deterministic validated projections, shared plan/model selection and visibility, modern footing profiles, scoped quantity references, and explicit partial/unavailable states.
+Issue #41 — Unified synchronized 2D/3D Takeoff workstation — is **closed/completed** as of 2026-09-15. The accepted architecture and implementation use authoritative persisted 2D geometry, shared stable IDs/selection, server-resolved facts, deterministic validated projections, the active PDF plan plane, governed elevations/profiles, and explicit partial/unavailable states. 3D remains verification and never becomes a second quantity engine.
 
-Signed-in stable-staging browser acceptance and bounded expansion remain pending. Cross-sheet registration and governed segment/instance overrides remain unsupported.
+Cross-sheet building registration/stacking, direct 3D geometry authoring, and other deferred expansion remain outside the accepted #41 scope and require explicit follow-on work rather than reopening #41 by assumption.
 
 ## Active priorities
 
-Issues #63, #71, and #72 plus the accepted Subproject 4 refined-operations reference slice establish the current application-wide foundation. The immediate UI gate is now the Precision Slate readability pass from the restored `09d39d3` Takeoff baseline. Do not resume the abandoned post-`09d39d3` specialist implementation sequence by assumption.
+Issue #76 / ADR-025 is accepted and no longer an implementation gate. P0.5 Epic #43 remains open, and its sequence now controls the next product work.
 
-1. Browser-verify and refine Precision Slate across representative `Today → Project Overview → Estimate → Takeoff` surfaces in light and dark mode. Re-plan any later Takeoff structural rewrite from the restored `09d39d3` baseline, preserving `Plans | Conditions | Zones`, the dominant drawing surface, Condition Properties, and the Quantity Worksheet unless Nik explicitly approves a different composition.
-2. Continue Issue #41 derived-3D acceptance/expansion from the accepted current Condition contracts and authoritative persisted 2D geometry.
-3. Resolve Issue #59 before any production migration promotion or `staging` → `main` release that depends on the canonical QA migration chain.
-4. Preserve only active canonical/supporting documentation in the repository tree. Superseded working documents and completed implementation checkpoint files should be deleted after their surviving truth is absorbed by canonical owners; Git history and closed issues preserve historical evidence.
+1. **Issue #39 — P0.5E legacy recipe migration and active formula-UI retirement** is the next sequenced product priority. Inventory and classify referenced legacy recipe/variant/formula records, add stable compatibility mappings, migrate supported records, reconcile outputs/estimate lineage, preserve published/accepted history, and retire active legacy UI only after dependency proof.
+2. Complete P0.5 end-to-end reconciliation and stable-staging browser acceptance after #39, then close Epic #43 only when its non-negotiable acceptance criteria are proven.
+3. Continue into **P1 — Estimating** only after the P0.5 physical quantity/Condition foundation is accepted end-to-end.
+4. **Issue #59** remains a production-release blocker. Resolve the production Supabase migration bridge before any migration-dependent `staging` → `main` promotion.
+5. Preserve only active canonical/supporting documentation; Git history and closed issues preserve superseded implementation evidence.
 
 ## Production rule
 

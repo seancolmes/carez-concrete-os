@@ -2,13 +2,13 @@
 
 ## Active presentation authority — ADR-025
 
-On `astra/complete-ui-rewrite`, Issue #76 replaces Precision Grid presentation with Carez Operations Workspace. Source-owned accessible primitives retain their APIs. The shared masthead, workspace directory, favorite destinations, record headings, metric ledgers, and technical tables form one system. Specialist CSS consumes the same semantic tokens directly; the wildcard Takeoff theme adapter is removed. Project details use a dismissible sheet at all widths. Condition Properties starts collapsed and opens without losing editor state. Historical foundation notes below describe API and behavior lineage, not a competing visual target.
+On `staging`, ADR-025 Carez Operations Workspace is the accepted presentation authority after Issue #76 integration at `457be2068a2b42f7883286a4f467f819e7fc049a`. Source-owned accessible primitives retain their APIs. The shared masthead, workspace directory, favorite destinations, record headings, metric ledgers, technical tables, experience tabs, and reference-route primitives form one system. Specialist CSS consumes the same semantic tokens directly. Project details use a dismissible sheet at all widths. Condition Properties opens without losing editor state. Historical foundation notes below describe API and behavior lineage, not a competing visual target.
 
 
 Status: Accepted design-system contract
 Owner: 95 — UX & Design System
-Related decisions: ADR-015, ADR-016
-Implementation sequence: ADR-024 redesign subprojects; current shared-foundation slice is Issue #72
+Related decisions: ADR-015, ADR-016, ADR-020, ADR-024, ADR-025
+Current presentation authority: ADR-025; ADR-024/ADR-016 remain historical/compatible foundations where not superseded.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ Carez modules must reuse one compact set of source-owned shadcn-compatible primi
 
 The pack is intentionally small. It establishes the components that recur across Takeoff, estimating, CRM, projects, field, finance, documents, and reporting. Module-specific compositions may wrap these primitives, but they should not create a competing local design system.
 
-All shared Carez components use the ADR-024 Precision Grid semantic token system, first-class light/dark themes, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
+All shared Carez components use the ADR-025 governed semantic token system, first-class light/dark themes, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
 
 Third-party component libraries are reference/source pools only. Any copied/adapted code must be license-vetted, reviewed for accessibility and bundle cost, converted to Carez semantic tokens, and owned in the Carez repository.
 
@@ -294,7 +294,7 @@ Shared functional motion language used by shell navigation and interactive primi
 
 ### Global navigation behavior
 
-The ADR-024 Hybrid command shell uses role-priority direct destinations, a structured `More` menu, first-class command/search, and an optional project-context row. Motion remains functional and restrained:
+The ADR-025 Operations Workspace shell carries forward role-priority destinations through the masthead/workspace directory/favorites model, first-class command/search, and an optional project-context row. Motion remains functional and restrained:
 
 - direct-destination active state changes use ordinary semantic surface/text state rather than decorative movement;
 - menus, sheets, and command surfaces may use the shared short opacity/translation/scale transitions;
@@ -316,7 +316,7 @@ Issue #72 implements the reusable presentation/state foundation used by later wo
 
 ### Semantic state
 
-- `CarezStatus` renders text-first neutral/info/success/warning/error/blocked state using ADR-024 semantic tokens; blocked maps to error semantics without losing the explicit `Blocked` label.
+- `CarezStatus` renders text-first neutral/info/success/warning/error/blocked state using the governed ADR-025 semantic tokens; blocked maps to error semantics without losing the explicit `Blocked` label.
 - `CarezSaveState` distinguishes Saved, Saving, Unsaved changes, Validation required, Save failed, Saved on device, and Waiting to sync. Only `Saved` claims server persistence; local/queued states must never imply cloud persistence.
 - `CarezAuthorityState` distinguishes user-confirmed, system-calculated, imported, AI-suggested, versioned, issued, and frozen presentation supplied by the owning workflow. It does not infer or promote authority.
 - `CarezFeedback` provides inline or workspace feedback with appropriate live-region/alert semantics.
@@ -365,7 +365,7 @@ global shell → optional project context → workspace/object header → route 
 
 Workspace/object headers remain owned by their routes or later shared-header work; page-specific actions do not move into the global shell.
 
-Issue #71 passed authenticated staging browser QA on 2026-09-19 at staging SHA `876737182fc3eec1ea38e67a04cf87dfa0d6ed1f`. ADR-024 is therefore the implemented global shell/navigation authority. ADR-016 remains historical for compatible retained principles and no longer governs the superseded static-category shell.
+Issue #71 passed authenticated staging browser QA on 2026-09-19 at staging SHA `876737182fc3eec1ea38e67a04cf87dfa0d6ed1f`. Its accepted navigation behaviors are retained where compatible, but ADR-025 is now the implemented staging presentation/shell authority at `457be2068a2b42f7883286a4f467f819e7fc049a`. ADR-024 and ADR-016 remain historical/compatible foundations and no longer govern superseded presentation or shell composition.
 
 ## Module adoption rule
 

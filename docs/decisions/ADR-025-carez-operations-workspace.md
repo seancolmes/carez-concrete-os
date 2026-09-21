@@ -1,6 +1,6 @@
 # ADR-025 — Carez Operations Workspace
 
-Status: Implementation candidate; Nik's visual acceptance pending
+Status: Accepted on staging at `457be2068a2b42f7883286a4f467f819e7fc049a`
 Date: 2026-09-21
 Authority: Issue #76 and Nik's explicit complete UI/UX rewrite authorization
 
@@ -29,6 +29,8 @@ No changes to database schema, tenant isolation, RLS, server actions, quantity/c
 
 ## Delivery and validation
 
-Work only on astra/complete-ui-rewrite from staging e06b6f2. Preserve the traceable Takeoff baseline 09d39d3. Run targeted checks, pnpm typecheck, pnpm check, GitHub Actions, and desktop/mobile browser QA in both themes. Deploy a branch preview for Nik. Neither staging integration nor production release is authorized. Implementation and rendered acceptance are separate claims.
+Issue #76 was implemented on `astra/complete-ui-rewrite`, visually accepted by Nik, and merged through PR #77 into `staging` at `457be2068a2b42f7883286a4f467f819e7fc049a`. GitHub Actions run `35572008076` passed for the exact merge commit, and Vercel reported success for the same commit. The accepted reference scope includes Today, Projects, Documents, and the shared experience primitives required by those routes. Takeoff remains outside route-level redesign for this phase.
 
-The authenticated `/design-review` route is preview-only and provides 390/768/1280px frames of real application routes. It creates no records and does not bypass workflow gates. Estimate detail remains a scrollable document workspace; only drawing routes use a fixed-height canvas shell. Legacy condition authoring also starts closed, with its launcher separated from drawing/inspector controls.
+The authenticated `/design-review` route was preview-only evidence for 390/768/1280px responsive review and did not create records or bypass workflow gates. The branch-preview Supabase binding was corrected to the QA project before acceptance work continued. Direct-job creation remained blocked by the separate QA `public.next_opportunity_number()` gap, and graphical 3D was not accepted in the non-WebGL review browser; those limits do not alter this presentation decision.
+
+Future changes follow the normal `staging` workflow. This ADR does not authorize a production release or relax any domain, database, commercial, or Takeoff authority boundary.

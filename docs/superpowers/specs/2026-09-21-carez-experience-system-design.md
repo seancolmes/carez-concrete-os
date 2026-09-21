@@ -1,6 +1,6 @@
 # Carez Experience System — Command Deck with Spatial Blueprint Accents
 
-Status: Approved design brief; implementation pending
+Status: Implemented and visually accepted on staging at `457be2068a2b42f7883286a4f467f819e7fc049a`
 Date: 2026-09-21
 Authority: Nik visual review of PR #77 and explicit approval of the A+B hybrid direction
 Branch: `astra/complete-ui-rewrite`
@@ -415,7 +415,7 @@ For the Astra reference implementation:
 - light and dark;
 - reduced-motion sanity check where practical.
 
-PR #77 remains draft. Do not merge to `staging` until Nik visually approves the revised reference experience.
+PR #77 was visually approved by Nik and merged to `staging` at `457be2068a2b42f7883286a4f467f819e7fc049a`. This document is retained as implementation/design evidence; ADR-025 and current source now own the accepted presentation behavior.
 
 ## 18. Acceptance criteria
 

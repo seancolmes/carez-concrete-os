@@ -1,6 +1,6 @@
 # Carez Concrete OS — Modernization Roadmap
 
-Current UI priority: Issue #76 on `astra/complete-ui-rewrite`; complete ADR-025 implementation, validation and authenticated branch-preview QA before Nik approves any staging integration. Prior Precision Slate refinement sequencing is superseded.
+Current priority: Issue #76 / ADR-025 is accepted on `staging` at `457be2068a2b42f7883286a4f467f819e7fc049a`. The next sequenced product gate is P0.5E Issue #39 — legacy recipe migration and active formula-UI retirement — followed by P0.5 end-to-end reconciliation before P1 Estimating.
 
 
 This roadmap governs sequence. It does not authorize unrelated rewrites.
@@ -8,7 +8,7 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 ## P0.1 — Shell + Takeoff acceptance
 
 Outcome:
-- ADR-024 role-adaptive Hybrid command shell is the accepted global shell: company identity, 3–5 role-priority destinations, structured `More`, first-class command/search, notifications affordance, and account/system controls;
+- ADR-025 Carez Operations Workspace is the accepted global presentation/shell authority: company identity/masthead, workspace directory, favorite destinations, first-class command/search, notifications affordance, account/system controls, and project context without a permanent global desktop left rail;
 - versioned device-local navigation personalization supports pin/unpin/reorder/reset without changing authorization;
 - project context appears only when an authoritative Project is resolved, and project switching preserves only explicitly safe workspace mappings;
 - mobile uses role-priority bottom navigation plus `More`, while module-specific contextual panes remain inside their owning workspaces;
@@ -24,15 +24,15 @@ Outcome:
 - Issue #71 role-adaptive Hybrid global shell + authoritative project-context navigation is accepted;
 - Issue #72 shared component/state/accessibility foundation is accepted, including semantic status/save/authority/provenance/feedback, Inspector, Record Header, shared Project Context Bar, semantic Number Field variants, and Data Grid state/accessibility foundations;
 - Subproject 4 refined-operations reference slice `Today → Project → Project Overview` is accepted on staging and proves the first rendered Overview/Record expression across the shared system;
-- the next UI/UX implementation gate is the independently planned specialist reference slice `Project → Takeoff`;
-- broad module migration does not begin until the specialist Takeoff reference expression is accepted in rendered staging.
+- Issue #76 / ADR-025 Carez Operations Workspace is accepted on staging at `457be2068a2b42f7883286a4f467f819e7fc049a`, including the Today, Projects, and Documents reference experiences;
+- broad UI migration is no longer the current sequencing gate; further presentation work follows product/module priorities while preserving ADR-025 and the accepted Takeoff boundary.
 
 ## P0.5 — Concrete Condition + 3D Takeoff foundation
 
 Outcome:
 - active Takeoff model shifts from recipe/formula-first authoring to named concrete Conditions with embedded concrete-specific modules;
 - additive Platform Condition Archetype, Company Condition Template, Project Concrete Condition, module, and measurement-role contracts preserve immutable lineage;
-- the ADR-020 integrated estimator workstation remains the Takeoff authority and is governed by ADR-024 Precision Grid inside the accepted Issue #71 global shell: stable-width independently collapsible Plans/Conditions/Zones and Condition Properties panes, a dominant drawing surface, explicit 2D/3D/Split view controls, and a permanently available vertically resizable Quantity/Estimate Worksheet;
+- ADR-020 remains authoritative for Takeoff quantity/domain invariants while ADR-025 governs shared presentation/chrome; preserve the accepted Plans/Conditions/Zones navigator, dominant drawing surface, Condition Properties surface, explicit 2D/3D/Split controls, and vertically resizable Quantity/Estimate Worksheet unless Nik explicitly approves a replacement;
 - an optional future explicit floating-properties mode may be draggable/resizable, but the normal docked side panes do not use horizontal drag-resizing;
 - the shared Carez Data Grid, Number Field, Condition Tree, Toolbar, Resizable Workspace, Loading States, File Upload and motion patterns are used where applicable instead of route-local equivalents;
 - Pad/Column Footing (EA), Strip/Wall Footing (LF), and Slab on Grade (SF with cutouts) work end-to-end through concrete, forms, reinforcing, anchors/slab systems, labor, outputs, holds, and estimate lineage;
