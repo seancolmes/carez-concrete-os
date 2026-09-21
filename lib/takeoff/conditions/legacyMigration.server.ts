@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import {
   classifyLegacyMigrationCandidate,
   type LegacyMigrationClassification,
@@ -237,5 +239,295 @@ export async function buildLegacyMigrationInventory({
     estimateStatus: String(estimate.status || ''),
     proposalCount: proposalRows.length,
     candidates,
+  };
+}
+
+
+type LegacyPilotFamily = NonNullable<LegacyMigrationCandidate['supportedPilotFamily']>;
+
+export type LegacyPilotMigrationPreparation = {
+  classification: 'mapped' | 'unsupported_review';
+  reason: string | null;
+  family: LegacyPilotFamily;
+  estimateId: string;
+  measurementId: string;
+  targetTemplateVersionId: string;
+  targetCompatibilityAssemblyVersionId: string;
+  conditionDraft: {
+    templateVersionId: string;
+    archetypeVersionId: string;
+    archetypeKey: LegacyPilotFamily;
+    legacyMethodProfileId: string | null;
+    inputs: Record<string, Record<string, unknown>>;
+    inputProvenance: Record<string, Record<string, unknown>>;
+    modules: Array<{
+      moduleKey: string;
+      instanceKey: string;
+      label: string;
+      enabled: boolean;
+      inputValues: Record<string, unknown>;
+      inputProvenance: Record<string, unknown>;
+      sortOrder: number;
+    }>;
+    measurementRole: {
+      roleKey: string;
+      roleInstanceKey: string;
+      measurementId: string;
+      sortOrder: number;
+    };
+  };
+  compatibilityRebind: null | {
+    measurementId: string;
+    expectedUpdatedAt: string;
+    sourceAssemblyVersionId: string;
+    targetAssemblyVersionId: string;
+  };
+  provenance: {
+    source_measurement_id: string;
+    source_assembly_version_id: string;
+    target_template_version_id: string;
+    target_compatibility_assembly_version_id: string;
+    raw_quantity: number | string;
+    raw_unit: string;
+    geometry_hash: string;
+    source_output_ids: string[];
+    source_estimate_item_ids: string[];
+  };
+};
+
+const objectRecord = (value: unknown): Record<string, any> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
+
+const arrayRows = (value: unknown): any[] => Array.isArray(value) ? value : [];
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+function geometryHash(geometry: unknown) {
+  return createHash('sha256').update(stableJson(geometry)).digest('hex');
+}
+
+function legacyValueMatchesDefinition(value: unknown, valueType: unknown) {
+  if (valueType === 'number') return typeof value === 'number' && Number.isFinite(value);
+  if (valueType === 'integer') return typeof value === 'number' && Number.isInteger(value);
+  if (valueType === 'boolean') return typeof value === 'boolean';
+  if (valueType === 'text' || valueType === 'select') return typeof value === 'string';
+  return false;
+}
+
+function preparedProjectInputs(inputSchema: unknown, variables: unknown, measurementId: string) {
+  const source = objectRecord(variables);
+  const inputs: Record<string, Record<string, unknown>> = {};
+  const provenance: Record<string, Record<string, unknown>> = {};
+
+  for (const definition of arrayRows(inputSchema)) {
+    const key = String(definition?.key || '');
+    const group = String(definition?.group || '');
+    if (!key || !group || !(key in source) || !legacyValueMatchesDefinition(source[key], definition?.value_type)) continue;
+    inputs[group] ||= {};
+    provenance[group] ||= {};
+    inputs[group][key] = source[key];
+    provenance[group][key] = {
+      mode: 'project_value',
+      sourceId: measurementId,
+      sourceLabel: 'Legacy measurement variable',
+      note: 'Prepared from the persisted legacy measurement without browser-supplied quantity.',
+    };
+  }
+
+  return { inputs, provenance };
+}
+
+function preparedModules(moduleSchema: unknown, moduleDefaults: unknown) {
+  const defaults = objectRecord(moduleDefaults);
+  return arrayRows(moduleSchema).map((definition, index) => {
+    const moduleKey = String(definition?.key || '');
+    const configured = objectRecord(defaults[moduleKey]);
+    const enabled = typeof configured.enabled === 'boolean'
+      ? configured.enabled
+      : typeof definition?.default_enabled === 'boolean'
+        ? definition.default_enabled
+        : true;
+    return {
+      moduleKey,
+      instanceKey: 'default',
+      label: String(definition?.label || moduleKey.replaceAll('_', ' ')),
+      enabled,
+      inputValues: objectRecord(configured.inputs),
+      inputProvenance: {},
+      sortOrder: (index + 1) * 10,
+    };
+  });
+}
+
+function expectedMeasurementType(role: any) {
+  if (role?.measurement_type) return String(role.measurement_type);
+  if (role?.geometry_type === 'count') return 'count';
+  if (role?.geometry_type === 'polyline') return 'linear';
+  if (role?.geometry_type === 'polygon') return 'area';
+  return '';
+}
+
+export async function prepareLegacyPilotMigration({
+  supabase,
+  companyId,
+  takeoffSetId,
+  measurementId,
+}: InventoryInput & { measurementId: string }): Promise<LegacyPilotMigrationPreparation> {
+  const inventory = await buildLegacyMigrationInventory({ supabase, companyId, takeoffSetId });
+  if (inventory.estimateStatus !== 'draft') throw new Error('Legacy migration preparation requires a draft estimate.');
+  if (inventory.proposalCount > 0) throw new Error('Legacy migration preparation is blocked after a proposal has been created.');
+
+  const candidate = inventory.candidates.find(row => row.objectType === 'measurement' && row.legacyId === measurementId);
+  if (!candidate) throw new Error('Legacy measurement migration candidate not found.');
+  if (candidate.classification !== 'mapped' || !candidate.supportedPilotFamily || !candidate.targetTemplateVersionId) {
+    throw new Error('Legacy measurement remains unsupported_review until a governed pilot mapping exists.');
+  }
+
+  const { data: measurement, error: measurementError } = await supabase.from('takeoff_measurements')
+    .select('id,takeoff_set_id,sheet_id,scale_region_id,assembly_version_id,method_profile_id,status,measurement_type,raw_quantity,raw_unit,geometry,variables,updated_at')
+    .eq('company_id', companyId)
+    .eq('takeoff_set_id', takeoffSetId)
+    .eq('id', measurementId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (measurementError) throw new Error(measurementError.message);
+  if (!measurement) throw new Error('Active legacy measurement not found.');
+  if (!measurement.sheet_id) throw new Error('Legacy migration preparation requires sheet-backed geometry.');
+
+  const { data: mappedTemplate, error: mappedTemplateError } = await supabase.from('company_condition_template_versions')
+    .select('id,template_id')
+    .eq('company_id', companyId)
+    .eq('id', candidate.targetTemplateVersionId)
+    .eq('status', 'published')
+    .maybeSingle();
+  if (mappedTemplateError) throw new Error(mappedTemplateError.message);
+  if (!mappedTemplate?.template_id) throw new Error('Mapped Company Condition Template version is unavailable.');
+
+  const { data: latestTemplate, error: latestTemplateError } = await supabase.from('company_condition_template_versions')
+    .select('id,template_id,archetype_version_id,version_no,status,template_code_snapshot,module_defaults,input_defaults,input_provenance,legacy_assembly_version_id')
+    .eq('company_id', companyId)
+    .eq('template_id', mappedTemplate.template_id)
+    .eq('status', 'published')
+    .order('version_no', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestTemplateError) throw new Error(latestTemplateError.message);
+  if (!latestTemplate?.id || !latestTemplate.archetype_version_id || !latestTemplate.legacy_assembly_version_id) {
+    throw new Error('Latest published pilot template is incomplete.');
+  }
+
+  const [{ data: archetypeVersion, error: archetypeVersionError }, { data: mappings, error: mappingError }] = await Promise.all([
+    supabase.from('platform_condition_archetype_versions')
+      .select('id,archetype_id,version_no,status,engine_key,role_schema,input_schema,module_schema,output_schema')
+      .eq('id', latestTemplate.archetype_version_id)
+      .eq('status', 'published')
+      .maybeSingle(),
+    supabase.from('condition_legacy_output_mappings')
+      .select('id,output_key,legacy_assembly_component_id')
+      .eq('company_id', companyId)
+      .eq('template_version_id', latestTemplate.id),
+  ]);
+  if (archetypeVersionError) throw new Error(archetypeVersionError.message);
+  if (mappingError) throw new Error(mappingError.message);
+  if (!archetypeVersion || archetypeVersion.engine_key !== 'concrete_condition_v1') {
+    throw new Error('Published pilot Condition contract is unavailable.');
+  }
+
+  const { data: archetype, error: archetypeError } = await supabase.from('platform_condition_archetypes')
+    .select('id,code,active')
+    .eq('id', archetypeVersion.archetype_id)
+    .eq('active', true)
+    .maybeSingle();
+  if (archetypeError) throw new Error(archetypeError.message);
+  const family = String(archetype?.code || '') as LegacyPilotFamily;
+  if (!['pad_column_footing', 'strip_wall_footing', 'slab_on_grade'].includes(family)
+    || family !== candidate.supportedPilotFamily) {
+    throw new Error('Legacy measurement remains unsupported_review because its pilot family contract does not match.');
+  }
+
+  const outputKeys = arrayRows(archetypeVersion.output_schema).map(row => String(row?.key || '')).filter(Boolean);
+  const mappedOutputKeys = new Set((mappings || []).map((row: any) => String(row.output_key || '')).filter(Boolean));
+  const mappingComplete = outputKeys.length > 0 && outputKeys.every(key => mappedOutputKeys.has(key));
+  if (!mappingComplete) {
+    throw new Error('Legacy measurement remains unsupported_review because the target output mapping is incomplete.');
+  }
+
+  const primaryRole = arrayRows(archetypeVersion.role_schema).find(role => Boolean(role?.primary));
+  if (!primaryRole?.key
+    || String(primaryRole.unit || '').toUpperCase() !== String(measurement.raw_unit || '').toUpperCase()
+    || expectedMeasurementType(primaryRole) !== String(measurement.measurement_type || '')) {
+    throw new Error('Legacy measurement remains unsupported_review because its primary measurement contract does not match.');
+  }
+
+  const { data: outputRows, error: outputError } = await supabase.from('takeoff_measurement_outputs')
+    .select('id,measurement_id')
+    .eq('company_id', companyId)
+    .eq('measurement_id', measurement.id);
+  if (outputError) throw new Error(outputError.message);
+  const sourceOutputIds = (outputRows || []).map((row: any) => String(row.id));
+
+  const { data: estimateItems, error: estimateItemError } = await supabase.from('estimate_items')
+    .select('id,source_takeoff_measurement_id,source_takeoff_output_id')
+    .eq('company_id', companyId)
+    .eq('estimate_id', inventory.estimateId);
+  if (estimateItemError) throw new Error(estimateItemError.message);
+  const outputIdSet = new Set(sourceOutputIds);
+  const sourceEstimateItemIds = (estimateItems || [])
+    .filter((row: any) => row.source_takeoff_measurement_id === measurement.id || outputIdSet.has(String(row.source_takeoff_output_id || '')))
+    .map((row: any) => String(row.id));
+
+  const preparedInputs = preparedProjectInputs(archetypeVersion.input_schema, measurement.variables, measurement.id);
+  const targetTemplateVersionId = String(latestTemplate.id);
+  const targetCompatibilityAssemblyVersionId = String(latestTemplate.legacy_assembly_version_id);
+  const sourceAssemblyVersionId = String(measurement.assembly_version_id);
+  const provenance = {
+    source_measurement_id: String(measurement.id),
+    source_assembly_version_id: sourceAssemblyVersionId,
+    target_template_version_id: targetTemplateVersionId,
+    target_compatibility_assembly_version_id: targetCompatibilityAssemblyVersionId,
+    raw_quantity: measurement.raw_quantity,
+    raw_unit: String(measurement.raw_unit),
+    geometry_hash: geometryHash(measurement.geometry),
+    source_output_ids: sourceOutputIds,
+    source_estimate_item_ids: sourceEstimateItemIds,
+  };
+
+  return {
+    classification: 'mapped',
+    reason: null,
+    family,
+    estimateId: inventory.estimateId,
+    measurementId: String(measurement.id),
+    targetTemplateVersionId,
+    targetCompatibilityAssemblyVersionId,
+    conditionDraft: {
+      templateVersionId: targetTemplateVersionId,
+      archetypeVersionId: String(archetypeVersion.id),
+      archetypeKey: family,
+      legacyMethodProfileId: measurement.method_profile_id ? String(measurement.method_profile_id) : null,
+      inputs: preparedInputs.inputs,
+      inputProvenance: preparedInputs.provenance,
+      modules: preparedModules(archetypeVersion.module_schema, latestTemplate.module_defaults),
+      measurementRole: {
+        roleKey: String(primaryRole.key),
+        roleInstanceKey: `${String(primaryRole.key)}-001`,
+        measurementId: String(measurement.id),
+        sortOrder: 10,
+      },
+    },
+    compatibilityRebind: sourceAssemblyVersionId === targetCompatibilityAssemblyVersionId ? null : {
+      measurementId: String(measurement.id),
+      expectedUpdatedAt: String(measurement.updated_at),
+      sourceAssemblyVersionId,
+      targetAssemblyVersionId: targetCompatibilityAssemblyVersionId,
+    },
+    provenance,
   };
 }

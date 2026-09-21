@@ -97,7 +97,7 @@ test('3D and Split share the current authoritative drawing viewport', () => {
   assert.match(workspaceStyles, /data-view-mode="split"/);
   assert.match(workspaceStyles, /margin-right:50%/);
   assert.match(workstation, /\['2d','split','3d'\]/);
-  assert.match(workstation, /drawingViewHidden=\{viewMode==='3d'\}/);
+  assert.match(workstation, /drawingViewHidden=\{!mobileReview&&viewMode==='3d'\}/);
   assert.match(workstation, /jumpToDerivedIssue=.*'split'/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
