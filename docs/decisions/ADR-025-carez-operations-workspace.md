@@ -27,61 +27,64 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 
 ### Visual / interaction language
 
-- Manrope is the primary interface/display typeface.
+- Inter is the primary interface/display typeface.
 - IBM Plex Mono is selective technical typography for identifiers, dimensions, aligned technical data, and other cases where mono materially helps.
 - Sentence/title case replaces pervasive uppercase hierarchy.
-- Slate blue is the restrained interaction/focus identity; neutral ivory/graphite surfaces carry the application and status color remains semantic.
+- Indigo is the restrained interaction/focus identity; pale blue-white/white surfaces carry the light application, graphite/black surfaces carry dark mode, and status color remains semantic.
 - Use three depth levels: canvas, operational surface, interactive/selected surface.
 - Tabs require a clear active surface/edge, hover/focus response, and compact professional geometry.
 - Icons must improve recognition of real construction/business states, not become decoration.
 - Light, dark, and system are first-class.
 
-### Official theme — Slate Haze, adapted for Carez
+### Official theme — Indigo Harbor, adapted for Carez
 
-Nik superseded the prior amber direction on 2026-09-21 with the supplied **Slate Haze** theme. Carez uses its neutral ivory/graphite surfaces with restrained slate-blue interaction color while preserving Carez typography, density, workstation geometry, and construction-native interaction patterns.
+Nik superseded Slate Haze on 2026-09-21 with the supplied **Indigo Harbor** theme. Carez uses its pale blue-white canvas, white operational surfaces, deep harbor-navy shell, and restrained indigo interaction color in light mode; dark mode uses near-black canvas/surfaces with lighter indigo focus and primary interaction.
 
 Core light theme:
 
 | Token | Value |
 | --- | --- |
-| `--background` | `#faf9f5` |
-| `--card` | `#faf9f5` |
-| `--foreground` | `oklch(0.145 0 0)` |
-| `--muted` | `oklch(0.923 0.003 48.717)` |
-| `--muted-foreground` | `oklch(0.553 0.013 58.071)` |
-| `--accent` | `#e9e6dc` |
-| `--border` | `oklch(0.869 0.005 56.366)` |
-| `--input` | `oklch(0.922 0 0)` |
-| `--ring` | `oklch(0.554 0.046 257.417)` |
-| `--primary` | `oklch(0.704 0.04 256.788)` |
-| `--sidebar` | `#f5f4ee` |
+| `--background` | `#f3f5fb` |
+| `--card` | `#ffffff` |
+| `--foreground` | `#010101` |
+| `--muted` | `#f5f5f5` |
+| `--muted-foreground` | `#454545` |
+| `--accent` | `#19398d` |
+| `--border` | `#e3e3e3` |
+| `--input` | `#ffffff` |
+| `--ring` | `#324f9a` |
+| `--primary` | `#19398d` |
+| `--sidebar` | `#001B3C` |
 
 Core dark theme:
 
 | Token | Value |
 | --- | --- |
-| `--background` | `#262624` |
-| `--card` | `#262624` |
-| `--foreground` | `#c3c0b6` |
-| `--muted` | `#1b1b19` |
-| `--muted-foreground` | `#b7b5a9` |
-| `--accent` | `#1a1915` |
-| `--border` | `#3e3e38` |
-| `--input` | `#52514a` |
-| `--ring` | `oklch(0.869 0.022 252.894)` |
-| `--primary` | `oklch(0.901 0.058 230.902)` |
-| `--sidebar` | `#1f1e1d` |
+| `--background` | `#050505` |
+| `--card` | `#0a0a0a` |
+| `--foreground` | `#fafafa` |
+| `--muted` | `#262626` |
+| `--muted-foreground` | `#a1a1a1` |
+| `--accent` | `#404040` |
+| `--border` | `#282828` |
+| `--input` | `#121212` |
+| `--ring` | `#6a8dd8` |
+| `--primary` | `#6a8dd8` |
+| `--sidebar` | `#0a0a0a` |
 
-Carez semantic tokens and shell tokens derive from Slate Haze instead of introducing a competing palette. Manrope remains the primary UI font and IBM Plex Mono remains the technical font; the theme request changes color, spacing/radius foundation, and surface relationships without replacing Carez typography.
+Inter is the primary Carez interface/display typeface under Indigo Harbor. IBM Plex Mono remains selective technical typography for identifiers, dimensions, aligned technical data, and similar high-value technical contexts.
+
+The Carez top shell maps to Indigo Harbor's sidebar family: deep harbor navy in light mode and near-black in dark mode. Workspace content keeps the supplied background/card separation rather than turning the entire application into a navy surface.
 
 Login/landing and specialist workspaces may use low-contrast technical grid geometry as a supporting layer. It must read as construction-document space, remain subordinate to content, respect reduced-motion, and avoid neon/sci-fi treatment.
 
 Usage rules:
 
-- neutral ivory/graphite surfaces dominate;
-- slate blue is used for focus, technical/spatial emphasis, selected edges, and primary interaction rather than page-wide fill;
+- light work surfaces are predominantly `#f3f5fb` canvas plus white operational panels;
+- `#19398d` indigo is used for primary interaction, selected state, and technical/spatial emphasis rather than page-wide fill;
+- deep `#001B3C` is reserved primarily for shell/navigation identity and bounded high-authority surfaces;
 - semantic success/warning/error/info colors communicate real state only;
-- no amber/cobalt/teal brand remnants or module-specific alternate palettes;
+- no Slate Haze, amber, teal-brand, or module-specific competing palette;
 - light, dark, and system remain first-class;
 - all implementation must preserve WCAG AA minimum normal-text contrast.
 
