@@ -38,7 +38,7 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 
 ### Official theme — Indigo Harbor, adapted for Carez
 
-Nik superseded Slate Haze on 2026-09-21 with the supplied **Indigo Harbor** theme. Carez uses its pale blue-white canvas, white operational surfaces, deep harbor-navy shell, and restrained indigo interaction color in light mode; dark mode uses near-black canvas/surfaces with lighter indigo focus and primary interaction.
+Nik superseded Slate Haze on 2026-09-21 with the supplied **Indigo Harbor** theme and visually accepted Indigo Harbor as the final Carez theme for ADR-025 on 2026-09-21. Carez uses its pale blue-white canvas, white operational surfaces, deep harbor-navy shell, and restrained indigo interaction color in light mode; dark mode uses near-black canvas/surfaces with lighter indigo focus and primary interaction.
 
 Core light theme:
 
