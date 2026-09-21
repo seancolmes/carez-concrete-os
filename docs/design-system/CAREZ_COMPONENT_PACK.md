@@ -39,6 +39,20 @@ Options should differ in behavior or workflow, not merely color, spacing, or cos
 
 This protocol does not authorize a second design system. External sources remain reference/source pools subject to ADR-015 licensing, accessibility, bundle-cost, architecture, and Carez-token requirements.
 
+## Curated 21st.dev reference shortlist
+
+Reviewed 2026-09-21 from the 21st.dev shadcn registry directory. These remain **reference/source candidates**, not runtime dependencies or a second design system.
+
+- **ReUI Data Grid Table** — strongest source reference for future Estimate, finance, procurement, Owner Reports, and worksheet grid refinements. Relevant variants include dense tables, row selection, sortable/movable/resizable/pinnable columns, sticky headers, column controls, and loading states. Adapt only the interaction/source needed into the Carez Data Grid rather than replacing the Carez grid wholesale.
+- **ReUI Tree** — candidate source for richer Conditions, Documents, and project/work-package hierarchy behavior if the current Carez Condition Tree reaches a functional limit. Its headless-tree dependency must be justified before adoption.
+- **ReUI Gantt** — candidate source for P3 scheduling/look-ahead prototyping. It is not authorized as a scheduling domain model; Carez committed milestones, rolling lookahead, READY/AT RISK/BLOCKED state, Constraints, and Blocker Events remain authoritative.
+- **HextaUI Task Filters** — lightweight reference for reusable filter/search bars on Projects, Readiness, Procurement, Documents, and operational queues.
+- **HextaUI Timeline** — reference for Job Spine activity, proposal/award history, change-event history, project evidence, and other chronological lineage views.
+- **HextaUI Clean & Minimal Sign In** — reference only. The current Carez login already owns its Supabase behavior and Indigo Harbor/Spatial Blueprint composition; do not replace it merely to adopt a third-party block.
+- **COSS Number Field / Input Group / Fieldset** — preferred low-level interaction reference for Carez Number Field and governed technical forms where Base UI behavior materially improves keyboard entry or validation.
+
+Any adopted source must be copied/adapted into Carez-owned components, tokenized to Indigo Harbor, accessibility-reviewed, dependency-vetted, and validated against the owning domain workflow. Do not install an entire registry for one component.
+
 ## Operations Workspace foundation
 
 Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
