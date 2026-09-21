@@ -156,3 +156,25 @@ test('pilot migration apply uses the existing Condition calculator and closes on
   assert.doesNotMatch(actionSource, /production_quantity\s*:/);
   assert.doesNotMatch(actionSource, /raw_quantity\s*:/);
 });
+
+
+test('P0.5E final docs preserve the EDGE-style Condition-first estimator contract and verified cutover state', () => {
+  const currentState = readFileSync('docs/CURRENT_STATE.md', 'utf8');
+  const takeoffSpec = readFileSync('docs/modules/takeoff.md', 'utf8');
+  const resourceSpec = readFileSync('docs/modules/assembly-resource-engine.md', 'utf8');
+
+  assert.match(takeoffSpec, /EDGE-style estimating workbench/);
+  assert.match(takeoffSpec, /EDGE-style Condition-first estimator workflow/i);
+  assert.match(resourceSpec, /Condition-first estimator workflow/i);
+  assert.match(resourceSpec, /legacy assembly history/i);
+
+  assert.match(currentState, /Task 6[^\n]*browser[^\n]*PASS/i);
+  assert.match(currentState, /62 mapped/i);
+  assert.match(currentState, /17 unsupported_review/i);
+  assert.match(currentState, /single pre-Condition QA fixture/i);
+  assert.match(currentState, /idempotent replay[^\n]*PASS/i);
+  assert.match(currentState, /final staging acceptance pending/i);
+
+  assert.doesNotMatch(currentState, /Tasks 1–2 are implemented; Task 3 is the next/);
+  assert.doesNotMatch(currentState, /prepareLegacyPilotMigration\(\)[^\n]*not implemented/i);
+});
