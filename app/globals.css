@@ -151,15 +151,15 @@
   --status-error: var(--destructive);
   --status-info: var(--info);
 
-  --shell-background: var(--sidebar);
-  --shell-surface: var(--card);
-  --shell-muted-surface: var(--muted);
-  --shell-foreground: var(--foreground);
-  --shell-muted: var(--muted-foreground);
-  --shell-border: var(--sidebar-border);
-  --shell-accent: var(--sidebar-accent);
-  --shell-primary: var(--sidebar-primary);
-  --shell-primary-foreground: var(--sidebar-primary-foreground);
+  --shell-background: #f5f4ee;
+  --shell-surface: #faf9f5;
+  --shell-muted-surface: oklch(0.923 0.003 48.717);
+  --shell-foreground: oklch(0.145 0 0);
+  --shell-muted: oklch(0.553 0.013 58.071);
+  --shell-border: oklch(0.869 0.022 252.894);
+  --shell-accent: #e9e6dc;
+  --shell-primary: oklch(0.554 0.046 257.417);
+  --shell-primary-foreground: #fbfbfb;
 }
 
 .dark {
@@ -211,6 +211,16 @@
   --warning-foreground: #17130d;
   --info: oklch(0.869 0.022 252.894);
   --info-foreground: oklch(0.145 0 0);
+
+  --shell-background: #1f1e1d;
+  --shell-surface: #262624;
+  --shell-muted-surface: #1b1b19;
+  --shell-foreground: #c3c0b6;
+  --shell-muted: #b7b5a9;
+  --shell-border: #ebebeb;
+  --shell-accent: #0f0f0e;
+  --shell-primary: #343434;
+  --shell-primary-foreground: #fbfbfb;
 }
 
 html[data-density='compact'] {
