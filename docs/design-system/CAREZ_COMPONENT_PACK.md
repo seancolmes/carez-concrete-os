@@ -47,34 +47,36 @@ Appearance preference is `light | dark | system`; System is default. Root densit
 
 Primary UI/display typography is Manrope. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
-### Claude Amber Remix color contract
+### Slate Haze color contract
 
-ADR-025 uses the supplied **Claude Amber Remix** palette as the Carez color foundation. Components continue to consume semantic Carez tokens rather than hard-coded palette values.
+ADR-025 uses the supplied **Slate Haze** palette as the Carez color foundation. Components consume semantic Carez tokens rather than hard-coded local palettes.
 
 ```css
 /* Light */
 --background: #faf9f5;
---card: #f5f4ef;
---foreground: #3d3929;
---muted: #ede9de;
---muted-foreground: #6e6d68;
+--card: #faf9f5;
+--foreground: oklch(0.145 0 0);
+--muted: oklch(0.923 0.003 48.717);
+--muted-foreground: oklch(0.553 0.013 58.071);
 --accent: #e9e6dc;
---border: #dad9d4;
---input: #b4b2a7;
---ring: #c96442;
---primary: #000000;
+--border: oklch(0.869 0.005 56.366);
+--input: oklch(0.922 0 0);
+--ring: oklch(0.554 0.046 257.417);
+--primary: oklch(0.704 0.04 256.788);
+--sidebar: #f5f4ee;
 
 /* Dark */
 --background: #262624;
---card: #2c2c2b;
---foreground: #f1f1ef;
+--card: #262624;
+--foreground: #c3c0b6;
 --muted: #1b1b19;
 --muted-foreground: #b7b5a9;
 --accent: #1a1915;
 --border: #3e3e38;
 --input: #52514a;
---ring: #d97757;
---primary: #ffffff;
+--ring: oklch(0.869 0.022 252.894);
+--primary: oklch(0.901 0.058 230.902);
+--sidebar: #1f1e1d;
 ```
 
 Carez aliases:
@@ -87,13 +89,15 @@ Carez aliases:
 --text-muted: var(--muted-foreground);
 --border-default: var(--border);
 --border-strong: var(--input);
---interaction-primary: var(--ring);
+--interaction-primary: var(--primary);
 --interaction-selection: var(--accent);
 --interaction-focus: var(--ring);
---spatial-accent: var(--ring);
+--spatial-accent: var(--primary);
+--shell-background: var(--sidebar);
+--shell-surface: var(--card);
 ```
 
-The source theme's Outfit/Geist typography is **not** adopted; Manrope and IBM Plex Mono remain the Carez typography authority. Carez also retains its Precision Grid density and control geometry. Reusable grid-pattern visuals are allowed as low-contrast construction-document backgrounds, not as decorative product chrome.
+The theme does **not** replace Carez typography: Manrope and IBM Plex Mono remain authoritative. Slate Haze applies across the shared shell and specialist workspaces through semantic tokens, with no separate module palette. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
 
 ## 1. Carez Data Grid
 
