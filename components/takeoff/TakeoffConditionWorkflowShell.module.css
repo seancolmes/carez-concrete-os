@@ -68,3 +68,7 @@
   .shell>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child,
   .shell :global([class*="derivedOverlay"]),.paneToggle{transition:none!important}
 }
+
+@media(max-width:860px){
+  .shell[data-mobile-review="false"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child{display:none!important}
+}
