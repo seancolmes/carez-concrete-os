@@ -642,7 +642,14 @@ export async function assertLegacyMigrationEstimateLineage({
 
   const outputRows = outputs || [];
   const outputIds = outputRows.map((row: any) => String(row.id));
-  let estimateItems: any[] = [];
+  const { data: measurementItems, error: measurementItemError } = await supabase.from('estimate_items')
+    .select('id,estimate_id,source_takeoff_output_id,source_takeoff_measurement_id')
+    .eq('company_id', companyId)
+    .eq('estimate_id', estimateId)
+    .eq('source_takeoff_measurement_id', measurementId);
+  if (measurementItemError) throw new Error(measurementItemError.message);
+
+  let outputItems: any[] = [];
   if (outputIds.length) {
     const { data, error } = await supabase.from('estimate_items')
       .select('id,estimate_id,source_takeoff_output_id,source_takeoff_measurement_id')
@@ -650,8 +657,11 @@ export async function assertLegacyMigrationEstimateLineage({
       .eq('estimate_id', estimateId)
       .in('source_takeoff_output_id', outputIds);
     if (error) throw new Error(error.message);
-    estimateItems = data || [];
+    outputItems = data || [];
   }
+  const estimateItems = [...new Map(
+    [...(measurementItems || []), ...outputItems].map((item: any) => [String(item.id), item]),
+  ).values()];
 
   const itemsByOutput = new Map<string, any[]>();
   const itemIds = new Set<string>();
@@ -712,8 +722,14 @@ export async function assertLegacyMigrationEstimateLineage({
 
   for (const item of estimateItems) {
     const outputId = String(item.source_takeoff_output_id || '');
-    if (!outputById.has(outputId) || String(item.source_takeoff_measurement_id || '') !== measurementId) {
+    if (!outputId || !outputById.has(outputId) || String(item.source_takeoff_measurement_id || '') !== measurementId) {
       throw new Error('Orphan source_takeoff_measurement_id relationship detected.');
+    }
+  }
+
+  for (const output of outputRows) {
+    if (output.is_active && output.estimate_visible && !conditionLegacyIds.has(String(output.id))) {
+      throw new Error('Orphan active Takeoff output remains outside the migrated Condition projection.');
     }
   }
 
