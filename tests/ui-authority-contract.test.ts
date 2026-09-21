@@ -25,7 +25,7 @@ test('ADR-025 is current presentation authority while historical/domain contract
   assert.match(adr025, /Accepted design authority/i);
   assert.match(adr025, /80% Command Deck/i);
   assert.match(adr025, /20% Spatial Blueprint/i);
-  assert.match(adr025, /Manrope/i);
+  assert.match(adr025, /Inter/i);
   assert.match(adr025, /purposeful motion|Motion must answer/i);
   assert.match(adr025, /2D Takeoff geometry remains quantity authority|Persisted 2D Takeoff geometry remains quantity authority/i);
   assert.match(adr025, /application-wide rollout incomplete/i);
@@ -34,7 +34,7 @@ test('ADR-025 is current presentation authority while historical/domain contract
   assert.match(currentState, /Issue #76 is open again/i);
   assert.match(readme, /ADR-025/);
   assert.match(codex, /cloud execution contract/i);
-  assert.match(pack, /Manrope/i);
+  assert.match(pack, /Inter/i);
   assert.match(pack, /Spatial Blueprint/i);
   assert.match(pack, /light.*dark|light\/dark/i);
 
