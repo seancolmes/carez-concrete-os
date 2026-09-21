@@ -42,5 +42,3 @@ default_subagent_reasoning_effort = "medium"
 max_concurrent_threads_per_session = 2
 interrupt_message = false
 
-[features.multi_agent_v2]
-hide_spawn_agent_metadata = false
