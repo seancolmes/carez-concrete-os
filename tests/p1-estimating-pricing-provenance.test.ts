@@ -91,3 +91,18 @@ test('Estimate worksheet presents structured price provenance without database I
   assert.match(worksheet, /price_source_reference/);
   assert.doesNotMatch(worksheet, /price_source_id/);
 });
+
+
+test('current price resolution follows P1 source precedence before template fallback', () => {
+  const source = readFileSync(assemblyEnginePath, 'utf8');
+  const resolverStart = source.indexOf('export async function resolveTakeoffCurrentUnitCost');
+  const resolverEnd = source.indexOf('export async function prepareAssemblyOutputs', resolverStart);
+  const resolver = source.slice(resolverStart, resolverEnd);
+
+  const vendorBill = resolver.indexOf("sourceKind: 'vendor_bill_history'");
+  const purchaseOrder = resolver.indexOf("sourceKind: 'purchase_order_history'");
+  const catalog = resolver.indexOf("sourceKind: 'company_catalog'");
+  const templateDefault = resolver.indexOf("sourceKind: 'template_default'");
+
+  assert.ok(vendorBill >= 0 && purchaseOrder > vendorBill && catalog > purchaseOrder && templateDefault > catalog);
+});
