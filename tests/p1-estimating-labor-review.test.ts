@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migrationPath = 'supabase/migrations/20260921231000_estimate_labor_production_overrides.sql';
+const stickyMigrationPath = 'supabase/migrations/20260921231500_labor_rate_selection_sticky_marker.sql';
 const helperPath = 'lib/estimating/laborReview.ts';
 const componentPath = 'components/estimates/LaborReview.tsx';
 const pagePath = 'app/estimates/[estimateId]/page.tsx';
@@ -79,7 +80,10 @@ test('labor rate profile selection is independent from production quantity and M
 });
 
 test('Takeoff resync preserves explicit job MH/unit and explicit labor profile selections', () => {
-  const sql = requireFile(migrationPath, 'P1.3 labor production override migration must exist');
+  const sql = [
+    requireFile(migrationPath, 'P1.3 labor production override migration must exist'),
+    requireFile(stickyMigrationPath, 'P1.3 sticky labor-rate follow-up migration must exist'),
+  ].join('\n');
   const syncStart = sql.indexOf('create or replace function public.carez_sync_takeoff_measurement_outputs');
   const syncEnd = sql.indexOf('create or replace function public.carez_update_takeoff_labor_assumption', syncStart);
   const sync = sql.slice(syncStart, syncEnd);
