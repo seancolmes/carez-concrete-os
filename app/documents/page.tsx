@@ -65,13 +65,13 @@ export default async function DocumentsPage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header>
+      <header className="carez-page-heading">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field evidence</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Documents, Receipts & Concrete Tickets</h1>
         <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Capture the photo once, then tie it to the job, PO delivery, vendor bill or bank charge it proves.</p>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Document summary">
+      <section className="carez-summary-ledger grid gap-px md:grid-cols-2 xl:grid-cols-4" aria-label="Document summary">
         <Metric icon={Inbox} label="Needs Review" value={queue.length} help="Receipts and tickets waiting to be handled." tone={queue.length?'warning':'success'}/>
         <Metric icon={FolderOpen} label="Need a Job" value={missingJob.length} help="Evidence not assigned to a project." tone={missingJob.length?'warning':'success'}/>
         <Metric icon={FileCheck2} label="Matched" value={matched.length} help="Connected to accounting or procurement."/>

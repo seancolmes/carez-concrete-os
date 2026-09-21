@@ -1,5 +1,8 @@
 # ADR-024 — Precision Grid dual-theme application system
 
+Presentation supersession: Issue #76 authorizes ADR-025 Carez Operations Workspace on the rewrite branch. The presentation decisions below are historical where superseded by ADR-025; domain and measurement invariants remain protected.
+
+
 Status: Accepted
 Date: 2026-09-15
 Owner: 95 — UX & Design System

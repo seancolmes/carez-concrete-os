@@ -6,7 +6,7 @@ const root = new URL('../', import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 const ADR_024 = 'docs/decisions/ADR-024-precision-grid-dual-theme-application-system.md';
 
-test('Precision Grid is the canonical Carez UI authority', () => {
+test('Operations Workspace supersedes presentation without losing historical contracts', () => {
   assert.equal(existsSync(new URL(ADR_024, root)), true);
 
   const adr024 = read(ADR_024);
@@ -23,7 +23,9 @@ test('Precision Grid is the canonical Carez UI authority', () => {
   assert.match(adr024, /light \| dark \| system/i);
   assert.match(adr024, /Issue #63/);
   assert.match(readme, /ADR-024/);
-  assert.match(codex, /ADR-024/);
+  assert.match(codex, /ADR-025/);
+  assert.match(read('docs/decisions/ADR-025-carez-operations-workspace.md'), /2D geometry remains quantity authority/);
+  assert.match(read('docs/decisions/ADR-025-carez-operations-workspace.md'), /Nik.s visual acceptance pending/);
   assert.match(pack, /Precision Grid/);
   assert.match(pack, /light.*dark|dual-theme/i);
   assert.match(adr015, /ADR-024/);

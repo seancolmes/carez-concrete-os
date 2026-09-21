@@ -49,7 +49,7 @@ export default async function EstimatorIntelligencePage(){
   const excludedPackages=productionRows.reduce((sum:number,x:any)=>sum+n(x.excluded_outliers),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Carez estimating intelligence</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Reference Baseline → Carez Standard</h1><p className="mt-1 max-w-5xl text-sm text-muted-foreground">National reference rates start the estimate. Clean completed Work Packages teach Carez how this company actually performs. Faster history lowers labor cautiously; slower history raises the warning before margin disappears.</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/takeoff">Takeoff + Assemblies</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production">Production Control</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production/work-packages">Work Packages</Link></div>
     </header>

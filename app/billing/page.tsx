@@ -37,9 +37,9 @@ export default async function BillingPage(){
 
   return <AppShell userName={p.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Billing</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Bill the customer, see what they still owe, collect the money, and keep retainage from getting forgotten.</p></header>
+      <header className="carez-page-heading"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Billing</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Bill the customer, see what they still owe, collect the money, and keep retainage from getting forgotten.</p></header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section className="carez-summary-ledger grid gap-px sm:grid-cols-2 xl:grid-cols-6">
         <Metric label="Work not yet billed" value={money(unbilled)} help="Authorized value not invoiced yet." tone={unbilled>0?'warning':'default'}/>
         <Metric label="Customers owe" value={money(owed)} tone={owed>0?'warning':'success'}/>
         <Metric label="Past due" value={money(late)} help="Needs follow-up." tone={late>0?'danger':'success'}/>

@@ -47,7 +47,7 @@
 .propertiesHeader strong{display:block;max-width:270px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);font-size:14px}
 .propertiesHeader small{display:block;margin-top:2px;color:var(--muted-foreground);font-size:10px}
 .viewModeSwitch{display:flex;height:28px;align-items:center;gap:1px;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklch,var(--muted) 30%,transparent);padding:2px}
-.viewModeSwitch button{height:22px;min-width:34px;border:0;border-radius:var(--radius-sm);background:transparent;padding:0 7px;color:var(--muted-foreground);font-size:10px;font-weight:700;cursor:pointer;transition:background-color 140ms ease,color 140ms ease,opacity 140ms ease}
+.viewModeSwitch button{height:22px;min-width:34px;border:0;border-radius:var(--radius-sm);background:transparent;padding:0 7px;color:var(--muted-foreground);font-size:10px;font-weight:650;cursor:pointer;transition:background-color 140ms ease,color 140ms ease,opacity 140ms ease}
 .viewModeSwitch button:hover:not(:disabled){background:var(--muted);color:var(--foreground)}
 .viewModeSwitch button:focus-visible{outline:2px solid color-mix(in oklch,var(--ring) 55%,transparent);outline-offset:1px}
 .viewModeSwitch button:disabled{cursor:not-allowed;opacity:.38}
@@ -108,11 +108,11 @@
 .contextTools label input{width:100%;border:0;background:transparent;color:var(--foreground);font-size:11px;outline:none}
 .contextTools label input::placeholder{color:var(--muted-foreground)}
 .contextTools button{width:32px;height:32px}
-.paneLabel{padding:10px 9px 5px;color:var(--muted-foreground);font-size:10px;font-weight:700;letter-spacing:.025em}
+.paneLabel{padding:10px 9px 5px;color:var(--muted-foreground);font-size:10px;font-weight:650;letter-spacing:.025em}
 .zoneList{display:grid;gap:2px;padding:4px}
 .zoneList>div{display:flex;min-height:36px;align-items:center;justify-content:space-between;gap:8px;padding:0 8px;border-radius:var(--radius-sm);color:var(--foreground);font-size:11px}
 .zoneList>div:hover{background:var(--muted)}
-.zoneList b{display:grid;min-width:24px;height:20px;place-items:center;border-radius:var(--radius-md);background:var(--muted);color:var(--muted-foreground);font-size:9px}
+.zoneList b{display:grid;min-width:24px;height:20px;place-items:center;border-radius:var(--radius-md);background:var(--muted);color:var(--muted-foreground);font-size:11px}
 .contextEmpty{padding:18px;text-align:center;color:var(--muted-foreground);font-size:10px}
 @media(hover:hover) and (pointer:fine){
   .integrated{cursor:url('/cursors/carez-arrow.svg') 4 2,default}
@@ -141,3 +141,7 @@
 }
 @media(prefers-reduced-motion:reduce){.viewModeSwitch button{transition:none}}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.splitVerification{left:calc(var(--takeoff-navigator-width,260px) + (100% - var(--takeoff-navigator-width,260px))/2)}
+.integrated[data-view-mode="split"] .drawingHost [class*="center"]{margin-right:50%}
+@media(max-width:860px){.splitVerification{left:50%}}

@@ -71,7 +71,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const stage=issued?stageLabel(queue.conversion_stage):'Prep';
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{lead?.contact_name?` · ${lead.contact_name}`:''}{lead?.email?` · ${lead.email}`:''}</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><ArrowLeft/>Proposals</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/estimates/${e.id}`}><FileText/>Estimate</Link></div>
     </header>

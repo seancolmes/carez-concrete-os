@@ -26,7 +26,7 @@ export default async function VendorsPage(){
   const rebar=(vendors||[]).filter((v:any)=>v.vendor_type==='rebar_supplier').length;
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Vendors</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">The companies Carez buys concrete, rebar, form material, rentals and subcontract work from.</p></header><Link className={buttonVariants({variant:'outline'})} href="/procurement">Back to Purchasing</Link></div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Vendors</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">The companies Carez buys concrete, rebar, form material, rentals and subcontract work from.</p></header><Link className={buttonVariants({variant:'outline'})} href="/procurement">Back to Purchasing</Link></div>
 
     <div className="grid gap-3 sm:grid-cols-3">
       <Card size="sm"><CardContent className="h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Active Vendors</div><div className="text-2xl font-semibold tabular-nums">{active}</div></CardContent></Card>

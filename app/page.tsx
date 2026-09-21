@@ -143,8 +143,8 @@ export default async function HomePage(){
     :`${jobsReady} ready · ${jobsHeld} on hold · ${crewWorking} active field shift${crewWorking===1?'':'s'} · no urgent exceptions`;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="carez-today-board mx-auto grid w-full max-w-screen-2xl gap-6">
+      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{fmtDate(start)}</h1>
@@ -156,7 +156,7 @@ export default async function HomePage(){
         </div>
       </header>
 
-      <section aria-labelledby="today-attention-heading" className="rounded-md border border-border bg-background">
+      <section aria-labelledby="today-attention-heading" className="carez-attention-board border-y border-border bg-card">
         <div className="flex items-start justify-between gap-4 border-b border-border px-3 py-2.5">
           <div>
             <h2 id="today-attention-heading" className="text-sm font-semibold">Management attention</h2>

@@ -54,7 +54,7 @@ export default async function BidIntelligencePage(){
 
  return <AppShell userName={p.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-   <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Win profitable work</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Bid Intelligence</h1><p className="mt-1 max-w-5xl text-sm text-muted-foreground">Choose better pursuits, defend scope, measure real market feedback and offer controlled alternatives without cutting below a safe price just because someone says another contractor is cheaper.</p></div>
     <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads">Leads</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates">Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals">Proposals</Link></div>
    </header>

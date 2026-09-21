@@ -44,7 +44,7 @@ export default async function ProcurementPage(){
   ];
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Purchasing</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Get pricing, order material, track deliveries, enter the vendor bill, then pay it. Each step stays tied to the job.</p></header>
+    <header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Purchasing</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Get pricing, order material, track deliveries, enter the vendor bill, then pay it. Each step stays tied to the job.</p></header>
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <Card size="sm"><CardContent className={cn('h-full space-y-1',quoteReview?'text-warning':'text-success')}><div className="text-xs font-medium text-muted-foreground">Prices to Review</div><div className="text-2xl font-semibold tabular-nums">{quoteReview}</div><div className="text-xs text-muted-foreground">Vendor quotes waiting for a decision.</div></CardContent></Card>

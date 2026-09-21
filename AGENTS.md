@@ -36,7 +36,7 @@ When connected GitHub/Vercel/Supabase tools are available, ChatGPT may inspect, 
 
 ## UI
 
-ADR-024 is the active Precision Grid visual/theme/token/density and implemented global shell/navigation authority. Issue #71 is accepted on staging; ADR-016 is retained only for compatible historical principles. ADR-020 remains the Takeoff workstation authority. Reuse `docs/design-system/CAREZ_COMPONENT_PACK.md`. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed tokens, or a second component system.
+Issue #76 authorizes ADR-025 — Carez Operations Workspace on `astra/complete-ui-rewrite`. It supersedes ADR-024 presentation, ADR-016 shell arrangement, and ADR-020 pane composition. Preserve all protected domain/measurement behavior and light/dark/system preferences. Reuse the source-owned component pack and semantic tokens; do not introduce competing presentation systems. Nik must visually approve the branch preview before staging integration.
 
 ## Validate
 

@@ -38,7 +38,7 @@ export default async function EstimateAuditPage({searchParams}:{searchParams:Pro
   const warningCount=allSummaries.reduce((s:number,x:any)=>s+Number(x.warning_count||0),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pre-send control</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Estimate Risk / Scope Audit</h1><p className="mt-1 max-w-5xl text-sm text-muted-foreground">Carez checks the estimate, takeoff, L&amp;I phase, pricing, production evidence and proposal setup before customer issue. Objective blockers stop release. Judgment items stay visible as warnings.</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/estimates">Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff">Takeoff</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/intelligence">Estimator Intelligence</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals">Proposals</Link></div>
     </header>

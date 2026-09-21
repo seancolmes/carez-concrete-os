@@ -1,17 +1,17 @@
 .shell{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden;background:var(--background)}
 .shell>:global([data-context-tab][data-view-mode]){flex:1;min-width:0;min-height:0}
-.paneToggle{position:absolute;z-index:150!important;display:grid!important;width:28px!important;height:28px!important;place-items:center!important;padding:0!important;border:1px solid var(--border)!important;border-radius:var(--radius-md)!important;background:color-mix(in oklch,var(--background) 90%,var(--card))!important;color:var(--muted-foreground)!important;box-shadow:0 4px 14px rgb(0 0 0 / .2)!important;cursor:pointer!important;transition:border-color 140ms ease,background-color 140ms ease,color 140ms ease,transform 140ms ease!important}
+.paneToggle{position:absolute;z-index:150!important;display:grid!important;width:28px!important;height:28px!important;place-items:center!important;padding:0!important;border:1px solid var(--border)!important;border-radius:var(--radius-md)!important;background:color-mix(in oklch,var(--background) 90%,var(--card))!important;color:var(--muted-foreground)!important;box-shadow:none!important;cursor:pointer!important;transition:border-color 140ms ease,background-color 140ms ease,color 140ms ease,transform 140ms ease!important}
 .paneToggle:hover,.paneToggle:focus-visible{border-color:color-mix(in oklch,var(--foreground) 30%,var(--border))!important;background:var(--muted)!important;color:var(--foreground)!important;outline:none!important}
 .paneToggle:active{scale:.97}
 .paneToggle svg{width:14px!important;height:14px!important}
-.navigatorCollapse{top:50%;left:246px;transform:translate(-50%,-50%)}
-.navigatorCollapse:hover,.navigatorCollapse:focus-visible{transform:translate(-50%,-50%)}
-.navigatorExpand{top:50%;left:19px;transform:translate(-50%,-50%)}
-.navigatorExpand:hover,.navigatorExpand:focus-visible{transform:translate(-50%,-50%)}
-.propertiesCollapse{top:50%;right:376px;transform:translateY(-50%)}
-.propertiesCollapse:hover,.propertiesCollapse:focus-visible{transform:translateY(-50%)}
-.propertiesExpand{top:50%;right:5px;transform:translateY(-50%)}
-.propertiesExpand:hover,.propertiesExpand:focus-visible{transform:translateY(-50%)}
+.navigatorCollapse{top:3px;left:246px;transform:translateX(-50%)}
+.navigatorCollapse:hover,.navigatorCollapse:focus-visible{transform:translateX(-50%)}
+.navigatorExpand{top:3px;left:19px;transform:translateX(-50%)}
+.navigatorExpand:hover,.navigatorExpand:focus-visible{transform:translateX(-50%)}
+.propertiesCollapse{top:3px;right:376px;transform:none}
+.propertiesCollapse:hover,.propertiesCollapse:focus-visible{transform:none}
+.propertiesExpand{top:3px;right:5px;transform:none}
+.propertiesExpand:hover,.propertiesExpand:focus-visible{transform:none}
 
 @media(min-width:1181px){
   .shell>:global([data-context-tab][data-view-mode]){grid-template-columns:minmax(0,1fr) 390px!important}
@@ -39,5 +39,16 @@
   .propertiesCollapse{right:336px}
 }
 
-@media(max-width:860px){.paneToggle{display:none!important}}
+@media(max-width:860px){
+  .paneToggle{display:grid!important}
+  .navigatorCollapse,.navigatorExpand{left:16px;top:3px}
+  .propertiesCollapse,.propertiesExpand{right:5px;top:3px}
+  .shell[data-properties-collapsed="true"]>:global([data-context-tab][data-view-mode])>aside:last-child{display:none}
+  .shell[data-navigator-collapsed="false"]>:global([data-context-tab][data-view-mode])>div:first-child>div>div:first-child>aside:first-child{display:flex!important;position:absolute;top:0;bottom:auto;left:0;z-index:100;width:min(86vw,300px);max-height:420px;border:1px solid var(--border);box-shadow:0 12px 30px rgb(0 0 0 / .18)}
+}
 @media(prefers-reduced-motion:reduce){.paneToggle{transition:none!important}}
+
+.shell{--takeoff-navigator-width:260px}
+@media(max-width:1180px){.shell{--takeoff-navigator-width:220px}}
+.shell[data-navigator-collapsed="true"]{--takeoff-navigator-width:38px}
+@media(max-width:860px){.shell{--takeoff-navigator-width:0px}}

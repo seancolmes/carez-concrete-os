@@ -1,5 +1,8 @@
 # ADR-020 — Integrated Takeoff workstation and Precision Cursor
 
+Presentation supersession: Issue #76 authorizes ADR-025 Carez Operations Workspace on the rewrite branch. The presentation decisions below are historical where superseded by ADR-025; domain and measurement invariants remain protected.
+
+
 Status: Accepted
 Date: 2026-09-04
 Owner: 95 — UX & Design System

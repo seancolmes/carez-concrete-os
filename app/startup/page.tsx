@@ -29,7 +29,7 @@ export default async function StartupPage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Jobs & field</p>
           <h1 className="text-2xl font-semibold tracking-tight">Job Startup</h1>

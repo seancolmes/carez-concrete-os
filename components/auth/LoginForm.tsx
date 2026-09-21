@@ -29,17 +29,17 @@ export function LoginForm(){
     router.refresh();
   }
 
-  return <Card className="w-full max-w-md shadow-xl shadow-slate-950/5">
+  return <Card className="w-full max-w-md border-0 bg-transparent shadow-none">
     <CardHeader className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-sidebar text-sm font-bold text-sidebar-foreground">C</span>
+
         <div className="min-w-0">
-          <Image src="/brand/carez-wordmark.png" alt="Carez Concrete" width={146} height={54} priority className="h-7 w-auto object-contain object-left brightness-[.22]"/>
-          <p className="mt-0.5 text-xs text-muted-foreground">Concrete OS</p>
+          <Image src="/brand/carez-wordmark.png" alt="Carez Concrete" width={146} height={54} priority className="h-9 w-auto bg-white p-1 object-contain object-left"/>
+          <p className="mt-0.5 text-xs text-muted-foreground">CONCRETE OPERATIONS</p>
         </div>
       </div>
       <div>
-        <CardTitle className="text-xl font-semibold tracking-tight">Sign in</CardTitle>
+        <CardTitle className="text-3xl font-semibold tracking-tight">Sign in</CardTitle>
         <CardDescription className="mt-1">Owner and authorized crew access only.</CardDescription>
       </div>
     </CardHeader>

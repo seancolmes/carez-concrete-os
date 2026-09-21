@@ -37,7 +37,7 @@ export default async function CloseoutPage(){
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-   <header><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Project control</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Project Closeout</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Finish the loose ends, collect the money, and lock the job down before calling it complete.</p></header>
+   <header className="carez-page-heading"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Project control</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Project Closeout</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Finish the loose ends, collect the money, and lock the job down before calling it complete.</p></header>
 
    <section className="grid gap-3 md:grid-cols-2" aria-label="Closeout summary">
     <Metric label="Jobs Still Open" value={String(active.length)} help="Active or on-hold jobs not fully closed."/>

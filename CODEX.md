@@ -49,7 +49,7 @@ See `docs/workflow/LOCAL_CODEX_WORKSTATION.md` for the current workstation archi
 - Production Quantity, Direct Cost, and Sell as distinct values.
 - Persisted page-coordinate 2D/vector geometry as Takeoff quantity authority; derived 3D is verification only.
 - Human authority over scope, Conditions, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
-- UI authority: ADR-024 + `docs/design-system/CAREZ_COMPONENT_PACK.md`; Issue #71's role-adaptive Hybrid shell is accepted on staging and ADR-016 is retained only for compatible historical principles. ADR-020/current Takeoff module contracts remain authoritative for Takeoff invariants. Preserve true light/dark/system semantic tokens; do not revive legacy B2 styling, permanent global desktop left rail, compatibility UI layers, hard-coded alternate palettes outside governed semantic tokens, or a second component system.
+- UI authority: Issue #76 authorizes ADR-025 — Carez Operations Workspace on `astra/complete-ui-rewrite`. It supersedes ADR-024 presentation, ADR-016 shell arrangement, and ADR-020 pane composition. Preserve all protected domain/measurement behavior and light/dark/system preferences. Reuse the source-owned component pack and semantic tokens; do not introduce competing presentation systems. Nik must visually approve the branch preview before staging integration.
 
 ## Execute
 

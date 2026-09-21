@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useState,type ReactNode} from 'react';
+import {useMemo,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {FilterX,MoreHorizontal,Search,SlidersHorizontal} from 'lucide-react';
 import {
@@ -72,16 +72,6 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
   const [attention,setAttention]=useState('all');
   const [sort,setSort]=useState('priority');
   const [selectedId,setSelectedId]=useState<string|null>(null);
-  const [wideInspector,setWideInspector]=useState(false);
-
-  useEffect(()=>{
-    const media=window.matchMedia('(min-width: 1536px)');
-    const update=()=>setWideInspector(media.matches);
-    update();
-    media.addEventListener('change',update);
-    return()=>media.removeEventListener('change',update);
-  },[]);
-
   const stages=useMemo(()=>Array.from(new Set(rows.map(row=>row.projectStatus).filter(Boolean))).sort(),[rows]);
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
@@ -126,7 +116,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
 
   const grid=<CarezDataGrid
     toolbar={toolbar}
-    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select a row to inspect. Space selects; Enter or double-click opens the project.</span></>}
+    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select to preview · Enter to open project</span></>}
     isEmpty={filtered.length===0}
     empty={<CarezEmptyState title="No jobs match this view" description="Adjust or reset the current filters." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/>}
   >
@@ -204,13 +194,9 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
       <CarezOperatingMetric label="Customers owe" value={money(metrics.customersOwe)} help={metrics.overdue?`${money(metrics.overdue)} is past due.`:'No overdue customer balance.'} tone={metrics.overdue?'error':metrics.customersOwe?'warning':'neutral'}/>
     </CarezOperatingMetricStrip>
 
-    <div className={cn('grid min-w-0 gap-4',selected&&wideInspector&&'2xl:grid-cols-[minmax(0,1fr)_22rem]')}>
-      <div className="min-w-0">{grid}</div>
-      {selected&&wideInspector?<JobInspector row={selected} onNavigate={navigate}/>:null}
-    </div>
-
-    <Sheet open={Boolean(selected&&!wideInspector)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
-      {selected&&!wideInspector?<SheetContent aria-label={'Job inspector: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-md"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
+    <div className="min-w-0">{grid}</div>
+    <Sheet open={Boolean(selected)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
+      {selected?<SheetContent aria-label={'Job preview: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-lg"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
     </Sheet>
   </div>;
 }
@@ -268,7 +254,7 @@ function JobInspector({row,onNavigate,sheet=false}:{row:JobsBoardRow;onNavigate:
           <InspectorRow label="Customer balance">{row.billingAvailable?money(row.customerOwed):'Not available'}</InspectorRow>
           <InspectorRow label="Past due">{row.billingAvailable?money(row.overdue):'Not available'}</InspectorRow>
         </dl>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">Approved change orders, committed cost and actual cost are not exposed by the current Jobs summary query, so this inspector does not fabricate them.</p>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">Approved change orders, committed cost and actual cost are not exposed by the current Jobs summary query, and are not available in this summary.</p>
       </CarezInspectorSection>
     </CarezInspectorBody>
 

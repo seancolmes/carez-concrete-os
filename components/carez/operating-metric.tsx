@@ -27,10 +27,10 @@ export function CarezOperatingMetric({
 }){
   return <div
     data-slot="carez-operating-metric"
-    className={cn('min-w-0 bg-background px-3 py-3',className)}
+    className={cn('min-w-0 bg-card px-4 py-4',className)}
   >
     <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-    <div className={cn('mt-1 font-mono text-xl font-semibold tracking-tight tabular-nums',toneClass[tone])}>{value}</div>
+    <div className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',toneClass[tone])}>{value}</div>
     {help?<div className="mt-1 text-xs leading-4 text-muted-foreground">{help}</div>:null}
   </div>;
 }
@@ -43,7 +43,7 @@ export function CarezOperatingMetricStrip({
   return <section
     {...props}
     data-slot="carez-operating-metric-strip"
-    className={cn('grid gap-px overflow-hidden rounded-md border border-border bg-border',columnClass[columns],className)}
+    className={cn('carez-metric-ledger grid gap-px overflow-hidden border-y border-border bg-border',columnClass[columns],className)}
   >
     {children}
   </section>;

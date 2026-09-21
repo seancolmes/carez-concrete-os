@@ -13,7 +13,7 @@ export function CarezProjectSwitcher({label='Carez workspace',detail='Company',o
 }
 
 export function CarezProjectContextBar({projectName,projectDetail,workspaceLabel,onOpenProjectSwitcher,className}:{projectName:string;projectDetail:string;workspaceLabel:string;onOpenProjectSwitcher:()=>void;className?:string}){
-  return <div data-slot="carez-project-context" className={cn('flex h-9 items-center gap-2 border-b border-border bg-muted/20 px-2.5 md:px-3',className)}>
+  return <div data-slot="carez-project-context" className={cn('flex min-h-11 items-center gap-3 border-b border-border bg-card px-3 md:px-6',className)}>
     <span className="hidden text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground sm:inline">Project</span>
     <CarezProjectSwitcher label={projectName} detail={projectDetail} onClick={onOpenProjectSwitcher}/>
     <span className="ml-auto shrink-0 rounded-md border border-border/70 bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground">{workspaceLabel}</span>

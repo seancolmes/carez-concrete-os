@@ -36,7 +36,7 @@ export default async function ProtectedMoneyPage(){
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Protected Money</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Money sitting in Carez accounts that is already spoken for. Treat this as money we must not spend.</p></header>
+      <header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Protected Money</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Money sitting in Carez accounts that is already spoken for. Treat this as money we must not spend.</p></header>
       <Link className={buttonVariants({variant:'outline'})} href="/cashflow">Back to Cash</Link>
     </div>
 

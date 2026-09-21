@@ -82,7 +82,8 @@ test('Projects uses the canonical grid, status, and Inspector foundations',()=>{
   assert.match(board,/aria-selected|selected=\{selectedRow\}/);
   assert.match(board,/event\.key===['"]Enter['"]/);
   assert.match(board,/Open Project/);
-  assert.match(board,/matchMedia\(['"]\(min-width: 1536px\)['"]\)/);
+  assert.doesNotMatch(board,/wideInspector|matchMedia/);
+  assert.match(board,/open=\{Boolean\(selected\)\}/);
   assert.match(board,/Sheet/);
   assert.doesNotMatch(board,/function ToneBadge/);
   assert.doesNotMatch(board,/amber-|red-|green-|blue-/);
@@ -150,7 +151,7 @@ test('reference slice preserves unavailable-state language and route boundaries'
 
   assert.match(today,/No authoritative budget snapshot/);
   assert.match(overview,/Need Progress/);
-  assert.match(projects,/does not fabricate them/);
+  assert.match(projects,/not available in this summary/);
   assert.match(projectsPage,/budgetAvailable:Boolean\(b\.project_id\)/);
   assert.match(projectsPage,/billingAvailable:Boolean\(bill\.project_id\)/);
 
@@ -188,7 +189,7 @@ test('reference slice preserves semantic severity and keyboard interaction bound
   assert.match(today,/const attentionStatusTone=attention\.some/);
   assert.match(today,/resolveOperationalState\(row\.state\)/);
   assert.match(projects,/event\.currentTarget!==event\.target/);
-  assert.match(projects,/aria-label=\{'Job inspector: '\+selected\.name\}/);
+  assert.match(projects,/aria-label=\{'Job preview: '\+selected\.name\}/);
 });
 
 
@@ -197,5 +198,5 @@ test('Projects supports keyboard selection without hijacking child controls',()=
 
   assert.match(projects,/event\.key===['"] ['"]/);
   assert.match(projects,/event\.preventDefault\(\);setSelectedId\(row\.id\)/);
-  assert.match(projects,/Space selects; Enter or double-click opens the project/);
+  assert.match(projects,/Select to preview · Enter to open project/);
 });

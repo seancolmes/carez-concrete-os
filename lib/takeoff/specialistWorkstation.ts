@@ -1,6 +1,6 @@
 export type TakeoffNavigatorTab='plans'|'conditions'|'zones';
 
-export type TakeoffViewMode='2d'|'3d';
+export type TakeoffViewMode='2d'|'3d'|'split';
 
 export type TakeoffWorksheetView=
   |'quantities'
@@ -40,7 +40,7 @@ export type ConditionPresentationState={
 };
 
 export function resolveTakeoffViewMode(value:unknown):TakeoffViewMode|null{
-  return value==='2d'||value==='3d'?value:null;
+  return value==='2d'||value==='3d'||value==='split'?value:null;
 }
 
 export function resolveTakeoffWorksheetView(value:unknown):TakeoffWorksheetView|null{

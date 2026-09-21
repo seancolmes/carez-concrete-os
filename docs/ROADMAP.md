@@ -1,5 +1,8 @@
 # Carez Concrete OS — Modernization Roadmap
 
+Current UI priority: Issue #76 on `astra/complete-ui-rewrite`; complete ADR-025 implementation, validation and authenticated branch-preview QA before Nik approves any staging integration. Prior Precision Slate refinement sequencing is superseded.
+
+
 This roadmap governs sequence. It does not authorize unrelated rewrites.
 
 ## P0.1 — Shell + Takeoff acceptance

@@ -1,5 +1,10 @@
 # Carez Concrete OS — Current State
 
+## Issue #76 branch candidate — 2026-09-21
+
+`astra/complete-ui-rewrite` starts from staging `e06b6f2`. ADR-025 replaces presentation authority on this branch only. The candidate includes a workspace directory/masthead, shared route headings and metric ledgers, full-width Projects with a dismissible preview, semantic specialist styles, and a drawing-first Takeoff default. No domain actions, database migrations, or financial calculations change. Nik's visual acceptance and authenticated browser QA remain pending; the accepted staging history below is unchanged. Do not merge or promote this candidate until approved.
+
+
 Last reconciled: 2026-09-20  
 Canonical development / QA line: `staging`  
 Production line: `main`  

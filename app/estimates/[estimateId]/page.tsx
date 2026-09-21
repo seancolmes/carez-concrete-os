@@ -50,7 +50,7 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
   const stage=e.status==='accepted'||e.status==='approved'?'Awarded':proposal?'Proposal Issued':e.status==='ready'?'Ready for Audit':e.status==='superseded'?'Superseded':'Pricing';
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{display} · {stage}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{e.name}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Takeoff quantities feed this estimate automatically. Review exceptions, margin and the customer price here; use manual costs only when the scope is genuinely outside an assembly.</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><ArrowLeft/>Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff"><Ruler/>Takeoff</Link></div>
     </header>
