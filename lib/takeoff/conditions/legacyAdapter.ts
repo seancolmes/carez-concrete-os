@@ -12,6 +12,11 @@ export type LegacyConditionOutputMapping = {
   productionTaskId?: string | null;
   unitCost?: number | null;
   costSource?: string | null;
+  priceSourceKind?: string | null;
+  priceSourceId?: string | null;
+  priceSourceLabel?: string | null;
+  priceSourceReference?: string | null;
+  priceEffectiveDate?: string | null;
   baselineSource?: string | null;
   resourceBehavior?: string | null;
   estimateVisible?: boolean;
@@ -33,6 +38,11 @@ export type LegacyPreparedConditionOutput = {
   baseline_source: string;
   unit_cost: number;
   cost_source: string;
+  price_source_kind: string;
+  price_source_id: string;
+  price_source_label: string;
+  price_source_reference: string;
+  price_effective_date: string;
   direct_cost: number;
   pricing_status: 'priced' | 'missing_price' | 'missing_input' | 'not_priced';
   is_active: boolean;
@@ -99,6 +109,11 @@ export function adaptConditionOutputsToLegacy(
       baseline_source: mapping.baselineSource || 'Concrete Condition engine',
       unit_cost: pricing.unitCost,
       cost_source: mapping.costSource || '',
+      price_source_kind: pricing.status === 'priced' ? mapping.priceSourceKind || '' : '',
+      price_source_id: pricing.status === 'priced' ? mapping.priceSourceId || '' : '',
+      price_source_label: pricing.status === 'priced' ? mapping.priceSourceLabel || mapping.costSource || '' : '',
+      price_source_reference: pricing.status === 'priced' ? mapping.priceSourceReference || '' : '',
+      price_effective_date: pricing.status === 'priced' ? mapping.priceEffectiveDate || '' : '',
       direct_cost: pricing.directCost,
       pricing_status: pricing.status,
       // Compatibility rows stay active so an existing manual unit-price override
