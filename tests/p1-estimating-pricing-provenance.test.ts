@@ -115,3 +115,15 @@ test('pricing provenance override foreign keys have covering indexes', () => {
   assert.match(sql, /create index if not exists takeoff_outputs_price_override_by_idx[\s\S]*takeoff_measurement_outputs\s*\(price_override_by\)/i);
   assert.match(sql, /create index if not exists estimate_items_price_override_by_idx[\s\S]*estimate_items\s*\(price_override_by\)/i);
 });
+
+
+test('template default remains a fallback when no compatible catalog source exists', () => {
+  const source = readFileSync(assemblyEnginePath, 'utf8');
+  const resolverStart = source.indexOf('export async function resolveTakeoffCurrentUnitCost');
+  const resolverEnd = source.indexOf('export async function prepareAssemblyOutputs', resolverStart);
+  const resolver = source.slice(resolverStart, resolverEnd);
+
+  assert.doesNotMatch(resolver, /if \(!component\.catalog_item_id\) return null/);
+  assert.doesNotMatch(resolver, /if \(!catalog \|\|[^\n]+\) return null/);
+  assert.match(resolver, /if \(Number\(component\.default_unit_cost \|\| 0\) > 0\)[\s\S]*sourceKind:\s*'template_default'/);
+});
