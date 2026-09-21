@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const migrationPath = 'supabase/migrations/20260921210000_estimate_pricing_provenance.sql';
+const assemblyEnginePath = 'lib/takeoff/assemblyEngine.server.ts';
+const legacyAdapterPath = 'lib/takeoff/conditions/legacyAdapter.ts';
+const persistencePath = 'lib/takeoff/conditions/persistence.server.ts';
+const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
+const worksheetPath = 'components/estimates/EstimateWorksheet.tsx';
+
+test('P1.1 stores structured price provenance on generated outputs and estimate items', () => {
+  assert.equal(existsSync(migrationPath), true, 'P1.1 pricing provenance migration must exist');
+  const sql = readFileSync(migrationPath, 'utf8');
+
+  for (const column of [
+    'price_source_kind',
+    'price_source_id',
+    'price_source_label',
+    'price_source_reference',
+    'price_effective_date',
+    'price_override_by',
+    'price_override_at',
+  ]) {
+    assert.match(sql, new RegExp(`takeoff_measurement_outputs[\\s\\S]{0,2200}${column}`, 'i'));
+    assert.match(sql, new RegExp(`estimate_items[\\s\\S]{0,2200}${column}`, 'i'));
+  }
+
+  assert.match(sql, /vendor_bill_history/);
+  assert.match(sql, /purchase_order_history/);
+  assert.match(sql, /company_catalog/);
+  assert.match(sql, /labor_profile/);
+  assert.match(sql, /template_default/);
+  assert.match(sql, /supplier_quote/);
+  assert.match(sql, /manual_override/);
+});
+
+test('Takeoff pricing resolvers emit source kind, identity, label and effective date', () => {
+  const source = readFileSync(assemblyEnginePath, 'utf8');
+
+  assert.match(source, /sourceKind:\s*'labor_profile'/);
+  assert.match(source, /sourceId:\s*profile\.id/);
+  assert.match(source, /effectiveDate:\s*profile\.effective_date/);
+
+  assert.match(source, /sourceKind:\s*'vendor_bill_history'/);
+  assert.match(source, /sourceKind:\s*'purchase_order_history'/);
+  assert.match(source, /sourceKind:\s*'company_catalog'/);
+  assert.match(source, /sourceKind:\s*'template_default'/);
+  assert.match(source, /sourceReference/);
+});
+
+test('Condition compatibility adapter carries structured price provenance without accepting quantity from pricing UI', () => {
+  const adapter = readFileSync(legacyAdapterPath, 'utf8');
+  const persistence = readFileSync(persistencePath, 'utf8');
+
+  assert.match(adapter, /price_source_kind/);
+  assert.match(adapter, /price_source_id/);
+  assert.match(adapter, /price_source_label/);
+  assert.match(adapter, /price_source_reference/);
+  assert.match(adapter, /price_effective_date/);
+  assert.match(persistence, /priceSourceKind:/);
+  assert.match(persistence, /priceEffectiveDate:/);
+});
+
+test('sync and manual override atomically preserve provenance across Takeoff, Estimate and Condition', () => {
+  const sql = readFileSync(migrationPath, 'utf8');
+
+  assert.match(sql, /create or replace function public\.carez_sync_takeoff_measurement_outputs/);
+  assert.match(sql, /v_output\.pricing_status='manual_override'[\s\S]{0,1200}v_price_source_kind:=v_output\.price_source_kind/i);
+  assert.match(sql, /insert into public\.estimate_items\([\s\S]{0,1600}price_source_kind/);
+  assert.match(sql, /update public\.estimate_items set[\s\S]{0,1600}price_source_kind=v_price_source_kind/i);
+
+  assert.match(sql, /create or replace function public\.carez_update_takeoff_output_price\(p_output_id uuid, p_unit_cost numeric\)/);
+  assert.match(sql, /price_source_kind='manual_override'/);
+  assert.match(sql, /price_override_by=auth\.uid\(\)/);
+  assert.match(sql, /price_override_at=now\(\)/);
+  assert.match(sql, /update public\.project_condition_outputs condition_output[\s\S]{0,1800}'source_kind','manual_override'/i);
+  assert.doesNotMatch(sql, /p_(?:quantity|production_quantity|raw_quantity)/i);
+});
+
+test('Estimate worksheet presents structured price provenance without database IDs', () => {
+  const page = readFileSync(estimatePagePath, 'utf8');
+  const worksheet = readFileSync(worksheetPath, 'utf8');
+
+  assert.match(page, /price_source_kind/);
+  assert.match(page, /price_source_label/);
+  assert.match(page, /price_source_reference/);
+  assert.match(page, /price_effective_date/);
+  assert.match(worksheet, /price_source_label/);
+  assert.match(worksheet, /price_effective_date/);
+  assert.match(worksheet, /price_source_reference/);
+  assert.doesNotMatch(worksheet, /price_source_id/);
+});
