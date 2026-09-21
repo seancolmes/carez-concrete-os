@@ -1,7 +1,7 @@
 'use client';
 
 import {createPortal} from 'react-dom';
-import {useEffect,useMemo,useRef,useState,useTransition} from 'react';
+import {useEffect,useMemo,useRef,useState,useTransition,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {AlertTriangle,CheckCircle2,ChevronDown,Layers3,Plus,RefreshCw,Ruler,Save,Search} from 'lucide-react';
@@ -191,6 +191,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [selectedMeasurementId,setSelectedMeasurementId]=useState<string|null>(null);
   const [dockHeight,setDockHeight]=useState(228);
+  const [inspectorWidth,setInspectorWidth]=useState(430);
   const [draft,setDraft]=useState<ConditionInputDraft>({});
   const [moduleEnabled,setModuleEnabled]=useState<Record<string,boolean>>({});
   const [moduleDraft,setModuleDraft]=useState<Record<string,Record<string,unknown>>>({});
@@ -203,6 +204,12 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [createCode,setCreateCode]=useState('STRIP-WALL-FOOTING');
   const [codeTouched,setCodeTouched]=useState(false);
   const [isPending,startTransition]=useTransition();
+
+  useEffect(()=>{
+    const stored=Number(window.localStorage.getItem('carez.takeoff.condition-properties-width'));
+    if(Number.isFinite(stored)&&stored>=340&&stored<=560)setInspectorWidth(stored);
+  },[]);
+  useEffect(()=>{window.localStorage.setItem('carez.takeoff.condition-properties-width',String(inspectorWidth));},[inspectorWidth]);
 
   useEffect(()=>{
     const element=propertyScrollRef.current;
@@ -348,6 +355,21 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const focusMeasurement=(measurementId:string|null)=>{setSelectedMeasurementId(measurementId);const measurement=measurementId?measurements.find((row:any)=>row.id===measurementId):null;if(measurement?.sheet_id)setActiveSheetId(measurement.sheet_id);};
   const primaryMeasurementForVersion=(versionId:string)=>{const contract=contractForVersion(versionId).definition;if(!contract)return null;const primary=contract.roles.find(role=>role.primary);if(!primary)return null;const working=versionId===selectedVersionId?roleSelections[primary.key]||'':'';return working||conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key)?.measurement_id||null;};
   const changeViewMode=(mode:ViewMode)=>{setViewMode(mode);};
+  const beginInspectorResize=(event:ReactPointerEvent<HTMLDivElement>)=>{
+    if(window.innerWidth<=860)return;
+    event.preventDefault();
+    const startX=event.clientX;
+    const startWidth=inspectorWidth;
+    const move=(moveEvent:PointerEvent)=>setInspectorWidth(Math.max(340,Math.min(560,startWidth+(startX-moveEvent.clientX))));
+    const stop=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',stop);};
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',stop,{once:true});
+  };
+  const resizeInspectorByKeyboard=(key:string)=>{
+    if(key==='ArrowLeft')setInspectorWidth(width=>Math.min(560,width+16));
+    if(key==='ArrowRight')setInspectorWidth(width=>Math.max(340,width-16));
+    if(key==='Home')setInspectorWidth(430);
+  };
   const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
     window.dispatchEvent(new Event('carez:show-condition-properties'));
     setSelectedVersionId(versionId);setCreating(false);
@@ -423,15 +445,26 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       if(input.valueType==='boolean')return <LabeledSwitch key={`${input.group}-${input.key}`} id={switchId(selectedVersionId||'draft',input.group,input.key)} checked={Boolean(draft[input.group]?.[input.key])} onCheckedChange={checked=>updateInput(input,checked?'true':'false')} disabled={locked||isPending} label={input.label} className={direction.switchField}/>;
       const value=String(draft[input.group]?.[input.key]??'');
       const dimension=isArchitecturalDimension(input);
-      return <Field key={`${input.group}-${input.key}`} className={`${direction.propertyField} ${dimension?styles.dimensionField:''}`}>
+      const numeric=input.valueType==='number'||input.valueType==='integer';
+      const numericValue=numeric&&value!==''?Number(value):null;
+      const invalidNumber=numericValue!==null&&Number.isFinite(numericValue)&&((input.minimum!==undefined&&numericValue<input.minimum)||(input.maximum!==undefined&&numericValue>input.maximum));
+      const validationText=invalidNumber
+        ?input.minimum!==undefined&&input.maximum!==undefined
+          ?`Allowed range: ${input.minimum}–${input.maximum}${input.unit?` ${input.unit}`:''}.`
+          :input.minimum!==undefined
+            ?`Minimum: ${input.minimum}${input.unit?` ${input.unit}`:''}.`
+            :`Maximum: ${input.maximum}${input.unit?` ${input.unit}`:''}.`
+        :'';
+      return <Field key={`${input.group}-${input.key}`} data-invalid={invalidNumber||undefined} className={`${direction.propertyField} ${dimension?styles.dimensionField:''}`}>
         <FieldLabel className={direction.propertyFieldLabel}>{input.label}</FieldLabel>
         {input.valueType==='select'
           ?<Select value={value} onValueChange={next=>updateInput(input,String(next??''))} disabled={locked||isPending}><SelectTrigger className="w-full"><SelectValue placeholder="Select…"/></SelectTrigger><SelectContent align="start">{(input.options||[]).map(option=><SelectItem key={option} value={option}>{humanize(option)}</SelectItem>)}</SelectContent></Select>
           :input.valueType==='text'
             ?<Input value={value} onChange={event=>updateInput(input,event.target.value)} disabled={locked||isPending}/>
             :dimension
-              ?<CarezFeetInchesField value={value} canonicalUnit={input.unit} onValueChange={next=>updateInput(input,next)} disabled={locked||isPending} ariaLabel={input.label} className={styles.imperialField}/>
-              :<CarezNumberField value={value} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending}/>}
+              ?<CarezFeetInchesField value={value} canonicalUnit={input.unit} onValueChange={next=>updateInput(input,next)} disabled={locked||isPending} ariaLabel={input.label} ariaInvalid={invalidNumber} className={styles.imperialField}/>
+              :<CarezNumberField value={value} onChange={event=>updateInput(input,event.target.value)} unit={input.unit} min={input.minimum} max={input.maximum} step={input.valueType==='integer'?1:'any'} disabled={locked||isPending} aria-invalid={invalidNumber||undefined}/>}
+        {validationText?<span role="alert" className={direction.inlineValidation}>{validationText}</span>:null}
       </Field>;
     })}</div>;
   };
@@ -481,7 +514,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
 
   const contextPortal=sidebarHost?createPortal(<div className={`${styles.contextPortal} ${contextTab==='plans'?'':styles.contextPortalExpanded}`}><div className={styles.contextTabs} role="tablist" aria-label="Takeoff navigator">{(['plans','conditions','zones'] as ContextTab[]).map(tab=><button key={tab} type="button" role="tab" aria-selected={contextTab===tab} className={contextTab===tab?styles.contextTabActive:styles.contextTab} onClick={()=>setContextTab(tab)}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>{contextTab==='conditions'?<div className={styles.contextBody}><div className={styles.contextTools}><label><Search/><input value={conditionQuery} onChange={event=>setConditionQuery(event.target.value)} placeholder="Filter conditions"/></label><Button size="icon-sm" variant="outline" onClick={()=>setCreating(true)} disabled={locked}><Plus/></Button></div>{conditions.length?<CarezConditionTree onVisibilityChange={(node,hidden)=>{const ids=node.children?.map(child=>child.id)||[node.id];setDerivedViewState(current=>({...current,hidden:hidden?[...new Set([...current.hidden,...ids])]:current.hidden.filter(id=>!ids.includes(id))}));}} searchable={false} nodes={treeNodes} selectedId={selectedVersionId} onSelect={node=>{if(conditions.some(row=>row.condition_version_id===node.id))requestConditionSelection(node.id);}}/>:<div className={styles.contextEmpty}>No conditions</div>}</div>:contextTab==='zones'?<div className={styles.contextBody}><div className={styles.paneLabel}>Zones</div>{zones.length?<div className={styles.zoneList}>{zones.map(zone=><div key={zone.label}><span>{zone.label}</span><b>{zone.count}</b></div>)}</div>:<div className={styles.contextEmpty}>No zones assigned</div>}</div>:null}</div>,sidebarHost):null;
 
-  return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode}>
+  return <div className={styles.integrated} data-context-tab={contextTab} data-view-mode={viewMode} style={{'--condition-properties-width':`${inspectorWidth}px`} as CSSProperties}>
     <div className={styles.drawingHost} ref={drawingHostRef}>
       <TakeoffDrawingWorkspace {...workspaceProps} conditionAuthoringActive conditionMeasurementIds={conditionMeasurementIds} conditionSelectedMeasurementId={selectedMeasurementId} onConditionMeasurementSelect={requestMeasurementSelection} conditionPresentation={drawingPresentation} drawingViewHidden={viewMode==='3d'}/>
       {contextPortal}
@@ -501,12 +534,25 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       </div>}
     </div>
     <aside id="takeoff-condition-properties" className={styles.propertiesPane} aria-label="Condition Properties">
+      <div
+        className={styles.propertiesResizer}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize Condition Properties"
+        aria-valuemin={340}
+        aria-valuemax={560}
+        aria-valuenow={inspectorWidth}
+        tabIndex={0}
+        onPointerDown={beginInspectorResize}
+        onDoubleClick={()=>setInspectorWidth(430)}
+        onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'||event.key==='Home'){event.preventDefault();resizeInspectorByKeyboard(event.key);}}}
+      />
       <header className={styles.propertiesHeader}><div key={selectedVersionId||'new'}><span>Condition Properties</span><strong>{creating?'New condition':selectedSummary?.name||'No condition selected'}</strong>{selectedSummary?<small>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</small>:null}</div></header>
 
       {creating?<div className={styles.createPane}><div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <button type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></button>;})}</div><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Condition name</FieldLabel><Input value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></Field><Field className={direction.propertyField}><FieldLabel className={direction.propertyFieldLabel}>Code</FieldLabel><Input value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></Field><div className={styles.createActions}><Button variant="outline" onClick={()=>setCreating(false)}>Cancel</Button><Button onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</Button></div><div className={styles.statusLine} role="status">{message}</div></div>
       :!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
         <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<button type="button" className={direction.versionAction} onClick={()=>setUpgradeOpen(true)} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</button>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<button type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></button>:null}</div>
-        <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}><TabsList variant="line" className={styles.tabsList}>{availableTabs.map(tab=><TabsTrigger key={tab} value={tab}>{TAB_LABELS[tab]}</TabsTrigger>)}</TabsList></Tabs>
+        <Tabs value={propertyTab} onValueChange={value=>setPropertyTab(value as PropertyTab)} className={styles.tabsWrap}><TabsList variant="line" className={styles.tabsList}>{availableTabs.map((tab,index)=><TabsTrigger key={tab} value={tab}><span className={styles.tabIndex}>{String(index+1).padStart(2,'0')}</span><span>{TAB_LABELS[tab]}</span></TabsTrigger>)}</TabsList></Tabs>
         {selectedIssues.length?<Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}><CollapsibleContent id="condition-issues"><div className={direction.holdsDock} aria-label="Condition issues">{selectedIssues.map(issue=><button key={issue.key} type="button" className={direction.holdRow} onClick={()=>openIssue(issue)}><AlertTriangle/><span className={direction.holdText}><strong>{issue.label}</strong><small>{issue.message}</small></span><span className={direction.holdJump}>{issueDestinationLabel(issue)} →</span></button>)}</div></CollapsibleContent></Collapsible>:null}
         <div ref={propertyScrollRef} className={styles.propertiesScroll}>
           {propertyTab==='general'?<><section className={styles.propertySection}><div className={styles.sectionHead}><Ruler/><strong>Scope / geometry</strong></div><div className={styles.roleList}>{definition.roles.map(role=>{const roleAssemblyVersionId=assemblyVersionForRole(role);const choices=measurements.filter((measurement:any)=>conditionMeasurementMatchesRole(measurement,role,compatibilityAssemblyVersionId)&&(!stripV4||role.primary||Boolean(roleAssemblyVersionId&&measurement.assembly_version_id===roleAssemblyVersionId)));return <div className={styles.roleRow} key={role.key}><div><strong>{role.label}</strong><small>{role.unit}{role.primary?' · Primary':' · Optional'}</small></div><ConditionRolePicker value={roleSelections[role.key]||''} choices={choices.map((measurement:any)=>{const sheet=sheets.find((item:any)=>item.id===measurement.sheet_id);return{id:measurement.id,label:measurement.name,meta:`${quantity(measurement.raw_quantity,measurement.raw_unit)} · ${sheet?.sheet_number||`Page ${sheet?.page_number||'?'}`}`};})} placeholder={role.required?'Select takeoff…':'Not used'} emptyLabel={role.required?'No takeoff selected':'Not used'} disabled={locked||isPending} onChange={value=>setRole(role.key,value)}/><Button size="sm" variant="outline" onClick={()=>startTakeoff(role)} disabled={locked||isPending||(!role.primary&&stripV4&&!roleAssemblyVersionId)}>Draw {role.unit}</Button></div>;})}</div></section><section className={styles.propertySection}><div className={styles.sectionHead}><strong>Dimensions</strong><small>Feet + inches</small></div>{renderInputGroup('planFacts')}</section>{stripModern&&!stripV3?<section className={styles.propertySection}><div className={styles.sectionHead}><strong>Concrete</strong></div>{moduleEditor('concrete')}</section>:null}</>:null}
