@@ -216,3 +216,7 @@
   .integrated[data-mobile-review="true"] .propertiesPane,
   .integrated[data-mobile-review="true"] .derivedOverlay{display:none!important}
 }
+
+@media(max-width:860px){
+  .viewModeSwitch,.viewAuthority{display:none!important}
+}
