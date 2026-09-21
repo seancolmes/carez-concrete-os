@@ -34,12 +34,13 @@ export function CarezNumberField(input:NumberInputProps){
   </div>;
 }
 
-export function CarezFeetInchesField({value,canonicalUnit,onValueChange,disabled=false,ariaLabel,className}:{
+export function CarezFeetInchesField({value,canonicalUnit,onValueChange,disabled=false,ariaLabel,ariaInvalid=false,className}:{
   value:string|number;
   canonicalUnit:ImperialCanonicalUnit;
   onValueChange:(value:string)=>void;
   disabled?:boolean;
   ariaLabel:string;
+  ariaInvalid?:boolean;
   className?:string;
 }){
   const hasValue=value!==''&&Number.isFinite(Number(value));
@@ -49,8 +50,8 @@ export function CarezFeetInchesField({value,canonicalUnit,onValueChange,disabled
     onValueChange(String(combineImperialLength(feet===''?0:feet,inches===''?0:inches,canonicalUnit)));
   };
   return <div data-slot="carez-feet-inches-field" className={cn('grid min-w-0 grid-cols-2 gap-2',className)}>
-    <CarezNumberField value={hasValue?String(parts.feet):''} onChange={event=>commit(event.target.value,parts.inches)} unit="ft" min={0} step={1} disabled={disabled} aria-label={ariaLabel+' feet'}/>
-    <CarezNumberField value={hasValue?String(parts.inches):''} onChange={event=>commit(parts.feet,event.target.value)} unit="in" min={0} step="any" disabled={disabled} aria-label={ariaLabel+' inches'}/>
+    <CarezNumberField value={hasValue?String(parts.feet):''} onChange={event=>commit(event.target.value,parts.inches)} unit="ft" min={0} step={1} disabled={disabled} aria-invalid={ariaInvalid||undefined} aria-label={ariaLabel+' feet'}/>
+    <CarezNumberField value={hasValue?String(parts.inches):''} onChange={event=>commit(parts.feet,event.target.value)} unit="in" min={0} step="any" disabled={disabled} aria-invalid={ariaInvalid||undefined} aria-label={ariaLabel+' inches'}/>
   </div>;
 }
 
