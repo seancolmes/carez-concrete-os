@@ -58,5 +58,6 @@ test('camera integration stays domain-independent while spatial navigation is bo
   assert.match(controls, /onStart=\{\(\) => \{ transition\.current = null; \}\}/);
   assert.match(controls, /if \(!from \|\| reducedMotion\)/);
   assert.match(controls, /onEnd=\{save\}/);
+  assert.match(controls, /mouseButtons=\{\{ LEFT: MOUSE\.ROTATE, MIDDLE: MOUSE\.PAN, RIGHT: MOUSE\.PAN \}\}/);
   assert.match(viewport, /key=\{\`\$\{activeSheetId\}:\$\{attempt\}\`\}/);
 });

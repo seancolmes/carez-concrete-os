@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type ComponentRef, type RefObject } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { OrthographicCamera } from 'three';
+import { MOUSE, type OrthographicCamera } from 'three';
 import { SPATIAL_TRANSITION_MS, useReducedSpatialMotion } from '@/components/carez/spatial-motion';
 import { cameraPositionForMemory, homeCameraMemory, topCameraMemory, sanitizeCameraMemory, shouldInitializeCamera, MIN_POLAR, MAX_POLAR, type Takeoff3DCameraMemory } from '@/lib/takeoff/3d/camera';
 
@@ -111,6 +111,8 @@ export function Takeoff3DControls({ sheetId, width, height, memory, actions }: {
   };
 
   return <OrbitControls ref={controls} makeDefault minPolarAngle={MIN_POLAR} maxPolarAngle={MAX_POLAR}
-    minZoom={0.05} maxZoom={40} screenSpacePanning={false} enableDamping={!reducedMotion} dampingFactor={0.08}
+    minZoom={0.05} maxZoom={40} screenSpacePanning={false}
+    mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }}
+    enableDamping={!reducedMotion} dampingFactor={0.08}
     onStart={() => { transition.current = null; }} onChange={save} onEnd={save} />;
 }

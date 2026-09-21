@@ -304,12 +304,21 @@ export function TakeoffDrawingWorkspace(props:Props){
         const renderScale=Math.min(displayScale*desiredDpr,maxPixelScale,maxDimensionScale);
         const renderViewport=page.getViewport({scale:Math.max(.05,renderScale)});
         if(cancelled)return;
-        const canvas=canvasRef.current!;const context=canvas.getContext('2d',{alpha:false});if(!context)throw new Error('Canvas is unavailable.');
-        canvas.width=Math.max(1,Math.floor(renderViewport.width));canvas.height=Math.max(1,Math.floor(renderViewport.height));
+        const canvas=canvasRef.current!;
         canvas.style.width=`${displayViewport.width}px`;canvas.style.height=`${displayViewport.height}px`;
         setRenderBox({width:displayViewport.width,height:displayViewport.height,pdfWidth:base.width,pdfHeight:base.height});
         setRenderQuality(renderScale/displayScale);
-        const task=page.render({canvasContext:context,viewport:renderViewport});renderTaskRef.current=task;await task.promise;page.cleanup();
+        // Render the replacement frame offscreen so wheel zoom never clears the visible PDF bitmap.
+        // The current bitmap scales with CSS and remains aligned with the SVG overlay until the sharper frame is ready.
+        const staging=document.createElement('canvas');
+        staging.width=Math.max(1,Math.floor(renderViewport.width));staging.height=Math.max(1,Math.floor(renderViewport.height));
+        const stagingContext=staging.getContext('2d',{alpha:false});if(!stagingContext)throw new Error('Canvas is unavailable.');
+        const task=page.render({canvasContext:stagingContext,viewport:renderViewport});renderTaskRef.current=task;await task.promise;
+        if(cancelled)return;
+        const visible=canvasRef.current;if(!visible)return;
+        visible.width=staging.width;visible.height=staging.height;
+        const context=visible.getContext('2d',{alpha:false});if(!context)throw new Error('Canvas is unavailable.');
+        context.drawImage(staging,0,0);page.cleanup();
       }catch(error:any){if(error?.name!=='RenderingCancelledException')setMessage(error?.message||'Could not render this PDF page.');}
     }
     void render();return()=>{cancelled=true;renderTaskRef.current?.cancel?.();};
