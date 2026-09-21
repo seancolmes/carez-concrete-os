@@ -30,56 +30,58 @@ It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 s
 - Manrope is the primary interface/display typeface.
 - IBM Plex Mono is selective technical typography for identifiers, dimensions, aligned technical data, and other cases where mono materially helps.
 - Sentence/title case replaces pervasive uppercase hierarchy.
-- Warm amber is the restrained interaction/focus identity; neutral warm surfaces carry the application and status color remains semantic.
+- Slate blue is the restrained interaction/focus identity; neutral ivory/graphite surfaces carry the application and status color remains semantic.
 - Use three depth levels: canvas, operational surface, interactive/selected surface.
 - Tabs require a clear active surface/edge, hover/focus response, and compact professional geometry.
 - Icons must improve recognition of real construction/business states, not become decoration.
 - Light, dark, and system are first-class.
 
-### Official theme — Claude Amber Remix, adapted for Carez
+### Official theme — Slate Haze, adapted for Carez
 
-Nik replaced the rejected Carez Cobalt direction on 2026-09-21 with the supplied **Claude Amber Remix** theme. Carez uses its warm neutral/amber color system while preserving Carez typography, density, workstation geometry, and construction-native interaction patterns.
+Nik superseded the prior amber direction on 2026-09-21 with the supplied **Slate Haze** theme. Carez uses its neutral ivory/graphite surfaces with restrained slate-blue interaction color while preserving Carez typography, density, workstation geometry, and construction-native interaction patterns.
 
 Core light theme:
 
 | Token | Value |
 | --- | --- |
 | `--background` | `#faf9f5` |
-| `--card` | `#f5f4ef` |
-| `--foreground` | `#3d3929` |
-| `--muted` | `#ede9de` |
-| `--muted-foreground` | `#6e6d68` |
+| `--card` | `#faf9f5` |
+| `--foreground` | `oklch(0.145 0 0)` |
+| `--muted` | `oklch(0.923 0.003 48.717)` |
+| `--muted-foreground` | `oklch(0.553 0.013 58.071)` |
 | `--accent` | `#e9e6dc` |
-| `--border` | `#dad9d4` |
-| `--input` | `#b4b2a7` |
-| `--ring` | `#c96442` |
-| `--primary` | `#000000` |
+| `--border` | `oklch(0.869 0.005 56.366)` |
+| `--input` | `oklch(0.922 0 0)` |
+| `--ring` | `oklch(0.554 0.046 257.417)` |
+| `--primary` | `oklch(0.704 0.04 256.788)` |
+| `--sidebar` | `#f5f4ee` |
 
 Core dark theme:
 
 | Token | Value |
 | --- | --- |
 | `--background` | `#262624` |
-| `--card` | `#2c2c2b` |
-| `--foreground` | `#f1f1ef` |
+| `--card` | `#262624` |
+| `--foreground` | `#c3c0b6` |
 | `--muted` | `#1b1b19` |
 | `--muted-foreground` | `#b7b5a9` |
 | `--accent` | `#1a1915` |
 | `--border` | `#3e3e38` |
 | `--input` | `#52514a` |
-| `--ring` | `#d97757` |
-| `--primary` | `#ffffff` |
+| `--ring` | `oklch(0.869 0.022 252.894)` |
+| `--primary` | `oklch(0.901 0.058 230.902)` |
+| `--sidebar` | `#1f1e1d` |
 
-Carez semantic tokens derive from the theme rather than introducing a second palette: canvas from background, panel from card, raised from popover, text from foreground/muted foreground, strong border from input, interaction/focus/spatial accent from ring, and selection from accent. Manrope remains the primary UI font and IBM Plex Mono remains the technical font. Existing Carez precision radii/density rules remain authoritative even though the source theme publishes broader defaults.
+Carez semantic tokens and shell tokens derive from Slate Haze instead of introducing a competing palette. Manrope remains the primary UI font and IBM Plex Mono remains the technical font; the theme request changes color, spacing/radius foundation, and surface relationships without replacing Carez typography.
 
-Login/landing may use reusable technical grid-pattern geometry as a background/supporting layer. It must read as construction-document space, remain subordinate to content and the Spatial Blueprint, respect reduced-motion, and avoid neon/sci-fi treatment.
+Login/landing and specialist workspaces may use low-contrast technical grid geometry as a supporting layer. It must read as construction-document space, remain subordinate to content, respect reduced-motion, and avoid neon/sci-fi treatment.
 
 Usage rules:
 
-- warm neutral surfaces dominate;
-- amber is used for focus, technical/spatial emphasis, and selected edges rather than page-wide fill;
+- neutral ivory/graphite surfaces dominate;
+- slate blue is used for focus, technical/spatial emphasis, selected edges, and primary interaction rather than page-wide fill;
 - semantic success/warning/error/info colors communicate real state only;
-- no cobalt/teal theme remnants or module-specific alternate palettes;
+- no amber/cobalt/teal brand remnants or module-specific alternate palettes;
 - light, dark, and system remain first-class;
 - all implementation must preserve WCAG AA minimum normal-text contrast.
 
