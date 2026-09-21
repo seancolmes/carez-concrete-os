@@ -531,3 +531,212 @@ export async function prepareLegacyPilotMigration({
     provenance,
   };
 }
+
+
+export function legacyPilotPreparationFromLedger(
+  detailsValue: unknown,
+  estimateId: string,
+  measurementId: string,
+): LegacyPilotMigrationPreparation {
+  const details = objectRecord(detailsValue);
+  const migrationPreparation = objectRecord(details.migration_preparation);
+  const draft = objectRecord(migrationPreparation.condition_draft);
+  const role = objectRecord(draft.measurementRole);
+  const modules = arrayRows(draft.modules);
+  const family = String(details.supported_pilot_family || draft.archetypeKey || '') as LegacyPilotFamily;
+  const targetTemplateVersionId = String(details.target_template_version_id || draft.templateVersionId || '');
+  const targetCompatibilityAssemblyVersionId = String(details.target_compatibility_assembly_version_id || '');
+
+  if (migrationPreparation.status !== 'ready'
+    || !['pad_column_footing', 'strip_wall_footing', 'slab_on_grade'].includes(family)
+    || !targetTemplateVersionId
+    || !targetCompatibilityAssemblyVersionId
+    || String(details.source_measurement_id || '') !== measurementId
+    || String(role.measurementId || '') !== measurementId
+    || !String(draft.archetypeVersionId || '')
+    || !String(role.roleKey || '')
+    || !modules.length) {
+    throw new Error('Stored legacy migration preparation is incomplete.');
+  }
+
+  return {
+    classification: 'mapped',
+    reason: null,
+    family,
+    estimateId,
+    measurementId,
+    targetTemplateVersionId,
+    targetCompatibilityAssemblyVersionId,
+    conditionDraft: {
+      templateVersionId: targetTemplateVersionId,
+      archetypeVersionId: String(draft.archetypeVersionId),
+      archetypeKey: family,
+      legacyMethodProfileId: draft.legacyMethodProfileId ? String(draft.legacyMethodProfileId) : null,
+      inputs: objectRecord(draft.inputs),
+      inputProvenance: objectRecord(draft.inputProvenance),
+      modules: modules.map((module, index) => {
+        const row = objectRecord(module);
+        const moduleKey = String(row.moduleKey || '');
+        if (!moduleKey) throw new Error('Stored migration module identity is incomplete.');
+        return {
+          moduleKey,
+          instanceKey: String(row.instanceKey || 'default'),
+          label: String(row.label || moduleKey.replaceAll('_', ' ')),
+          enabled: row.enabled !== false,
+          inputValues: objectRecord(row.inputValues),
+          inputProvenance: objectRecord(row.inputProvenance),
+          sortOrder: Number.isInteger(row.sortOrder) ? Number(row.sortOrder) : (index + 1) * 10,
+        };
+      }),
+      measurementRole: {
+        roleKey: String(role.roleKey),
+        roleInstanceKey: String(role.roleInstanceKey || `${String(role.roleKey)}-001`),
+        measurementId,
+        sortOrder: Number.isInteger(role.sortOrder) ? Number(role.sortOrder) : 10,
+      },
+    },
+    compatibilityRebind: null,
+    provenance: {
+      source_measurement_id: measurementId,
+      source_assembly_version_id: String(details.source_assembly_version_id || ''),
+      target_template_version_id: targetTemplateVersionId,
+      target_compatibility_assembly_version_id: targetCompatibilityAssemblyVersionId,
+      raw_quantity: details.raw_quantity as number | string,
+      raw_unit: String(details.raw_unit || ''),
+      geometry_hash: String(details.geometry_hash || ''),
+      source_output_ids: arrayRows(details.source_output_ids).map(String),
+      source_estimate_item_ids: arrayRows(details.source_estimate_item_ids).map(String),
+    },
+  };
+}
+
+export function legacyMigrationConditionCode(measurementId: string) {
+  return `MIG-${measurementId.replace(/-/g, '').toUpperCase()}`;
+}
+
+export async function assertLegacyMigrationEstimateLineage({
+  supabase,
+  companyId,
+  estimateId,
+  measurementId,
+  conditionVersionId,
+}: {
+  supabase: any;
+  companyId: string;
+  estimateId: string;
+  measurementId: string;
+  conditionVersionId: string;
+}) {
+  const [{ data: outputs, error: outputError }, { data: conditionOutputs, error: conditionOutputError }] = await Promise.all([
+    supabase.from('takeoff_measurement_outputs')
+      .select('id,measurement_id,is_active,estimate_visible,generated_estimate_item_id')
+      .eq('company_id', companyId)
+      .eq('measurement_id', measurementId),
+    supabase.from('project_condition_outputs')
+      .select('id,legacy_takeoff_output_id,generated_estimate_item_id,status')
+      .eq('company_id', companyId)
+      .eq('condition_version_id', conditionVersionId),
+  ]);
+  if (outputError) throw new Error(outputError.message);
+  if (conditionOutputError) throw new Error(conditionOutputError.message);
+
+  const outputRows = outputs || [];
+  const outputIds = outputRows.map((row: any) => String(row.id));
+  const { data: measurementItems, error: measurementItemError } = await supabase.from('estimate_items')
+    .select('id,estimate_id,source_takeoff_output_id,source_takeoff_measurement_id')
+    .eq('company_id', companyId)
+    .eq('estimate_id', estimateId)
+    .eq('source_takeoff_measurement_id', measurementId);
+  if (measurementItemError) throw new Error(measurementItemError.message);
+
+  let outputItems: any[] = [];
+  if (outputIds.length) {
+    const { data, error } = await supabase.from('estimate_items')
+      .select('id,estimate_id,source_takeoff_output_id,source_takeoff_measurement_id')
+      .eq('company_id', companyId)
+      .eq('estimate_id', estimateId)
+      .in('source_takeoff_output_id', outputIds);
+    if (error) throw new Error(error.message);
+    outputItems = data || [];
+  }
+  const estimateItems = [...new Map(
+    [...(measurementItems || []), ...outputItems].map((item: any) => [String(item.id), item]),
+  ).values()];
+
+  const itemsByOutput = new Map<string, any[]>();
+  const itemIds = new Set<string>();
+  for (const item of estimateItems) {
+    const outputId = String(item.source_takeoff_output_id || '');
+    const bucket = itemsByOutput.get(outputId) || [];
+    bucket.push(item);
+    itemsByOutput.set(outputId, bucket);
+    const itemId = String(item.id);
+    if (itemIds.has(itemId)) throw new Error('Duplicate generated estimate-item lineage detected.');
+    itemIds.add(itemId);
+  }
+
+  const outputById = new Map(outputRows.map((row: any) => [String(row.id), row]));
+  const generatedIds = new Set<string>();
+  let expectedEstimateItemCount = 0;
+
+  for (const output of outputRows) {
+    const outputId = String(output.id);
+    const linked = itemsByOutput.get(outputId) || [];
+    const estimateVisibleActive = Boolean(output.is_active && output.estimate_visible);
+    if (estimateVisibleActive) {
+      expectedEstimateItemCount += 1;
+      if (linked.length !== 1) {
+        throw new Error(`Estimate lineage requires exactly one generated item for active output ${outputId}; duplicate or orphan relationship found.`);
+      }
+      const item = linked[0];
+      if (String(item.source_takeoff_measurement_id || '') !== measurementId
+        || String(output.generated_estimate_item_id || '') !== String(item.id)) {
+        throw new Error(`Orphan estimate lineage detected for active output ${outputId}.`);
+      }
+    } else if (linked.length || output.generated_estimate_item_id) {
+      throw new Error(`Inactive or hidden output ${outputId} retains orphan estimate lineage.`);
+    }
+
+    if (output.generated_estimate_item_id) {
+      const generatedId = String(output.generated_estimate_item_id);
+      if (generatedIds.has(generatedId)) throw new Error('Duplicate generated_estimate_item_id relationship detected.');
+      generatedIds.add(generatedId);
+    }
+  }
+
+  const conditionLegacyIds = new Set<string>();
+  for (const conditionOutput of conditionOutputs || []) {
+    const legacyOutputId = String(conditionOutput.legacy_takeoff_output_id || '');
+    if (!legacyOutputId || !outputById.has(legacyOutputId)) {
+      throw new Error('Orphan Condition output lineage detected.');
+    }
+    if (conditionLegacyIds.has(legacyOutputId)) {
+      throw new Error('Duplicate source_takeoff_output_id relationship detected in Condition lineage.');
+    }
+    conditionLegacyIds.add(legacyOutputId);
+    const legacyOutput: any = outputById.get(legacyOutputId);
+    if (String(conditionOutput.generated_estimate_item_id || '') !== String(legacyOutput.generated_estimate_item_id || '')) {
+      throw new Error('Condition and Takeoff generated_estimate_item_id lineage do not match.');
+    }
+  }
+
+  for (const item of estimateItems) {
+    const outputId = String(item.source_takeoff_output_id || '');
+    if (!outputId || !outputById.has(outputId) || String(item.source_takeoff_measurement_id || '') !== measurementId) {
+      throw new Error('Orphan source_takeoff_measurement_id relationship detected.');
+    }
+  }
+
+  for (const output of outputRows) {
+    if (output.is_active && output.estimate_visible && !conditionLegacyIds.has(String(output.id))) {
+      throw new Error('Orphan active Takeoff output remains outside the migrated Condition projection.');
+    }
+  }
+
+  return {
+    measurementOutputCount: outputRows.length,
+    conditionOutputCount: (conditionOutputs || []).length,
+    estimateItemCount: estimateItems.length,
+    expectedEstimateItemCount,
+  };
+}

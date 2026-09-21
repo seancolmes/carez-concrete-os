@@ -10,6 +10,7 @@ import {
 const migrationPath = 'supabase/migrations/20260915231000_condition_legacy_migration_ledger.sql';
 const serverPath = 'lib/takeoff/conditions/legacyMigration.server.ts';
 const actionPath = 'app/takeoff/[setId]/conditionMigrationActions.ts';
+const commitMigrationPath = 'supabase/migrations/20260915232000_condition_legacy_migration_commit.sql';
 const sql = readFileSync(migrationPath, 'utf8');
 
 test('P0.5E migration ledger is tenant-scoped, classified, auditable, and idempotent', () => {
@@ -67,7 +68,8 @@ test('legacy migration dry run inventories lineage without mutating domain recor
   assert.match(actionSource, /mode\s*:\s*['"]dry_run['"]/);
   assert.match(actionSource, /condition_legacy_migration_runs/);
   assert.match(actionSource, /condition_legacy_migration_items/);
-  assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
+  const dryRunActionSource = actionSource.split('export async function applyLegacyConditionMigration')[0];
+  assert.doesNotMatch(`${serverSource}\n${dryRunActionSource}`, /carez_commit_project_condition_calculation/);
   assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,180}\.update\(/);
 });
 
@@ -95,6 +97,62 @@ test('supported pilot migration preparation is editable-only, geometry-preservin
   assert.match(actionSource, /prepareLegacyPilotMigration/);
   assert.match(actionSource, /migration_preparation/);
 
-  assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
+  const dryRunActionSource = actionSource.split('export async function applyLegacyConditionMigration')[0];
+  assert.doesNotMatch(`${serverSource}\n${dryRunActionSource}`, /carez_commit_project_condition_calculation/);
   assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,240}\.update\(/);
+});
+
+
+test('pilot migration commit is transactional, idempotent, and preserves measurement quantity authority', () => {
+  assert.equal(existsSync(commitMigrationPath), true, 'Task 4 transactional migration must exist');
+  const commitSql = readFileSync(commitMigrationPath, 'utf8');
+
+  assert.match(commitSql, /create or replace function public\.carez_commit_legacy_condition_migration/i);
+  assert.match(commitSql, /security invoker/i);
+  assert.match(commitSql, /condition_legacy_migration_runs[\s\S]{0,500}for update/i);
+  assert.match(commitSql, /condition_legacy_migration_items[\s\S]{0,500}for update/i);
+  assert.match(commitSql, /takeoff_measurements[\s\S]{0,500}for update/i);
+  assert.match(commitSql, /mode\s*(?:<>|!=)\s*['"]apply['"]/i);
+  assert.match(commitSql, /estimate[\s\S]{0,300}status[\s\S]{0,120}draft/i);
+  assert.match(commitSql, /proposal_presentations/i);
+  assert.match(commitSql, /updated_at/i);
+  assert.match(commitSql, /source_assembly_version_id/i);
+  assert.match(commitSql, /target_compatibility_assembly_version_id/i);
+  assert.match(commitSql, /assembly_version_id\s*=\s*v_target_assembly_version_id/i);
+  assert.match(commitSql, /method_profile_id\s*=\s*null/i);
+  assert.match(commitSql, /old_assembly_version_id/i);
+  assert.match(commitSql, /new_assembly_version_id/i);
+  assert.match(commitSql, /measurement_updated_at/i);
+  assert.match(commitSql, /v_applied->>['"]measurement_updated_at['"]/i);
+  assert.match(commitSql, /dry_run_id/i);
+  assert.match(commitSql, /create unique index[\s\S]{0,320}source_snapshot[\s\S]{0,120}dry_run_id/i);
+
+  assert.doesNotMatch(commitSql, /set[\s\S]{0,220}(?:geometry|raw_quantity|raw_unit|sheet_id|scale_region_id)\s*=/i);
+  assert.doesNotMatch(commitSql, /p_(?:new|replacement|calculated)_quantity/i);
+});
+
+test('pilot migration apply uses the existing Condition calculator and closes only on exact lineage', () => {
+  const serverSource = readFileSync(serverPath, 'utf8');
+  const actionSource = readFileSync(actionPath, 'utf8');
+
+  assert.match(actionSource, /applyLegacyConditionMigration/);
+  assert.match(actionSource, /carez_commit_legacy_condition_migration/);
+  assert.match(actionSource, /carez_create_project_concrete_condition/);
+  assert.match(actionSource, /prepareConcreteConditionPilotPersistence/);
+  assert.match(actionSource, /carez_commit_project_condition_calculation/);
+  assert.match(actionSource, /condition_legacy_reconciliation/);
+  assert.match(actionSource, /reconciliation_status/);
+  assert.match(actionSource, /condition_legacy_migration_items/);
+  assert.match(actionSource, /condition_legacy_migration_runs/);
+
+  assert.match(serverSource, /assertLegacyMigrationEstimateLineage/);
+  assert.match(serverSource, /estimate_visible/);
+  assert.match(serverSource, /source_takeoff_output_id/);
+  assert.match(serverSource, /source_takeoff_measurement_id/);
+  assert.match(serverSource, /generated_estimate_item_id/);
+  assert.match(serverSource, /duplicate/i);
+  assert.match(serverSource, /orphan/i);
+
+  assert.doesNotMatch(actionSource, /production_quantity\s*:/);
+  assert.doesNotMatch(actionSource, /raw_quantity\s*:/);
 });
