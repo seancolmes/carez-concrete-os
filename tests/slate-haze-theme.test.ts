@@ -77,10 +77,14 @@ test('Carez shell and semantic aliases derive from Slate Haze', () => {
     '--interaction-selection: var(--accent);',
     '--interaction-focus: var(--ring);',
     '--spatial-accent: var(--primary);',
-    '--shell-background: var(--sidebar);',
-    '--shell-surface: var(--card);',
-    '--shell-primary: var(--sidebar-primary);',
+    '--shell-background: #f5f4ee;',
+    '--shell-surface: #faf9f5;',
+    '--shell-primary: oklch(0.554 0.046 257.417);',
   ]) assert.ok(root.includes(expected), expected);
   assert.equal(css.includes('#c96442'), false, 'superseded amber ring must be removed');
   assert.equal(css.includes('#d97757'), false, 'superseded dark amber ring must be removed');
+  const dark = block('\n.dark {');
+  assert.ok(dark.includes('--shell-background: #1f1e1d;'));
+  assert.ok(dark.includes('--shell-surface: #262624;'));
+  assert.ok(dark.includes('--shell-primary: #343434;'));
 });
