@@ -53,7 +53,7 @@ function readDeviceJson(key:string):unknown{try{const raw=window.localStorage.ge
 function writeDeviceJson(key:string,value:unknown){try{window.localStorage.setItem(key,JSON.stringify(value))}catch{}}
 function isWorkstation(pathname:string){
   const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];
-  return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment))||/^\/estimates\/[^/]+/.test(pathname);
+  return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment));
 }
 
 function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestination[];pathname:string}){

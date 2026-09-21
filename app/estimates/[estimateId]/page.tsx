@@ -2,6 +2,7 @@ import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,CheckCircle2,FileText,Ruler,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
+import {CarezOperatingMetric,CarezOperatingMetricStrip} from '@/components/carez/operating-metric';
 import {EstimateWorksheet} from '@/components/estimates/EstimateWorksheet';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
@@ -63,13 +64,13 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     {['accepted','approved'].includes(e.status)&&<div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"><strong>Awarded baseline locked.</strong> Carez preserves this accepted price and scope while the project budget and Work Packages run from the snapshot.</div>}
     {e.status==='superseded'&&<div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>Historical revision.</strong> <span className="text-muted-foreground">A newer revision replaced this one; it remains available for audit.</span></div>}
 
-    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <CarezOperatingMetricStrip columns={5}>
       <Metric label="Direct Job Cost" value={money(s?.total_direct_cost)} help="Labor, material, equipment and subs."/>
       <Metric label="Company Overhead" value={money(s?.overhead_cost)} help="Productive hours × current overhead snapshot."/>
       <Metric label="Recommended Price" value={money(recommended)} help="Cost + reserves + target margin."/>
       <Metric label="Customer Price" value={money(selectedPrice)} help="The price currently selected to quote." tone="primary"/>
       <Metric label="Projected Margin" value={`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}% · profit ${money(s?.projected_profit)}.`} tone={margin<target?'warning':'success'}/>
-    </section>
+    </CarezOperatingMetricStrip>
 
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Estimate readiness">
       <Readiness label="Takeoff" value={takeoffObjects?`${takeoffObjects} measured object${takeoffObjects===1?'':'s'}`:'Not started'} tone={takeoffObjects?'success':'warning'}/>
@@ -116,8 +117,7 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
 }
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'primary'|'success'|'warning'}){
-  const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='primary'?'text-primary':'';
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <CarezOperatingMetric label={label} value={value} help={help} tone={tone==='primary'?'info':tone==='default'?'neutral':tone}/>;
 }
 
 function Readiness({label,value,tone='default'}:{label:string;value:string;tone?:'default'|'success'|'warning'}){

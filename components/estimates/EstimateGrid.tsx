@@ -126,7 +126,7 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
         <div className="relative min-w-64 flex-1 lg:max-w-md"><Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/><Input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search estimate, job, or project" aria-label="Search estimates" className="h-8 pl-8 text-xs"/></div>
         <Tabs value={stage} onValueChange={value=>setStage(value as 'all'|EstimateGridStage)} className="w-auto">
-          <TabsList className="h-8 flex-wrap">
+          <TabsList className="h-auto min-h-8 flex-wrap">
             <TabsTrigger value="all" className="px-2 text-xs">All <span className="text-muted-foreground">{rows.length}</span></TabsTrigger>
             {stageOrder.map(value=>{
               const count=rows.filter(row=>row.stage===value).length;

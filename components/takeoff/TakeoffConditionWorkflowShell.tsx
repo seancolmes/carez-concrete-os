@@ -18,6 +18,10 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
   const [propertiesCollapsed,setPropertiesCollapsed]=useState(true);
 
   useEffect(()=>{
+    if(window.matchMedia('(max-width: 860px)').matches)setNavigatorCollapsed(true);
+  },[]);
+
+  useEffect(()=>{
     const openConditions=()=>{
       setNavigatorCollapsed(false);
       setPropertiesCollapsed(false);

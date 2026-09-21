@@ -138,6 +138,12 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [repeatMode,setRepeatMode]=useState(true);
   const [sheetsOpen,setSheetsOpen]=useState(true);
   const [inspectorOpen,setInspectorOpen]=useState(true);
+  useEffect(()=>{
+    if(window.matchMedia('(max-width: 900px)').matches){
+      setSheetsOpen(false);
+      setInspectorOpen(false);
+    }
+  },[]);
   const [inspectorTab,setInspectorTab]=useState<'takeoffs'|'properties'|'buildPlan'>('takeoffs');
   const [buildPlanWorkbenchOpen,setBuildPlanWorkbenchOpen]=useState(false);
 
@@ -743,4 +749,3 @@ export function TakeoffDrawingWorkspace(props:Props){
   />
   </div>;
 }
-
