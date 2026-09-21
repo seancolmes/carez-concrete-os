@@ -30,7 +30,7 @@ Accepted:
 
 - ADR-025 design authority;
 - approximately 80% Command Deck / 20% Spatial Blueprint direction;
-- Manrope-led hierarchy, meaningful icon language, stronger shared tabs, three depth levels, restrained functional motion rules;
+- Inter-led hierarchy, meaningful icon language, stronger shared tabs, three depth levels, restrained functional motion rules;
 - shared workspace/masthead/favorites language;
 - Today — Daily Command Center;
 - Projects — Operations Board;
