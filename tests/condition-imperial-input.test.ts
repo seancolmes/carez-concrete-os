@@ -9,6 +9,16 @@ test('feet-based Condition dimensions round-trip through feet + inches without c
   assert.equal(combineImperialLength(2, 7.5, 'FT'), 2.625);
 });
 
+test('feet-based canonical rounding does not leak floating-point noise into the inches field', () => {
+  const storedOneInch = combineImperialLength(0, 1, 'FT');
+  assert.equal(storedOneInch, 0.083333);
+  assert.deepEqual(splitImperialLength(storedOneInch, 'FT'), { feet: 0, inches: 1 });
+
+  const storedTenInches = combineImperialLength(0, 10, 'FT');
+  assert.equal(storedTenInches, 0.833333);
+  assert.deepEqual(splitImperialLength(storedTenInches, 'FT'), { feet: 0, inches: 10 });
+});
+
 test('inch-based Condition dimensions use the same feet + inches editor and preserve inch canonical values', () => {
   assert.deepEqual(splitImperialLength(30, 'IN'), { feet: 2, inches: 6 });
   assert.equal(combineImperialLength(2, 6, 'IN'), 30);
