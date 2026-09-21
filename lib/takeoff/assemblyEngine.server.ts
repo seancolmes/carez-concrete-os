@@ -51,29 +51,78 @@ export async function resolveTakeoffLaborRate(supabase: any, companyId: string, 
       source += ` · L&I adjusted ${profile.base_risk_class_code} → ${selected}`;
     }
   }
-  return { rate: moneyRound(rate), source, profileId: profile.id };
+  return {
+    rate: moneyRound(rate),
+    source,
+    profileId: profile.id,
+    sourceKind: 'labor_profile',
+    sourceId: profile.id,
+    sourceLabel: source,
+    sourceReference: profile.source_label || profile.source_type || null,
+    effectiveDate: profile.effective_date || null,
+  };
 }
 
 export async function resolveTakeoffCurrentUnitCost(supabase: any, companyId: string, component: any, outputUnit: string) {
   if (component.pricing_strategy === 'none') return { unitCost: 0, status: 'not_priced', source: 'not priced by assembly' };
   if (component.pricing_strategy === 'manual') return null;
-  if (Number(component.default_unit_cost || 0) > 0) return { unitCost: Number(component.default_unit_cost), status: 'priced', source: 'assembly version default' };
+  if (Number(component.default_unit_cost || 0) > 0) {
+    return {
+      unitCost: Number(component.default_unit_cost),
+      status: 'priced',
+      source: 'assembly version default',
+      sourceKind: 'template_default',
+      sourceId: component.id || null,
+      sourceLabel: 'Assembly version default',
+      sourceReference: component.component_key || component.label || null,
+      effectiveDate: null,
+    };
+  }
   if (!component.catalog_item_id) return null;
 
-  const { data: catalog } = await supabase.from('cost_catalog_items').select('default_unit,default_unit_cost,name').eq('id', component.catalog_item_id).eq('company_id', companyId).maybeSingle();
+  const { data: catalog } = await supabase.from('cost_catalog_items').select('id,default_unit,default_unit_cost,name,updated_at').eq('id', component.catalog_item_id).eq('company_id', companyId).maybeSingle();
   if (!catalog || String(catalog.default_unit || '').toUpperCase() !== outputUnit.toUpperCase()) return null;
 
-  const { data: bill } = await supabase.from('vendor_bill_lines').select('unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: bill } = await supabase.from('vendor_bill_lines').select('id,unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (bill && String(bill.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
-    return { unitCost: Number(bill.unit_cost), status: 'priced', source: `latest vendor bill · ${String(bill.created_at).slice(0, 10)}` };
+    return {
+      unitCost: Number(bill.unit_cost),
+      status: 'priced',
+      source: `latest vendor bill · ${String(bill.created_at).slice(0, 10)}`,
+      sourceKind: 'vendor_bill_history',
+      sourceId: bill.id,
+      sourceLabel: 'Latest vendor bill',
+      sourceReference: catalog.name,
+      effectiveDate: String(bill.created_at).slice(0, 10),
+    };
   }
 
-  const { data: po } = await supabase.from('purchase_order_lines').select('unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: po } = await supabase.from('purchase_order_lines').select('id,unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (po && String(po.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
-    return { unitCost: Number(po.unit_cost), status: 'priced', source: `latest purchase order · ${String(po.created_at).slice(0, 10)}` };
+    return {
+      unitCost: Number(po.unit_cost),
+      status: 'priced',
+      source: `latest purchase order · ${String(po.created_at).slice(0, 10)}`,
+      sourceKind: 'purchase_order_history',
+      sourceId: po.id,
+      sourceLabel: 'Latest purchase order',
+      sourceReference: catalog.name,
+      effectiveDate: String(po.created_at).slice(0, 10),
+    };
   }
 
-  if (Number(catalog.default_unit_cost || 0) > 0) return { unitCost: Number(catalog.default_unit_cost), status: 'priced', source: `cost catalog · ${catalog.name}` };
+  if (Number(catalog.default_unit_cost || 0) > 0) {
+    return {
+      unitCost: Number(catalog.default_unit_cost),
+      status: 'priced',
+      source: `cost catalog · ${catalog.name}`,
+      sourceKind: 'company_catalog',
+      sourceId: catalog.id,
+      sourceLabel: `Cost catalog · ${catalog.name}`,
+      sourceReference: catalog.name,
+      effectiveDate: catalog.updated_at ? String(catalog.updated_at).slice(0, 10) : null,
+    };
+  }
   return null;
 }
 
@@ -263,12 +312,22 @@ export async function prepareAssemblyOutputs({
       let directCost = 0;
       let pricingStatus = activationMissing.length || ancestorMissing.length ? 'missing_input' : !isActive || componentMissing.length ? 'not_priced' : productionQuantity === 0 ? 'not_priced' : 'missing_price';
       let costSource: string | null = componentMissing.length ? `input required · ${componentMissing.map(input => input.label).join(', ')}` : null;
+      let priceSourceKind: string | null = null;
+      let priceSourceId: string | null = null;
+      let priceSourceLabel: string | null = null;
+      let priceSourceReference: string | null = null;
+      let priceEffectiveDate: string | null = null;
       if (isActive && !componentMissing.length && component.estimate_item_type === 'labor') {
         if (laborRate) {
           unitCost = laborRate.rate;
           directCost = moneyRound(estimatedHours * unitCost);
           pricingStatus = 'priced';
           costSource = laborRate.source;
+          priceSourceKind = laborRate.sourceKind;
+          priceSourceId = laborRate.sourceId;
+          priceSourceLabel = laborRate.sourceLabel;
+          priceSourceReference = laborRate.sourceReference;
+          priceEffectiveDate = laborRate.effectiveDate;
         } else {
           pricingStatus = estimatedHours === 0 ? 'not_priced' : 'missing_labor_rate';
         }
@@ -279,6 +338,13 @@ export async function prepareAssemblyOutputs({
           directCost = moneyRound(productionQuantity * unitCost);
           pricingStatus = price.status;
           costSource = price.source;
+          if (price.status === 'priced') {
+            priceSourceKind = price.sourceKind || null;
+            priceSourceId = price.sourceId || null;
+            priceSourceLabel = price.sourceLabel || price.source || null;
+            priceSourceReference = price.sourceReference || null;
+            priceEffectiveDate = price.effectiveDate || null;
+          }
         }
       }
 
@@ -298,6 +364,11 @@ export async function prepareAssemblyOutputs({
         baseline_source: component.baseline_source || '',
         unit_cost: unitCost,
         cost_source: costSource || '',
+        price_source_kind: priceSourceKind || '',
+        price_source_id: priceSourceId || '',
+        price_source_label: priceSourceLabel || '',
+        price_source_reference: priceSourceReference || '',
+        price_effective_date: priceEffectiveDate || '',
         direct_cost: directCost,
         pricing_status: pricingStatus,
         ...outputSnapshotState(component, isActive),
