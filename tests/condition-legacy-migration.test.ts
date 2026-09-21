@@ -68,7 +68,8 @@ test('legacy migration dry run inventories lineage without mutating domain recor
   assert.match(actionSource, /mode\s*:\s*['"]dry_run['"]/);
   assert.match(actionSource, /condition_legacy_migration_runs/);
   assert.match(actionSource, /condition_legacy_migration_items/);
-  assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
+  const dryRunActionSource = actionSource.split('export async function applyLegacyConditionMigration')[0];
+  assert.doesNotMatch(`${serverSource}\n${dryRunActionSource}`, /carez_commit_project_condition_calculation/);
   assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,180}\.update\(/);
 });
 
@@ -96,7 +97,8 @@ test('supported pilot migration preparation is editable-only, geometry-preservin
   assert.match(actionSource, /prepareLegacyPilotMigration/);
   assert.match(actionSource, /migration_preparation/);
 
-  assert.doesNotMatch(`${serverSource}\n${actionSource}`, /carez_commit_project_condition_calculation/);
+  const dryRunActionSource = actionSource.split('export async function applyLegacyConditionMigration')[0];
+  assert.doesNotMatch(`${serverSource}\n${dryRunActionSource}`, /carez_commit_project_condition_calculation/);
   assert.doesNotMatch(serverSource, /from\(['"]takeoff_measurements['"]\)[\s\S]{0,240}\.update\(/);
 });
 
