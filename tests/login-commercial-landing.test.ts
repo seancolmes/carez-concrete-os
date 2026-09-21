@@ -52,13 +52,9 @@ test('structural drafting animation keeps a bounded number of visible drafts', (
 
 test('landing locks the marketing and login columns to a centered structural axis with a full-width capability rail', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
-  const css = readFileSync('app/globals.css', 'utf8');
 
-  assert.match(page, /className="carez-login-intro lg:border-r border-neutral-900"/);
-  assert.match(page, /className="carez-login-capabilities border-t border-neutral-900 pt-4"/);
-  assert.match(css, /\.carez-login \{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(css, /\.carez-login-capabilities \{[^}]*grid-column:1\/-1/);
-
-  const formRule = css.match(/\.carez-login-form \{[^}]*\}/)?.[0] || '';
-  assert.doesNotMatch(formRule, /border-left:/);
+  assert.match(page, /grid-cols-1 lg:grid-cols-2 lg:grid-rows-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(page, /lg:border-r border-neutral-900/);
+  assert.match(page, /lg:col-span-2[^"]*border-t border-neutral-900 pt-4/);
+  assert.ok(page.indexOf('aria-label="Sign in"') < page.indexOf('aria-label="Platform capabilities"'));
 });
