@@ -1,67 +1,104 @@
 # Carez Concrete OS — Codex execution contract
 
-This file is the sole repository implementation workflow for Codex, including the local Carez Codex workstation. Do not load or apply repository-external implementation workflows.
-
-## Runtime boundary
-
-The current primary workstation path is:
-
-```text
-Codex Web UI
-→ real Codex app-server
-→ isolated CODEX_HOME
-→ OmniRoute
-→ local Ollama
-→ gpt-oss:20b
-```
-
-The workstation runtime is deliberately outside the Carez application architecture.
-
-- Provider credentials, `CODEX_HOME`, OmniRoute, Ollama, and Codex Web UI configuration stay outside this repository.
-- Do not add OpenCode configuration, provider secrets, local auth files, or machine-specific runtime state to Carez.
-- Do not inspect or modify workstation auth/provider configuration unless the task explicitly concerns development tooling.
-- Do not gate normal implementation on hosted-plan usage, provider health checks, or model identity checks. The launcher/runtime owns those concerns.
-- The exact inference backend may change without changing Carez product code; repository behavior must remain model-independent.
-
-See `docs/workflow/LOCAL_CODEX_WORKSTATION.md` for the current workstation architecture.
+This is the repository execution contract for Codex. Do not load repository-external implementation workflows.
 
 ## Read scope
 
-- Start with files named in the prompt.
-- Read direct imports/dependencies only as needed.
-- Read an owning module/ADR only when the prompt names it or the target code is ambiguous.
+- Start with files named in the task.
+- Read direct imports/dependencies only when required.
+- Read an owning module/ADR only when named or when the target code is ambiguous.
 - Do not preload `docs/`, old history, unrelated migrations, or unrelated routes.
-- Do not use web research, plugins, or broad repository scans unless the task explicitly requires them.
+- Do not use web research, broad repository scans, or unrelated plugins unless the task requires them.
+- Superpowers and Impeccable are approved development plugins, but use only the skill/command relevant to the current task.
 
 ## Branch
 
 - `staging` = development/QA.
 - `main` = production only.
-- Work from current `staging`.
-- Temporary branches are exceptional; when technically necessary, start from `staging`, target `staging`, and delete after integration.
+- Start repository work from current `staging`.
+- Temporary branches are exceptional; when needed, branch from `staging` and target `staging`.
+- Never promote to `main` without Nik's explicit production-release authorization.
 
 ## Preserve
 
-- Concrete-native scope and modular-monolith architecture.
-- Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, and source-controlled migrations.
-- Server-authoritative quantities, costs, pricing, and financial values.
-- Immutable/versioned commercial records, Condition-template history, and referenced legacy history.
-- Production Quantity, Direct Cost, and Sell as distinct values.
+- Concrete-native modular-monolith architecture.
+- Supabase/PostgreSQL authority, RLS, tenant isolation, auditability, source-controlled migrations.
+- Server-authoritative quantities, cost, pricing, and financial values.
+- Immutable/versioned commercial records and lineage.
+- Production Quantity, Direct Cost, and Sell as distinct concepts.
 - Persisted page-coordinate 2D/vector geometry as Takeoff quantity authority; derived 3D is verification only.
-- Human authority over scope, Conditions, means/methods, reinforcing interpretation, production rates, pricing, margin, budgets, and approvals.
-- UI authority: Issue #76 authorizes ADR-025 — Carez Operations Workspace on `astra/complete-ui-rewrite`. It supersedes ADR-024 presentation, ADR-016 shell arrangement, and ADR-020 pane composition. Preserve all protected domain/measurement behavior and light/dark/system preferences. Reuse the source-owned component pack and semantic tokens; do not introduce competing presentation systems. Nik must visually approve the branch preview before staging integration.
+- Human authority over scope, Conditions, means/methods, reinforcing, production rates, pricing, margin, budgets, and approvals.
+- Current governed UI/Takeoff authorities referenced by root `AGENTS.md`; on `astra/complete-ui-rewrite`, Issue #76 / ADR-025 govern the approved rewrite presentation while ADR-020 continues to protect Takeoff quantity/domain invariants.
 
-## Execute
+## Plugin coordination
 
-1. Inspect only the target and direct dependencies.
-2. Make the smallest coherent diff; no unrelated refactor or dependency. Add a dependency only when the task prompt or an approved repository spec explicitly authorizes it.
-3. Reuse existing helpers, components, and schema patterns.
+Carez policy controls how installed plugins are used.
+
+### Superpowers
+
+- Use Superpowers for unresolved design, planning, systematic debugging, and other relevant process work.
+- If the current task explicitly says a design/spec/plan is approved, do not re-run brainstorming or rewrite the approved artifact.
+- Any Superpowers subagent dispatch must obey the Carez worker routing below: Luna first, Terra only when justified, never Astra as a child.
+- In a premium implementation turn, do not invoke subagent-driven-development review chains, requesting-code-review, verification-before-completion, TDD/reviewer loops, or branch-finishing verification unless the user explicitly assigns that work in the current task.
+- Superpowers does not authorize work after the premium stop boundary.
+
+### Impeccable
+
+- Use Impeccable only for design-relevant frontend work.
+- Load its project context once per UI session and use the narrow command/playbook that serves the assigned scope.
+- During premium implementation, Impeccable may inform the implementation itself; do not append a separate critique, audit, polish, adapt, or detector pass unless the user explicitly requests it.
+- Automatic detector findings may be handled inline only when they concern the currently edited scope. They do not authorize a new review cycle.
+- The premium launcher disables Impeccable automatic hooks for that process so explicit Impeccable skills remain available without a Stop-hook polish loop.
+
+## Execution modes
+
+### Routine/local
+
+The canonical routine workstation remains the isolated local Codex Web UI → app-server → OmniRoute → Ollama path documented in `docs/workflow/LOCAL_CODEX_WORKSTATION.md`.
+
+For routine/local implementation:
+
+1. Inspect only targets and direct dependencies.
+2. Make the smallest coherent diff; no unrelated refactor/dependency.
+3. Reuse existing helpers/components/schema patterns.
 4. Database changes use source-controlled migrations and preserve RLS/lineage.
-5. Run targeted tests plus `pnpm typecheck`. Run `pnpm check` only for broad/high-risk changes or when requested.
-6. Update docs only when a durable contract/current-state fact changes or the task asks for it.
-7. Commit/push to `staging` when requested or when the bounded task explicitly includes delivery.
-8. Source/build success is not browser acceptance.
+5. Run targeted tests plus `pnpm typecheck`; use `pnpm check` only for broad/high-risk work or when requested.
+6. Update durable docs only when the contract/current state changes.
+7. Commit/push when the bounded task includes delivery.
+
+Routine/local work may use Superpowers verification/TDD/review or Impeccable detector/audit flows when they are appropriate because those are not premium Astra implementation turns.
+
+### Premium hosted
+
+Premium routing is opt-in and documented in `docs/workflow/CAREZ_TOKEN_EFFICIENCY.md`.
+
+Default premium profile:
+
+- parent: GPT-6 Astra at low effort;
+- default worker: GPT-5.6 Luna at medium effort;
+- escalation worker: GPT-5.6 Terra at medium effort;
+- never spawn Astra as a child;
+- normally one worker, maximum two independent workers;
+- fresh bounded child brief; use `fork_turns: none` when exposed.
+
+For an authorized **premium implementation** task, the execution contract is absolute:
+
+```text
+IMPLEMENT -> COMMIT -> PUSH -> STOP
+```
+
+Unless the current user task explicitly asks the premium run to validate, Astra must **not** continue into tests, typecheck, lint, browser/visual QA, regression sweeps, auto-review/reviewer passes, GitHub Actions inspection, Vercel/deployment monitoring, waiting, optional cleanup, a second polish pass, or plugin-driven finish workflows.
+
+Carez control-room tooling, CI, connected systems, local Codex, or cheaper workers perform acceptance after the premium implementation turn has stopped.
+
+Use `scripts/install-carez-astra-routing.ps1` to install the source-controlled `carez-astra` profile. Use `scripts/start-carez-astra.ps1` to start a premium CLI session with Impeccable automatic hooks disabled for that process. Do not install the premium profile into `.codex-omniroute`.
+
+## Runtime boundary
+
+Provider credentials, auth, `CODEX_HOME`, OmniRoute/Ollama state, MCP credentials, plugin installation state, and machine-specific runtime state stay outside the Carez repository. Repository-owned routing templates contain no secrets and are development tooling, not product architecture.
+
+OpenCode is not part of the Carez workflow.
 
 ## Final response
 
-Maximum 6 lines / 90 words: changed files/behavior, validation, blocker or risk if any, and commit/ref if available. No tutorial, long recap, full diff, or research summary unless requested.
+Maximum 6 lines / 90 words unless the user requests more. State changed files/behavior, validation only if actually performed, blocker/risk, and commit/ref when available.
