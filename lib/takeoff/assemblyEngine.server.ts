@@ -75,50 +75,73 @@ export async function resolveTakeoffCurrentUnitCost(supabase: any, companyId: st
     effectiveDate: null,
   };
   if (component.pricing_strategy === 'manual') return null;
-  if (!component.catalog_item_id) return null;
 
-  const { data: catalog } = await supabase.from('cost_catalog_items').select('id,default_unit,default_unit_cost,name,updated_at').eq('id', component.catalog_item_id).eq('company_id', companyId).maybeSingle();
-  if (!catalog || String(catalog.default_unit || '').toUpperCase() !== outputUnit.toUpperCase()) return null;
+  if (component.catalog_item_id) {
+    const { data: catalog } = await supabase.from('cost_catalog_items')
+      .select('id,default_unit,default_unit_cost,name,updated_at')
+      .eq('id', component.catalog_item_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    const catalogMatchesUnit = Boolean(
+      catalog && String(catalog.default_unit || '').toUpperCase() === outputUnit.toUpperCase(),
+    );
 
-  const { data: bill } = await supabase.from('vendor_bill_lines').select('id,unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (bill && String(bill.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
-    return {
-      unitCost: Number(bill.unit_cost),
-      status: 'priced',
-      source: `latest vendor bill · ${String(bill.created_at).slice(0, 10)}`,
-      sourceKind: 'vendor_bill_history',
-      sourceId: bill.id,
-      sourceLabel: 'Latest vendor bill',
-      sourceReference: catalog.name,
-      effectiveDate: String(bill.created_at).slice(0, 10),
-    };
-  }
+    if (catalogMatchesUnit) {
+      const { data: bill } = await supabase.from('vendor_bill_lines')
+        .select('id,unit,unit_cost,created_at')
+        .eq('company_id', companyId)
+        .eq('catalog_item_id', component.catalog_item_id)
+        .gt('unit_cost', 0)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (bill && String(bill.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
+        return {
+          unitCost: Number(bill.unit_cost),
+          status: 'priced',
+          source: `latest vendor bill · ${String(bill.created_at).slice(0, 10)}`,
+          sourceKind: 'vendor_bill_history',
+          sourceId: bill.id,
+          sourceLabel: 'Latest vendor bill',
+          sourceReference: catalog.name,
+          effectiveDate: String(bill.created_at).slice(0, 10),
+        };
+      }
 
-  const { data: po } = await supabase.from('purchase_order_lines').select('id,unit,unit_cost,created_at').eq('company_id', companyId).eq('catalog_item_id', component.catalog_item_id).gt('unit_cost', 0).order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (po && String(po.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
-    return {
-      unitCost: Number(po.unit_cost),
-      status: 'priced',
-      source: `latest purchase order · ${String(po.created_at).slice(0, 10)}`,
-      sourceKind: 'purchase_order_history',
-      sourceId: po.id,
-      sourceLabel: 'Latest purchase order',
-      sourceReference: catalog.name,
-      effectiveDate: String(po.created_at).slice(0, 10),
-    };
-  }
+      const { data: po } = await supabase.from('purchase_order_lines')
+        .select('id,unit,unit_cost,created_at')
+        .eq('company_id', companyId)
+        .eq('catalog_item_id', component.catalog_item_id)
+        .gt('unit_cost', 0)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (po && String(po.unit || '').toUpperCase() === outputUnit.toUpperCase()) {
+        return {
+          unitCost: Number(po.unit_cost),
+          status: 'priced',
+          source: `latest purchase order · ${String(po.created_at).slice(0, 10)}`,
+          sourceKind: 'purchase_order_history',
+          sourceId: po.id,
+          sourceLabel: 'Latest purchase order',
+          sourceReference: catalog.name,
+          effectiveDate: String(po.created_at).slice(0, 10),
+        };
+      }
 
-  if (Number(catalog.default_unit_cost || 0) > 0) {
-    return {
-      unitCost: Number(catalog.default_unit_cost),
-      status: 'priced',
-      source: `cost catalog · ${catalog.name}`,
-      sourceKind: 'company_catalog',
-      sourceId: catalog.id,
-      sourceLabel: `Cost catalog · ${catalog.name}`,
-      sourceReference: catalog.name,
-      effectiveDate: catalog.updated_at ? String(catalog.updated_at).slice(0, 10) : null,
-    };
+      if (Number(catalog.default_unit_cost || 0) > 0) {
+        return {
+          unitCost: Number(catalog.default_unit_cost),
+          status: 'priced',
+          source: `cost catalog · ${catalog.name}`,
+          sourceKind: 'company_catalog',
+          sourceId: catalog.id,
+          sourceLabel: `Cost catalog · ${catalog.name}`,
+          sourceReference: catalog.name,
+          effectiveDate: catalog.updated_at ? String(catalog.updated_at).slice(0, 10) : null,
+        };
+      }
+    }
   }
 
   if (Number(component.default_unit_cost || 0) > 0) {
