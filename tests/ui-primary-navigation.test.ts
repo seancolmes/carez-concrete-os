@@ -1,43 +1,12 @@
 import assert from 'node:assert/strict';
-import {existsSync,readFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
-const root=new URL('../',import.meta.url);
-const read=(path:string)=>readFileSync(new URL(path,root),'utf8');
+const shell=readFileSync(new URL('../components/AppShell.tsx',import.meta.url),'utf8');
+const navigation=readFileSync(new URL('../lib/ui/navigation.ts',import.meta.url),'utf8');
 
-test('the shell exposes one compact seven-surface primary navigation',()=>{
-  const shell=read('components/AppShell.tsx');
-  assert.equal(existsSync(new URL('components/ui/navigation-menu.tsx',root)),true);
-  assert.match(shell,/NavigationMenuList/);
-  assert.match(shell,/NavigationMenuTrigger/);
-  assert.match(shell,/Today/);
-  for(const surface of ['preconstruction','projects','field','production','finance','system'])assert.match(shell,new RegExp(`GLOBAL_DESTINATIONS.*${surface}`));
-  assert.match(shell,/aria-current/);
-});
-
-test('desktop dropdowns reserve readable label width and hand off before the shell crowds',()=>{
-  const shell=read('components/AppShell.tsx');
-  const primitive=read('components/ui/navigation-menu.tsx');
-  assert.match(shell,/function dropdownLayout/);
-  assert.match(shell,/grid-cols-2 min-w-\[28rem\]/);
-  assert.match(shell,/grid-cols-1 min-w-\[14rem\]/);
-  assert.match(shell,/whitespace-nowrap/);
-  assert.match(shell,/hidden min-w-0 xl:flex/);
-  assert.match(shell,/className="xl:hidden" aria-label="Open menu"/);
-  assert.match(primitive,/max-w-\[calc\(100vw-2rem\)\]/);
-});
-
-test('the shell has no Workspaces directory, Quick Access, or secondary navigation chrome',()=>{
-  const shell=read('components/AppShell.tsx');
-  assert.doesNotMatch(shell,/Workspaces|QUICK ACCESS|ExpandableNavbar|CarezPinnedNav|CarezNavigationManager|Search workspaces/);
-  assert.match(shell,/Search Carez/);
-  assert.match(shell,/⌘K/);
-});
-
-test('mobile navigation exposes Today and the same six curated domains',()=>{
-  const shell=read('components/AppShell.tsx');
-  assert.match(shell,/aria-label="Mobile primary navigation"/);
-  assert.match(shell,/MobileDomain/);
-  assert.match(shell,/WORKSPACE_PRESENTATION_SURFACES\.filter\(surface=>surface\.id!=='today'\)/);
-  assert.doesNotMatch(shell,/overflow-x/);
-});
+test('desktop and mobile navigation consume the accepted seven-surface presentation model',()=>{assert.match(shell,/WORKSPACE_PRESENTATION_SURFACES/);assert.match(shell,/function CarezCommandRail/);assert.match(shell,/function MobileNavigation/);assert.match(shell,/WORKSPACE_PRESENTATION_SURFACES\.map/);assert.match(shell,/aria-label="Global command rail"/);assert.match(shell,/aria-label="Mobile primary navigation"/);for(const surface of ['today','preconstruction','projects','field','production','finance','system'])assert.match(navigation,new RegExp(`id:'${surface}'`));assert.doesNotMatch(shell,/NAVIGATION_COMMAND_GROUPS/);});
+test('the transient deck retains accessible behavior and a compact Precision Trace composition',()=>{assert.match(shell,/id="carez-domain-deck"/);assert.match(shell,/aria-expanded/);assert.match(shell,/aria-controls="carez-domain-deck"/);assert.match(shell,/event\.key==='Escape'/);assert.match(shell,/ArrowDown/);assert.match(shell,/navigationCommandValue/);assert.match(shell,/event\.metaKey\|\|event\.ctrlKey/);assert.match(shell,/carez-domain-trace/);assert.match(shell,/carez-domain-connector/);assert.match(shell,/carez-domain-row/);assert.match(shell,/prefers-reduced-motion:reduce/);assert.match(shell,/max-h-\[calc\(100svh/);assert.match(shell,/padStart\(2,'0'\)/);});
+test('domain changes retain one deck shell and transition only its keyed content',()=>{assert.match(shell,/const \[deck,setDeck\]=useState/);assert.match(shell,/contentVersion/);assert.match(shell,/carez-domain-content-switch/);assert.match(shell,/carez-domain-content-switch \.carez-domain-trace/);assert.match(shell,/key=\{contentVersion\}/);assert.doesNotMatch(shell,/setDeckId/);});
+test('dismissal exits briefly and stale close callbacks cannot clear a newer domain',()=>{assert.match(shell,/carez-domain-deck-out 120ms/);assert.match(shell,/clearTimeout\(closeTimer\.current\)/);assert.match(shell,/current\.phase!=='closing'\|\|current\.id!==closingId/);assert.match(shell,/event\.key==='Escape'/);});
+test('the rejected legacy and full-route global navigation do not return',()=>{assert.doesNotMatch(shell,/NavigationMenu|NAVIGATION_COMMAND_GROUPS|ExpandableNavbar|CarezPinnedNav|CarezNavigationManager|Workspaces|Quick Access/);assert.doesNotMatch(shell,/overflow-x/);});

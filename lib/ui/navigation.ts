@@ -187,6 +187,20 @@ export function getWorkspacePresentationForDestination(id: string){
   return workspacePresentationByDestination.get(id)||null;
 }
 
+export function getWorkspacePresentationSurface(id: WorkspaceSurfaceId): WorkspacePresentationSurface | null {
+  return WORKSPACE_PRESENTATION_SURFACES.find(surface=>surface.id===id)||null;
+}
+
+export function resolveActiveWorkspacePresentationSurface(pathname: string): WorkspacePresentationSurface | null {
+  const destination=resolveActiveDestination(pathname);
+  return destination?getWorkspacePresentationForDestination(destination.id)?.surface||null:null;
+}
+
+export function navigationCommandValue(destination: NavigationDestination): string {
+  const surface=getWorkspacePresentationForDestination(destination.id)?.surface;
+  return [surface?.label,destination.label,destination.hint,destination.id].filter(Boolean).join(' ');
+}
+
 const ROLE_DEFAULTS = {
   ownerAdmin: ['today','projects','reports','billing','documents'],
   estimator: ['today','takeoff','estimates','proposals','projects'],
