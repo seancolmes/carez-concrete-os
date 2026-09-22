@@ -61,6 +61,59 @@ export async function assignTakeoffMeasurementSection(fd:FormData){
   revalidatePath('/takeoff');
 }
 
+
+export async function updateGeneratedLaborAssumption(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const outputId=String(fd.get('output_id')||'');
+  const manHoursPerUnit=requiredEstimateNumber(fd.get('man_hours_per_unit'),'job man-hours per unit');
+  if(!estimateId||!outputId||manHoursPerUnit<0)throw new Error('Enter a valid generated labor production assumption.');
+  const {supabase,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {error}=await supabase.rpc('carez_update_takeoff_labor_assumption',{
+    p_estimate_id:estimateId,
+    p_output_id:outputId,
+    p_man_hours_per_unit:manHoursPerUnit,
+  });
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/estimates');
+  revalidatePath('/takeoff');
+}
+
+export async function restoreGeneratedLaborAssumption(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const outputId=String(fd.get('output_id')||'');
+  if(!estimateId||!outputId)throw new Error('Estimate and generated labor output are required.');
+  const {supabase,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {error}=await supabase.rpc('carez_restore_takeoff_labor_assumption',{
+    p_estimate_id:estimateId,
+    p_output_id:outputId,
+  });
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/estimates');
+  revalidatePath('/takeoff');
+}
+
+export async function selectGeneratedLaborProfile(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  const outputId=String(fd.get('output_id')||'');
+  const laborProfileId=String(fd.get('labor_profile_id')||'');
+  if(!estimateId||!outputId||!laborProfileId)throw new Error('Estimate, generated labor output and labor profile are required.');
+  const {supabase,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {error}=await supabase.rpc('carez_select_takeoff_labor_profile',{
+    p_estimate_id:estimateId,
+    p_output_id:outputId,
+    p_labor_profile_id:laborProfileId,
+  });
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/estimates');
+  revalidatePath('/takeoff');
+}
+
 const supplierQuoteStatuses=new Set(['requested','received','declined','selected']);
 
 export async function createEstimateSupplierQuoteSet(fd:FormData){

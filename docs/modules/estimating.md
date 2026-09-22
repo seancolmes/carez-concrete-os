@@ -81,15 +81,23 @@ Pricing coverage is exception-first: missing price, missing labor rate, expired 
 
 Each labor operation shows:
 
-- physical production quantity/unit;
-- immutable company baseline MH/unit and source;
-- relevant Carez historical evidence when available;
+- physical Production Quantity/unit from the authoritative Condition/Takeoff output;
+- immutable published baseline MH/unit and baseline source;
+- relevant Carez historical evidence when trustworthy evidence already exists;
 - estimator-reviewed job MH/unit;
-- calculated man-hours;
-- loaded labor rate;
-- Direct Cost.
+- calculated estimated man-hours;
+- selected burdened labor-rate profile with source/effective date;
+- labor Direct Cost.
 
-Changing a production assumption changes man-hours/cost, not concrete, rebar, form, or embed quantities.
+Production Quantity, production assumption, burdened labor rate, and Direct Cost remain separate concepts.
+
+The effective labor production assumption is the explicit job MH/unit when one exists; otherwise it is the current published baseline MH/unit. Changing job MH/unit is a server-authoritative Estimate decision that recalculates estimated man-hours and labor Direct Cost from authoritative Production Quantity without accepting or mutating physical quantity. The override actor/timestamp is preserved through later Takeoff quantity recalculation until the estimator deliberately restores the baseline.
+
+Selecting a labor-rate profile is independent from the MH/unit assumption. It changes the burdened $/HR source and resulting Direct Cost without changing Production Quantity or MH/unit, records explicit selection provenance, and remains sticky through later Takeoff recalculation. Missing labor rate and missing production assumption remain visible Labor-step holds rather than fabricated zero-cost readiness.
+
+Labor changes reconcile atomically to the generated Takeoff output, generated Estimate item, and linked draft Project Concrete Condition output where that compatibility lineage exists. Verified Conditions and issued/accepted/superseded Estimate revisions remain immutable.
+
+Historical production evidence is advisory only in P1.3. Field production-learning, evidence confidence, and benchmark promotion remain owned by Issue #26 and never auto-modify estimator-approved production assumptions.
 
 ## Review and recap
 
