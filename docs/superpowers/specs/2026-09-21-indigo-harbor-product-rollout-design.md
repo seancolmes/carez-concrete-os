@@ -59,17 +59,16 @@ Purpose:
 - Replace the current visually compressed Workspaces flyout presentation.
 - Create the reference Carez motion/interaction implementation that later batches can reuse.
 
-The current narrow left flyout is replaced presentation-wise by a wide Carez Command Navigator while preserving the existing AppShell/navigation architecture.
+The current narrow Workspaces flyout is replaced presentation-wise by an in-shell Carez Expandable Navbar while preserving the existing AppShell/navigation architecture. On desktop and tablet it expands downward from the existing top shell without a modal backdrop, detached directory, or full-window overlay. On compact widths, the existing Carez Sheet remains the navigator presentation.
 
 Desktop behavior:
 
-- Use a wide centered or broad overlay surface with no horizontal scrolling, no cramped three-column strip, and no tiny descriptive text beneath every destination.
-- Establish strong hierarchy by Carez operating domain, preserve existing legitimate destinations, clearly identify the current workspace, and provide search.
-- Support pinned, recent, and all workspace modes only where existing state or lightweight client-only presentation safely permits them.
+- Use operating-domain triggers attached to the top shell and show one selected domain at a time, with a measured-height panel and direction-aware content transition.
+- Establish strong hierarchy by actual registered Carez destinations, clearly identify the current workspace, and provide existing-primitive workspace search.
+- Present Pinned and Recent only as compact supporting rails when existing device-local state contains entries; do not manufacture an All/Pinned/Recent primary tab hierarchy.
+- Use Carez-themed SmoothUI Expandable Navbar source only for structural navigator motion. Existing Carez Sheet, Command, Button, and Tooltip primitives remain authoritative for their respective behavior.
 
-Preferred structural groups are Preconstruction, Projects / Operations, Field, Production, Finance, and System.
-
-The navigator may use Carez-themed SmoothUI primitives conceptually equivalent to Dialog for desktop overlay behavior; Drawer for compact/mobile behavior; Animated Tabs for Pinned / Recent / All; Combobox or searchable selector for workspace search; Pinned List for high-frequency destinations; Animated List for workspace results; Morph Icon for trigger/open-state feedback; Smooth Button for action feedback; Notification Badge only for real authoritative counts; and Animated Tooltip for concise contextual help.
+Preferred structural groups are Preconstruction, Projects / Operations, Field, Production, Finance, and System. Route registry ownership wins where a destination does not fit an illustrative group.
 
 Do not use decorative expandable/glow cards merely because they exist. The navigator remains flat, technical, Indigo Harbor, keyboard accessible, responsive, and reduced-motion compatible.
 

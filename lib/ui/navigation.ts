@@ -60,6 +60,12 @@ export type NavigationGroup = {
   destinationIds: readonly string[];
 };
 
+export type WorkspaceNavigationDomain = {
+  id: 'preconstruction'|'projects'|'field'|'production'|'finance'|'system';
+  label: string;
+  destinationIds: readonly string[];
+};
+
 export type NavigationPreference = {
   version: typeof NAVIGATION_PREFERENCE_VERSION;
   pinnedIds: string[];
@@ -121,6 +127,15 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   {id:'field',label:'Field',destinationIds:['field','production','pour-control','crew','employee-access','equipment']},
   {id:'finance',label:'Finance',destinationIds:['billing','cashflow','payables','banking','reconcile','bank-rules','payroll','costs','overhead','procurement']},
   {id:'documents',label:'Documents',destinationIds:['documents']},
+  {id:'system',label:'System',destinationIds:['settings']},
+] as const;
+
+export const NAVIGATION_WORKSPACE_DOMAINS: readonly WorkspaceNavigationDomain[] = [
+  {id:'preconstruction',label:'Preconstruction',destinationIds:['leads','lead-inbox','bid-intelligence','takeoff','assemblies','estimates','proposals','estimate-audit','job-setup']},
+  {id:'projects',label:'Projects',destinationIds:['today','reports','projects','schedule','look-ahead','readiness','resources','change-orders','documents']},
+  {id:'field',label:'Field',destinationIds:['field','crew','employee-access','equipment']},
+  {id:'production',label:'Production',destinationIds:['production-intelligence','work-packages','scope-drift','forecast','production','pour-control']},
+  {id:'finance',label:'Finance',destinationIds:['billing','cashflow','payables','banking','reconcile','bank-rules','payroll','costs','overhead','procurement']},
   {id:'system',label:'System',destinationIds:['settings']},
 ] as const;
 

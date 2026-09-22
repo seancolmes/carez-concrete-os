@@ -3,6 +3,8 @@ import test from 'node:test';
 import {
   MAX_DESKTOP_PINNED_DESTINATIONS,
   NAVIGATION_DESTINATIONS,
+  NAVIGATION_GROUPS,
+  NAVIGATION_WORKSPACE_DOMAINS,
   buildProjectSwitchHref,
   getRoleDefaultDestinationIds,
   movePinnedDestination,
@@ -17,6 +19,19 @@ import {
   resolveProjectRoute,
   togglePinnedDestination,
 } from '../lib/ui/navigation.ts';
+
+test('every registered destination remains represented by one workspace group',()=>{
+  const groupedIds=NAVIGATION_GROUPS.flatMap(group=>group.destinationIds);
+  assert.equal(new Set(groupedIds).size,groupedIds.length);
+  assert.deepEqual([...groupedIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
+});
+
+test('expandable workspace domains cover every registered destination once',()=>{
+  assert.deepEqual(NAVIGATION_WORKSPACE_DOMAINS.map(domain=>domain.label),['Preconstruction','Projects','Field','Production','Finance','System']);
+  const domainIds=NAVIGATION_WORKSPACE_DOMAINS.flatMap(domain=>domain.destinationIds);
+  assert.equal(new Set(domainIds).size,domainIds.length);
+  assert.deepEqual([...domainIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
+});
 
 test('role defaults expose 3-5 stable destinations with safe unknown fallback',()=>{
   for(const role of ['owner','admin','estimator','project manager','foreman','superintendent','accounting','finance']){

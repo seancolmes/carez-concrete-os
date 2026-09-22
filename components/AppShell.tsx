@@ -15,6 +15,7 @@ import {CarezProjectContextBar} from '@/components/carez/project-context';
 export {CarezProjectSwitcher} from '@/components/carez/project-context';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {Command,CommandDialog,CommandEmpty,CommandGroup,CommandInput,CommandItem,CommandList} from '@/components/ui/command';
+import ExpandableNavbar,{type ExpandableNavbarItem} from '@/components/smoothui/expandable-navbar';
 import {
   DropdownMenu,DropdownMenuContent,DropdownMenuGroup,DropdownMenuItem,DropdownMenuLabel,
   DropdownMenuSeparator,DropdownMenuTrigger,
@@ -26,7 +27,7 @@ import {createClient} from '@/lib/supabase/client';
 import {COMPANY_BRANDING_CHANGED_EVENT,FALLBACK_COMPANY_LOGO,companyLogoPublicUrl} from '@/lib/companyBranding';
 import {
   MAX_DESKTOP_PINNED_DESTINATIONS,MAX_RECENT_DESTINATIONS,MAX_RECENT_PROJECTS,
-  NAVIGATION_GROUPS,NAVIGATION_PREFERENCE_VERSION,buildProjectSwitchHref,getDestinationById,
+  NAVIGATION_GROUPS,NAVIGATION_PREFERENCE_VERSION,NAVIGATION_WORKSPACE_DOMAINS,buildProjectSwitchHref,getDestinationById,
   getRoleDefaultDestinationIds,movePinnedDestination,navigationPreferenceStorageKey,
   normalizeNavigationPreference,normalizeRecentDestinationIds,normalizeRecentProjectIds,prependRecentId,
   recentDestinationsStorageKey,recentProjectsStorageKey,resetNavigationPreference,resolveActiveDestination,
@@ -56,6 +57,8 @@ function isWorkstation(pathname:string){
   return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment));
 }
 
+function workspaceDomainFor(destinationId:string|null|undefined){return NAVIGATION_WORKSPACE_DOMAINS.find(domain=>domain.destinationIds.includes(destinationId||''))?.id||'projects'}
+
 function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestination[];pathname:string}){
   return <nav aria-label="Pinned Carez navigation" className="flex min-w-0 items-center gap-0.5">
     {destinations.map(destination=>{
@@ -69,27 +72,37 @@ function CarezPinnedNav({destinations,pathname}:{destinations:NavigationDestinat
   </nav>;
 }
 
-export function CarezTopShell({userName,logoUrl,pathname,pinnedIds,pinnedDestinations,onNavigate,onOpenCommand,onOpenManager}:{userName:string;logoUrl:string;pathname:string;pinnedIds:string[];pinnedDestinations:NavigationDestination[];onNavigate:(href:string)=>void;onOpenCommand:()=>void;onOpenManager:()=>void}){
+export function CarezTopShell({userName,logoUrl,pathname,pinnedIds,pinnedDestinations,recentDestinationIds,onNavigate,onOpenCommand,onOpenManager}:{userName:string;logoUrl:string;pathname:string;pinnedIds:string[];pinnedDestinations:NavigationDestination[];recentDestinationIds:string[];onNavigate:(href:string)=>void;onOpenCommand:()=>void;onOpenManager:()=>void}){
   const [directoryOpen,setDirectoryOpen]=useState(false);
+  const [desktopDomainId,setDesktopDomainId]=useState<string|null>(null);
+  const [workspaceSearch,setWorkspaceSearch]=useState('');
+  const [compactNavigator,setCompactNavigator]=useState(false);
   const active=resolveActiveDestination(pathname);
+  const pinned=destinationsFor(pinnedIds);
+  const recent=destinationsFor(recentDestinationIds);
   const initial=userName.trim().charAt(0).toUpperCase()||'C';
+  const activeDomainId=workspaceDomainFor(active?.id);
+  const closeDirectory=()=>{setDesktopDomainId(null);setDirectoryOpen(false);setWorkspaceSearch('')};
+  const navigateDirectory=(href:string)=>{closeDirectory();onNavigate(href)};
+  useEffect(()=>{
+    const query=window.matchMedia('(max-width: 767px)');
+    const sync=()=>setCompactNavigator(query.matches);
+    sync();query.addEventListener('change',sync);return()=>query.removeEventListener('change',sync);
+  },[]);
+  const renderDestination=(destination:NavigationDestination)=><Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?.id===destination.id?'page':undefined} onClick={event=>{event.preventDefault();navigateDirectory(destination.href)}} className={cn('flex min-h-11 items-center gap-3 border-l-2 border-transparent px-4 py-2 text-sm outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',active?.id===destination.id&&'border-l-primary bg-primary/10 text-foreground')}><span className="grid size-7 shrink-0 place-items-center text-muted-foreground">{(()=>{const Icon=NAVIGATION_ICONS[destination.icon];return <Icon className={cn('size-4',active?.id===destination.id&&'text-primary')}/>})()}</span><span className="min-w-0 flex-1 truncate font-medium">{destination.label}</span>{pinnedIds.includes(destination.id)?<span className="font-mono text-[9px] uppercase tracking-[.1em] text-primary">Pinned</span>:null}</Link>;
+  const searchResults=<Command className="min-w-0 flex-1 rounded-none bg-transparent p-0" shouldFilter><CommandInput value={workspaceSearch} onValueChange={setWorkspaceSearch} placeholder="Search workspaces..." aria-label="Search Carez workspaces"/><CommandList className={cn('max-h-52 border-t border-border',!workspaceSearch.trim()&&'hidden')}><CommandEmpty>No Carez workspace matches that search.</CommandEmpty>{NAVIGATION_GROUPS.map(group=><CommandGroup key={group.id} heading={group.label}>{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <CommandItem key={destination.id} value={`${destination.label} ${destination.hint} ${group.label}`} aria-current={active?.id===destination.id?'page':undefined} onSelect={()=>navigateDirectory(destination.href)} className={cn('rounded-none border-l-2 border-transparent',active?.id===destination.id&&'border-l-primary bg-primary/10')}><Icon className={cn('size-4 text-muted-foreground',active?.id===destination.id&&'text-primary')}/><span className="truncate font-medium">{destination.label}</span></CommandItem>})}</CommandGroup>)}</CommandList></Command>;
+  const navbarItems:ExpandableNavbarItem[]=NAVIGATION_WORKSPACE_DOMAINS.map(domain=>({id:domain.id,label:domain.label,panel:<div className="border-t border-border bg-background"><div className="flex flex-col gap-3 border-b border-border px-5 py-3 lg:flex-row lg:items-center"><div className="min-w-0 flex-1 font-mono text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{domain.label} workspaces</div><div className="w-full lg:max-w-sm">{searchResults}</div></div>{(pinned.length||recent.length)?<div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border px-5 py-2.5">{pinned.length?<div className="flex min-w-0 items-center gap-2"><span className="font-mono text-[9px] font-semibold uppercase tracking-[.12em] text-primary">Pinned</span>{pinned.map(destination=><button key={destination.id} type="button" onClick={()=>navigateDirectory(destination.href)} className="truncate text-xs text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50">{destination.label}</button>)}</div>:null}{recent.length?<div className="flex min-w-0 items-center gap-2"><span className="font-mono text-[9px] font-semibold uppercase tracking-[.12em] text-muted-foreground">Recent</span>{recent.map(destination=><button key={destination.id} type="button" onClick={()=>navigateDirectory(destination.href)} className="truncate text-xs text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50">{destination.label}</button>)}</div>:null}</div>:null}<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">{destinationsFor(domain.destinationIds).map(renderDestination)}</div></div>}));
   return <>
     <header className="carez-masthead">
       <Link href="/" prefetch={false} aria-label="Carez home" className="carez-brand"><img src={logoUrl} alt="Company logo"/><span>OPERATIONS</span></Link>
       <span className="carez-masthead-rule"/>
-      <Button type="button" variant="ghost" onClick={()=>setDirectoryOpen(true)} className="carez-directory-trigger"><LayoutGrid/><span>Workspaces</span><ChevronDown className="size-3"/></Button>
+      <Button type="button" variant="ghost" aria-expanded={directoryOpen} aria-controls="carez-workspace-navbar" onClick={()=>{if(directoryOpen)closeDirectory();else{setDesktopDomainId(activeDomainId);setDirectoryOpen(true)}}} className="carez-directory-trigger"><LayoutGrid/><span>Workspaces</span><ChevronDown className={cn('size-3 transition-transform duration-150',directoryOpen&&'rotate-180')}/></Button>
       <span className="carez-current-workspace">{active?.label||'Workspace'}</span>
-      <div className="ml-auto flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={onOpenCommand} className="carez-search-trigger" aria-label="Search Carez"><Search/><span>Find a project or workspace</span><kbd>⌘ / Ctrl K</kbd></Button>
-        <Link href="/settings" prefetch={false} aria-label={`Settings for ${userName}`} className="carez-account"><span>{initial}</span><span>{userName}</span></Link>
-      </div>
+      <div className="ml-auto flex items-center gap-2"><Button type="button" variant="outline" onClick={onOpenCommand} className="carez-search-trigger" aria-label="Search Carez"><Search/><span>Find a project or workspace</span><kbd>⌘ / Ctrl K</kbd></Button><Link href="/settings" prefetch={false} aria-label={`Settings for ${userName}`} className="carez-account"><span>{initial}</span><span>{userName}</span></Link></div>
     </header>
     <div className="carez-favorites"><span className="carez-favorites-label">QUICK ACCESS</span><CarezPinnedNav destinations={pinnedDestinations} pathname={pathname}/><Button variant="ghost" size="icon-sm" aria-label="Manage navigation" onClick={onOpenManager}><SlidersHorizontal/></Button></div>
-    <Sheet open={directoryOpen} onOpenChange={setDirectoryOpen}><SheetContent side="left" className="carez-directory w-[94vw] sm:max-w-5xl">
-      <SheetHeader><SheetTitle>Workspaces</SheetTitle><SheetDescription>From the first plan set and structural pour window to final retainage.</SheetDescription></SheetHeader>
-      <nav aria-label="All Carez workspaces" className="carez-directory-grid">{NAVIGATION_GROUPS.map(group=><section key={group.id}><h2>{group.label}</h2>{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?.id===destination.id?'page':undefined} onClick={event=>{event.preventDefault();setDirectoryOpen(false);onNavigate(destination.href)}}><Icon/><span><strong>{destination.label}</strong><small>{destination.hint}</small></span>{pinnedIds.includes(destination.id)?<span className="carez-directory-pin" aria-label="Pinned">•</span>:null}</Link>})}</section>)}</nav>
-      <SheetFooter><Button variant="outline" onClick={()=>{setDirectoryOpen(false);onOpenManager()}}><SlidersHorizontal/>Customize quick access</Button></SheetFooter>
-    </SheetContent></Sheet>
+    {directoryOpen&&!compactNavigator?<div id="carez-workspace-navbar" className="hidden border-b border-border md:block"><ExpandableNavbar items={navbarItems} openId={desktopDomainId} onOpenChange={id=>{setDesktopDomainId(id);if(id===null)closeDirectory()}} closeDelay={120} width="100%" className="!rounded-none !border-0 !shadow-none"/></div>:null}
+    <Sheet open={directoryOpen&&compactNavigator} onOpenChange={open=>{if(!open)closeDirectory();else setDirectoryOpen(true)}}><SheetContent side="left" className="carez-directory w-[92vw] max-w-sm gap-0 p-0 md:hidden"><SheetHeader className="border-b border-border"><SheetTitle>Workspaces</SheetTitle><SheetDescription>Navigate Carez operating domains.</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto"><div className="border-b border-border p-2">{searchResults}</div>{NAVIGATION_WORKSPACE_DOMAINS.map(domain=><section key={domain.id} className="border-b border-border"><h2 className="px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-[.12em] text-muted-foreground">{domain.label}</h2>{destinationsFor(domain.destinationIds).map(renderDestination)}</section>)}</div><SheetFooter className="border-t border-border"><Button variant="outline" className="justify-start" onClick={()=>{closeDirectory();onOpenManager()}}><SlidersHorizontal/>Customize quick access</Button></SheetFooter></SheetContent></Sheet>
   </>;
 }
 
@@ -271,7 +284,7 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
     <a href="#carez-workspace" className="carez-skip-link">Skip to workspace</a>
     <BankSyncPulse/><OutlookSyncPulse/>
     <div className="carez-shell relative z-40 shrink-0 bg-background">
-      <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} pinnedIds={pinnedIds} pinnedDestinations={pinnedDestinations} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenManager={()=>setManagerOpen(true)}/>
+      <CarezTopShell userName={userName} logoUrl={logoUrl} pathname={pathname} pinnedIds={pinnedIds} pinnedDestinations={pinnedDestinations} recentDestinationIds={recentDestinationIds} onNavigate={navigate} onOpenCommand={()=>setCommandOpen(true)} onOpenManager={()=>setManagerOpen(true)}/>
       {projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}
     </div>
     <main id="carez-workspace" tabIndex={-1} aria-label={activeDestination?.label||'Carez workspace'} className={workstation?'carez-workstation min-h-0 min-w-0 flex-1 overflow-hidden pb-14 md:pb-0':'carez-workspace min-h-0 min-w-0 flex-1 overflow-auto bg-background'}>{children}</main>
