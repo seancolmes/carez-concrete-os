@@ -77,6 +77,8 @@ The same evaluator must be consumed by:
 
 React components and server actions may format or route findings, but they must not implement independent readiness rules.
 
+Current findings remain derived. P1.4 does not add a mutable "current findings" table whose rows must be synchronized after every Estimate change; only human acknowledgement evidence is persisted.
+
 ## Estimate output scope
 
 Generated commercial outputs are scoped through existing lineage:
@@ -578,6 +580,15 @@ The guard must reject proposal creation unless the referenced Estimate is curren
 
 Proposal issuance still creates the existing immutable proposal revision/snapshot. P1.4 does not redesign Proposal Revision history.
 
+The issued proposal presentation must retain the release evidence used at issue time by storing or snapshotting:
+
+- the accepted current commercial fingerprint;
+- the accepted current warning fingerprint;
+- the matching review acknowledgement identity when warnings existed;
+- the issue timestamp/user already represented by the proposal record.
+
+The database proposal guard must compare the issue-time fingerprints against a fresh current evaluator result at the proposal-presentation insertion boundary. If the Estimate changed after Review, insertion is rejected. P1.5 may extend proposal-revision lineage, but it must not be required for P1.4 release enforcement.
+
 ## Concurrency and transaction boundary
 
 Rendered readiness is informative only. Execution-time readiness is authoritative.
@@ -588,7 +599,9 @@ The Estimate row should be used as the serialization boundary where practical, c
 
 P1.4 must not claim an atomic guarantee based only on a previously rendered page.
 
-Proposal issuance must avoid a time-of-check/time-of-use gap between release evaluation and immutable proposal creation. The implementation plan must place the authoritative release check and proposal insertion inside an appropriate database transaction/guarded database boundary.
+Proposal issuance must avoid a time-of-check/time-of-use gap between release evaluation and immutable proposal creation. The database insertion boundary for the immutable proposal presentation is authoritative: it must re-evaluate readiness and verify that the issue-time release fingerprints match current state before accepting the presentation. Application-side checks remain useful UX but are not sufficient authority.
+
+P1.4 does not require moving the entire customer-facing proposal snapshot builder into PostgreSQL. It does require the immutable presentation to carry the accepted release fingerprints so stale Review authority cannot be attached to a newly changed Estimate.
 
 ## UI terminology
 
