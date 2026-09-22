@@ -1,0 +1,14 @@
+.next/
+node_modules/
+.vercel/
+.git/
+pnpm-lock.yaml
+**/backup-storage/
+**/storage/
+**/attachments/
+**/tests/
+**/*.png
+**/*.jpg
+**/*.svg
+.DS_Store
+*.log
