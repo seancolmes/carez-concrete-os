@@ -31,6 +31,17 @@
 - Normal validation is targeted tests + `pnpm typecheck`; final validation is `pnpm check`.
 - UI acceptance requires browser QA on the exact deployed branch head.
 
+## Verified Implementation Preflight
+
+A live-state check performed while writing this plan found a **pre-existing Proposal schema drift that must be reconciled before P1.4 implementation reaches Proposal integration**:
+
+- Supabase QA project `tkcirsdfvvahwrcratkn` currently exposes `proposal_presentations`, but not the Proposal relations the current staging application reads/writes, including `proposal_settings`, `proposal_clarifications`, `proposal_access_tokens`, `proposal_engagement_events`, or `proposal_conversion_queue`.
+- Current staging source still references those relations from `app/proposals/[estimateId]/page.tsx` and `app/proposals/actions.ts`.
+- Git history commit `1d6490c53151cfb964d6dba213959bf5fb88cdbe` contains the historical source-controlled migration `supabase/migrations/20260828_customer_proposal_conversion.sql` that defined the Proposal conversion schema and immutable presentation behavior, but that migration is not present on current staging.
+- The current P1.4 design must not invent replacement Proposal semantics. Before Task 2 consumes proposal terms/contact facts or Task 6 changes Proposal issuance, the implementer must reconcile this drift against the historical migration and current staging dependencies, preserving accepted Proposal behavior.
+
+**Hard gate:** do not apply a P1.4 migration that references absent Proposal relations, and do not weaken the approved P1.4 release contract to work around missing schema. If the historical Proposal schema cannot be restored/reconciled as a bounded prerequisite without changing Proposal product behavior, stop and return that blocker for a separate prerequisite fix.
+
 ## Review Focus
 
 1. **Same-company Estimate contamination:** outputs, warnings, and acknowledgements from Estimate B must never affect Estimate A. Task 2 includes an Estimate-isolation regression.
