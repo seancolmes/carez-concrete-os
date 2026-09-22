@@ -177,6 +177,8 @@ Humans remain authoritative for scope, Project Concrete Conditions, company temp
 
 ## Experience architecture
 
+Carez exposes exactly seven primary operating surfaces—Today, Preconstruction, Projects, Field, Production, Finance, and System. Route existence is distinct from global navigation exposure: the route registry remains URL authority while the workspace presentation model curates primary surfaces, internal views, contextual tools, record-detail URLs, compatibility entries, and hidden/unsupported capabilities.
+
 Desktop is a professional workstation. Mobile is field-first.
 
 ADR-016 defines the global desktop shell:
