@@ -7,9 +7,6 @@ import {AppShell} from '@/components/AppShell';
 import {Badge} from '@/components/ui/badge';
 import {buttonVariants} from '@/components/ui/button';
 import {
-  Card,CardContent,CardDescription,CardHeader,CardTitle,
-} from '@/components/ui/card';
-import {
   Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle,
 } from '@/components/ui/empty';
 import {
@@ -23,20 +20,18 @@ const num=(n:any)=>Number(n||0);
 const titleCase=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase());
 
 function MetricCard({label,value,help,Icon,tone='default'}:{label:string;value:string;help:string;Icon:any;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-3 py-4 shadow-none">
-    <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-4">
+  return <div className="grid min-w-0 grid-cols-[1fr_auto] gap-x-3 gap-y-2 px-4 py-3">
       <div className="min-w-0">
-        <CardDescription className="text-xs font-medium">{label}</CardDescription>
-        <CardTitle className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle>
+        <div className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{label}</div>
+        <div className={cn('mt-1 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</div>
       </div>
-      <span className={cn('flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground',tone==='success'&&'bg-success/10 text-success',tone==='warning'&&'bg-warning/10 text-warning')}><Icon className="size-4"/></span>
-    </CardHeader>
-    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
-  </Card>;
+      <Icon className={cn('mt-0.5 size-4 text-muted-foreground',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}/>
+      <div className="col-span-2 text-xs leading-5 text-muted-foreground">{help}</div>
+  </div>;
 }
 
 function ReportsEmpty({Icon,title,description,href,action}:{Icon:any;title:string;description:string;href:string;action:string}){
-  return <Empty className="min-h-48 border bg-muted/20">
+  return <Empty className="min-h-48 border-y bg-muted/20">
     <EmptyHeader>
       <EmptyMedia variant="icon"><Icon/></EmptyMedia>
       <EmptyTitle>{title}</EmptyTitle>
@@ -47,7 +42,7 @@ function ReportsEmpty({Icon,title,description,href,action}:{Icon:any;title:strin
 }
 
 function SectionHeading({kicker,title,description}:{kicker:string;title:string;description?:string}){
-  return <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{kicker}</p><h2 className="mt-1 text-lg font-semibold">{title}</h2>{description?<p className="mt-1 max-w-4xl text-sm text-muted-foreground">{description}</p>:null}</div>;
+  return <div className="border-b border-border pb-3"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{kicker}</p><h2 className="mt-1 text-lg font-semibold">{title}</h2>{description?<p className="mt-1 max-w-4xl text-sm text-muted-foreground">{description}</p>:null}</div>;
 }
 
 export default async function ReportsPage(){
@@ -93,7 +88,7 @@ export default async function ReportsPage(){
         <p className="mt-1 max-w-5xl text-sm text-muted-foreground">Job profitability, labor performance, production history, and receivables from the authoritative Carez records already in the system.</p>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Company performance ledger" className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
         <MetricCard label="Completed job revenue" value={money(revenue)} help="Authorized value of jobs marked complete." Icon={CircleDollarSign} tone="success"/>
         <MetricCard label="Completed job cost" value={money(cost)} help="Actual company cost captured against completed work." Icon={ReceiptText}/>
         <MetricCard label="Actual completed margin" value={`${margin.toFixed(1)}%`} help="Revenue left after captured job costs." Icon={Percent} tone={margin>=30?'success':margin>0?'warning':'default'}/>
@@ -104,7 +99,7 @@ export default async function ReportsPage(){
         <SectionHeading kicker="Jobs" title="Job scorecards" description="Estimate and budget against actual performance."/>
         {(projects||[]).length===0?
           <ReportsEmpty Icon={ClipboardCheck} title="No project history yet" description="Completed and active jobs will appear here with budget versus actual performance." href="/projects" action="Open projects"/>:
-          <Card className="py-0 shadow-none">
+          <div className="overflow-x-auto border-y border-border">
             <Table>
               <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Job</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Contract</TableHead><TableHead className="text-right">Actual cost</TableHead><TableHead className="text-right">Budget used</TableHead><TableHead className="text-right">Labor</TableHead><TableHead className="text-right">Customer owes</TableHead></TableRow></TableHeader>
               <TableBody>{(projects||[]).map((p:any)=>{
@@ -121,14 +116,14 @@ export default async function ReportsPage(){
                 </TableRow>;
               })}</TableBody>
             </Table>
-          </Card>}
+          </div>}
       </section>
 
       <section className="space-y-4">
         <SectionHeading kicker="Production" title="Carez production database" description="Weighted actual production from approved employee task time and verified quantities."/>
         {taskRates.length===0?
           <ReportsEmpty Icon={BarChart3} title="No measured production yet" description="Task clocking and verified quantities will build this automatically." href="/field" action="Open field control"/>:
-          <Card className="py-0 shadow-none">
+          <div className="overflow-x-auto border-y border-border">
             <Table>
               <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Task</TableHead><TableHead className="text-right">Samples</TableHead><TableHead className="text-right">Total built</TableHead><TableHead className="text-right">Total MH</TableHead><TableHead className="text-right">Units / MH</TableHead><TableHead className="text-right">MH / unit</TableHead></TableRow></TableHeader>
               <TableBody>{taskRates.map(r=><TableRow key={`${r.task}-${r.unit}`}>
@@ -140,22 +135,20 @@ export default async function ReportsPage(){
                 <TableCell className="text-right font-mono tabular-nums">{(r.mh/r.qty).toFixed(3)} MH/{r.unit}</TableCell>
               </TableRow>)}</TableBody>
             </Table>
-          </Card>}
+          </div>}
       </section>
 
       <section className="space-y-4">
         <SectionHeading kicker="Current work" title="Jobs still running"/>
         {active.length===0?
           <ReportsEmpty Icon={BriefcaseBusiness} title="No active jobs" description="Jobs in progress will appear here with current labor, budget, and customer balance information." href="/projects" action="View projects"/>:
-          <div className="grid gap-3 lg:grid-cols-2">{active.map((p:any)=>{
+          <div className="grid divide-y divide-border border-y border-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">{active.map((p:any)=>{
             const b:any=bMap.get(p.id)||{},bill:any=billMap.get(p.id)||{};
             const used=num(b.budget_cost_used_percent);
-            return <Card key={p.id} size="sm" className="shadow-none">
-              <CardHeader className="grid grid-cols-[1fr_auto] gap-3">
-                <div><CardTitle><Link href={`/projects/${p.id}`} className="hover:text-primary">{p.job_number} — {p.name}</Link></CardTitle><CardDescription className="mt-1">{num(b.actual_labor_hours).toFixed(1)} labor hr used · {money(bill.outstanding_ar)} customer balance</CardDescription></div>
+            return <article key={p.id} className="grid grid-cols-[1fr_auto] gap-3 px-4 py-4">
+                <div><h3 className="font-medium"><Link href={`/projects/${p.id}`} className="hover:text-primary">{p.job_number} — {p.name}</Link></h3><p className="mt-1 text-xs text-muted-foreground">{num(b.actual_labor_hours).toFixed(1)} labor hr used · {money(bill.outstanding_ar)} customer balance</p></div>
                 <Badge variant={used>=100?'destructive':'secondary'}>{b.project_id?`${used.toFixed(0)}% budget used`:'No budget'}</Badge>
-              </CardHeader>
-            </Card>;
+            </article>;
           })}</div>}
       </section>
     </div>

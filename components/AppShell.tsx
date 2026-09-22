@@ -85,8 +85,8 @@ export function CarezTopShell({userName,logoUrl,pathname,pinnedIds,pinnedDestina
       </div>
     </header>
     <div className="carez-favorites"><span className="carez-favorites-label">QUICK ACCESS</span><CarezPinnedNav destinations={pinnedDestinations} pathname={pathname}/><Button variant="ghost" size="icon-sm" aria-label="Manage navigation" onClick={onOpenManager}><SlidersHorizontal/></Button></div>
-    <Sheet open={directoryOpen} onOpenChange={setDirectoryOpen}><SheetContent side="left" className="carez-directory w-[94vw] sm:max-w-3xl">
-      <SheetHeader><SheetTitle>Workspaces</SheetTitle><SheetDescription>From the first takeoff to the final payment.</SheetDescription></SheetHeader>
+    <Sheet open={directoryOpen} onOpenChange={setDirectoryOpen}><SheetContent side="left" className="carez-directory w-[94vw] sm:max-w-5xl">
+      <SheetHeader><SheetTitle>Workspaces</SheetTitle><SheetDescription>From the first plan set and structural pour window to final retainage.</SheetDescription></SheetHeader>
       <nav aria-label="All Carez workspaces" className="carez-directory-grid">{NAVIGATION_GROUPS.map(group=><section key={group.id}><h2>{group.label}</h2>{destinationsFor(group.destinationIds).map(destination=>{const Icon=NAVIGATION_ICONS[destination.icon];return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={active?.id===destination.id?'page':undefined} onClick={event=>{event.preventDefault();setDirectoryOpen(false);onNavigate(destination.href)}}><Icon/><span><strong>{destination.label}</strong><small>{destination.hint}</small></span>{pinnedIds.includes(destination.id)?<span className="carez-directory-pin" aria-label="Pinned">•</span>:null}</Link>})}</section>)}</nav>
       <SheetFooter><Button variant="outline" onClick={()=>{setDirectoryOpen(false);onOpenManager()}}><SlidersHorizontal/>Customize quick access</Button></SheetFooter>
     </SheetContent></Sheet>

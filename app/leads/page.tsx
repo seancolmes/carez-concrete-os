@@ -4,7 +4,6 @@ import {ArrowRight,Clock3,FileText,Inbox,MessageSquareText,Plus,Users} from 'luc
 import {AppShell} from '@/components/AppShell';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle} from '@/components/ui/card';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
 import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
 import {Input} from '@/components/ui/input';
@@ -21,10 +20,7 @@ const sourceLabel=(s:string)=>({outlook:'Outlook email',phone:'Phone',website:'W
 const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'|'danger'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-warning/30',tone==='danger'&&'border-destructive/25')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
-    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
-  </Card>;
+  return <div className={cn('min-w-0 px-4 py-3',tone==='warning'&&'border-t-2 border-warning',tone==='danger'&&'border-t-2 border-destructive')}><div className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</div><div className="mt-1 text-xs leading-5 text-muted-foreground">{help}</div></div>;
 }
 
 function LeadStatus({status,followDue}:{status:string;followDue:boolean}){
@@ -87,7 +83,7 @@ export default async function LeadsPage(){
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Opportunity pipeline ledger" className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
         <Metric label="Open pipeline" value={String(open.length)} help="Leads and bids that could become work."/>
         <Metric label="Pipeline value" value={money(pipeline)} help="Current rough value of open opportunities."/>
         <Metric label="Follow ups due" value={String(due.length)} help="Open opportunities at or past their follow-up date." tone={due.length?'danger':'success'}/>
@@ -95,19 +91,19 @@ export default async function LeadsPage(){
       </section>
 
       <section className="space-y-4">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sales pipeline</p><h2 className="mt-1 text-lg font-semibold">Opportunities</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">L-26-### becomes E-26-###-R0, then P-26-###-R0, then Job 26-### when accepted.</p></div>
-        {(leads||[]).length===0?<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>No leads yet</EmptyTitle><EmptyDescription>Add a lead manually or connect Outlook and review the Lead Inbox.</EmptyDescription></EmptyHeader><EmptyContent><Link href="/leads/inbox" className={buttonVariants({variant:'outline'})}><Inbox/>Open lead inbox</Link></EmptyContent></Empty>:
-          <div className="grid gap-3 xl:grid-cols-2">{(leads||[]).map((lead:any)=>{
+        <div className="border-b border-border pb-3"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Sales pipeline</p><h2 className="mt-1 text-lg font-semibold">Opportunities</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">L-26-### becomes E-26-###-R0, then P-26-###-R0, then Job 26-### when accepted.</p></div>
+        {(leads||[]).length===0?<Empty className="min-h-64 border-y bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>No leads yet</EmptyTitle><EmptyDescription>Add a lead manually or connect Outlook and review the Lead Inbox.</EmptyDescription></EmptyHeader><EmptyContent><Link href="/leads/inbox" className={buttonVariants({variant:'outline'})}><Inbox/>Open lead inbox</Link></EmptyContent></Empty>:
+          <div className="grid divide-y divide-border border-y border-border xl:grid-cols-2 xl:divide-x xl:divide-y-0">{(leads||[]).map((lead:any)=>{
             const history=activityMap.get(lead.id)||[];
             const followDue=Boolean(lead.follow_up&&lead.follow_up<=today()&&!['won','lost'].includes(lead.status));
             const estimate=estimateMap.get(lead.id);
-            return <Card className={cn('gap-0 py-0 shadow-none',followDue&&'border-warning/30')} key={lead.id}>
-              <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b py-3">
-                <div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><Badge variant="outline" className="font-mono text-[10px]">L-{lead.opportunity_number||'UNNUMBERED'}</Badge><span className="text-xs text-muted-foreground">{sourceLabel(lead.source)}</span></div><CardTitle className="truncate">{lead.project_name}</CardTitle><CardDescription className="mt-1 truncate">{lead.customer_name}{lead.city?` · ${lead.city}, ${lead.state||'WA'}`:''} · {money(lead.estimated_value)}</CardDescription></div>
+            return <article className={cn('border-l-2 border-transparent',followDue&&'border-warning')} key={lead.id}>
+              <header className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border px-4 py-3">
+                <div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><Badge variant="outline" className="font-mono text-[10px]">L-{lead.opportunity_number||'UNNUMBERED'}</Badge><span className="text-xs text-muted-foreground">{sourceLabel(lead.source)}</span></div><h3 className="truncate font-semibold">{lead.project_name}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{lead.customer_name}{lead.city?` · ${lead.city}, ${lead.state||'WA'}`:''} · {money(lead.estimated_value)}</p></div>
                 <LeadStatus status={lead.status} followDue={followDue}/>
-              </CardHeader>
+              </header>
 
-              <CardContent className="space-y-4 p-4">
+              <div className="space-y-4 p-4">
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[
                   ['Contact',lead.contact_name||lead.customer_name,lead.email||lead.phone||'No contact details'],
                   ['Jobsite',lead.address||lead.city||'Not entered',lead.city&&lead.address?`${lead.city}, ${lead.state||'WA'}`:''],
@@ -129,14 +125,14 @@ export default async function LeadsPage(){
                     {history.length?<div className="divide-y rounded-lg border">{history.slice(0,8).map((activity:any)=><div className="px-3 py-2.5" key={activity.id}><div className="flex items-center gap-2"><span className="text-xs font-medium">{String(activity.activity_type||'note').replaceAll('_',' ')}</span><span className="ml-auto text-[11px] text-muted-foreground">{new Date(activity.activity_date).toLocaleString()}</span></div><div className="mt-1 text-xs leading-5 text-muted-foreground">{activity.note||'No note'}</div></div>)}</div>:<div className="text-xs text-muted-foreground">No activity recorded yet.</div>}
                   </div>
                 </details>
-              </CardContent>
+              </div>
 
-              <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3">
+              <footer className="flex flex-wrap gap-2 border-t border-border p-3">
                 {estimate?<Link className={buttonVariants({size:'sm'})} href="/estimates"><FileText/>Open {estimate.estimate_number}-R{estimate.version}</Link>:!['won','lost'].includes(lead.status)?<form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={lead.id}/><Button type="submit" size="sm">Start estimate<ArrowRight/></Button></form>:null}
                 <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Email / lead inbox</Link>
                 {followDue?<span className="ml-auto flex items-center gap-1.5 self-center text-xs font-medium text-warning"><Clock3 className="size-3.5"/>Follow up is due</span>:null}
-              </CardFooter>
-            </Card>;
+              </footer>
+            </article>;
           })}</div>}
       </section>
     </div>
