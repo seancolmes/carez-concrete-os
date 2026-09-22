@@ -2,11 +2,9 @@ import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,CheckCircle2,FileText,Ruler,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
-import {CarezOperatingMetric,CarezOperatingMetricStrip} from '@/components/carez/operating-metric';
 import {EstimateWorksheet} from '@/components/estimates/EstimateWorksheet';
 import {PricingCoverage} from '@/components/estimates/PricingCoverage';
 import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
@@ -22,7 +20,7 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();if(!p?.company_id)redirect('/login');if(p.role==='employee')redirect('/employee');
-  const [{data:e},{data:s},{data:sections},{data:items},{data:codes},{data:catalog},{data:crew},{data:risk},{data:budget},{data:proposal},{data:takeoff},{data:measurements},{data:outputs},{data:quoteSets}]=await Promise.all([
+  const [{data:e},{data:s},{data:sections},{data:items},{data:codes},{data:catalog},{data:crew},{data:risk},{data:budget},{data:proposal},{data:takeoff},{data:measurements},{data:outputs},{data:quoteSets},{data:audit},{data:auditFindings}]=await Promise.all([
     supabase.from('estimates').select('*').eq('id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('estimate_financial_summary').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).maybeSingle(),
     supabase.from('estimate_sections').select('*').eq('estimate_id',estimateId).eq('company_id',p.company_id).order('sort_order'),
@@ -37,6 +35,8 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     supabase.from('takeoff_measurements').select('id,name,location,drawing_reference,raw_quantity,raw_unit,estimate_section_id,created_at').eq('estimate_id',estimateId).eq('company_id',p.company_id).eq('status','active').order('created_at'),
     supabase.from('takeoff_measurement_outputs').select('id,measurement_id,generated_estimate_item_id,label,estimate_item_type,production_quantity,production_unit,unit_cost,catalog_item_id,pricing_status,cost_source,price_source_kind,price_source_id,price_source_label,price_source_reference,price_effective_date,is_active,estimate_visible').eq('company_id',p.company_id).eq('is_active',true).eq('estimate_visible',true),
     supabase.from('estimate_supplier_quote_sets').select('id,estimate_id,name,bid_zone,scope_note,status,created_at').eq('estimate_id',estimateId).eq('company_id',p.company_id).order('created_at'),
+    supabase.from('estimate_audit_summary').select('audit_status,blocker_count,warning_count,next_action').eq('estimate_id',estimateId).eq('company_id',p.company_id).maybeSingle(),
+    supabase.from('estimate_audit_findings').select('finding_key,severity,title,detail,next_action').eq('estimate_id',estimateId).eq('company_id',p.company_id).order('sort_order'),
   ]);
   if(!e)notFound();
 
@@ -75,6 +75,9 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
   const takeoffObjects=num(takeoff?.active_measurements);
   const holds=num(takeoff?.missing_price_outputs);
   const stage=e.status==='accepted'||e.status==='approved'?'Awarded':proposal?'Proposal Issued':e.status==='ready'?'Ready for Audit':e.status==='superseded'?'Superseded':'Pricing';
+  const blockers=(auditFindings||[]).filter((finding:any)=>finding.severity==='blocker');
+  const warnings=(auditFindings||[]).filter((finding:any)=>finding.severity==='warning');
+  const readinessLabel=audit?.audit_status==='blocked'?'BLOCKED':audit?.audit_status==='review'?'REVIEW':audit?.audit_status==='clear'?'CLEAR':'PENDING';
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -90,29 +93,23 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
     {['accepted','approved'].includes(e.status)&&<div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"><strong>Awarded baseline locked.</strong> Carez preserves this accepted price and scope while the project budget and Work Packages run from the snapshot.</div>}
     {e.status==='superseded'&&<div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>Historical revision.</strong> <span className="text-muted-foreground">A newer revision replaced this one; it remains available for audit.</span></div>}
 
-    <CarezOperatingMetricStrip columns={5}>
-      <Metric label="Direct Job Cost" value={money(s?.total_direct_cost)} help="Labor, material, equipment and subs."/>
-      <Metric label="Company Overhead" value={money(s?.overhead_cost)} help="Productive hours × current overhead snapshot."/>
-      <Metric label="Recommended Price" value={money(recommended)} help="Cost + reserves + target margin."/>
-      <Metric label="Customer Price" value={money(selectedPrice)} help="The price currently selected to quote." tone="primary"/>
-      <Metric label="Projected Margin" value={`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}% · profit ${money(s?.projected_profit)}.`} tone={margin<target?'warning':'success'}/>
-    </CarezOperatingMetricStrip>
-
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Estimate readiness">
-      <Readiness label="Takeoff" value={takeoffObjects?`${takeoffObjects} measured object${takeoffObjects===1?'':'s'}`:'Not started'} tone={takeoffObjects?'success':'warning'}/>
-      <Readiness label="Pricing Holds" value={holds?`${holds} open`:'Clear'} tone={holds?'warning':'success'}/>
-      <Readiness label="Margin" value={margin>=target?'At / above target':'Below target'} tone={margin>=target?'success':'warning'}/>
-      <Readiness label="Stage" value={stage} tone={e.status==='ready'?'success':'default'}/>
+    <section className="grid grid-cols-1 divide-y divide-border border-y border-border md:grid-cols-4 md:divide-x md:divide-y-0" aria-label="Commercial estimator ledger">
+      <LedgerMetric label="Active Commercial Bid Volume" value={money(selectedPrice)} help="Customer price selected for this revision."/>
+      <LedgerMetric label="Gross Margin Baseline" value={`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}%.`} tone={margin<target?'warning':'success'}/>
+      <LedgerMetric label="Active Pricing Holds" value={String(holds)} help={holds?'Takeoff outputs require pricing.':'No current takeoff pricing holds.'} tone={holds?'warning':'success'}/>
+      <LedgerMetric label="P1.4 Readiness Verification Status" value={readinessLabel} help={audit?.next_action||'Release state is evaluated by the estimate audit.'} tone={audit?.audit_status==='blocked'?'error':audit?.audit_status==='review'?'warning':audit?.audit_status==='clear'?'success':'default'}/>
     </section>
 
+    {blockers.length>0&&<section className="border-y border-destructive/40 px-4 py-3 text-sm text-destructive" aria-label="P1.4 release blockers"><strong>P1.4 proposal issuance is server-gated.</strong> {blockers.length} blocker{blockers.length===1?'':'s'} must be resolved before this revision can be issued.<div className="mt-2 space-y-1 text-xs">{blockers.map((finding:any)=><div key={finding.finding_key}>{finding.title}: {finding.next_action||finding.detail}</div>)}</div></section>}
+    {blockers.length===0&&warnings.length>0&&<section className="border-y border-warning/40 px-4 py-3 text-sm text-warning" aria-label="P1.4 review warnings"><strong>P1.4 review required.</strong> No server-gated blockers remain; review {warnings.length} non-blocking warning{warnings.length===1?'':'s'} before proposal issuance.<div className="mt-2 space-y-1 text-xs">{warnings.map((finding:any)=><div key={finding.finding_key}>{finding.title}: {finding.next_action||finding.detail}</div>)}</div></section>}
+
     <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]">
-      <Card className="shadow-none"><CardHeader><CardTitle>Scope &amp; Cost</CardTitle><CardDescription>Concrete areas with cost generated from takeoff plus any controlled manual additions.</CardDescription></CardHeader><CardContent className="space-y-4">
-        <div className="divide-y rounded-lg border border-border">{(sections||[]).map((section:any)=>{const rows=itemsBySection.get(section.id)||[];const cost=rows.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0);const takeoffCount=rows.filter((item:any)=>item.source_takeoff_measurement_id).length;return <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between" key={section.id}><div><div className="font-medium">{section.name}</div><div className="mt-1 text-xs text-muted-foreground">{String(section.scope_type).replaceAll('_',' ')} · {rows.length} cost line{rows.length===1?'':'s'}{takeoffCount?` · ${takeoffCount} from takeoff`:''}</div></div><strong className="font-mono tabular-nums">{money(cost)}</strong></div>;})}{(itemsBySection.get('unassigned')||[]).length>0&&<div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-medium">Unassigned / General</div><div className="mt-1 text-xs text-muted-foreground">{itemsBySection.get('unassigned')!.length} cost lines</div></div><strong className="font-mono tabular-nums">{money(itemsBySection.get('unassigned')!.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0))}</strong></div>}</div>
+      <section className="border-y border-border py-4"><div className="px-1"><h2 className="text-sm font-semibold">Scope &amp; Cost</h2><p className="mt-1 text-sm text-muted-foreground">Concrete areas with cost generated from takeoff plus any controlled manual additions.</p></div><div className="mt-4 divide-y border-y border-border">{(sections||[]).map((section:any)=>{const rows=itemsBySection.get(section.id)||[];const cost=rows.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0);const takeoffCount=rows.filter((item:any)=>item.source_takeoff_measurement_id).length;return <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between" key={section.id}><div><div className="font-medium">{section.name}</div><div className="mt-1 text-xs text-muted-foreground">{String(section.scope_type).replaceAll('_',' ')} · {rows.length} cost line{rows.length===1?'':'s'}{takeoffCount?` · ${takeoffCount} from takeoff`:''}</div></div><strong className="font-mono tabular-nums">{money(cost)}</strong></div>;})}{(itemsBySection.get('unassigned')||[]).length>0&&<div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-medium">Unassigned / General</div><div className="mt-1 text-xs text-muted-foreground">{itemsBySection.get('unassigned')!.length} cost lines</div></div><strong className="font-mono tabular-nums">{money(itemsBySection.get('unassigned')!.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0))}</strong></div>}</div>
 
         {!locked&&<details className="rounded-lg border border-border"><summary className="cursor-pointer list-none px-3 py-3 text-sm font-medium">Add Scope Area</summary><div className="border-t border-border p-3"><form action={addEstimateSection} className="grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/><div className="grid gap-2"><Label htmlFor="scope-name">Physical area / assembly</Label><Input id="scope-name" name="name" required placeholder="Basement Walls · Garage Slab · Driveway"/></div><div className="grid gap-2"><Label htmlFor="scope-type">Concrete work type</Label><select id="scope-type" className={selectClass} name="scope_type"><option value="footing">Footing</option><option value="wall">Wall</option><option value="flatwork">Flatwork</option><option value="curb">Curb / Sidewalk</option><option value="repair">Repair</option><option value="other">Other</option></select></div><Button type="submit" variant="outline" className="w-fit">Add Scope Area</Button></form></div></details>}
-      </CardContent></Card>
+      </section>
 
-      <Card className="shadow-none"><CardHeader><CardTitle>Price &amp; Margin</CardTitle><CardDescription>The few commercial decisions that should normally need owner review.</CardDescription></CardHeader><CardContent className="space-y-5"><form action={updateEstimatePricing} className="grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/>
+      <section className="border-y border-border py-4"><div className="px-1"><h2 className="text-sm font-semibold">Price &amp; Margin</h2><p className="mt-1 text-sm text-muted-foreground">The few commercial decisions that should normally need owner review.</p></div><form action={updateEstimatePricing} className="mt-4 grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/>
         <div className="grid gap-2"><Label htmlFor="customer-price">Customer price</Label><Input id="customer-price" key={`customer-price-${selectedPrice.toFixed(2)}`} name="proposed_sell_price" type="number" min="0" step="0.01" defaultValue={selectedPrice} disabled={locked}/><p className="text-xs text-muted-foreground">Recommended: {money(recommended)}</p></div>
         <div className="grid gap-2"><Label htmlFor="target-margin">Target profit margin %</Label><Input id="target-margin" name="target_margin_percent" type="number" min="0" max="100" step="0.1" defaultValue={target} disabled={locked}/></div>
         <div className="grid gap-2"><Label htmlFor="estimate-stage">Estimate stage</Label><select id="estimate-stage" className={selectClass} name="status" defaultValue={e.status} disabled={locked}><option value="draft">Still Pricing</option><option value="ready">Ready for Audit / Proposal</option><option value="declined">Lost / Declined</option>{e.status==='accepted'&&<option value="accepted">Customer Accepted</option>}{e.status==='approved'&&<option value="approved">Approved</option>}{e.status==='superseded'&&<option value="superseded">Superseded</option>}</select></div>
@@ -121,13 +118,15 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
       </form>
 
       <div className="divide-y rounded-lg border border-border bg-muted/10">{[['Price',money(selectedPrice)],['Company cost',money(s?.base_company_cost)],['Revenue reserve',money(s?.revenue_cost_reserve)],['Projected profit',money(s?.projected_profit)]].map(([label,value])=><div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm" key={label}><span className="text-muted-foreground">{label}</span><strong className="font-mono tabular-nums">{value}</strong></div>)}</div>
-      </CardContent></Card>
+      </section>
     </section>
 
     <PricingCoverage estimateId={e.id} measurements={measurements||[]} outputs={outputs||[]} quoteSets={quoteSets||[]} quotes={quotes} quoteLines={quoteLines} locked={locked} today={today}/>
 
-    <section className="space-y-4" aria-labelledby="estimate-lines"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cost detail</p><h2 id="estimate-lines" className="mt-1 text-lg font-semibold">Estimate Lines</h2><p className="mt-1 text-sm text-muted-foreground">Takeoff-generated lines are identified so the estimator can see where the price came from without re-entering quantities.</p></div>
+    <section className="space-y-4" aria-labelledby="estimate-lines"><div><p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Commercial workbook</p><h2 id="estimate-lines" className="mt-1 text-lg font-semibold">Margin Optimization &amp; Fee Structure</h2><p className="mt-1 text-sm text-muted-foreground">Price concrete scope from takeoff, resolve structural exception holds, protect labor gross margins, and issue the exact bid revision the customer will accept.</p></div>
       <EstimateWorksheet estimateId={e.id} sections={sections||[]} measurements={measurements||[]} items={items||[]} outputs={outputs||[]} locked={locked}/>
+
+      <Button type="button" variant="ghost" size="sm" disabled title="Append pour phases is not available for this estimator revision.">Append Structural Pour Phase</Button>
 
       {!locked&&<details className="rounded-lg border border-border"><summary className="cursor-pointer list-none px-3 py-3 text-sm font-medium">Add Cost Outside the Assembly System</summary><div className="space-y-4 border-t border-border p-3"><div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"><strong>Exception tool:</strong> <span className="text-muted-foreground">use this for a real cost not represented by the concrete takeoff assembly—special rental, one-off subcontractor, unusual material, etc.</span></div><form action={addEstimateItem} className="grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/>
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="exception-section">Scope area</Label><select id="exception-section" className={selectClass} name="section_id" defaultValue=""><option value="">Unassigned / general</option>{(sections||[]).map((section:any)=><option key={section.id} value={section.id}>{section.name}</option>)}</select></div><div className="grid gap-2"><Label htmlFor="exception-type">Cost type</Label><select id="exception-type" className={selectClass} name="item_type" defaultValue="material"><option value="labor">Labor</option><option value="material">Material</option><option value="equipment">Equipment</option><option value="subcontractor">Subcontractor</option><option value="other">Other</option></select></div></div>
@@ -140,16 +139,11 @@ export default async function EstimateDetail({params}:{params:Promise<{estimateI
       </form></div></details>}
     </section>
 
-    <Card className="shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next action</p><h2 className="mt-1 text-lg font-semibold">{locked?(proposal?'Customer / revision workflow':'Awarded estimate'):holds?'Resolve takeoff pricing holds':e.status==='ready'?'Run the pre-send estimate audit':'Finish pricing and mark Ready'}</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{locked?'This revision is preserved exactly as issued/accepted.':holds?'Return to Takeoff and clear current material or labor pricing before this bid can advance.':e.status==='ready'?'Audit checks takeoff completeness, price integrity and commercial risk before Proposal.':'Once scope, price and margin are right, change Estimate Stage to Ready for Audit / Proposal.'}</p>{budget&&<p className="mt-2 text-xs text-muted-foreground">Frozen project budget: {budget.label}</p>}</div><div className="flex flex-wrap gap-2">{!locked&&holds>0&&<Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Resolve in Takeoff</Link>}{!locked&&e.status==='ready'&&<Link className={buttonVariants({size:'sm'})} href="/estimates/audit"><ShieldCheck/>Run Estimate Audit</Link>}{!locked&&e.status==='ready'&&<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><FileText/>Proposal</Link>}{proposal&&<Link className={buttonVariants({size:'sm'})} href="/proposals"><FileText/>Open Proposal</Link>}{['accepted','approved'].includes(e.status)&&e.project_id&&<Link className={buttonVariants({size:'sm'})} href={`/projects/${e.project_id}`}><CheckCircle2/>Open Job</Link>}</div></CardContent></Card>
+    <section className="flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Next action</p><h2 className="mt-1 text-lg font-semibold">{locked?(proposal?'Customer / revision workflow':'Awarded estimate'):holds?'Resolve takeoff pricing holds':e.status==='ready'?'Run the pre-send estimate audit':'Finish pricing and mark Ready'}</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{locked?'This revision is preserved exactly as issued/accepted.':holds?'Return to Takeoff and clear current material or labor pricing before this bid can advance.':e.status==='ready'?'Audit checks takeoff completeness, price integrity and commercial risk before Proposal.':'Once scope, price and margin are right, change Estimate Stage to Ready for Audit / Proposal.'}</p>{budget&&<p className="mt-2 text-xs text-muted-foreground">Frozen project budget: {budget.label}</p>}</div><div className="flex flex-wrap gap-2">{!locked&&holds>0&&<Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Resolve in Takeoff</Link>}{!locked&&e.status==='ready'&&<Link className={buttonVariants({size:'sm'})} href="/estimates/audit"><ShieldCheck/>Run Estimate Audit</Link>}{!locked&&e.status==='ready'&&<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><FileText/>Proposal</Link>}{proposal&&<Link className={buttonVariants({size:'sm'})} href="/proposals"><FileText/>Open Proposal</Link>}{['accepted','approved'].includes(e.status)&&e.project_id&&<Link className={buttonVariants({size:'sm'})} href={`/projects/${e.project_id}`}><CheckCircle2/>Open Job</Link>}</div></section>
   </div></AppShell>;
 }
 
-function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'primary'|'success'|'warning'}){
-  return <CarezOperatingMetric label={label} value={value} help={help} tone={tone==='primary'?'info':tone==='default'?'neutral':tone}/>;
-}
-
-function Readiness({label,value,tone='default'}:{label:string;value:string;tone?:'default'|'success'|'warning'}){
-  const toneClass=tone==='success'?'border-success/30 bg-success/5':tone==='warning'?'border-warning/30 bg-warning/5':'';
-  const valueClass=tone==='success'?'text-success':tone==='warning'?'text-warning':'';
-  return <div className={`rounded-lg border border-border bg-card px-3 py-3 ${toneClass}`}><div className="text-xs font-medium text-muted-foreground">{label}</div><div className={`mt-1 text-sm font-semibold ${valueClass}`}>{value}</div></div>;
+function LedgerMetric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'|'error'}){
+  const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='error'?'text-destructive':'';
+  return <div className="min-w-0 px-4 py-4"><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className={`mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</div><div className="mt-1 text-xs leading-4 text-muted-foreground">{help}</div></div>;
 }
