@@ -42,7 +42,7 @@ export default async function FieldPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Field control</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Employee time, GPS verification, daily logs, and production records connected to the same jobs used by estimating and project control.</p></div>
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Field control</h1></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access"><HardHat/>Employee access</Link></div>
       </header>
 

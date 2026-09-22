@@ -31,7 +31,7 @@ export default async function PayablesPage(){
   const open=(bills||[]).filter((b:any)=>b.status==='posted'&&num(b.balance_due)>0);
 
   return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Accounts payable</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Bills We Owe</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Vendor invoices Carez has already accepted as real cost and still needs to pay.</p></header><Link className={buttonVariants({variant:'outline'})} href="/procurement/bills">Enter Vendor Bill</Link></div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Accounts payable</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Bills We Owe</h1></header><Link className={buttonVariants({variant:'outline'})} href="/procurement/bills">Enter Vendor Bill</Link></div>
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Card size="sm"><CardContent className={`h-full space-y-1 ${num(s?.open_ap)>0?'text-warning':'text-success'}`}><div className="text-xs font-medium text-muted-foreground">Total We Owe</div><div className="text-2xl font-semibold tabular-nums">{money(s?.open_ap)}</div><div className="text-xs text-muted-foreground">Posted supplier bills not fully paid.</div></CardContent></Card>

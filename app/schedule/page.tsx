@@ -157,7 +157,7 @@ export default async function SchedulePage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5">
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Logistics, Dispatch & Pour Control</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Sequence logistical field placement windows. Track live crew utilization metrics, schedule concrete pumping lines, and evaluate prerequisite constraint gates across all active jobsites.</p></div>
+      <div><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Schedule</h1></div>
       <ScheduleHeaderActions>{addWorkForm}</ScheduleHeaderActions>
     </header>
 

@@ -65,9 +65,9 @@ Each surface uses compact Carez-native internal navigation—tabs, section contr
 
 There is no mass route deletion or broken-bookmark migration.
 
-## 13. Workspaces navbar
+## 13. Primary navigation
 
-Today stays directly accessible. The expandable Workspaces control presents Preconstruction, Projects, Field, Production, Finance, and System, with one selected operating domain at a time. Its panel is a shallow two- or three-column set of curated internal destinations, normally about 180–240px high. It must not become an application sitemap: remove expanded-desktop duplicate workspace search, Pinned/Recent rails, an All tab, per-route PINNED labels, route descriptions, unrelated routes, and duplicate Quick Access behavior. Global project/workspace search stays in the top shell; Quick Access remains the pinned/fast destination mechanism. SmoothUI Expandable Navbar remains the interaction primitive, subordinate to Carez visual authority.
+Today stays directly accessible. The top shell exposes all seven surfaces through one compact horizontal NavigationMenu, with six small curated domain dropdowns where useful. Workspaces, Quick Access, pinned/recent rails, expandable directories, and duplicate menu search are removed. Global command search remains the sole search entry point. Specialized routes remain direct and discoverable through contextual/internal navigation rather than global shell chrome.
 
 ## 14. Navigation presentation model
 
@@ -91,7 +91,7 @@ This is an information-architecture and presentation change only. It does not ch
 
 ## 19. Effect on current rollout
 
-Batch 1 and Batch 2 accepted implementation remain preserved. Batch 2.5 retains its SmoothUI Expandable Navbar primitive, but its information architecture must be simplified to this model before final acceptance. Batch 3 is paused and must be rewritten around Field; Batch 4 is paused and must be rewritten around Production; Batch 5 is paused and must be rewritten around Finance and System. Preconstruction and Projects receive bounded consolidation/refit after the framework is established. Today receives the compact-header refinement. Do not push or deploy between these local consolidation stages; one eventual staging integration and Vercel staging deployment remain the delivery model.
+Batch 1 and Batch 2 accepted implementation remain preserved. The rejected SmoothUI global navigator is removed; the compact horizontal primary navigation is the shell authority. Page headers are compact, navigation chrome is reduced, and specialized routes remain contextual/internal. Batch 3 is paused and must be rewritten around Field; Batch 4 is paused and must be rewritten around Production; Batch 5 is paused and must be rewritten around Finance and System. Do not push or deploy between these local consolidation stages; one eventual staging integration and Vercel staging deployment remain the delivery model.
 
 ## 20. Success criteria
 

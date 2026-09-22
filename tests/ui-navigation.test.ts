@@ -3,8 +3,9 @@ import test from 'node:test';
 import {
   MAX_DESKTOP_PINNED_DESTINATIONS,
   NAVIGATION_DESTINATIONS,
-  NAVIGATION_GROUPS,
-  NAVIGATION_WORKSPACE_DOMAINS,
+  NAVIGATION_COMMAND_GROUPS,
+  WORKSPACE_PRESENTATION_SURFACES,
+  getWorkspacePresentationForDestination,
   buildProjectSwitchHref,
   getRoleDefaultDestinationIds,
   movePinnedDestination,
@@ -20,17 +21,22 @@ import {
   togglePinnedDestination,
 } from '../lib/ui/navigation.ts';
 
-test('every registered destination remains represented by one workspace group',()=>{
-  const groupedIds=NAVIGATION_GROUPS.flatMap(group=>group.destinationIds);
+test('every registered destination remains represented by one command group',()=>{
+  const groupedIds=NAVIGATION_COMMAND_GROUPS.flatMap(group=>group.destinationIds);
   assert.equal(new Set(groupedIds).size,groupedIds.length);
   assert.deepEqual([...groupedIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
 });
 
-test('expandable workspace domains cover every registered destination once',()=>{
-  assert.deepEqual(NAVIGATION_WORKSPACE_DOMAINS.map(domain=>domain.label),['Preconstruction','Projects','Field','Production','Finance','System']);
-  const domainIds=NAVIGATION_WORKSPACE_DOMAINS.flatMap(domain=>domain.destinationIds);
-  assert.equal(new Set(domainIds).size,domainIds.length);
-  assert.deepEqual([...domainIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
+test('seven-surface presentation classifies every destination once with canonical surface routes',()=>{
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Today','Preconstruction','Projects','Field','Production','Finance','System']);
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/','/leads','/projects','/field','/production','/cashflow','/settings']);
+  const destinationIds=WORKSPACE_PRESENTATION_SURFACES.flatMap(surface=>surface.sections.flatMap(section=>section.destinations.map(destination=>destination.id)));
+  assert.equal(new Set(destinationIds).size,destinationIds.length);
+  assert.deepEqual([...destinationIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
+  for(const destination of NAVIGATION_DESTINATIONS){
+    assert.ok(getWorkspacePresentationForDestination(destination.id));
+    assert.ok(getWorkspacePresentationForDestination(destination.id)?.surface.href);
+  }
 });
 
 test('role defaults expose 3-5 stable destinations with safe unknown fallback',()=>{

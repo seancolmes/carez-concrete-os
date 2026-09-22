@@ -45,7 +45,7 @@ export default async function CashflowPage(){
   return <AppShell userName={p.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-7">
       <header className="carez-page-heading flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Financial Ledger, Procurement &amp; Overhead Controls</h1><p className="mt-2 max-w-4xl text-sm text-muted-foreground">Trace short-term working capital pacing. Monitor progressive customer draws, concrete supplier invoices, and retainage release timing.</p></div>
+        <div><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cashflow</h1></div>
         <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/banking"><Landmark/>Banking</Link>
       </header>
 
