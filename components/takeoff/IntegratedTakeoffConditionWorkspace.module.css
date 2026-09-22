@@ -220,3 +220,14 @@
 @media(max-width:860px){
   .viewModeSwitch,.viewAuthority{display:none!important}
 }
+
+/* Preconstruction Canvas keeps the existing Condition inspector on one continuous 25/50/25 grid. */
+@media(min-width:861px){
+  .integrated{grid-template-columns:minmax(0,3fr) minmax(300px,1fr)!important}
+  .drawingHost>div:first-child>div:first-child{grid-template-columns:minmax(220px,1fr) minmax(420px,2fr)!important}
+}
+.integrated,.drawingHost,.propertiesPane,.contextPortal,.spatialRail{background:transparent}
+.propertiesHeader{min-height:58px;border-top:0;background:transparent}
+.propertiesHeader span{font:600 10px var(--font-ibm-plex-mono),ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}
+.propertiesHeader strong{font-size:14px}
+.propertySection{background:transparent}

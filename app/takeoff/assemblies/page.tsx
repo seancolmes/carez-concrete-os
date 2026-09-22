@@ -11,7 +11,7 @@ import {createClient} from '@/lib/supabase/server';
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 
 function Metric({label,value,Icon}:{label:string;value:string|number;Icon:any}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-4"><div><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums">{value}</CardTitle></div><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Icon className="size-4"/></span></CardHeader></Card>;
+  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-0"><div><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums">{value}</CardTitle></div><span className="flex size-9 items-center justify-center bg-primary/5 text-primary"><Icon className="size-4"/></span></CardHeader></div>;
 }
 
 function Identity({label,value}:{label:string;value:string}){
@@ -72,14 +72,14 @@ export default async function AssemblyLibraryPage(){
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Compatibility history summary">
+      <section className="carez-summary-ledger grid grid-cols-2 gap-px xl:grid-cols-4" aria-label="Compatibility history summary">
         <Metric label="Published assemblies" value={publishedAssemblies.length} Icon={Layers3}/>
         <Metric label="Published versions" value={(versions||[]).length} Icon={Shapes}/>
         <Metric label="Resource outputs" value={publishedComponents.length} Icon={Package}/>
         <Metric label="Labor operations" value={laborOperations} Icon={Hammer}/>
       </section>
 
-      <Card className="shadow-none">
+      <Card className="rounded-none border-x-0 bg-transparent shadow-none">
         <CardHeader className="grid gap-4 md:grid-cols-[44px_minmax(0,1fr)] md:items-center">
           <span className="flex size-11 items-center justify-center rounded-lg bg-accent text-primary"><Hammer className="size-5"/></span>
           <div>
@@ -109,7 +109,7 @@ export default async function AssemblyLibraryPage(){
           <div className="grid gap-3 lg:grid-cols-2">{publishedAssemblies.map((assembly:any)=>{
             const assemblyVersions=versionsByAssembly.get(assembly.id)||[];
             const latest=assemblyVersions[0];
-            return <Card className="gap-0 py-0 shadow-none" key={assembly.id}>
+            return <article className="border-y border-border bg-transparent" key={assembly.id}>
               <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
                 <span className="flex size-10 flex-col items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-3.5"/><span className="mt-0.5 font-mono text-[9px] font-semibold">{assembly.primary_measurement}</span></span>
                 <div className="min-w-0">
@@ -162,7 +162,7 @@ export default async function AssemblyLibraryPage(){
                   })}
                 </div>
               </CardContent>
-            </Card>;
+            </article>;
           })}</div>}
       </section>
     </div>

@@ -175,9 +175,12 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     <div className="takeoff-app-page">
       <header className={pageStyles.identityStrip}>
         <div className={pageStyles.identity}>
-          <strong className={pageStyles.title}>{set.name}</strong>
+          <div className={pageStyles.workspaceCopy}>
+            <h1 className={pageStyles.title}>Active Plan Blueprints &amp; Digitization Canvas</h1>
+            <p>Open digital plan blueprints, measure structural physical dimensions, and execute drawing takeoffs to automatically build labor, material aggregate, and formwork assemblies.</p>
+          </div>
           <div className={pageStyles.meta}>
-            <span className={pageStyles.estimate}>{estimateLabel}</span>
+            <span className={pageStyles.estimate}>{set.name} · {estimateLabel}</span>
             {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
           </div>
         </div>

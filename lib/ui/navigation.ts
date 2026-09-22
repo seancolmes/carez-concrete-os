@@ -54,10 +54,28 @@ export type NavigationDestination = {
   icon: NavigationIconKey;
 };
 
-export type NavigationGroup = {
+export type NavigationRouteGroup = {
   id: NavigationDomainId;
   label: string;
   destinationIds: readonly string[];
+};
+
+export type WorkspaceSurfaceId = 'today'|'preconstruction'|'projects'|'field'|'production'|'finance'|'system';
+export type WorkspaceDestinationClassification = 'primary-surface'|'internal-view'|'contextual-tool'|'compatibility-entry';
+export type WorkspacePresentationDestination = {
+  id: string;
+  classification: WorkspaceDestinationClassification;
+};
+export type WorkspacePresentationSection = {
+  id: string;
+  label: string;
+  destinations: readonly WorkspacePresentationDestination[];
+};
+export type WorkspacePresentationSurface = {
+  id: WorkspaceSurfaceId;
+  label: string;
+  href: string;
+  sections: readonly WorkspacePresentationSection[];
 };
 
 export type NavigationPreference = {
@@ -113,7 +131,7 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
   {id:'settings',href:'/settings',label:'Settings',hint:'Company setup and system controls',domain:'system',icon:'settings'},
 ] as const;
 
-export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
+export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
   {id:'today',label:'Today',destinationIds:['today','reports']},
   {id:'preconstruction',label:'Preconstruction',destinationIds:['leads','lead-inbox','bid-intelligence']},
   {id:'estimating',label:'Estimating',destinationIds:['takeoff','estimates','proposals','estimate-audit','assemblies','production-intelligence']},
@@ -124,8 +142,64 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   {id:'system',label:'System',destinationIds:['settings']},
 ] as const;
 
+export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurface[] = [
+  {id:'today',label:'Today',href:'/',sections:[{id:'today',label:'Today',destinations:[{id:'today',classification:'primary-surface'}]}]},
+  {id:'preconstruction',label:'Preconstruction',href:'/leads',sections:[
+    {id:'opportunities',label:'Opportunities',destinations:[{id:'leads',classification:'primary-surface'},{id:'lead-inbox',classification:'internal-view'},{id:'bid-intelligence',classification:'internal-view'}]},
+    {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'},{id:'assemblies',classification:'compatibility-entry'}]},
+    {id:'commercial',label:'Commercial',destinations:[{id:'estimates',classification:'internal-view'},{id:'estimate-audit',classification:'internal-view'},{id:'proposals',classification:'internal-view'},{id:'job-setup',classification:'internal-view'}]},
+  ]},
+  {id:'projects',label:'Projects',href:'/projects',sections:[
+    {id:'project-control',label:'Project Control',destinations:[{id:'projects',classification:'primary-surface'}]},
+    {id:'planning',label:'Planning',destinations:[{id:'change-orders',classification:'internal-view'}]},
+    {id:'commercial-records',label:'Commercial / Records',destinations:[{id:'documents',classification:'internal-view'},{id:'reports',classification:'internal-view'}]},
+  ]},
+  {id:'field',label:'Field',href:'/field',sections:[
+    {id:'schedule',label:'Schedule',destinations:[{id:'schedule',classification:'internal-view'},{id:'look-ahead',classification:'internal-view'}]},
+    {id:'readiness',label:'Readiness',destinations:[{id:'readiness',classification:'internal-view'},{id:'resources',classification:'internal-view'}]},
+    {id:'crew',label:'Crew',destinations:[{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'contextual-tool'}]},
+    {id:'field-control',label:'Field Control',destinations:[{id:'field',classification:'primary-surface'},{id:'equipment',classification:'contextual-tool'}]},
+  ]},
+  {id:'production',label:'Production',href:'/production',sections:[
+    {id:'control',label:'Control',destinations:[{id:'production',classification:'primary-surface'},{id:'production-intelligence',classification:'contextual-tool'}]},
+    {id:'work-packages',label:'Work Packages',destinations:[{id:'work-packages',classification:'internal-view'}]},
+    {id:'scope',label:'Scope',destinations:[{id:'scope-drift',classification:'internal-view'}]},
+    {id:'pour',label:'Pour',destinations:[{id:'pour-control',classification:'internal-view'}]},
+    {id:'forecast',label:'Forecast',destinations:[{id:'forecast',classification:'internal-view'}]},
+  ]},
+  {id:'finance',label:'Finance',href:'/cashflow',sections:[
+    {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'primary-surface'}]},
+    {id:'billing-payables',label:'Billing & Payables',destinations:[{id:'billing',classification:'internal-view'},{id:'payables',classification:'internal-view'}]},
+    {id:'procurement',label:'Procurement',destinations:[{id:'procurement',classification:'internal-view'}]},
+    {id:'banking',label:'Banking',destinations:[{id:'banking',classification:'internal-view'},{id:'reconcile',classification:'internal-view'},{id:'bank-rules',classification:'internal-view'}]},
+    {id:'payroll-cost',label:'Payroll & Cost',destinations:[{id:'payroll',classification:'internal-view'},{id:'costs',classification:'internal-view'},{id:'overhead',classification:'internal-view'}]},
+  ]},
+  {id:'system',label:'System',href:'/settings',sections:[{id:'administration',label:'Administration',destinations:[{id:'settings',classification:'primary-surface'}]}]},
+] as const;
+
 const destinationById = new Map(NAVIGATION_DESTINATIONS.map(destination=>[destination.id,destination]));
 const knownDestinationIds = new Set(NAVIGATION_DESTINATIONS.map(destination=>destination.id));
+const workspacePresentationByDestination = new Map(
+  WORKSPACE_PRESENTATION_SURFACES.flatMap(surface=>surface.sections.flatMap(section=>section.destinations.map(destination=>[destination.id,{surface,section,destination}] as const))),
+);
+
+export function getWorkspacePresentationForDestination(id: string){
+  return workspacePresentationByDestination.get(id)||null;
+}
+
+export function getWorkspacePresentationSurface(id: WorkspaceSurfaceId): WorkspacePresentationSurface | null {
+  return WORKSPACE_PRESENTATION_SURFACES.find(surface=>surface.id===id)||null;
+}
+
+export function resolveActiveWorkspacePresentationSurface(pathname: string): WorkspacePresentationSurface | null {
+  const destination=resolveActiveDestination(pathname);
+  return destination?getWorkspacePresentationForDestination(destination.id)?.surface||null:null;
+}
+
+export function navigationCommandValue(destination: NavigationDestination): string {
+  const surface=getWorkspacePresentationForDestination(destination.id)?.surface;
+  return [surface?.label,destination.label,destination.hint,destination.id].filter(Boolean).join(' ');
+}
 
 const ROLE_DEFAULTS = {
   ownerAdmin: ['today','projects','reports','billing','documents'],

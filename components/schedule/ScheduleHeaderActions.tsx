@@ -14,11 +14,11 @@ const tools=[
 ];
 
 export function ScheduleHeaderActions({children}:{children:ReactNode}){
-  return <div className="flex shrink-0 items-center gap-2">
+  return <div className="flex shrink-0 items-center gap-2 border-l border-border pl-3">
     <CarezRelatedToolsMenu items={tools}/>
     <Dialog>
       <DialogTrigger render={<Button type="button" size="sm"/>}>
-        <Plus className="size-3.5"/> Add work
+        <Plus className="size-3.5"/> Schedule Work
       </DialogTrigger>
       <DialogContent className="max-h-[88svh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>

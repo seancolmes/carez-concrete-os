@@ -433,11 +433,11 @@ Persisted 2D Takeoff geometry remains quantity authority; 3D remains derived ver
 
 The global shell additionally standardizes these Carez-owned responsibilities:
 
-- `CarezTopShell` — compact role-adaptive application header with company identity, 3–5 pinned role-priority destinations, structured `More`, search/command, notifications, and account/system access;
-- pinned navigation + `Manage navigation` — versioned device-local pin/unpin/reorder/reset behavior, scoped by authenticated user and company; profile role supplies defaults only and never grants authorization;
+- `CarezTopShell` — compact application header with company identity, the seven-surface primary NavigationMenu, one search/command entry point, and account/system access;
+- specialized routes — remain direct and bookmarkable, but are exposed through their owning workspace or the global command search rather than permanent global chrome;
 - `CarezProjectSwitcher` / project context bar — compact active-project identity and searchable/recent project switching only when an authoritative project is resolved from `/projects/[id]` or `/job-setup/[projectId]`; global, Takeoff, and Estimate routes do not fabricate project context;
-- `CarezCommandMenu` — global command/search over navigation destinations, accessible projects, and device-local recent workspaces/projects;
-- mobile bottom navigation + `More` sheet — the same navigation model expressed as role-priority mobile destinations with touch-safe access to the complete structured destination set.
+- `CarezCommandMenu` — one global command/search over navigation destinations and accessible projects;
+- mobile menu Sheet — the same seven-surface navigation model with expandable curated domain links.
 
 The shell hierarchy is:
 

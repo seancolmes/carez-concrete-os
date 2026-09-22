@@ -126,7 +126,7 @@ export default async function BidIntelligencePage(){
 }
 
 function SectionHeading({kicker,title,description}:{kicker:string;title:string;description:string}){
- return <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{kicker}</p><h2 className="mt-1 text-lg font-semibold">{title}</h2><p className="mt-1 max-w-5xl text-sm text-muted-foreground">{description}</p></div>;
+ return <div className="border-b border-border pb-3"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{kicker}</p><h2 className="mt-1 text-lg font-semibold">{title}</h2><p className="mt-1 max-w-5xl text-sm text-muted-foreground">{description}</p></div>;
 }
 
 function Field({label,children}:{label:string;children:any}){
@@ -135,13 +135,13 @@ function Field({label,children}:{label:string;children:any}){
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string|number;help:string;tone?:'default'|'success'|'warning'|'destructive'}){
  const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='destructive'?'text-destructive':'text-foreground';
- const borderClass=tone==='warning'?'border-warning/30':tone==='destructive'?'border-destructive/30':'';
- return <Card className={`gap-2 py-4 shadow-none ${borderClass}`}><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+ const borderClass=tone==='warning'?'border-t-2 border-warning':tone==='destructive'?'border-t-2 border-destructive':'';
+ return <div className={`min-w-0 px-4 py-3 ${borderClass}`}><div className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{label}</div><div className={`mt-1 font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</div><div className="mt-1 text-xs leading-5 text-muted-foreground">{help}</div></div>;
 }
 
 function MiniMetric({label,value,detail,tone='default'}:{label:string;value:string;detail?:string;tone?:'default'|'primary'|'destructive'}){
  const toneClass=tone==='primary'?'text-primary':tone==='destructive'?'text-destructive':'text-foreground';
- return <div className={`rounded-lg border p-3 ${tone==='destructive'?'border-destructive/30':''}`}><div className="text-xs font-medium text-muted-foreground">{label}</div><div className={`mt-1 font-mono text-lg font-semibold tabular-nums ${toneClass}`}>{value}</div>{detail&&<div className="mt-1 text-xs text-muted-foreground">{detail}</div>}</div>;
+ return <div className={`min-w-0 border-l border-border px-3 py-2 first:border-l-0 ${tone==='destructive'?'border-destructive/30':''}`}><div className="font-mono text-[10px] font-medium uppercase tracking-[.1em] text-muted-foreground">{label}</div><div className={`mt-1 font-mono text-lg font-semibold tabular-nums ${toneClass}`}>{value}</div>{detail&&<div className="mt-1 text-xs text-muted-foreground">{detail}</div>}</div>;
 }
 
 function RecommendationBadge({recommendation,score}:{recommendation:string;score:any}){

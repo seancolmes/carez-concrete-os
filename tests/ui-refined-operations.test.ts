@@ -56,9 +56,9 @@ test('Today is exception-first and uses shared operational components',()=>{
   const production=page.indexOf('Scheduled production');
   const moves=page.indexOf('What moves next');
 
-  assert.ok(attention>=0&&metrics>attention,'Management Attention must precede Operating Position');
-  assert.ok(production>metrics,'Scheduled Production must follow Operating Position');
-  assert.ok(moves>production,'What Moves Next must follow Scheduled Production');
+  assert.ok(attention>=0&&production>attention,'Management Attention must precede Scheduled Production');
+  assert.ok(metrics>production,'Operating Position must follow Scheduled Production');
+  assert.ok(moves>metrics,'What Moves Next must follow Operating Position');
 
   assert.match(page,/href="\/projects"/);
   assert.match(page,/href="\/schedule"/);

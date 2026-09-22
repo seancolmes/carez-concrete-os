@@ -79,12 +79,12 @@ function SummaryMetric({
   tone?: 'default' | 'warning' | 'success' | 'primary';
 }) {
   const toneClass = tone === 'warning'
-    ? 'border-warning/30 bg-warning/5'
+    ? 'border-warning/50 bg-warning/5'
     : tone === 'success'
-      ? 'border-success/30 bg-success/5'
+      ? 'border-success/50 bg-success/5'
       : tone === 'primary'
-        ? 'border-primary/30 bg-accent'
-        : 'border-border bg-card';
+        ? 'border-primary/50 bg-primary/5'
+        : 'border-border';
   const valueClass = tone === 'warning'
     ? 'text-warning'
     : tone === 'success'
@@ -93,7 +93,7 @@ function SummaryMetric({
         ? 'text-primary'
         : 'text-foreground';
 
-  return <div className={`rounded-lg border px-3 py-2.5 ${toneClass}`}>
+  return <div className={`min-w-0 border-x px-3 py-2.5 first:border-l-0 last:border-r-0 ${toneClass}`}>
     <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
     <div className={`mt-1 font-mono text-base font-semibold tabular-nums ${valueClass}`}>{value}</div>
   </div>;
@@ -161,7 +161,7 @@ export function LaborReview({
       <p className="mt-1 text-sm text-muted-foreground">Review production assumptions separately from burdened labor-rate sources. Production Quantity remains controlled by Condition and Takeoff.</p>
     </div>
 
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="carez-summary-ledger grid grid-cols-2 gap-px sm:grid-cols-3 xl:grid-cols-6">
       <SummaryMetric label="Operations" value={String(summary.operations)} />
       <SummaryMetric label="Estimated MH" value={decimal(summary.totalManHours, 2)} tone="primary" />
       <SummaryMetric label="Labor Direct Cost" value={money(summary.totalDirectCost)} />
@@ -170,7 +170,7 @@ export function LaborReview({
       <SummaryMetric label="Missing assumption" value={String(summary.missingAssumption)} tone={summary.missingAssumption ? 'warning' : 'success'} />
     </div>
 
-    <Card className="shadow-none">
+    <Card className="rounded-none border-x-0 bg-transparent shadow-none">
       <CardHeader className="gap-1">
         <CardTitle>Production-rate build-up</CardTitle>
         <CardDescription>Baseline MH/unit comes from the published labor model. A job override changes only the production assumption; selecting a labor profile changes only the burdened rate source.</CardDescription>

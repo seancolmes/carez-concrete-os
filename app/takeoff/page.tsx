@@ -16,10 +16,10 @@ const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'U
 const qty=(n:any,d=1)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='warning'&&'border-warning/30')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader>
-    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
-  </Card>;
+  return <div className={cn('min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0',tone==='warning'&&'border-warning/30')}>
+    <CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader>
+    <CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent>
+  </div>;
 }
 
 export default async function TakeoffPage(){
@@ -72,7 +72,7 @@ export default async function TakeoffPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Concrete takeoff</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Open the plans, measure the physical work, and let Carez conditions and assemblies build labor, material, equipment, and field quantities behind the drawing.</p></div>
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Concrete takeoff</h1></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assembly history</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
       </header>
 
@@ -87,11 +87,11 @@ export default async function TakeoffPage(){
         <Metric label="Takeoff direct cost" value={money(totalDirect)} help="Current generated direct cost across takeoffs."/>
       </section>
 
-      {startableEstimates.length>0?<Card className="shadow-none">
+      {startableEstimates.length>0?<section className="border-y border-border py-4">
         <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Start a bid</p><CardTitle className="mt-1">Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate. Carez creates the takeoff set and opens the drawing workspace without inserting an unnecessary setup screen.</CardDescription></div>
           <form action={createTakeoffSet} className="flex flex-col gap-2 sm:flex-row"><input type="hidden" name="name" value="Concrete Takeoff"/><select name="estimate_id" required defaultValue="" className="h-8 min-w-72 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20"><option value="" disabled>Choose estimate…</option>{startableEstimates.map((e:any)=><option key={e.id} value={e.id}>{e.estimate_number}-R{e.version} — {e.name}</option>)}</select><Button type="submit" size="sm"><Plus/>Start takeoff</Button></form>
         </CardHeader>
-      </Card>:null}
+      </section>:null}
 
       <section className="space-y-4">
         <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your bids</p><h2 className="mt-1 text-lg font-semibold">Takeoff workbench</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">The plans stay primary. Pricing holds and manual field quantities stay attached to the bid without competing with measurement work.</p></div>
@@ -108,7 +108,7 @@ export default async function TakeoffPage(){
             const materialHolds=holds.filter((o:any)=>o.estimate_item_type!=='labor');
             const status=locked?'Issued / read only':!set.source_document_id?'Attach plans':unscaled>0?'Set sheet scale':holds.length?'Resolve pricing':'Takeoff ready';
             const tone=locked?'muted':!set.source_document_id||unscaled>0||holds.length?'warning':'success';
-            return <Card key={set.id} className="gap-0 py-0 shadow-none">
+            return <article key={set.id} className="border-y border-border bg-transparent">
               <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
                 <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-4"/></span>
                 <div className="min-w-0"><CardTitle className="truncate">{estimate?.name||set.name}</CardTitle><CardDescription className="mt-1 truncate">{estimate?`${estimate.estimate_number}-R${estimate.version}`:'Estimate'} · {set.revision_label}{set.source_filename?` · ${set.source_filename}`:''}</CardDescription></div>
@@ -136,11 +136,11 @@ export default async function TakeoffPage(){
                 <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimate</Link>
                 {locked?<span className="ml-auto self-center text-xs text-muted-foreground">Accepted/issued geometry stays preserved with this revision.</span>:null}
               </CardFooter>
-            </Card>;
+            </article>;
           })}</div>}
       </section>
 
-      <Card className="shadow-none"><CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Legacy assembly compatibility history</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published compatibility assemblies remain available for historical Takeoff and estimate lineage. This is read-only compatibility history; new scope is authored through Concrete Conditions.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Assembly history</Link></CardHeader></Card>
+      <section className="grid gap-4 border-y border-border py-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Legacy assembly compatibility history</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published compatibility assemblies remain available for historical Takeoff and estimate lineage. This is read-only compatibility history; new scope is authored through Concrete Conditions.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Assembly history</Link></section>
     </div>
   </AppShell>;
 }

@@ -81,7 +81,7 @@ export default async function ProjectsPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="carez-projects-page mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="carez-page-context">Operations board</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Know what can move. See what is holding. Keep the field ahead.</p></div>
+        <div><p className="carez-page-context">Operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h1></div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
           <Dialog>

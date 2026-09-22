@@ -156,6 +156,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);
   const scaleRegionMap=useMemo(()=>new Map((scaleRegions as TakeoffScaleRegion[]).map(region=>[region.id,region])),[scaleRegions]);
   const currentScale=currentScaleRegions.length>0||currentSheet?.scale_status==='calibrated';
+  const currentScaleLabel=currentScaleRegions.find(region=>region.is_default)?.scale_label||currentScaleRegions[0]?.scale_label||currentSheet?.calibration?.scale_label||'UNSET';
   const {candidates:scaleCandidates,status:scaleDetectionStatus}=usePdfScaleDetection(pdfRef,pdfReady,pageNumber);
   const visibleScaleCandidates=useMemo(()=>scaleCandidates.filter(candidate=>!currentScaleRegions.some(region=>region.is_default&&region.source_type==='pdf_text'&&region.scale_label===candidate.label)),[scaleCandidates,currentScaleRegions]);
   const selectedMeasurement=initialMeasurements.find((m:any)=>m.id===selectedMeasurementId)||null;
@@ -565,6 +566,7 @@ export function TakeoffDrawingWorkspace(props:Props){
         </div>
 
         <div className={styles.toolbarSpacer}/>
+        <output className={styles.scaleTelemetry}>SCALE CALIBRATION // CANONICAL AUTHORITY: {currentScaleLabel}</output>
         <div className={styles.zoomGroup}>
           <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
           <button type="button" className={styles.zoomLabel} title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i>HQ</i>}</button>
@@ -623,6 +625,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           </svg>}
         </div>
         {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}
+        {currentSheet&&currentMeasurements.length===0&&<div className={styles.emptyTelemetry}>0 structural takeoffs traced on this sheet. Select a Condition blueprint module above to begin tracing geometries.</div>}
       </div>
 
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}

@@ -191,6 +191,15 @@
 .recipeRow:last-child{border-bottom:0}.recipeRow strong{min-width:0;overflow:hidden;color:var(--b2-text);font-size:11px;font-weight:600;white-space:nowrap;text-overflow:ellipsis}.recipeRow span{color:var(--b2-text-2);font-size:10px;white-space:nowrap}.recipeRow small{grid-column:1/-1;color:var(--b2-text-muted,#6f747d);font-size:10px;line-height:1.35}
 .empty{padding:30px 14px;border:1px dashed var(--b2-border-strong);background:var(--b2-panel);color:var(--b2-text-2);font-size:12px;text-align:center}
 
+/* Indigo Harbor keeps the compatibility register continuous and token-driven. */
+.metrics{border-color:var(--border);background:var(--border)}
+.metric,.card,.recipeRow,.laborBand,.empty{background:transparent;border-radius:0;border-color:var(--border)}
+.metric{border-left:0;border-right:0}.metricIcon,.unit{border-radius:0;background:color-mix(in oklch,var(--primary) 7%,transparent);color:var(--primary)}
+.card{border-inline:0;border-top:1px solid var(--border)}
+.cardMetrics,.recipe,.recipeBody{background:transparent;border-color:var(--border)}
+.cardMetrics span{border-color:var(--border)}
+.recipe summary:hover,.card:hover{background:color-mix(in oklch,var(--primary) 5%,transparent)}
+
 @media(max-width:1180px){
   .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid{grid-template-columns:1fr}

@@ -1,21 +1,13 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {AlertTriangle,Banknote,CreditCard,Landmark,ReceiptText,ShieldCheck,ShoppingCart,Wallet} from 'lucide-react';
+import {AlertTriangle,ArrowUpRight,Banknote,CreditCard,Landmark,ReceiptText,ShieldCheck,ShoppingCart,Wallet} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {createClient} from '@/lib/supabase/server';
 import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const num=(n:any)=>Number(n||0);
-
-function CashMetric({label,value,help,tone='default'}:{label:string;value:string;help?:string;tone?:'default'|'success'|'warning'|'danger'}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='warning'&&'border-warning/30')}>
-    <CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'text-destructive')}>{value}</CardTitle></CardHeader>
-    {help?<CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>:null}
-  </Card>;
-}
 
 const controls=[
   {href:'/banking',label:'Connected bank',copy:'Balances and transactions',Icon:Landmark},
@@ -24,6 +16,14 @@ const controls=[
   {href:'/payables',label:'Bills we owe',copy:'Vendor bills waiting for payment',Icon:CreditCard},
   {href:'/payroll',label:'Crew pay',copy:'Payroll cash requirement',Icon:Banknote},
 ] as const;
+
+function LedgerMetric({label,value,help,tone='default'}:{label:string;value:string;help?:string;tone?:'default'|'success'|'warning'|'danger'}){
+  return <div className="min-w-0 px-4 py-3 sm:px-5">
+    <div className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">{label}</div>
+    <div className={cn('mt-2 font-mono text-lg font-semibold tracking-tight tabular-nums sm:text-xl',tone==='success'&&'text-success',tone==='warning'&&'text-warning',tone==='danger'&&'animate-pulse text-warning motion-reduce:animate-none')}>{value}</div>
+    {help?<div className="mt-1 text-xs leading-5 text-muted-foreground">{help}</div>:null}
+  </div>;
+}
 
 export default async function CashflowPage(){
   const supabase=await createClient();
@@ -43,48 +43,41 @@ export default async function CashflowPage(){
   const bank=num(c?.bank_cash),tax=num(c?.sales_tax_reserve),payrollNeed=num(c?.payroll_cash_requirement||payroll?.total_open_payroll_requirement),ap=num(c?.open_ap),pos=num(c?.open_po_commitments),companyBills=num(c?.unpaid_company_expense_obligations),reserves=num(c?.manual_reserves),spokenFor=tax+payrollNeed+ap+pos+companyBills+reserves,safe=num(c?.safe_cash_after_known_obligations),configured=Boolean(c?.balance_as_of)||((bankAccounts||[]).filter((x:any)=>x.include_in_cash!==false&&x.active!==false).length>0);
 
   return <AppShell userName={p.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cash position</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">What is in the bank, what is already spoken for, and what Carez can actually spend without taking from payroll, vendors, or taxes.</p></div>
-        <Link className={buttonVariants({size:'sm'})} href="/banking"><Landmark/>Banking</Link>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-7">
+      <header className="carez-page-heading flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Finance</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Cashflow</h1></div>
+        <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/banking"><Landmark/>Banking</Link>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <CashMetric label="Bank balance" value={configured?money(bank):'Check banking'} help="Connected and approved manual cash included in Carez." tone={configured?'default':'warning'}/>
-        <CashMetric label="Money already spoken for" value={money(spokenFor)} help="Taxes, payroll, vendor bills, open orders, company bills, and reserves." tone={spokenFor>0?'warning':'default'}/>
-        <CashMetric label="Tax money — do not spend" value={money(tax)} tone={tax>0?'warning':'default'}/>
-        <CashMetric label="Money needed for payroll" value={money(payrollNeed)} tone={payrollNeed>0?'warning':'default'}/>
-        <CashMetric label="Bills we owe" value={money(ap)} tone={ap>0?'warning':'default'}/>
-        <CashMetric label="Safe to spend" value={configured?money(safe):'Unavailable'} help="Unpaid customer invoices and unbilled work are not counted as cash." tone={!configured?'warning':safe<0?'danger':'success'}/>
-      </section>
-
-      {configured&&safe<0?<div className="flex gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><div className="font-medium text-destructive">Carez is short {money(Math.abs(safe))} against known obligations.</div><div className="mt-1 text-xs leading-5 text-muted-foreground">Do not treat the bank balance as available cash.</div></div></div>:null}
-
-      <section className="space-y-4">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cash controls</p><h2 className="mt-1 text-lg font-semibold">Where the money is going</h2><p className="mt-1 text-sm text-muted-foreground">Open the area that explains or changes the cash position above.</p></div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {controls.map(({href,label,copy,Icon})=><Link href={href} key={href} className="group"><Card className="h-full gap-3 py-4 shadow-none transition-colors group-hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Icon className="size-4"/></span><div><CardTitle className="text-sm">{label}</CardTitle><CardDescription className="mt-1 text-xs leading-5">{copy}</CardDescription></div></CardHeader></Card></Link>)}
-          <Link href="/procurement/orders" className="group"><Card className="h-full gap-3 py-4 shadow-none transition-colors group-hover:bg-muted/40"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3 px-4"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><ShoppingCart className="size-4"/></span><div><CardTitle className="text-sm">Open orders</CardTitle><CardDescription className="mt-1 text-xs leading-5">{money(pos)} committed to vendors</CardDescription></div></CardHeader></Card></Link>
+      <section aria-label="Treasury and burden ledger" className="border-y border-border">
+        <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+          <LedgerMetric label="Net cash after known obligations" value={configured?money(safe):'Unavailable'} help={configured?'Authoritative safe-to-spend position.':'Connect or approve banking to calculate.'} tone={!configured?'warning':safe<0?'danger':'success'}/>
+          <LedgerMetric label="Supplier liabilities & material payables" value={money(ap)} help="Open vendor bills reported by Carez." tone={ap>0?'warning':'default'}/>
+          <LedgerMetric label="Accounts receivable & progress draws" value="Unavailable" help="No authoritative receivable or draw total is available in this workspace."/>
+          <LedgerMetric label="Canonical hourly burden rate" value="Unavailable" help="No authoritative hourly burden rate is available in this workspace."/>
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
-        <Card className="shadow-none">
-          <CardHeader><CardTitle>Money already spoken for</CardTitle><CardDescription>Why the bank balance is not the same as safe-to-spend cash.</CardDescription></CardHeader>
-          <CardContent><dl className="divide-y rounded-lg border">{[
-            ['Customer tax money',tax],['Crew payroll requirement',payrollNeed],['Vendor bills we owe',ap],['Material / service orders already issued',pos],['Unpaid company expenses',companyBills],['Other protected money',reserves],
-          ].map(([label,value])=><div key={String(label)} className="flex items-center justify-between gap-4 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="font-mono font-medium tabular-nums">{money(value)}</dd></div>)}<div className="flex items-center justify-between gap-4 bg-muted/30 px-3 py-3"><dt className="text-sm font-semibold">Total spoken for</dt><dd className="font-mono font-semibold tabular-nums">{money(spokenFor)}</dd></div></dl></CardContent>
-        </Card>
+      {configured&&safe<0?<div className="flex items-start gap-3 border-y border-warning/30 py-3 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><div className="font-mono font-medium text-warning">Carez is short {money(Math.abs(safe))} against known obligations.</div><div className="mt-1 text-xs leading-5 text-muted-foreground">Do not treat the bank balance as available cash.</div></div></div>:null}
 
-        <Card className="shadow-none">
-          <CardHeader className="grid grid-cols-[1fr_auto] gap-3"><div><CardTitle>Company spending</CardTitle><CardDescription>Operating expenses that keep Carez running.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/expenses">Expenses</Link></CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">{[
-            ['This month',money(expenses?.current_month_business_expense),'default'],['This year',money(expenses?.ytd_business_expense),'default'],['Still unpaid',money(expenses?.unpaid_company_expense_obligations),num(expenses?.unpaid_company_expense_obligations)>0?'warning':'success'],
-          ].map(([label,value,tone])=><div key={String(label)} className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">{label}</div><div className={cn('mt-1.5 font-mono text-lg font-semibold tabular-nums',tone==='warning'&&'text-warning',tone==='success'&&'text-success')}>{value}</div></div>)}</CardContent>
-        </Card>
+      <section aria-labelledby="cash-controls-title" className="border-b border-border">
+        <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Transaction control rail</p><h2 id="cash-controls-title" className="mt-1 text-lg font-semibold">Cash controls</h2><p className="mt-1 text-sm text-muted-foreground">Open the operating record that explains or changes the cash position.</p></div><div className="flex flex-wrap gap-x-4 gap-y-2 text-xs"><Link className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/payables">Payables</Link><Link className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/procurement/orders">Procurement</Link><Link className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/cashflow/expenses">Overhead</Link></div></div>
+        <div className="grid divide-y divide-border border-t border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-3">
+          {controls.map(({href,label,copy,Icon})=><Link href={href} key={href} className="group grid min-h-24 grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-3 px-4 py-4 transition-all duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><Icon className="mt-0.5 size-4 text-primary"/><span className="min-w-0"><span className="block text-sm font-medium">{label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{copy}</span></span><ArrowUpRight className="size-3.5 text-muted-foreground transition-colors group-hover:text-foreground"/></Link>)}
+          <Link href="/procurement/orders" className="group grid min-h-24 grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-3 px-4 py-4 transition-all duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><ShoppingCart className="mt-0.5 size-4 text-primary"/><span className="min-w-0"><span className="block text-sm font-medium">Open orders</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{money(pos)} committed to vendors</span></span><ArrowUpRight className="size-3.5 text-muted-foreground transition-colors group-hover:text-foreground"/></Link>
+        </div>
+      </section>
+
+      <div className="grid border-y border-border xl:grid-cols-[1.15fr_.85fr] xl:divide-x xl:divide-border">
+        <section aria-labelledby="liabilities-title" className="py-4 xl:py-0"><div className="px-4 pb-3 sm:px-5"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">AP liabilities</p><h2 id="liabilities-title" className="mt-1 text-lg font-semibold">Money already spoken for</h2><p className="mt-1 text-sm text-muted-foreground">Why the bank balance is not the same as safe-to-spend cash.</p></div><dl className="border-t border-border">{[
+          ['Customer tax money',tax],['Crew payroll requirement',payrollNeed],['Vendor bills we owe',ap],['Material / service orders already issued',pos],['Unpaid company expenses',companyBills],['Other protected money',reserves],
+        ].map(([label,value])=><div key={String(label)} className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="font-mono text-sm font-medium tabular-nums">{money(value)}</dd></div>)}<div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"><dt className="text-sm font-semibold">Total spoken for</dt><dd className="font-mono text-sm font-semibold tabular-nums">{money(spokenFor)}</dd></div></dl></section>
+        <section aria-labelledby="overhead-title" className="border-t border-border py-4 xl:border-t-0 xl:py-0"><div className="flex items-start justify-between gap-3 px-4 pb-3 sm:px-5"><div><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Corporate overhead / burden</p><h2 id="overhead-title" className="mt-1 text-lg font-semibold">Company spending</h2><p className="mt-1 text-sm text-muted-foreground">Operating expenses that keep Carez running.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/expenses">Expenses</Link></div><dl className="border-t border-border">{[
+          ['This month',money(expenses?.current_month_business_expense)],['This year',money(expenses?.ytd_business_expense)],['Still unpaid',money(expenses?.unpaid_company_expense_obligations)],
+        ].map(([label,value])=><div key={String(label)} className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 transition-all duration-150 hover:bg-muted/40 sm:px-5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',label==='Still unpaid'&&num(expenses?.unpaid_company_expense_obligations)>0&&'text-warning')}>{value}</dd></div>)}</dl></section>
       </div>
 
-      <Card className="shadow-none"><CardHeader className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center"><div><CardTitle className="flex items-center gap-2"><Wallet className="size-4 text-primary"/>Manual cash accounts</CardTitle><CardDescription className="mt-1">Fallback only. Connected Banking should handle normal bank balances automatically.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/accounts">Manual accounts</Link></CardHeader></Card>
+      <section aria-labelledby="actions-title" className="grid border-y border-border md:grid-cols-[minmax(0,1fr)_auto] md:divide-x md:divide-border"><div className="px-4 py-4 sm:px-5"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Manual cash accounts</p><h2 id="actions-title" className="mt-1 text-lg font-semibold">Fallback account controls</h2><p className="mt-1 text-sm text-muted-foreground">Connected Banking should handle normal bank balances automatically.</p></div><div className="flex items-center px-4 py-4"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/accounts"><Wallet/>Manual accounts</Link></div></section>
     </div>
   </AppShell>;
 }

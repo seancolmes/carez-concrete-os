@@ -3,12 +3,12 @@ import Link from 'next/link';
 import {ArrowRight,ArrowUpRight,BriefcaseBusiness,CalendarDays,FileText,Ruler,Wallet,CheckCheck,HardHat,ShieldAlert,Activity,Target,ArrowDownUp} from 'lucide-react';
 import {CarezSectionHeading,CarezOperationalPulse,CarezExperienceEmpty} from '@/components/carez/experience';
 import {AppShell} from '@/components/AppShell';
-import {
-  CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,
-  CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,
-  CarezEmptyState,CarezStatus,
-} from '@/components/carez';
+import {CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,CarezEmptyState,CarezStatus} from '@/components/carez';
 import {buttonVariants} from '@/components/ui/button';
+import {Item,ItemActions,ItemContent,ItemDescription,ItemMedia,ItemTitle} from '@/components/ui/item';
+import {Stat,StatIndicator,StatLabel,StatValue} from '@/components/ui/stat';
+import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {TodayOperationsGrid} from '@/components/reui/today-operations-grid';
 import {Card,CardContent,CardHeader} from '@/components/ui/card';
 import {Progress} from '@/components/ui/progress';
 import {createClient} from '@/lib/supabase/server';
@@ -139,20 +139,46 @@ export default async function HomePage(){
   ].sort((a:any,b:any)=>String(a.date).localeCompare(String(b.date)));
   const nextFollowUp=followUps[0]||null;
 
-  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',hourCycle:'h23'}).format(new Date()));
-  const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
-  const firstName=profile.full_name?.trim().split(/\s+/)[0];
+  const operations=dashboardJobs.slice(0,8).map((row:any)=>{
+    const p=row.project;
+    const status=row.state==='hold'?'HOLD':row.state==='ready'?'READY':'PLANNED';
+    return {id:p.id,time:fmtTime(row.next?.start_time)||fmtShortDate(row.next?.schedule_date),project:`${p.job_number} · ${p.name}`,operation:row.next?.title||p.next_action||'Plan next work',quantity:'—',status,tone:row.state==='hold'?'blocked' as const:row.state==='ready'?'success' as const:'neutral' as const,href:row.state==='hold'?'/readiness':'/projects/'+p.id};
+  });
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+  return <AppShell userName={profile!.full_name||user!.email||'Owner'}>
+    <div className="mx-auto grid w-full max-w-[1560px] gap-7 px-1 sm:gap-8">
+      <header className="relative isolate flex min-h-20 items-center overflow-hidden border-b border-border/80 py-4">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 opacity-[.045] [mask-image:linear-gradient(to_bottom,black,transparent)]" style={{backgroundImage:'radial-gradient(ellipse at top, var(--primary), transparent 64%), linear-gradient(90deg, var(--primary) 1px, transparent 1px), linear-gradient(0deg, var(--primary) 1px, transparent 1px), linear-gradient(135deg, transparent 48%, var(--primary) 49%, var(--primary) 50%, transparent 51%)',backgroundPosition:'center, right top, right top, right top',backgroundSize:'auto, 44px 44px, 44px 44px, 176px 176px',maskImage:'linear-gradient(to left, black, transparent 72%)'}} />
+        <div className="relative z-10"><p className="font-mono text-[10px] font-semibold tracking-[.14em] text-muted-foreground">OPERATIONS</p><h1 className="mt-1.5 text-3xl font-semibold tracking-tight">Today</h1><p className="mt-1 text-sm text-muted-foreground">{fmtDate(start)}</p></div>
+      </header>
+
+      <div className="grid gap-7 lg:grid-cols-[3fr_2fr]">
+        <section aria-labelledby="today-work-heading" className="border-t-2 border-primary pt-3"><h2 id="today-work-heading" className="text-sm font-semibold">Today&apos;s Work</h2>
+          <div className="mt-3">{todayFieldWork.length?todayFieldWork.map((itemRaw:any)=>{const item:any=itemRaw,job:any=joinedProject(item);return <Item key={item.id} variant="outline" size="xs"><ItemMedia variant="icon"><CalendarDays className="size-4"/></ItemMedia><ItemContent><ItemTitle>{job?.job_number||'Job'} · {job?.name||'Project'}</ItemTitle><ItemDescription>{item.title} · {fmtTime(item.start_time)||'Time pending'}</ItemDescription></ItemContent><ItemActions><Link href={item.project_id?'/projects/'+item.project_id:'/schedule'} className="text-sm font-medium text-primary hover:underline">View →</Link></ItemActions></Item>; }):<Item variant="outline" size="xs"><ItemMedia variant="icon"><CalendarDays className="size-4"/></ItemMedia><ItemContent><ItemTitle>No scheduled production</ItemTitle><ItemDescription>Today&apos;s schedule is clear.</ItemDescription></ItemContent><ItemActions><Link href="/schedule" className="text-sm font-medium text-primary hover:underline">Open Schedule →</Link></ItemActions></Item>}</div>
+        </section>
+        <section aria-labelledby="today-attention-heading" className={cn('border-t-2 pt-3',attention.some(item=>item.tone==='danger')?'border-destructive':attention.some(item=>item.tone==='warning')?'border-warning':'border-emerald-500/70')}><h2 id="today-attention-heading" className="text-sm font-semibold">Attention</h2>
+          <div className="mt-3">{attention.length?attention.slice(0,8).map((item,index)=><Item key={item.subject+'-'+index} variant="outline" size="xs"><ItemMedia variant="icon"><ShieldAlert className="size-4"/></ItemMedia><ItemContent><ItemTitle>{item.subject}</ItemTitle><ItemDescription>{item.issue} · {item.when}</ItemDescription></ItemContent><ItemActions><Link href={item.href} className="text-sm font-medium text-primary hover:underline">Review →</Link></ItemActions></Item>):<Item variant="outline" size="xs"><ItemMedia variant="icon" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><CheckCheck className="size-4"/></ItemMedia><ItemContent><ItemTitle>All clear</ItemTitle><ItemDescription>No management exceptions</ItemDescription></ItemContent></Item>}</div>
+        </section>
+      </div>
+
+      <section aria-labelledby="today-telemetry-heading" className="border-t-2 border-primary/70 pt-3"><h2 id="today-telemetry-heading" className="text-sm font-semibold">Operating Status</h2><div className="mt-3 grid overflow-hidden rounded-md border border-border bg-muted/25 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-5">{[
+        ['Ready to move',String(jobsReady)],['Field active',String(activeFieldJobs)],['Hard holds',String(jobsHeld)],['Customers owe',money(ar)],['7-day cash',money(cashNet)],
+      ].map(([label,value])=><Stat key={label} className="bg-transparent"><StatLabel className="inline-flex min-h-7 items-center rounded-sm border border-border/80 bg-background/55 px-2.5">{label}</StatLabel><StatValue>{value}</StatValue>{label==='Hard holds'&&jobsHeld?<StatIndicator className="mt-2 block text-warning">Requires attention</StatIndicator>:null}</Stat>)}</div></section>
+
+      <section aria-labelledby="today-next-heading" className="border-t-2 border-primary pt-5"><div className="flex items-center justify-between gap-4"><h2 id="today-next-heading" className="text-[15px] font-semibold">Next Operations</h2></div><div className="mt-4 rounded-md bg-card/40 p-1"><TodayOperationsGrid operations={operations}/></div></section>
+
+      <section aria-labelledby="business-pulse-heading" className="border-t-2 border-primary/50 pt-3"><Tabs defaultValue="pipeline" className="gap-0"><div className="flex items-center justify-between gap-4"><h2 id="business-pulse-heading" className="text-sm font-semibold">Business Pulse</h2><TabsList variant="experience"><TabsTrigger value="pipeline">Pipeline</TabsTrigger><TabsTrigger value="cash">Cash</TabsTrigger></TabsList></div><TabsContent value="pipeline" className="mt-3 overflow-hidden rounded-md border border-border bg-muted/20"><dl className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">{[['Open leads',String(openLeads)],['Proposals out',String(openProposals.length)],['Proposal value',money(openProposalValue)],['Next follow-up',nextFollowUp?`${nextFollowUp.label} · ${fmtShortDate(nextFollowUp.date)}`:'—']].map(([label,value])=><div key={label} className="flex items-center justify-between gap-4 px-4 py-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="font-mono text-sm font-semibold tabular-nums">{value}</dd></div>)}</dl></TabsContent><TabsContent value="cash" className="mt-3 overflow-hidden rounded-md border border-border bg-muted/20"><dl className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">{[['Customers owe',money(ar)],['Expected in · 7d',money(cashIn)],['Expected out · 7d',money(cashOut)],['7-day net',money(cashNet)]].map(([label,value])=><div key={label} className="flex items-center justify-between gap-4 px-4 py-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="font-mono text-sm font-semibold tabular-nums">{value}</dd></div>)}</dl></TabsContent></Tabs></section>
+    </div>
+  </AppShell>;
+
+  return <AppShell userName={profile!.full_name||user!.email||'Owner'}>
     <div className="carez-today-board mx-auto grid w-full max-w-screen-2xl gap-6">
-      <header className="carez-command-hero">
-        <div className="carez-command-intro">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
           <p className="carez-dayline"><CalendarDays aria-hidden="true"/>{fmtDate(start)}<span>Today</span></p>
-          <h1>{greeting}{firstName?`, ${firstName}`:''}.</h1>
-          <p className="carez-command-statement">{attention.length?`${attention.length} thing${attention.length===1?' needs':'s need'} your attention.`:'Everything clear today.'}</p>
-          <p className="carez-command-context">{jobsReady} ready to move <span aria-hidden="true">/</span> {crewWorking} active field shift{crewWorking===1?'':'s'}</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Today</h1>
         </div>
-        <div className="carez-command-actions">
+        <div className="flex flex-wrap gap-2">
           <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects<ArrowUpRight/></Link>
           <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
         </div>
@@ -173,14 +199,6 @@ export default async function HomePage(){
           </ol>}
         {attention.length>8?<p className="pt-3 text-xs text-muted-foreground">Showing the 8 highest-priority items of {attention.length}. Open the relevant workspace to review the rest.</p>:null}
       </section>
-
-      <CarezOperationalPulse label="Today's operating position" items={[
-        {label:'Ready to move',value:jobsReady,detail:'Jobs with a physical operation ready.',icon:<CheckCheck/>,tone:'success',href:'/readiness'},
-        {label:'Field active',value:activeFieldJobs,detail:crewWorking+' active field shifts right now.',icon:<HardHat/>,tone:'primary',href:'/field'},
-        {label:'Hard holds',value:jobsHeld,detail:'Inspection, setup, or prerequisite blocks.',icon:<ShieldAlert/>,tone:jobsHeld?'danger':'neutral',href:'/readiness'},
-        {label:'Customers owe',value:money(ar),detail:overdue?money(overdue)+' past due.':'No past-due customer balance.',icon:<Wallet/>,tone:overdue?'warning':'neutral',href:'/billing'},
-        {label:'7-day cash',value:money(cashNet),detail:money(cashIn)+' in · '+money(cashOut)+' out.',icon:<ArrowDownUp/>,tone:cashNet<0?'warning':'primary',href:'/cashflow'},
-      ]}/>
 
       <section className="space-y-3" aria-labelledby="today-production-heading">
         <CarezSectionHeading id="today-production-heading" icon={<CalendarDays/>} title="Scheduled production" description="Today's field work and whether each operation is physically clear." action={<Link href="/schedule" className={buttonVariants({variant:'ghost',size:'sm'})}>Full schedule<ArrowUpRight/></Link>}/>
@@ -213,6 +231,14 @@ export default async function HomePage(){
           </CarezDataGridTable>
         </CarezDataGrid>
       </section>
+
+      <CarezOperationalPulse label="Today's operating position" items={[
+        {label:'Ready to move',value:jobsReady,detail:'Jobs with a physical operation ready.',icon:<CheckCheck/>,tone:'success',href:'/readiness'},
+        {label:'Field active',value:activeFieldJobs,detail:crewWorking+' active field shifts right now.',icon:<HardHat/>,tone:'primary',href:'/field'},
+        {label:'Hard holds',value:jobsHeld,detail:'Inspection, setup, or prerequisite blocks.',icon:<ShieldAlert/>,tone:jobsHeld?'danger':'neutral',href:'/readiness'},
+        {label:'Customers owe',value:money(ar),detail:overdue?money(overdue)+' past due.':'No past-due customer balance.',icon:<Wallet/>,tone:overdue?'warning':'neutral',href:'/billing'},
+        {label:'7-day cash',value:money(cashNet),detail:money(cashIn)+' in · '+money(cashOut)+' out.',icon:<ArrowDownUp/>,tone:cashNet<0?'warning':'primary',href:'/cashflow'},
+      ]}/>
 
       <section className="space-y-3" aria-labelledby="today-next-heading">
         <CarezSectionHeading id="today-next-heading" icon={<Activity/>} title="What moves next" description="Current work, next field dates, and the action that moves each job forward." action={<Link href="/projects" className={buttonVariants({variant:'ghost',size:'sm'})}>All projects<ArrowUpRight/></Link>}/>

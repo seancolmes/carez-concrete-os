@@ -1,11 +1,10 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {AlertTriangle,CalendarDays,CircleMinus,Users} from 'lucide-react';
+import {AlertTriangle,CalendarDays,Users} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {ScheduleGrid,type AssignedCrew,type ScheduleCrewMember,type ScheduleGridDay,type ScheduleGridItem} from '@/components/schedule/ScheduleGrid';
 import {ScheduleHeaderActions} from '@/components/schedule/ScheduleHeaderActions';
 import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
 import {Textarea} from '@/components/ui/textarea';
@@ -18,14 +17,12 @@ const addDays=(date:string,days:number)=>{const value=new Date(`${date}T12:00:00
 const formatDay=(value:string)=>new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date(`${value}T12:00:00`));
 const joined=<T,>(value:T|T[]|null|undefined):T|null=>Array.isArray(value)?value[0]||null:value||null;
 
-function ScheduleMetric({label,value,help,tone='neutral',Icon}:{label:string;value:string;help:string;tone?:'neutral'|'success'|'danger';Icon:any}){
-  return <Card className={cn('gap-2 py-4 shadow-none',tone==='danger'&&'border-destructive/25',tone==='success'&&'border-success/25')}>
-    <CardHeader className="grid grid-cols-[1fr_auto] gap-2 px-4">
-      <div><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='danger'&&'text-destructive',tone==='success'&&'text-success')}>{value}</CardTitle></div>
-      <Icon className="mt-0.5 size-4 text-muted-foreground"/>
-    </CardHeader>
-    <CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent>
-  </Card>;
+function ScheduleMetric({label,value,help,tone='neutral',Icon}:{label:string;value:string;help:string;tone?:'neutral'|'danger';Icon:any}){
+  return <div className="grid min-w-0 grid-cols-[1fr_auto] gap-x-3 gap-y-2 px-4 py-3 first:pl-0 last:pr-0">
+    <div className="min-w-0"><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-xl font-semibold tracking-tight tabular-nums text-foreground',tone==='danger'&&'animate-pulse text-destructive motion-reduce:animate-none')}>{value}</div></div>
+    <Icon className={cn('mt-0.5 size-3.5 text-muted-foreground',tone==='danger'&&'text-destructive')}/>
+    <p className="col-span-2 text-[11px] leading-4 text-muted-foreground">{help}</p>
+  </div>;
 }
 
 function FormField({label,help,children}:{label:string;help?:string;children:React.ReactNode}){
@@ -129,9 +126,7 @@ export default async function SchedulePage(){
   });
 
   const weekEnd=addDays(start,6);
-  const todayItems=scheduleItems.filter(item=>item.scheduleDate===start);
   const weekItems=scheduleItems.filter(item=>item.scheduleDate<=weekEnd);
-  const crewNeeded=weekItems.reduce((sum,item)=>sum+item.crewNeeded,0);
   const unassigned=weekItems.filter(item=>item.crewShort>0).length;
   const blockedWeek=weekItems.filter(item=>item.blocked);
   const crewMembers:ScheduleCrewMember[]=(crew||[]).map((member:any)=>({id:member.id,name:member.name,role:member.role||'Crew'}));
@@ -160,21 +155,22 @@ export default async function SchedulePage(){
     <div className="flex justify-end border-t border-border pt-3"><button type="submit" className={buttonVariants({size:'sm'})}>Add to schedule</button></div>
   </form>;
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5">
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Schedule</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Plan the work, see crew loading, and manage readiness across active projects.</p></div>
+      <div><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Schedule</h1></div>
       <ScheduleHeaderActions>{addWorkForm}</ScheduleHeaderActions>
     </header>
 
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <ScheduleMetric label="Today" value={String(todayItems.length)} help="Scheduled items today." Icon={CalendarDays}/>
-      <ScheduleMetric label="This week" value={String(weekItems.length)} help="Work, deliveries, inspections, and pours." Icon={CalendarDays}/>
-      <ScheduleMetric label="Blocked" value={String(blockedWeek.length)} help="Items waiting on a dependency." tone={blockedWeek.length?'danger':'success'} Icon={CircleMinus}/>
-      <ScheduleMetric label="Crew demand / short" value={`${crewNeeded} / ${unassigned}`} help="Worker-days and items still short." tone={unassigned?'danger':'success'} Icon={Users}/>
+    <div className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+      <ScheduleMetric label="Scheduled Pours" value={String(scheduleItems.filter(item=>item.itemType==='pour').length)} help="Pour windows in the current schedule authority." Icon={CalendarDays}/>
+      <ScheduleMetric label="Total Field Man-Hours" value="—" help="No authoritative field-time contract is available." Icon={Users}/>
+      <ScheduleMetric label="Labor Deficit / Shortage" value={String(unassigned)} help="Scheduled work lines with an existing crew shortfall." tone={unassigned?'danger':'neutral'} Icon={Users}/>
+      <ScheduleMetric label="Unbacked Mud & Pump Financial Holds" value="—" help="No authoritative mud or pump financial-hold contract is available." Icon={AlertTriangle}/>
     </div>
+    <p className="border-b border-border pb-3 font-mono text-[11px] text-muted-foreground">Monitored pour windows, bulk mud deliveries, and engineering inspections.</p>
 
-    {setupHolds>0?<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong>{setupHolds} awarded job{setupHolds===1?' is':'s are'} on setup hold.</strong><div className="text-xs text-muted-foreground">Agreement, billing setup, and required pre-start payment must clear before scheduling.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/job-setup">Open job setup</Link></div>:null}
-    {blockedWeek.length>0?<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><strong>{blockedWeek.length} scheduled work item{blockedWeek.length===1?' is':'s are'} not ready to start.</strong><div className="text-xs text-muted-foreground">The schedule stays visible, but confirmation and employee start remain blocked until the constraint clears.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/readiness">Clear work holds</Link></div>:null}
+    {setupHolds>0?<div className="flex flex-wrap items-center justify-between gap-3 border-y border-warning/35 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong>{setupHolds} awarded job{setupHolds===1?' is':'s are'} on setup hold.</strong><div className="text-xs text-muted-foreground">Agreement, billing setup, and required pre-start payment must clear before scheduling.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/job-setup">Open job setup</Link></div>:null}
+    {blockedWeek.length>0?<div className="flex flex-wrap items-center justify-between gap-3 border-y border-destructive/40 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><strong className="font-mono text-destructive">{blockedWeek.length} scheduled work item{blockedWeek.length===1?' is':'s are'} not ready to start.</strong><div className="text-xs text-muted-foreground">The schedule stays visible, but confirmation and employee start remain blocked until the constraint clears.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/readiness">Clear work holds</Link></div>:null}
 
     <ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers}/>
   </div></AppShell>;

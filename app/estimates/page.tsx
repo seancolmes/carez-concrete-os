@@ -16,7 +16,7 @@ const money=(value:any)=>new Intl.NumberFormat('en-US',{style:'currency',currenc
 const number=(value:any)=>Number(value||0);
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent></div>;
 }
 
 export default async function EstimatesPage(){
@@ -113,7 +113,7 @@ export default async function EstimatesPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Estimates</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Price concrete scope from takeoff, resolve exceptions, protect margin, and issue the exact revision the customer will accept.</p></div>
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Estimates</h1></div>
         <div className="flex flex-wrap items-center gap-2">
           <Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Takeoff</Link>
           <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link>
