@@ -1,4 +1,6 @@
 .workstation{display:flex;flex:1;min-height:0;min-width:0;flex-direction:column;background:var(--card);overflow:hidden}
+.scaleTelemetry{display:block;flex:none;max-width:310px;overflow:hidden;color:var(--muted-foreground);font:600 9px/1.2 var(--font-ibm-plex-mono),ui-monospace,monospace;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}
+.emptyTelemetry{position:absolute;right:12px;bottom:12px;z-index:6;max-width:360px;border-left:1px solid var(--primary);background:color-mix(in oklch,var(--card) 88%,transparent);padding:7px 9px;color:var(--muted-foreground);font:500 10px/1.4 var(--font-ibm-plex-mono),ui-monospace,monospace;pointer-events:none}
 .workspace{position:relative;display:grid;grid-template-columns:242px minmax(0,1fr) 326px;grid-template-rows:minmax(0,1fr);flex:1;min-height:0;background:var(--card);border-top:1px solid var(--border);overflow:hidden;color:var(--foreground)}
 .noSheets{grid-template-columns:minmax(0,1fr) 326px}.noInspector{grid-template-columns:242px minmax(0,1fr)}.noSheets.noInspector{grid-template-columns:minmax(0,1fr)}
 .sidebar,.inspector{min-width:0;min-height:0;overflow:auto;background:var(--card);scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
@@ -152,3 +154,21 @@
 @media(max-width:860px){
   .workstation>[aria-label="Takeoff quantity worksheet"]{display:none!important}
 }
+
+/* Preconstruction Canvas: continuous technical matrix over the existing authoritative viewport. */
+@media(min-width:861px){
+  .workspace{grid-template-columns:minmax(220px,1fr) minmax(420px,2fr) minmax(260px,1fr)!important}
+  .noSheets{grid-template-columns:minmax(420px,2fr) minmax(260px,1fr)!important}
+  .noInspector{grid-template-columns:minmax(220px,1fr) minmax(420px,2fr)!important}
+}
+.sidebar,.inspector,.center,.toolbar,.panelHeader{background:transparent}
+.sheetList{padding:0}
+.sheetButton{position:relative;min-height:40px!important;padding:6px 8px!important;transition:background-color 150ms ease,color 150ms ease}
+.sheetButton::before{position:absolute;top:0;bottom:0;left:0;width:1.5px;background:var(--primary);content:"";opacity:0;transition:opacity 150ms ease}
+.sheetButton:hover::before,.sheetButton:focus-visible::before,.sheetButtonActive::before{opacity:1}
+.sheetButton:focus-visible,.toolButton:focus-visible,.iconTool:focus-visible,.iconButton:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.sheetButtonActive,.sheetButton:hover{background:color-mix(in oklch,var(--primary) 7%,transparent)!important}
+.toolButtonActive,.toggleActive{background:color-mix(in oklch,var(--primary) 8%,transparent)!important;border-color:var(--primary)!important;color:var(--primary)!important;box-shadow:none!important}
+.scaleTelemetry{padding-right:7px;border-right:1px solid var(--border)}
+@media(max-width:1180px){.scaleTelemetry{display:none}}
+@media(max-width:860px){.emptyTelemetry{right:8px;bottom:8px;max-width:calc(100% - 16px)}}
