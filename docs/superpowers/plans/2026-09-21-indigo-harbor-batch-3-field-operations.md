@@ -1,134 +1,43 @@
-# Batch 3 — Field Operations Implementation Plan
+# Field Workspace Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED EXECUTION METHOD: Native / inline implementation only. Do not use per-task subagents. Obtain Nik acceptance before the single local implementation commit.
 
-**Goal:** Apply Indigo Harbor presentation to schedule, readiness, field, crew, and inventory-adjacent operations while retaining scheduling and labor authority.
+**Goal:** Consolidate Field around canonical `/field`, with compact URL-addressable views for Schedule, Readiness, Crew, and Field Control.
 
-**Architecture:** `/schedule` is a gap audit of the accepted seeded 14-day schedule; `/look-ahead` is the distinct authoritative 21-day route. `/readiness` owns the historical `/schedule/readiness` request, and `/inventory` has no current route: classify it `SKIPPED — UNSUPPORTED CONTRACT` and do not create one.
+**Architecture:** `/schedule` remains accepted 14-day authority; `/look-ahead` remains separate 21-day authority. `/readiness` and `/readiness/resources` retain readiness/resource authority. `/crew` owns Crew; `/crew/access` is contextual administration. `/equipment` is contextual Field tooling. `/inventory` remains unsupported because no authoritative route exists.
 
-**Tech Stack:** Next.js 15, React, TypeScript, Tailwind CSS, existing Carez component system
+## Task 1: define Field navigation and shared composition
 
-**Spec:** `docs/superpowers/specs/2026-09-21-indigo-harbor-product-rollout-design.md`
+**Files:** Modify `app/field/page.tsx`, `app/schedule/page.tsx`, `app/look-ahead/page.tsx`, `app/readiness/page.tsx`, `app/readiness/resources/page.tsx`, `app/crew/page.tsx`, `app/crew/access/page.tsx`, `app/equipment/page.tsx`, and the direct shared Field header owner only after verification.
 
-## Global Constraints
+**Symbols:** Reuse page headers/actions, `AppShell`, and Field presentation data. Introduce one shared Field view control only where it links existing routes rather than duplicating content.
 
-- Preserve schedule, crew allocation, labor-deficit, readiness, timecard, employee access, weather, inventory, and procurement authority.
-- Use semantic ledger strips, shelves, rails, ruled status lines, focus-visible states, reduced-motion-safe animation, narrow stacking, and supported table overflow.
-- Keep current forms, dialogs, tables, filters, actions, and accessibility intact; do not change schema, RLS, APIs, calculations, routes, pushes, or deployments.
-- Display only existing authoritative values and state; do not make a labor, readiness, weather, or inventory calculation for presentation.
-- Each batch receives exactly one local commit only after targeted validation, browser QA, and Nik acceptance. Do not push or deploy.
+**Implementation:** Render compact group controls for Schedule (Schedule, 21-day Look Ahead), Readiness (Work Readiness, Materials / Resources), Crew (Crew, Employee Access), and Field Control (`/field`, Equipment). Each control preserves URL navigation; no opaque client-only active state. Use an existing Carez component before any bounded SmoothUI/ReUI primitive.
 
-## Review Focus
+**Consumes / produces:** Consumes authoritative route data/actions. Produces one Field navigation model.
 
-- The accepted `ScheduleGrid` retains 14-day behavior and crew assignments.
-- `/look-ahead` retains its separate 21-day readiness scan.
-- Readiness holds and resource constraints retain their current action contracts.
-- Field daily-log/timecard and crew-rate/access actions remain functional.
-- `/inventory` is reported unsupported without creating a route or substitute calculation.
+**Tests:** Add `tests/ui-field-workspace.test.ts` to verify registered hrefs, pathname-derived active view, compact widths, and `/inventory` is neither created nor linked.
 
-### Task 1: Schedule 14-day gap audit and 21-day look-ahead
+**Commands:** `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-field-workspace.test.ts`; `pnpm typecheck`.
 
-**Files:**
-- Modify: `app/schedule/page.tsx`
-- Modify: `components/schedule/ScheduleGrid.tsx`
-- Modify: `components/schedule/ScheduleHeaderActions.tsx`
-- Modify: `app/look-ahead/page.tsx`
+**Expected result:** Field is one operating workspace rather than independent route polish.
 
-**Interfaces:**
-- Consumes: accepted seed changes, `ScheduleGrid`, `ScheduleHeaderActions`, `createScheduleItem`, schedule days/items, assigned crews, and current look-ahead readiness rows.
-- Produces: a preserved 14-day schedule and shelf-led 21-day constraint queue.
+## Task 2: preserve Field authority while refining presentation
 
-- [ ] Step 1: Compare the accepted schedule seed files to the seeded commit and identify only visual gaps.
-- [ ] Step 2: Preserve `ScheduleGrid` day count, item placement, assigned crews, header actions, and create form; add only missing flat rails, shelves, focus traces, and narrow overflow handling.
-- [ ] Step 3: Flatten `app/look-ahead/page.tsx` metric and work-item wrappers into ledgers and ruled queues while retaining `blocked`, `unscheduledReady`, `list`, `ready_to_start`, `planned_man_hours_at_risk`, and `next_action` state.
-- [ ] Step 4: Browser-check `/schedule` remains 14 days and `/look-ahead` remains 21 days; verify crew assignment, focus, and reduced motion.
+**Files:** Modify only Task 1 files/direct components, including `components/schedule/ScheduleGrid.tsx` and `components/schedule/ScheduleHeaderActions.tsx` only if required for the accepted Schedule gap audit.
 
-### Task 2: Readiness and resource control
+**Symbols:** Preserve ScheduleGrid assignments/days, readiness action contracts, Crew/access actions, and Field daily-log/timecard controls.
 
-**Files:**
-- Modify: `app/readiness/page.tsx`
-- Modify: `app/readiness/resources/page.tsx`
-- Modify: `components/readiness/ResourceReadinessWorkspace.tsx`
-- Modify: `app/readiness/actions.ts`
-- Modify: `app/readiness/resources/actions.ts`
+**Implementation:** Apply Indigo Harbor shelves, rails, and compact controls only where the surface lacks shared workspace language. Preserve 14-day Schedule; do not turn it into 21 days. Do not add labor, readiness, weather, material, equipment, inventory, or timecard calculations.
 
-**Interfaces:**
-- Consumes: `ResourceReadinessWorkspace`, readiness holds, inspections, predecessor rules, resource rows, operations, inventory, equipment, vendors, PO lines, `clearReadinessHold`, `placeReadinessHold`, and inspection actions.
-- Produces: structural readiness and resources registers with unchanged hold controls.
+**Tests:** Assert Schedule remains 14-day; Look Ahead remains 21-day; readiness holds and Crew/access actions render; existing action signatures remain.
 
-- [ ] Step 1: Read readiness section headings and `ResourceReadinessWorkspace` row/status rendering.
-- [ ] Step 2: Convert decorative metrics and status cards to ledger strips and flat hold lines; retain actual `hold`, inspection, predecessor, resource, and vendor state predicates.
-- [ ] Step 3: Keep clear/place hold, schedule inspection, record result, and resource controls unchanged; retain inputs and labels as functional boundaries.
-- [ ] Step 4: Browser-check `/readiness` and `/readiness/resources`, including hold transitions, resource filters, keyboard forms, semantic warning state, narrow layout, and table overflow.
+**Commands:** `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/ui-field-workspace.test.ts`; `pnpm typecheck`; local browser QA for desktop/compact, direct links, refresh, and Back/Forward.
 
-### Task 3: Field, Crew, and Crew Access
+**Expected result:** Presentation clarifies existing field authority without changing it.
 
-**Files:**
-- Modify: `app/field/page.tsx`
-- Modify: `components/field/JobsiteLocationSetter.tsx`
-- Modify: `app/field/actions.ts`
-- Modify: `app/crew/page.tsx`
-- Modify: `app/crew/access/page.tsx`
-- Modify: `app/crew/actions.ts`
-- Modify: `app/crew/access/actions.ts`
+## Task 3: acceptance
 
-**Interfaces:**
-- Consumes: `JobsiteLocationSetter`, `createDailyLog`, `createTimecard`, `createCrewMember`, `updateCrewMember`, `changeCrewRate`, and `createEmployeeAccessInvite`.
-- Produces: ledger-based field and crew registers with unchanged labor and access workflow.
+**Files:** No files beyond Tasks 1–2.
 
-- [ ] Step 1: Read all named route sections and action form boundaries.
-- [ ] Step 2: Flatten daily-log/timecard, crew member/rate, and invitation wrappers into shelves and ledger rows; preserve dialogs, labels, current filters, and action targets.
-- [ ] Step 3: Render field and access exceptions only from existing state; use semantic warning/destructive traces and retain location control affordance.
-- [ ] Step 4: Browser-check `/field`, `/crew`, and `/crew/access` actions, keyboard navigation, reduced motion, light/dark/system modes, and narrow forms.
-
-### Task 4: Inventory route classification
-
-**Files:**
-- Modify: `app/procurement/page.tsx`
-- Modify: `app/readiness/resources/page.tsx`
-
-**Interfaces:**
-- Consumes: current procurement workflow links and `ResourceReadinessWorkspace` inventory input rows.
-- Produces: no `/inventory` route and an explicit Batch report classification.
-
-- [ ] Step 1: Confirm no `app/inventory/page.tsx` exists and no authoritative replacement route owns standalone inventory behavior.
-- [ ] Step 2: Do not edit, create, redirect, or link a standalone `/inventory` route.
-- [ ] Step 3: Record `/inventory — SKIPPED — UNSUPPORTED CONTRACT: no verified standalone route or authority` in the batch report; preserve inventory references inside the existing resources contract.
-
-### Task 5: Selective SmoothUI evaluation
-
-**Files:**
-- Modify only when a route audit proves material interaction value: `app/schedule/page.tsx`, `app/look-ahead/page.tsx`, `app/readiness/page.tsx`, `app/readiness/resources/page.tsx`, `app/field/page.tsx`, `app/crew/page.tsx`, `app/crew/access/page.tsx`
-- Read for ownership only: `app/procurement/page.tsx`, `app/readiness/resources/page.tsx`
-
-**Interfaces:**
-- Consumes: current route-owned controls and the adopted Batch 2.5 source pattern.
-- Produces: Carez-themed interaction refinements with no route, data, persistence, calculation, or authority change.
-
-- [ ] Step 1: Audit each named route's present controls before adding source. Preserve the current control when it already supplies structure, keyboard handling, ARIA semantics, and focus behavior.
-- [ ] Step 2: Evaluate `/schedule` against `animated-tabs`, `animated-tooltip`, `rich-popover`, and `drawer`; `/look-ahead` against `animated-tabs`, `rich-popover`, and `animated-progress-bar` only for current authoritative progress; `/readiness` against `animated-tabs`, `notification-badge` only for present authoritative counts, and `rich-popover`; `/readiness/resources` against its present select or `combobox`, `animated-tooltip`, and `notification-badge` only for present authoritative counts.
-- [ ] Step 3: Evaluate `/field` against `animated-input`, its present select, `animated-toggle`, and `animated-file-upload` only where a file input exists; `/crew` against `combobox`, `checkbox`, `radio-group`, and `animated-tags` only where current skills or taxonomy fields exist; `/crew/access` against `smooth-button` or `dialog` only around a current invite action.
-- [ ] Step 4: Keep `/inventory` as `SKIPPED — UNSUPPORTED CONTRACT` unless the existing narrow ownership lookup proves a standalone authoritative route. Do not create or link `/inventory`.
-- [ ] Step 5: For each selected source, name its acquisition command, dependency impact, client boundary, semantic-token substitutions, 100–180 ms or 180–280 ms duration, reduced-motion behavior, and present control it augments. Do not add a global SmoothUI theme, bulk registry source, GSAP, or product behavior.
-
-### Task 6: Batch validation and acceptance stop
-
-**Files:**
-- Modify: `app/schedule/page.tsx`
-- Modify: `app/look-ahead/page.tsx`
-- Modify: `app/readiness/page.tsx`
-- Modify: `app/readiness/resources/page.tsx`
-- Modify: `app/field/page.tsx`
-- Modify: `app/crew/page.tsx`
-- Modify: `app/crew/access/page.tsx`
-
-**Interfaces:**
-- Consumes: all Batch 3 route authority and presentation contracts.
-- Produces: validation evidence for Nik review.
-
-- [ ] Step 1: Report that no targeted test file exists for these schedule, readiness, field, crew, and access presentation routes; do not add a visual-only test framework.
-- [ ] Step 2: Run `pnpm typecheck`.
-- [ ] Step 3: Inspect `git status --short` and `git diff --stat`.
-- [ ] Step 4: Perform local browser QA for `/schedule`, `/look-ahead`, `/readiness`, `/readiness/resources`, `/field`, `/crew`, and `/crew/access` in light, dark, system, desktop, and narrow modes; check focus, reduced motion, actions, 14-day versus 21-day behavior, and unsupported metrics.
-- [ ] Step 5: Verify the five Review Focus conditions through the route behavior listed in Tasks 1–4.
-- [ ] Step 6: STOP. Nik reviews the Codex report and browser result first. Only after explicit acceptance should this batch receive its ONE local commit: `feat: apply Indigo Harbor field operations flow`.
+**Checks:** Report implementation and validation to Nik. After acceptance, make one local Field commit; do not push, deploy, or run `sync.ps1`.
