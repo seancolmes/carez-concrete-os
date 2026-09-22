@@ -16,7 +16,7 @@ const money=(value:any)=>new Intl.NumberFormat('en-US',{style:'currency',currenc
 const number=(value:any)=>Number(value||0);
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent></div>;
 }
 
 export default async function EstimatesPage(){

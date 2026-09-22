@@ -43,7 +43,7 @@ export default async function EstimateAuditPage({searchParams}:{searchParams:Pro
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/estimates">Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff">Takeoff</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/intelligence">Estimator Intelligence</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals">Proposals</Link></div>
     </header>
 
-    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>The audit is derived, not another checklist.</strong> <span className="text-muted-foreground">Fix the underlying estimate or proposal fact and the finding disappears automatically. Proposal issue is blocked only while one or more objective <strong className="text-foreground">BLOCK SEND</strong> findings remain.</span></div>
+    <div className="border-y border-primary/30 bg-primary/5 px-4 py-3 text-sm"><strong>The audit is derived, not another checklist.</strong> <span className="text-muted-foreground">Fix the underlying estimate or proposal fact and the finding disappears automatically. Proposal issue is blocked only while one or more objective <strong className="text-foreground">BLOCK SEND</strong> findings remain.</span></div>
 
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <Metric label="Blocked Estimates" value={blocked.length} help="Cannot issue a new customer proposal yet." tone={blocked.length?'destructive':'success'}/>
@@ -61,7 +61,7 @@ export default async function EstimateAuditPage({searchParams}:{searchParams:Pro
         const blockers=fs.filter((f:any)=>f.severity==='blocker');
         const warnings=fs.filter((f:any)=>f.severity==='warning');
         const statusTone=s.audit_status==='blocked'?'border-destructive/30 bg-destructive/10 text-destructive':s.audit_status==='clear'?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning';
-        return <Card className="shadow-none" key={s.estimate_id}>
+        return <article className="border-y border-border bg-transparent" key={s.estimate_id}>
           <CardHeader className="flex flex-col gap-3 border-b border-border sm:flex-row sm:items-start sm:justify-between"><div><CardTitle>{s.estimate_number}-R{s.version} — {s.name}</CardTitle><CardDescription className="mt-1">Estimate status: {label(s.status)} · {s.finding_count} finding{s.finding_count===1?'':'s'}</CardDescription></div><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className={statusTone}>{s.audit_status==='blocked'?'BLOCK SEND':s.audit_status==='clear'?'CLEAR':'REVIEW'}</Badge><Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/estimates/audit?estimate=${s.estimate_id}`}>Focus</Link></div></CardHeader>
           <CardContent className="space-y-4">
             {fs.length===0?<div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2.5 text-sm text-success"><strong>Audit clear.</strong> No current pricing, scope, labor or proposal findings.</div>:<>
@@ -70,7 +70,7 @@ export default async function EstimateAuditPage({searchParams}:{searchParams:Pro
               <div className="divide-y rounded-lg border border-border">{fs.map((f:any)=><div key={f.finding_key} className="space-y-2 px-3 py-3"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className={f.severity==='blocker'?'border-destructive/30 bg-destructive/10 text-destructive':'border-warning/30 bg-warning/10 text-warning'}>{f.severity==='blocker'?'BLOCK SEND':'WARNING'}</Badge><span className="text-xs text-muted-foreground">{label(f.category)}</span></div><div className="font-medium">{f.title}</div><div className="text-sm text-muted-foreground">{f.detail}</div><div className="text-sm"><strong>Next:</strong> {f.next_action}</div></div>)}</div>
             </>}
           </CardContent>
-        </Card>;
+        </article>;
       })}</section>}
 
     <Card className="shadow-none"><CardHeader><CardTitle>What Carez is Watching</CardTitle><CardDescription>The rules are intentionally split between objective release blockers and estimator-review warnings.</CardDescription></CardHeader><CardContent><div className="divide-y rounded-lg border border-border">{[
@@ -86,5 +86,5 @@ export default async function EstimateAuditPage({searchParams}:{searchParams:Pro
 
 function Metric({label,value,help,tone='default'}:{label:string;value:number;help:string;tone?:'default'|'success'|'warning'|'destructive'}){
   const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='destructive'?'text-destructive':'';
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</CardTitle></CardHeader><CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent></div>;
 }

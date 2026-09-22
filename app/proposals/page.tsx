@@ -15,7 +15,7 @@ const dt=(v:any)=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numer
 const stageLabel=(v:string)=>({sent:'Sent · not viewed',viewed:'Viewed',needs_reply:'Needs reply',accepted:'Accepted',declined:'Declined',expired:'Expired',revoked:'Link off',superseded:'Superseded'} as any)[v]||v;
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={cn('font-mono text-2xl font-semibold tracking-tight tabular-nums',tone==='success'&&'text-success',tone==='warning'&&'text-warning')}>{value}</CardTitle></CardHeader><CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent></div>;
 }
 
 export default async function ProposalsPage(){
@@ -86,7 +86,7 @@ function ProposalCard({row,priority=false}:{row:any;priority?:boolean}){
   const next=q?.next_action||(stage==='ready'?'Prepare and issue customer proposal':'Open proposal');
   const Icon=responses?MessageSquareText:viewed?Eye:FileText;
 
-  return <Card className={cn('gap-0 py-0 shadow-none',priority&&'border-amber-500/30')}>
+  return <article className={cn('border-y border-border bg-transparent',priority&&'border-warning/50')}>
     <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3"><span className={cn('flex size-9 items-center justify-center rounded-lg bg-accent text-primary',priority&&'bg-warning/10 text-warning')}><Icon className="size-4"/></span><div className="min-w-0"><p className="font-mono text-[10px] font-semibold text-primary">{proposalNumber}</p><CardTitle className="mt-1 truncate">{customer}</CardTitle><CardDescription className="mt-0.5 truncate">{job}</CardDescription></div><Badge variant={stage==='accepted'?'secondary':priority?'secondary':'outline'} className={cn(stage==='accepted'&&'bg-success/10 text-success',priority&&'bg-warning/10 text-warning')}>{label}</Badge></CardHeader>
     <CardContent className="space-y-3 p-4">
       <div><div className="text-xs text-muted-foreground">Customer price</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{money(sell)}</div></div>
@@ -96,5 +96,5 @@ function ProposalCard({row,priority=false}:{row:any;priority?:boolean}){
       <div className="flex gap-2 rounded-lg border bg-muted/20 px-3 py-2.5 text-xs leading-5"><Clock3 className="mt-0.5 size-3.5 shrink-0 text-primary"/><span>{next}</span></div>
     </CardContent>
     <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/20 p-3"><Link className={buttonVariants({size:'sm'})} href={`/proposals/${e.id}`}>{q?'Open proposal':'Prepare proposal'}<ArrowRight/></Link>{stage==='accepted'&&e.project_id?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/projects/${e.project_id}`}><CheckCircle2/>Open job</Link>:null}</CardFooter>
-  </Card>;
+  </article>;
 }

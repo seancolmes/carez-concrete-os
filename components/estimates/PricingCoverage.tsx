@@ -93,12 +93,12 @@ function CoverageMetric({
   tone?: 'default' | 'warning' | 'success' | 'primary';
 }) {
   const toneClass = tone === 'warning'
-    ? 'border-warning/30 bg-warning/5'
+    ? 'border-warning/50 bg-warning/5'
     : tone === 'success'
-      ? 'border-success/30 bg-success/5'
+      ? 'border-success/50 bg-success/5'
       : tone === 'primary'
-        ? 'border-primary/30 bg-accent'
-        : 'border-border bg-card';
+        ? 'border-primary/50 bg-primary/5'
+        : 'border-border';
   const valueClass = tone === 'warning'
     ? 'text-warning'
     : tone === 'success'
@@ -106,7 +106,7 @@ function CoverageMetric({
       : tone === 'primary'
         ? 'text-primary'
         : 'text-foreground';
-  return <div className={`rounded-lg border px-3 py-2.5 ${toneClass}`}>
+  return <div className={`min-w-0 border-x px-3 py-2.5 first:border-l-0 last:border-r-0 ${toneClass}`}>
     <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
     <div className={`mt-1 font-mono text-base font-semibold tabular-nums ${valueClass}`}>{value}</div>
     {detail ? <div className="mt-0.5 text-[11px] text-muted-foreground">{detail}</div> : null}
@@ -193,7 +193,7 @@ export function PricingCoverage({
       <p className="mt-1 text-sm text-muted-foreground">Resolve supplier evidence and price exceptions against authoritative Takeoff outputs. Quote activity never changes Production Quantity.</p>
     </div>
 
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+    <div className="carez-summary-ledger grid grid-cols-2 gap-px sm:grid-cols-4 xl:grid-cols-8">
       <CoverageMetric label="Generated outputs" value={String(summary.total)} />
       <CoverageMetric label="Priced" value={`${summary.pricedPercent.toFixed(1)}%`} detail={`${summary.priced} of ${summary.total}`} tone={summary.priced === summary.total && summary.total > 0 ? 'success' : 'primary'} />
       <CoverageMetric label="Missing price" value={String(summary.missingPrice)} tone={summary.missingPrice ? 'warning' : 'success'} />
@@ -204,7 +204,7 @@ export function PricingCoverage({
       <CoverageMetric label="Manual overrides" value={String(summary.manualOverride)} />
     </div>
 
-    <Card className="shadow-none">
+    <Card className="rounded-none border-x-0 bg-transparent shadow-none">
       <CardHeader className="gap-1">
         <CardTitle>Pricing exceptions</CardTitle>
         <CardDescription>Exception-first review of current source, quantity, quote candidates and unresolved holds.</CardDescription>
