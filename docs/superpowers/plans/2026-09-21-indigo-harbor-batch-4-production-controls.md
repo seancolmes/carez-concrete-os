@@ -77,7 +77,22 @@
 - [ ] Step 3: Use only existing funding balance, cash-at-risk, review/authorization, forecast status, margin, variance, and scope progress fields; do not calculate an exposure, hold, EAC, FTC, or margin.
 - [ ] Step 4: Browser-check `/pour-control` and `/forecast`, including authorization paths, scope-progress forms, focus, reduced motion, and narrow layouts.
 
-### Task 4: Batch validation and acceptance stop
+### Task 4: Selective SmoothUI evaluation
+
+**Files:**
+- Modify only when route audit proves material interaction value: `app/production/page.tsx`, `app/production/work-packages/page.tsx`, `app/scope-drift/page.tsx`, `app/banking/reconcile/page.tsx`, `app/pour-control/page.tsx`, `app/forecast/page.tsx`
+
+**Interfaces:**
+- Consumes: existing authoritative production, reconciliation, pour-control, and forecast values and actions.
+- Produces: narrowly animated Carez presentation without client-side production or financial calculation.
+
+- [ ] Step 1: Audit current controls on `/production` for `number-flow` on existing measured values, `animated-progress-bar` on existing progress, `animated-tooltip`, and `rich-popover`; do not derive values to drive motion.
+- [ ] Step 2: Audit `/production/work-packages` for `animated-input`, its present select or `combobox`, `number-flow`, and `notification-badge` only for current risk counts; audit `/scope-drift` for `animated-list`, `animated-input`, and `notification-badge` only for current classification state.
+- [ ] Step 3: Audit `/banking/reconcile` for `animated-list`, `number-flow`, and `context-menu` only around current supported row actions; audit `/pour-control` for `number-flow`, `notification-badge`, `rich-popover`, and `smooth-button` only around a current authorization action; audit `/forecast` for `number-flow`, `price-flow` where existing values are currency, and `animated-progress-bar` only from current authoritative completion state.
+- [ ] Step 4: Select no source where the current Carez primitive already supplies the interaction. For each selected source, record its exact acquisition command, dependency impact, existing client boundary, Carez token substitutions, 100–180 ms or 180–280 ms duration, and reduced-motion behavior.
+- [ ] Step 5: Do not install a global SmoothUI theme, bulk registry source, GSAP, or any source that creates a production, financial, reconciliation, or forecast calculation.
+
+### Task 5: Batch validation and acceptance stop
 
 **Files:**
 - Modify: `app/production/work-packages/page.tsx`

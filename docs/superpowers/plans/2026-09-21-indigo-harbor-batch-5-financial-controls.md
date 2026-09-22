@@ -100,7 +100,22 @@
 - [ ] Step 3: Render L&I/regulatory burden, payroll, job-cost, and overhead values only from current fields and helpers; do not calculate an hourly burden, cost posting, or overhead allocation in the client.
 - [ ] Step 4: Browser-check `/payroll`, `/costs`, `/overhead`, and `/settings`, including action forms, theme selection, focus, reduced motion, light/dark/system, and narrow layouts.
 
-### Task 5: Batch validation and acceptance stop
+### Task 5: Selective SmoothUI evaluation
+
+**Files:**
+- Modify only when route audit proves material interaction value: `app/cashflow/page.tsx`, `app/payables/page.tsx`, `app/billing/page.tsx`, `app/procurement/page.tsx`, `app/banking/page.tsx`, `app/banking/rules/page.tsx`, `app/payroll/page.tsx`, `app/costs/page.tsx`, `app/overhead/page.tsx`, `app/settings/page.tsx`
+
+**Interfaces:**
+- Consumes: existing authoritative AP, AR, retainage, banking, payroll, job-cost, overhead, company-branding, and appearance values/actions.
+- Produces: selective Carez-themed interaction motion without financial calculation, persistence, or product-logic change.
+
+- [ ] Step 1: Preserve accepted `/cashflow` first; evaluate `number-flow` only for present values and `animated-tabs` or `combobox` only where current controls justify them. Evaluate `/payables` for `number-flow` / `price-flow`, `notification-badge` only for real past-due state, and `dialog` / `context-menu` only for current actions; evaluate `/billing` for `animated-stepper`, `animated-tabs`, and `number-flow`.
+- [ ] Step 2: Evaluate `/procurement` for `animated-stepper`, `notification-badge`, `smooth-button`, and `animated-list` only where existing orders or deliveries support them. Evaluate `/banking` for `animated-list`, `number-flow`, `notification-badge`, and `dialog` / `context-menu` only around current actions; evaluate `/banking/rules` for `animated-list`, `animated-toggle`, and `notification-badge`.
+- [ ] Step 3: Evaluate `/payroll` for `number-flow`, `price-flow`, and `notification-badge`; `/costs` for `animated-input`, its present select, and `number-flow`; `/overhead` for `animated-number-input`, `number-flow`, `animated-toggle`, and `price-flow`; `/settings` for `animated-toggle`, `animated-file-upload` only around existing logo upload, and `animated-tabs` only where existing information architecture supports it.
+- [ ] Step 4: Select no source where a current Carez primitive already solves the interaction. For every selected source, record its exact acquisition command, dependency impact, client boundary, semantic-token substitutions, 100–180 ms or 180–280 ms duration, reduced-motion behavior, and current control it augments.
+- [ ] Step 5: Do not add a global SmoothUI theme, bulk registry source, GSAP, client-side accounting calculations, schema, RLS, API, or persistence changes.
+
+### Task 6: Batch validation and acceptance stop
 
 **Files:**
 - Modify: `app/cashflow/page.tsx`
@@ -125,22 +140,20 @@
 - [ ] Step 5: Verify the five Review Focus conditions through the route behavior in Tasks 1–4.
 - [ ] Step 6: STOP. Nik reviews the Codex report and browser result first. Only after explicit acceptance should this batch receive its ONE local commit: `feat: apply Indigo Harbor financial controls`.
 
-### Task 6: Final rollout validation after all accepted batch commits
+### Task 7: Final rollout validation after all accepted batch commits
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-09-21-indigo-harbor-batch-1-command-surfaces.md`
-- Modify: `docs/superpowers/plans/2026-09-21-indigo-harbor-batch-2-preconstruction-commercial.md`
-- Modify: `docs/superpowers/plans/2026-09-21-indigo-harbor-batch-3-field-operations.md`
-- Modify: `docs/superpowers/plans/2026-09-21-indigo-harbor-batch-4-production-controls.md`
-- Modify: `docs/superpowers/plans/2026-09-21-indigo-harbor-batch-5-financial-controls.md`
+- Read: accepted Batch 1 and Batch 2 application surfaces, their direct presentation dependencies, and the adopted Batch 2.5 source pattern
+- Modify only for accepted bounded retrofit changes: the exact Batch 1 or Batch 2 application surface and its direct presentation dependency
 
 **Interfaces:**
-- Consumes: all five accepted local batch commits on `carez/indigo-harbor-product-rollout`.
+- Consumes: all five accepted local implementation-batch commits and accepted Batch 2.5 commit on `carez/indigo-harbor-product-rollout`.
 - Produces: final local validation evidence; it does not integrate into staging.
 
-- [ ] Step 1: Execute this task only after all five accepted batch commits exist; run `pnpm typecheck`.
-- [ ] Step 2: Run `pnpm check`. `package.json` defines it as `pnpm typecheck && pnpm test && pnpm build`, so do not run `pnpm build` again.
-- [ ] Step 3: Run `git status --short --branch`, `git log --oneline staging..carez/indigo-harbor-product-rollout`, `git diff --name-status staging...carez/indigo-harbor-product-rollout`, and `git diff --stat staging...carez/indigo-harbor-product-rollout`.
-- [ ] Step 4: Perform local browser regression in this order: Today → Opportunity → Takeoff → Estimate → Proposal → Project / Job Setup → Schedule → Field / Readiness → Production → Forecast → Cashflow / Payables / Billing; then Documents, Crew, Banking, Procurement, Inventory classification, and Settings.
-- [ ] Step 5: Check light/dark/system, desktop/narrow, keyboard focus, reduced motion, existing navigation/actions, and no fake or unsupported metrics across the regression.
-- [ ] Step 6: STOP before staging integration. Staging merge and push require separate Nik authorization after this validation.
+- [ ] Step 1: Execute this task only after all five accepted implementation-batch commits and Batch 2.5 commit exist. Perform one bounded retrofit review of accepted Batch 1 and Batch 2 surfaces: existing buttons for approved micro feedback, tabs for the adopted `animated-tabs` pattern, numeric telemetry for adopted `number-flow`, and tooltips/popovers for discoverability. Preserve accepted layouts; do not redesign either batch, reopen Takeoff geometry/workspace architecture, or create product logic. Nik must review this bounded retrofit before staging integration.
+- [ ] Step 2: Run `pnpm typecheck`.
+- [ ] Step 3: Run `pnpm check`. `package.json` defines it as `pnpm typecheck && pnpm test && pnpm build`, so do not run `pnpm build` again.
+- [ ] Step 4: Run `git status --short --branch`, `git log --oneline staging..carez/indigo-harbor-product-rollout`, `git diff --name-status staging...carez/indigo-harbor-product-rollout`, and `git diff --stat staging...carez/indigo-harbor-product-rollout`.
+- [ ] Step 5: Perform local browser regression in this order: Today → Opportunity → Takeoff → Estimate → Proposal → Project / Job Setup → Schedule → Field / Readiness → Production → Forecast → Cashflow / Payables / Billing; then Documents, Crew, Banking, Procurement, Inventory classification, and Settings.
+- [ ] Step 6: Check light/dark/system, desktop/narrow, keyboard focus, reduced motion, existing navigation/actions, and no fake or unsupported metrics across the regression.
+- [ ] Step 7: STOP before staging integration. Staging merge and push require separate Nik authorization after this validation.

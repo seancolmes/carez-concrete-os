@@ -95,7 +95,23 @@
 - [ ] Step 2: Do not edit, create, redirect, or link a standalone `/inventory` route.
 - [ ] Step 3: Record `/inventory — SKIPPED — UNSUPPORTED CONTRACT: no verified standalone route or authority` in the batch report; preserve inventory references inside the existing resources contract.
 
-### Task 5: Batch validation and acceptance stop
+### Task 5: Selective SmoothUI evaluation
+
+**Files:**
+- Modify only when a route audit proves material interaction value: `app/schedule/page.tsx`, `app/look-ahead/page.tsx`, `app/readiness/page.tsx`, `app/readiness/resources/page.tsx`, `app/field/page.tsx`, `app/crew/page.tsx`, `app/crew/access/page.tsx`
+- Read for ownership only: `app/procurement/page.tsx`, `app/readiness/resources/page.tsx`
+
+**Interfaces:**
+- Consumes: current route-owned controls and the adopted Batch 2.5 source pattern.
+- Produces: Carez-themed interaction refinements with no route, data, persistence, calculation, or authority change.
+
+- [ ] Step 1: Audit each named route's present controls before adding source. Preserve the current control when it already supplies structure, keyboard handling, ARIA semantics, and focus behavior.
+- [ ] Step 2: Evaluate `/schedule` against `animated-tabs`, `animated-tooltip`, `rich-popover`, and `drawer`; `/look-ahead` against `animated-tabs`, `rich-popover`, and `animated-progress-bar` only for current authoritative progress; `/readiness` against `animated-tabs`, `notification-badge` only for present authoritative counts, and `rich-popover`; `/readiness/resources` against its present select or `combobox`, `animated-tooltip`, and `notification-badge` only for present authoritative counts.
+- [ ] Step 3: Evaluate `/field` against `animated-input`, its present select, `animated-toggle`, and `animated-file-upload` only where a file input exists; `/crew` against `combobox`, `checkbox`, `radio-group`, and `animated-tags` only where current skills or taxonomy fields exist; `/crew/access` against `smooth-button` or `dialog` only around a current invite action.
+- [ ] Step 4: Keep `/inventory` as `SKIPPED — UNSUPPORTED CONTRACT` unless the existing narrow ownership lookup proves a standalone authoritative route. Do not create or link `/inventory`.
+- [ ] Step 5: For each selected source, name its acquisition command, dependency impact, client boundary, semantic-token substitutions, 100–180 ms or 180–280 ms duration, reduced-motion behavior, and present control it augments. Do not add a global SmoothUI theme, bulk registry source, GSAP, or product behavior.
+
+### Task 6: Batch validation and acceptance stop
 
 **Files:**
 - Modify: `app/schedule/page.tsx`
