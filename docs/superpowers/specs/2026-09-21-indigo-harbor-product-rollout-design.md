@@ -27,7 +27,7 @@ Before Batch 1, seed it with **only** verified, accepted implementation commits 
 
 Accepted existing work on `/takeoff/[setId]`, `/schedule`, and `/cashflow` uses **preserve first / gap-fill second** behavior during later batches.
 
-Use five large local implementation batches. No batch pushes or deployments. Each batch receives one local commit after local QA. Only after all five pass final validation is the rollout integrated into local `staging` and delivered through one staging push and one Vercel staging deployment.
+Use five large local implementation batches plus the local-only Batch 2.5 foundation. No batch pushes or deployments. Each batch receives one local commit after local QA. Only after all five implementation batches and Batch 2.5 pass final validation is the rollout integrated into local `staging` and delivered through one staging push and one Vercel staging deployment.
 
 ## Batch 1 — Command Surfaces, Navigation & Intake
 
@@ -49,6 +49,36 @@ Protect stable page-coordinate 2D/vector geometry, Takeoff quantity authority, m
 
 Expected local commit: `feat: apply Indigo Harbor preconstruction commercial flow`.
 
+## Batch 2.5 — SmoothUI Foundation & Workspaces Navigator
+
+Batch 2.5 is local only: no Vercel deployment, staging push, or `main` changes.
+
+Purpose:
+
+- Establish the first approved SmoothUI integration pattern.
+- Replace the current visually compressed Workspaces flyout presentation.
+- Create the reference Carez motion/interaction implementation that later batches can reuse.
+
+The current narrow left flyout is replaced presentation-wise by a wide Carez Command Navigator while preserving the existing AppShell/navigation architecture.
+
+Desktop behavior:
+
+- Use a wide centered or broad overlay surface with no horizontal scrolling, no cramped three-column strip, and no tiny descriptive text beneath every destination.
+- Establish strong hierarchy by Carez operating domain, preserve existing legitimate destinations, clearly identify the current workspace, and provide search.
+- Support pinned, recent, and all workspace modes only where existing state or lightweight client-only presentation safely permits them.
+
+Preferred structural groups are Preconstruction, Projects / Operations, Field, Production, Finance, and System.
+
+The navigator may use Carez-themed SmoothUI primitives conceptually equivalent to Dialog for desktop overlay behavior; Drawer for compact/mobile behavior; Animated Tabs for Pinned / Recent / All; Combobox or searchable selector for workspace search; Pinned List for high-frequency destinations; Animated List for workspace results; Morph Icon for trigger/open-state feedback; Smooth Button for action feedback; Notification Badge only for real authoritative counts; and Animated Tooltip for concise contextual help.
+
+Do not use decorative expandable/glow cards merely because they exist. The navigator remains flat, technical, Indigo Harbor, keyboard accessible, responsive, and reduced-motion compatible.
+
+### Pinned / Recent State Safety
+
+Do not imply persistence that does not exist. If current Carez state does not persist pinned or recent workspaces, Batch 2.5 may implement the navigator without persistent pinned/recent state, or use existing safe client-local UI preference mechanisms only if already established in Carez. Do not add database schema, RPCs, auth state, or persistence APIs merely for navigator personalization. Any unsupported persistence is deferred.
+
+Expected local commit after implementation acceptance: `feat: refine SmoothUI workspace navigator`.
+
 ## Batch 3 — Schedule, Readiness, Field & Resources
 
 Routes: `/schedule`, `/schedule/look-ahead`, `/schedule/readiness`, `/readiness/resources`, `/field`, `/crew`, `/crew/access`, and `/inventory`.
@@ -56,6 +86,8 @@ Routes: `/schedule`, `/schedule/look-ahead`, `/schedule/readiness`, `/readiness/
 For `/schedule`, mode is **gap audit**: preserve accepted current 14-day schedule authority; do not force it to 21 days. The dedicated `/schedule/look-ahead` route may retain its actual 21-day authority.
 
 Protect scheduling logic, crew allocation logic, labor-deficit calculations, readiness rules, timecard semantics, inventory/procurement calculations, employee access/auth, and weather architecture.
+
+Evaluate whether a legitimate SmoothUI primitive materially improves each planned interaction; adopt selectively, without replacing working Carez controls for novelty or reopening accepted domain architecture.
 
 Expected local commit: `feat: apply Indigo Harbor field operations flow`.
 
@@ -66,6 +98,8 @@ Routes: `/production/work-packages`, `/production/control`, `/production/intelli
 Protect Work Package quantity authority; earned production calculations; Production Quantity / Direct Cost / Sell separation; CY / SF / LF evidence authority; production learning semantics; scope-drift classification; reconciliation behavior; pour-control funding locks; and EAC / FTC / forecasting formulas.
 
 Presentation may expose and clarify existing authoritative state. It may not create a production, learning, reconciliation, or forecasting engine.
+
+Evaluate whether a legitimate SmoothUI primitive materially improves each planned interaction; adopt selectively, without replacing working Carez controls for novelty or reopening accepted domain architecture.
 
 Expected local commit: `feat: apply Indigo Harbor production controls`.
 
@@ -78,6 +112,8 @@ For `/cashflow`, mode is **gap audit**: preserve the accepted Cashflow implement
 Protect AP liability recognition, payment semantics, AR/progress billing, retainage, bank reconciliation, payroll calculations, employer taxes, L&I / workers compensation rates, company hourly burden calculations, job-cost posting, procurement commitments, and overhead allocation.
 
 Behavioral accounting copy may be displayed only where the existing implementation proves its semantics.
+
+Evaluate whether a legitimate SmoothUI primitive materially improves each planned interaction; adopt selectively, without replacing working Carez controls for novelty or reopening accepted domain architecture.
 
 Expected local commit: `feat: apply Indigo Harbor financial controls`.
 
@@ -124,6 +160,94 @@ Card-free does not remove input borders: preserve field affordance, labels, focu
 Empty states remain flat and structurally attached to their section shelf, without oversized dark cards, while preserving legitimate actions.
 
 Desktop uses appropriate multi-column structural grids. On narrow viewports, stack sections, remove irrelevant vertical dividers, preserve horizontal shelves, permit current supported table overflow, and prevent page-wide horizontal scrolling.
+
+# SmoothUI Motion & Interaction Authority
+
+## Authority hierarchy
+
+Carez visual and interaction authority is:
+
+1. **ADR-024 / Indigo Harbor** — sole color, theme, density, and visual-identity authority; true light/dark/system semantic tokens remain mandatory.
+2. **CAREZ_COMPONENT_PACK** — Carez concrete-native/domain component authority; existing accepted Carez components remain preferred when they already solve the required product behavior correctly.
+3. **SmoothUI** — approved preferred source for motion and interactive UI primitives, selectively adopted where a legitimate Carez use case exists. Components must be rethemed/adapted to Carez semantic tokens. SmoothUI must not replace ADR-024 or create a second visual theme.
+4. **Application surfaces** — existing Carez workflows enhanced progressively; behavior and product authority remain unchanged.
+
+SmoothUI is **not** a new Carez design system. SmoothUI is **not** the theme authority. SmoothUI is **not** permission to replace accepted domain workflows.
+
+## Component Adoption Rule
+
+For new or materially refined interactions:
+
+1. Check whether an existing Carez component already solves the need.
+2. If yes, preserve or enhance it.
+3. If not, evaluate a relevant SmoothUI primitive.
+4. If SmoothUI legitimately improves usability, accessibility, motion, or consistency, adopt and Carez-theme it.
+5. If no appropriate SmoothUI component exists, build the smallest Carez-native primitive.
+
+Do not install or use components merely to increase SmoothUI component count. Do not force irrelevant showcase, social, marketing, novelty, media, or consumer-demo components into Carez.
+
+Excluded by default: social/tweet/review components; music/media novelty controls; decorative arcade/ransom-note effects; marketing/download showcase components; GitHub/star showcase effects; and unrelated gallery/demo components. These may be reconsidered only if a legitimate future Carez workflow needs them.
+
+## SmoothUI Adoption Targets
+
+This is an adoption map of approved examples, not a mandatory one-to-one implementation requirement or permission to install every component during this rollout.
+
+| Carez surface | Example SmoothUI primitives |
+| --- | --- |
+| Global navigation | Dialog; Drawer; Animated Tabs; Combobox / searchable selector; Pinned List; Morph Icon; Animated List; Notification Badge; Animated Tooltip; Smooth Button |
+| Takeoff | Vector Editor Toolbar; Context Menu; Animated Tooltip; Scrubber; Drawer; Animated Toggle |
+| Drawing sheets / document trees | File Tree; Animated List; Context Menu |
+| Estimate workbook | Animated Number Input; Number Flow; Combobox; Select; Animated Tabs |
+| Pricing / totals | Number Flow; Price Flow; Animated Progress |
+| Proposal lifecycle | Animated Stepper; Notification Badge; Animated Tabs |
+| Scheduling | Animated Tabs; Duration Picker; Rich Popover; Drawer |
+| Documents | Animated File Upload; File Tree; Image Metadata Preview; Animated Progress |
+| Field / Crew | Animated Input; Select; Animated Toggle; Checkbox; Radio Group; Animated Tags; Combobox |
+| Production / Financial | Number Flow; Price Flow; Animated List; Rich Popover; Progress indicators |
+| System feedback | Toast; Notification Badge; Skeleton; Motion Loader; Grid Loader |
+| Future Carez AI surfaces | AI Conversation; Prompt Input; Message; Response; Sources; Tool Call; Approval; Task List |
+
+## Carez Motion Grammar
+
+### Level 1 — Micro
+
+Typical duration: 100–180 ms.
+
+Use for hover, focus, button press, checkbox/toggle, row trace, tooltip, and compact input feedback.
+
+### Level 2 — Structural
+
+Typical duration: 180–280 ms.
+
+Use for workspace navigator, tabs, drawers, inspectors, expanding rows, and state transitions.
+
+### Level 3 — Attention
+
+State-driven and restrained. Use only for real holds, deficits, failures, loading, and authoritative state changes.
+
+Rules:
+
+- Prefer transform and opacity where practical.
+- Avoid theatrical page transitions in dense work surfaces.
+- Motion must never obscure Takeoff precision or financial readability.
+- Motion must never carry the only representation of state.
+- All nonessential animation must respect reduced motion.
+
+## Dependency / Source Adoption Safety
+
+SmoothUI components may be brought into Carez as editable source only when the implementation plan explicitly names the required component and dependency impact. Do not globally import SmoothUI theme variables, replace Carez semantic tokens, or bulk-install all SmoothUI components.
+
+Do not introduce GSAP, Motion, or another runtime dependency unless the selected component genuinely requires it, the repository does not already provide the capability, dependency impact is reviewed in the implementation plan, and the dependency is compatible with Next.js / React server-client boundaries. Prefer existing installed capabilities where equivalent.
+
+## Server / Client Boundaries
+
+SmoothUI adoption must preserve Next.js server/client boundaries. Do not convert large server components to client components solely for animation. Prefer small client-side interactive islands, existing client components, and narrow motion wrappers around interactive elements. Server-authoritative data remains server-authoritative.
+
+## Accessibility & Performance
+
+SmoothUI adoption must preserve or improve keyboard navigation, focus-visible states, ARIA semantics, semantic buttons/links, screen-reader discoverability, reduced motion, light/dark/system compatibility, and responsive behavior.
+
+Avoid animation of large layout surfaces where unnecessary; prefer transform/opacity; use no continuous decorative animation in estimating, Takeoff, or financial workspaces; avoid unnecessary client hydration; and add no large dependency for trivial effects.
 
 ## When a Card May Remain
 
@@ -206,7 +330,9 @@ Do not commit or push unless explicitly instructed after review.
 
 ## Final Validation
 
-After all five accepted batch commits, run `pnpm typecheck`, `pnpm check`, and `pnpm build`; do not redundantly run build if `pnpm check` already performs the authoritative production build. Then inspect:
+After all five accepted implementation-batch commits and the accepted Batch 2.5 commit, perform a bounded review of already accepted Batch 1 and Batch 2 surfaces for obvious high-value SmoothUI enhancements. This is not permission for a redesign: only adopt enhancements that materially improve interaction, preserve accepted layout, require small coherent changes, follow the SmoothUI authority, and create no new product logic.
+
+Then run `pnpm typecheck`, `pnpm check`, and `pnpm build`; do not redundantly run build if `pnpm check` already performs the authoritative production build. Then inspect:
 
 ```text
 git status --short --branch
@@ -225,10 +351,12 @@ Only after all local validation succeeds, integrate `carez/indigo-harbor-product
 
 Carez has one coherent Indigo Harbor technical interface across the operating system while preserving the same authoritative concrete, estimating, financial, production, commercial, tenant, and operational contracts underneath it. Presentation may change substantially; business truth may not.
 
+Carez uses one coherent Indigo Harbor visual identity with a consistent motion and interaction grammar. SmoothUI is visibly integrated where useful but does not make Carez look like a third-party component demo. Carez remains recognizably Carez.
+
 ## Documentation Policy
 
 This single design spec is the durable rollout design artifact. Do not create per-batch checkpoint documents. Git history preserves implementation evidence. After implementation and deployed verification, update `docs/CURRENT_STATE.md` only with verified implementation state. Do not create an ADR unless implementation reveals a genuinely new cross-cutting architectural decision.
 
 ## Spec Self-Review
 
-Before committing, search this document for `TBD`, `TODO`, `placeholder`, and `unresolved`; check batch-boundary, authority, delivery, and accepted Takeoff/Schedule/Cashflow consistency; confirm no task contradicts the local-only five-batch workflow; correct every issue directly in this document.
+Before committing, confirm this document has no unfinished markers or incomplete content; check batch-boundary, authority, delivery, and accepted Takeoff/Schedule/Cashflow consistency; confirm no task contradicts the local-only rollout workflow; correct every issue directly in this document.
