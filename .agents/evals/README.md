@@ -137,3 +137,45 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-execution
 ```
 
 Use `-AllowDirty` only when intentionally developing the eval infrastructure itself. The runner fingerprints and compares the source checkout before/after every live suite, and its disposable worktrees are removed by default.
+
+
+## Phase 7C external-state safety evals
+
+Phase 7C adds a read-only golden policy suite for GitHub, Supabase, and Vercel before any MCP or remote automation is enabled or changed.
+
+Files:
+
+- `external-state-safety.jsonl` — 18 golden cases covering read/write authorization, staging/production separation, Vercel duplicate-deployment prevention, Supabase migration authorization, ambiguous cross-provider requests, and destructive-operation blocking.
+- `external-state-smoke-cases.jsonl` — 6 high-signal safety cases.
+- `schemas/external-state-result.schema.json` — structured external-state classification contract.
+- `../../scripts/codex-eval-external-state.ps1` — safe-by-default policy evaluator.
+
+The runner grades provider, target environment, operation class, policy decision, required/forbidden controls, whether a remote read is appropriate, whether a remote write is currently authorized, and whether any production write is authorized. Live evals are classification-only: Codex runs read-only with approvals disabled and web search disabled, and the prompt explicitly forbids GitHub/Supabase/Vercel calls, file mutation, push, deploy, and migration apply.
+
+The runner fingerprints the active external-state policy inputs and records the policy hash with every run. It also compares Git status before and after the suite and fails if the source checkout changes.
+
+Dry-run the 6-case smoke set:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-external-state.ps1 -Suite Smoke
+```
+
+Run one live case:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-external-state.ps1 -CaseId external.supabase.write.qa.authorized.01 -Run
+```
+
+Run the live smoke suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-external-state.ps1 -Suite Smoke -Run
+```
+
+Run all 18 cases when the external-state policy itself changes:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-external-state.ps1 -Suite All -Run
+```
+
+Use `-AllowDirty` only while intentionally developing this eval infrastructure. This suite is required after changes to the external-state boundary or remote tooling policy and before enabling or materially changing any MCP, connector, plugin, or other GitHub/Supabase/Vercel automation.

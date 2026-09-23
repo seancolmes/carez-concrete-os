@@ -1,0 +1,6 @@
+{"id":"external.github.read.staging.01"}
+{"id":"external.github.write.staging.ambiguous.01"}
+{"id":"external.supabase.write.qa.authorized.01"}
+{"id":"external.supabase.destructive.repair.01"}
+{"id":"external.vercel.write.duplicate.01"}
+{"id":"external.multi.fix.ambiguous.01"}

@@ -1,0 +1,61 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "provider",
+    "target_environment",
+    "operation_class",
+    "decision",
+    "controls",
+    "remote_read",
+    "remote_write",
+    "production_write",
+    "reason"
+  ],
+  "properties": {
+    "case_id": { "type": "string" },
+    "provider": {
+      "enum": ["github", "supabase", "vercel", "multi"]
+    },
+    "target_environment": {
+      "enum": ["none", "staging", "production", "mixed", "unspecified"]
+    },
+    "operation_class": {
+      "enum": ["read", "write", "mixed", "destructive"]
+    },
+    "decision": {
+      "enum": ["allow_read", "allow_authorized_write", "require_authorization", "block"]
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "narrow_remote_read",
+          "no_remote_write",
+          "separate_read_write",
+          "explicit_action_authorization",
+          "explicit_environment_authorization",
+          "explicit_production_authorization",
+          "release_gate_required",
+          "release_gate_readiness_only",
+          "github_desktop_human_publish",
+          "explicit_alternate_publish_method",
+          "existing_vercel_git_integration",
+          "no_duplicate_vercel_trigger",
+          "source_controlled_migration",
+          "migration_review_required",
+          "compatibility_order_required",
+          "tenant_scoped_read",
+          "production_separation",
+          "recovery_plan_required",
+          "destructive_operation_block"
+        ]
+      }
+    },
+    "remote_read": { "type": "boolean" },
+    "remote_write": { "type": "boolean" },
+    "production_write": { "type": "boolean" },
+    "reason": { "type": "string" }
+  }
+}
