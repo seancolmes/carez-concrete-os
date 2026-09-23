@@ -6,6 +6,17 @@ on:
       - main
       - staging
       - 'carez-*'
+    paths-ignore:
+      # Documentation and Command Center-only changes are validated locally.
+      # If a push also contains application/runtime files, the full CI still runs.
+      - 'docs/**'
+      - '.agents/**'
+      - 'AGENTS.md'
+      - 'CODEX.md'
+      - '.ai-memory.toml'
+      - 'scripts/codex-eval-*.ps1'
+      - 'scripts/carez-command-center-health.ps1'
+      - 'scripts/carez-provider-read.ps1'
   workflow_dispatch:
 
 permissions:

@@ -31,7 +31,7 @@ Local execution does not mean model inference is free. Model runs may consume pl
 - **BrowserSkill / browser QA** — observational runtime evidence using a dedicated Carez QA browser profile.
 - **GitHub Desktop** — normal human-controlled local commit and staging publication interface.
 - **GitHub `staging`** — shared development/integration/QA/UAT line after publication.
-- **GitHub Actions** — pushed-commit repository validation.
+- **GitHub Actions** — hosted validation for pushes that can affect application/runtime behavior; documentation and Command Center-only pushes are path-filtered out to conserve Actions minutes. A manual `workflow_dispatch` remains available for an intentional full hosted validation.
 - **Vercel staging** — deployed QA runtime through the established Git integration.
 - **Supabase QA** — staging database runtime authority when explicitly inspected or mutated under authorization.
 - **Nik acceptance** — final human acceptance for user-visible behavior and release batches.
@@ -60,7 +60,7 @@ Local execution does not mean model inference is free. Model runs may consume pl
 10. Create the local commit through GitHub Desktop unless a current explicit task authorizes another method.
 11. At a release gate, inspect the intended committed batch, migration/config surface, and final validation. A gate `GO` means ready to publish, not permission to publish.
 12. Publish the accepted batch through GitHub Desktop unless another publish method is explicitly authorized.
-13. Let established Git integration drive the normal staging Vercel deployment. Inspect GitHub Actions, Vercel, or Supabase only when current remote truth is required for acceptance or debugging.
+13. Let established Git integration drive the normal staging Vercel deployment. The hosted GitHub validation workflow runs for application/runtime-affecting pushes and intentionally skips documentation/Command Center-only pushes; use manual dispatch only when a full hosted validation is materially required. Inspect GitHub Actions, Vercel, or Supabase only when current remote truth is required for acceptance or debugging.
 14. Update the owning module, ADR, workflow document, or `CURRENT_STATE.md` only from verified facts.
 
 ## Knowledge and observation
@@ -92,7 +92,7 @@ Follow `docs/workflow/EXTERNAL_STATE_BOUNDARY.md` for GitHub, Supabase, and Verc
 - codebase-memory proves what its derived graph currently reports, not source truth.
 - ai-memory proves what was captured or summarized, not current truth.
 - Browser QA proves rendered/runtime behavior under the observed conditions.
-- GitHub Actions proves the pushed commit passed the configured workflow.
+- GitHub Actions proves an application/runtime-affecting pushed commit passed the configured hosted workflow. Documentation/Command Center-only pushes are intentionally path-filtered and rely on the accepted local/release-gate evidence unless a manual hosted validation is explicitly run.
 - Vercel proves the inspected deployment/runtime state.
 
 ## Premium execution boundary
