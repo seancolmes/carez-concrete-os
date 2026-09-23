@@ -74,13 +74,13 @@ Delivered:
 - local runtime health checks;
 - reconciled local-authority workflow and token/context routing.
 
-**State: locally accepted; release batch not yet published.**
+**State: implemented and accepted.** The Phase 8 architecture is present in the current shared repository on `staging`.
 
 ## Accepted remaining architecture
 
 ### Phase 9 — Bounded execution orchestration
 
-**State: locally accepted.** Canonical Phase 9 orchestration eval: **12/12 PASS**, repository unchanged.
+**State: accepted.** Canonical Phase 9 orchestration eval: **12/12 PASS**, repository unchanged. The architecture is present in the current shared repository on `staging`.
 
 Goal: compose authoritative source, derived knowledge, memory, browser observation, and current remote READ evidence into one bounded execution plan without silently expanding action authority.
 
@@ -128,7 +128,7 @@ Completion gate:
 
 ### Phase 10 — Explicit mutation gate
 
-**State: architecture locally accepted; provider-write capability remains disabled.** Canonical Phase 10 mutation-gate eval: **14/14 PASS**, repository unchanged.
+**State: architecture accepted; provider-write capability remains disabled by default.** Canonical Phase 10 mutation-gate eval: **14/14 PASS**, repository unchanged. The architecture is present in the current shared repository on `staging`.
 
 Goal: define and, only when explicitly authorized in a later capability-enablement task, expose narrowly scoped WRITE operations without weakening Phase 7-9 boundaries.
 
@@ -172,6 +172,6 @@ Steady-state responsibilities:
 - keep provider writes explicit and exceptional;
 - preserve Nik as acceptance/release authority.
 
-## Current next gate
+## Current steady state
 
-The combined Phase 8-10 Command Center batch has passed local acceptance: Phase 7 regression **18/18**, Phase 8 **18/18**, Phase 9 **12/12**, Phase 10 **14/14**, strict Command Center health PASS, and canonical `pnpm check` PASS. The next gate is the normal GitHub Desktop **local commit only**, followed by release-readiness review before any push. Provider-write capability remains disabled until a later explicitly authorized enablement task.
+Phases 8-10 are accepted architecture in the current shared `staging` repository. Continue maintenance, bounded routing, and health/eval upkeep; enable an exceptional provider capability only through a separate explicit authorization. Architecture acceptance and release readiness do not authorize GitHub, Supabase, or Vercel writes. Normal staging publication remains human-controlled through GitHub Desktop, followed by the established GitHub Actions and Git-integrated Vercel staging path. Provider-write capability remains disabled by default.

@@ -13,9 +13,7 @@ Do not create long-lived module, experiment, archive, QA, governance, or release
 
 ## Source authority
 
-Online GitHub is authoritative. A local checkout is only a replaceable mirror.
-
-If local and remote history disagree, inspect/fetch the online repository and align the mirror to GitHub. Never force authoritative remote history from a stale local checkout.
+Local working-tree changes and local commits are authoritative for in-progress work. `origin/staging` is the shared integration baseline. Never auto-reset, rebase, stash, discard, or overwrite intentional local work merely to match remote state. Query GitHub, Supabase, or Vercel only when current provider truth materially affects the task; READ access does not authorize WRITE actions.
 
 ## One user-facing QA build
 
@@ -28,17 +26,29 @@ Do not ask Nik to choose a commit preview, PR preview, or alternate Vercel URL f
 ## Normal change flow
 
 1. Discuss/approve the idea in the Carez control room or canonical issue/spec when material.
-2. Verify current online `staging`.
-3. Implement with connected control-room tools or ChatGPT Work/Codex cloud at the lowest suitable model cost.
-4. Run required targeted checks, normally `pnpm typecheck` + relevant tests.
-5. Commit/push to `staging` or a temporary branch targeting `staging`.
-6. Require the matching GitHub Actions validation to pass.
-7. Wait for the stable staging Vercel deployment to update.
-8. Nik tests the stable staging URL.
-9. Record browser acceptance and update `CURRENT_STATE.md` when verified state changes.
-10. Promote `staging` to `main` only as an explicit production release after acceptance.
+2. Implement locally and run local validation.
+3. Perform local browser/runtime QA, then obtain Nik acceptance where required.
+4. Create the local commit through GitHub Desktop.
+5. Run the release gate. `GO` means ready to publish; it is not authorization to publish.
+6. Publish to `staging` through GitHub Desktop under human control.
+7. GitHub Actions validates applicable pushes; the existing Git integration drives the staging Vercel deployment.
+8. Test the stable staging URL and record verified acceptance/current state as applicable.
+9. Promote `staging` to `main` only as an explicitly authorized production release after acceptance.
 
-All agent execution is cloud-hosted and may consume credits/allowance; model routing is a development-cost concern, not a branch/release concern.
+The normal execution path is:
+
+```text
+ChatGPT control room
+→ local Codex
+→ local validation
+→ local browser/runtime QA
+→ Nik acceptance
+→ GitHub Desktop local commit
+→ release gate
+→ human-authorized staging publication
+→ GitHub Actions
+→ existing Git-integrated Vercel staging deployment
+```
 
 ## Temporary branches
 
@@ -46,7 +56,7 @@ A temporary branch is allowed only when technically necessary for substantial is
 
 If required:
 
-- start from current online `staging`;
+- start from the shared `origin/staging` integration baseline;
 - target `staging`;
 - keep it internal to implementation/review;
 - merge after required validation;

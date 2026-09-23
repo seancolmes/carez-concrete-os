@@ -9,7 +9,7 @@ Use the source that owns the question. Do not preload the repository.
 3. `docs/modules/` — module/product contracts.
 4. `docs/CURRENT_STATE.md` — current verified implementation, open work, blockers.
 5. `docs/ROADMAP.md` — sequence.
-6. `AGENTS.md` + `CODEX.md` + `docs/workflow/` — cloud development/model-routing workflow.
+6. `AGENTS.md` + `CODEX.md` + `docs/workflow/` — local-authority development and runtime workflow.
 7. GitHub issues/PRs/history — active and historical implementation evidence.
 8. Vercel/browser evidence — deployment/rendered acceptance.
 
@@ -19,7 +19,7 @@ Use the source that owns the question. Do not preload the repository.
 | --- | --- |
 | Bounded implementation task | `AGENTS.md`, `CODEX.md`, target files |
 | Development/release workflow | `workflow/DEVELOPMENT_WORKFLOW.md` |
-| Cloud model/token routing | `workflow/CAREZ_TOKEN_EFFICIENCY.md` |
+| Model/token efficiency | `workflow/CAREZ_TOKEN_EFFICIENCY.md` |
 | Current priority | `CURRENT_STATE.md`, then `ROADMAP.md` |
 | Branch/release | `BRANCH_AND_RELEASE_MODEL.md` |
 | Module behavior | owning `modules/*.md` |
@@ -50,11 +50,11 @@ Delete superseded designs, finished implementation plans, duplicate workflow fil
 
 Supporting `docs/superpowers/` files may remain only while they own unresolved implementation behavior. They never override Architecture, active ADRs, module contracts, Current State, Roadmap, or repository execution contracts.
 
-The active P0.5E Issue #39 plan remains source-controlled because implementation is unfinished. Completed/superseded UI and 3D planning artifacts are historical Git evidence, not active documentation.
+P0.5 / P0.5E Condition-first foundation is complete and accepted on `staging`; Issue #39 is closed. P1 Estimating is the active domain phase, and P1.4 Review / Recap remains implementation work. Completed/superseded planning artifacts are historical evidence unless they still own unresolved behavior.
 
 ## UI authority
 
-ADR-025 — Carez Operations Workspace / Experience System is the active presentation authority.
+ADR-025 — Carez Operations Workspace / Experience System is the active presentation authority, including the accepted Indigo Harbor theme. ADR-026 owns the seven-surface workspace model.
 
 The approved direction is approximately 80% Command Deck / 20% Spatial Blueprint with purposeful motion and selective spatial/3D treatment where useful. The accepted reference implementation covers shared experience primitives plus Today, Projects, and Documents. Issue #76 remains open because application-wide propagation is incomplete.
 
