@@ -33,6 +33,7 @@ test('P1.4 stores append-only tenant-scoped Estimate review acknowledgements', (
 
 const evaluatorMigrationPath = 'supabase/migrations/20260923121000_estimate_release_readiness.sql';
 const billingProfileMigrationPath = 'supabase/migrations/20260923120500_reconcile_company_billing_profiles.sql';
+const ackRpcMigrationPath = 'supabase/migrations/20260923122000_estimate_review_acknowledgement_rpc.sql';
 
 test('P1.4 company billing profile prerequisite reconciles the tenant-scoped defaults contract', () => {
   const sql = requireFile(billingProfileMigrationPath, 'Company billing profile prerequisite migration must exist');
@@ -62,6 +63,7 @@ test('P1.4 readiness evaluator is tenant-scoped, deterministic and Estimate-scop
   assert.match(sql, /takeoff_measurements[\s\S]*estimate_id\s*=\s*p_estimate_id/i);
   assert.match(sql, /takeoff_measurement_outputs[\s\S]*measurement_id/i);
   assert.doesNotMatch(sql, /from public\.takeoff_measurement_outputs\s+where\s+company_id=v_company_id\s*(?:;|\))/i);
+  assert.match(sql, /and commercial_fingerprint=v_commercial_fingerprint[\s\S]*and warning_fingerprint=v_warning_fingerprint/i);
 
   for (const state of ['not_ready', 'blocked', 'review', 'release_ready']) {
     assert.match(sql, new RegExp(`'${state}'`, 'i'));
@@ -92,6 +94,28 @@ test('P1.4 readiness evaluator is tenant-scoped, deterministic and Estimate-scop
     'proposal_schedule_missing',
     'proposal_payment_missing',
   ]) assert.match(sql, new RegExp(warning, 'i'));
+});
+
+test('P1.4 acknowledgement RPC re-evaluates current state and never accepts client fingerprints', () => {
+  const sql = requireFile(ackRpcMigrationPath, 'P1.4 acknowledgement RPC migration must exist');
+  const signature = sql.match(/create or replace function public\.carez_acknowledge_estimate_review\([\s\S]*?\)\s*returns jsonb/i)?.[0] || '';
+
+  assert.match(signature, /p_estimate_id\s+uuid/i);
+  assert.doesNotMatch(signature, /fingerprint|warning_count|warning_snapshot|release_state/i);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /public\.get_my_company_id\(\)/i);
+  assert.match(sql, /public\.get_my_role\(\)[\s\S]*employee/i);
+  assert.match(sql, /from public\.estimates[\s\S]*where id=p_estimate_id\s+and company_id=v_company_id[\s\S]*for update/i);
+  assert.match(sql, /carez_get_estimate_release_readiness\(p_estimate_id\)/i);
+  assert.match(sql, /Cannot acknowledge Estimate review while blockers remain\./i);
+  assert.match(sql, /Estimate must be Ready for Review before acknowledgement\./i);
+  assert.match(sql, /No current warnings require acknowledgement\./i);
+  assert.match(sql, /acknowledgement_valid[\s\S]*Current Estimate review warnings are already acknowledged\.[\s\S]*insert into public\.estimate_review_acknowledgements/i);
+  assert.match(sql, /insert into public\.estimate_review_acknowledgements/i);
+  assert.match(sql, /commercial_fingerprint[\s\S]*warning_fingerprint[\s\S]*warning_count[\s\S]*warning_snapshot/i);
+  assert.match(sql, /created_acknowledgement_id/i);
+  assert.match(sql, /revoke all on function public\.carez_acknowledge_estimate_review\(uuid\) from public,anon/i);
+  assert.match(sql, /grant execute on function public\.carez_acknowledge_estimate_review\(uuid\) to authenticated,service_role/i);
 });
 
 test('P1.4 fingerprints aggregate ordered canonical records', () => {
