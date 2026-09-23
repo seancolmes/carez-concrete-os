@@ -55,6 +55,7 @@ Load only what the task requires:
 - approved bounded UI edit -> target + direct dependencies first; read the relevant ADR-025/design-system section only when presentation hierarchy, shell/shared ownership, or design authority is ambiguous
 - Takeoff -> target + direct dependencies first; read relevant ADR-020/current Takeoff contracts only when quantity/geometry/role/2D-3D authority or cross-module lineage is involved
 - durable workflow -> the relevant `docs/workflow/` document only when workflow behavior is the task
+- GitHub/Supabase/Vercel external state -> `docs/workflow/EXTERNAL_STATE_BOUNDARY.md` only when current remote truth/action is materially required
 
 Do not preload old history, unrelated migrations, unrelated routes, full ADRs for trivial edits, or superseded design artifacts.
 

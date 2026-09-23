@@ -74,6 +74,14 @@ Inspect the final diff for:
 - unresolved blockers
 - accidental formatting/churn
 
+## External state
+
+- Local files, working-tree changes, and local commits are authority for in-progress implementation; `origin/staging` is the shared integration baseline.
+- Query GitHub, Supabase, or Vercel only when current remote truth is materially required by the explicit task or release/debugging workflow. Remote read access does not authorize writes.
+- Remote writes require explicit action authorization. A passing release gate establishes readiness only. Staging publication remains human-controlled through GitHub Desktop; the established Git integration drives normal staging Vercel deployment.
+- Production GitHub/main, Supabase, and Vercel actions require explicit production-target authorization in the current task. Staging authorization never implies production authorization.
+- Follow `docs/workflow/EXTERNAL_STATE_BOUNDARY.md` for provider-specific boundaries and release sequences.
+
 ## Stop
 
 Do not commit or push.
