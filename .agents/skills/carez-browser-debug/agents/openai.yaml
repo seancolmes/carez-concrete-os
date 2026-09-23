@@ -1,0 +1,5 @@
+interface:
+  display_name: "Carez Browser Debug"
+  short_description: "Reproduce and trace Carez browser failures before editing."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Carez Release Gate"
+  short_description: "Verify a Carez staging batch before the human push."
+policy:
+  allow_implicit_invocation: false

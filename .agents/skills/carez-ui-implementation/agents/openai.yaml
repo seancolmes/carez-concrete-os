@@ -1,0 +1,5 @@
+interface:
+  display_name: "Carez UI Implementation"
+  short_description: "Implement approved Carez UI changes without design drift."
+policy:
+  allow_implicit_invocation: true

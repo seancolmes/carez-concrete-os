@@ -1,0 +1,6 @@
+.env.local
+.codex/config.toml
+.codex/agents/
+.codex/environments/
+.codex/hooks.json
+.codex/rules/

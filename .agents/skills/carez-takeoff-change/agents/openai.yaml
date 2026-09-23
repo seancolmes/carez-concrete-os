@@ -1,0 +1,5 @@
+interface:
+  display_name: "Carez Takeoff Change"
+  short_description: "Preserve Takeoff geometry, Condition, and lineage authority."
+policy:
+  allow_implicit_invocation: true

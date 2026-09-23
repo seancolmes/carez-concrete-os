@@ -1,0 +1,5 @@
+interface:
+  display_name: "Carez DB Migration"
+  short_description: "Guarded Supabase schema, RLS, and migration work for Carez."
+policy:
+  allow_implicit_invocation: true
