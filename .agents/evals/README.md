@@ -89,3 +89,51 @@ Each live run stores outside the repository:
 - `summary.json` — suite totals and metadata
 
 Token/usage events are retained and the runner totals input, cached-input, output, and reasoning-output tokens. No hard budget is enforced; establish thresholds only after representative baseline runs.
+
+
+## Phase 6C outcome-quality evals
+
+Routing correctness is necessary but not sufficient. Phase 6C adds a second read-only behavioral layer that grades the execution contract a correct Carez run should follow after routing is known.
+
+Files:
+
+- `outcome-quality.jsonl` — 12 cases across bounded implementation, debugging, database safety, and release-gate compliance.
+- `outcome-smoke-cases.jsonl` — one representative case from each outcome category.
+- `schemas/outcome-result.schema.json` — structured outcome contract.
+- `../../scripts/codex-eval-outcomes.ps1` — safe-by-default outcome evaluator.
+
+The first Phase 6C layer grades required and forbidden execution behaviors, broad-scan avoidance, remote-mutation safety, and stop-before-push compliance.
+
+### Disposable-worktree execution layer
+
+Phase 6C also runs real bounded fixture tasks in disposable detached Git worktrees. This follows the Codex worktree isolation model while keeping the source checkout untouched. Each fixture is copied into `.carez-eval-fixture`, committed as an isolated baseline, executed with `codex exec --ephemeral --sandbox workspace-write --ask-for-approval never`, graded, and removed unless `-KeepWorktrees` is supplied for debugging.
+
+Files:
+
+- `execution-quality.jsonl` — 5 executable fixture cases: bounded implementation, evidence-backed debugging, database migration safety, release GO, and release BLOCKED.
+- `execution-smoke-cases.jsonl` — 4 safety-focused execution cases.
+- `fixtures/` — self-contained local fixtures and validators; no package install or remote service is required.
+- `schemas/execution-result.schema.json` — structured completion/release report.
+- `../../scripts/codex-eval-execution.ps1` — disposable-worktree executor and deterministic grader.
+
+The execution grader checks the actual worktree state rather than trusting the model report. It grades allowed changed paths, fixture fingerprints, required/forbidden content, new-migration shape, exact targeted-validation commands observed in Codex JSONL events, an independent post-run validator, forbidden remote/publish commands, unchanged Git HEAD, worktree cleanup, and source-checkout immutability. New untracked files are included in the saved patch artifact with an intent-to-add diff only after the post-run state has been captured.
+
+Dry-run the execution smoke set:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-execution.ps1 -Suite Smoke
+```
+
+Run one executable case:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-execution.ps1 -CaseId exec.debug.01 -Run
+```
+
+Run the 4-case execution smoke suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-execution.ps1 -Suite Smoke -Run
+```
+
+Use `-AllowDirty` only when intentionally developing the eval infrastructure itself. The runner fingerprints and compares the source checkout before/after every live suite, and its disposable worktrees are removed by default.

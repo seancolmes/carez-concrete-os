@@ -1,0 +1,4 @@
+{
+  "batch": "phase-6c-release-blocked-fixture",
+  "expected": "blocked-on-dirty-tree"
+}

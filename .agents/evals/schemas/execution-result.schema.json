@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "outcome",
+    "release_status",
+    "validation_ran",
+    "changed_files",
+    "summary"
+  ],
+  "properties": {
+    "case_id": { "type": "string" },
+    "outcome": {
+      "enum": ["completed", "blocked", "needs_evidence"]
+    },
+    "release_status": {
+      "enum": ["not_applicable", "go", "blocked"]
+    },
+    "validation_ran": { "type": "boolean" },
+    "changed_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" }
+  }
+}

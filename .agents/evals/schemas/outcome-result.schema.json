@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "decision",
+    "actions",
+    "broad_scan",
+    "mutates_remote",
+    "pushes_remote",
+    "reason"
+  ],
+  "properties": {
+    "case_id": { "type": "string" },
+    "decision": {
+      "enum": ["implement", "investigate", "clarify", "block", "release_gate"]
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "inspect_named_targets",
+          "inspect_direct_dependencies",
+          "bounded_edit",
+          "targeted_validation",
+          "browser_reproduction",
+          "evidence_capture",
+          "root_cause_trace",
+          "defer_edit_until_evidence",
+          "source_controlled_migration",
+          "preserve_existing_data",
+          "verify_tenant_rls",
+          "local_migration_validation",
+          "report_rollback",
+          "confirm_staging_branch",
+          "verify_clean_batch",
+          "identify_intended_commits",
+          "run_full_check",
+          "review_migrations",
+          "report_go",
+          "report_blocked",
+          "stop_before_push"
+        ]
+      }
+    },
+    "broad_scan": { "type": "boolean" },
+    "mutates_remote": { "type": "boolean" },
+    "pushes_remote": { "type": "boolean" },
+    "reason": { "type": "string" }
+  }
+}
