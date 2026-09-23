@@ -7,20 +7,21 @@ User QA target: stable `staging` Vercel alias
 
 ## Execution model
 
-Carez implementation is cloud-based.
+Carez implementation follows the normal local workflow:
 
 ```text
-Nik / Carez control room
-→ connected GitHub/Supabase/Vercel tools and/or ChatGPT Work/Codex cloud
-→ GitHub staging
-→ GitHub Actions
-→ Vercel staging
-→ browser QA
+ChatGPT control room
+→ local Codex
+→ local validation
+→ local browser/runtime QA
+→ Nik acceptance
+→ GitHub Desktop local commit
+→ batched staging release
 ```
 
-Supabase QA is the staging database authority. Online GitHub is repository authority. The Windows checkout is only a replaceable mirror.
+Local working-tree changes and local commits are authoritative for in-progress work; `origin/staging` is the shared integration baseline. `staging` remains the development/integration/QA/UAT line, and `main` remains production.
 
-There is no canonical local Codex/Ollama/OmniRoute path. All model execution may consume credits or allowance. Luna/Terra are lower-cost routing options, not free. Astra is reserved for premium high-value work.
+Codex does not commit, push, deploy, mutate remote Supabase/Vercel/GitHub, create or switch branches, reset, rebase, stash, or discard work.
 
 ## UI / ADR-025
 
@@ -115,6 +116,7 @@ Final staging acceptance is complete. Issue #39 is closed. No production promoti
 
 - `staging` remains bound to isolated Supabase QA.
 - `main` remains production.
+- Local validation and local browser/runtime QA precede Nik acceptance and the GitHub Desktop local commit; accepted work enters staging in batched releases.
 - Issue #59 remains a hard production-release blocker until production Supabase migration history is safely bridged to the canonical staging/QA migration model.
 - Issue #58 remains open pending authenticated staging browser acceptance of the already-implemented Estimate pricing-save fix.
 - QA still lacks `public.next_opportunity_number()`, which blocks successful direct-job creation/populated Project Overview acceptance in that environment.
