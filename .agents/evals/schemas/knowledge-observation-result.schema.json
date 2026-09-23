@@ -59,7 +59,7 @@
     },
     "controls": {
       "type": "array",
-      
+
       "items": {
         "enum": [
           "authoritative_source_wins",
