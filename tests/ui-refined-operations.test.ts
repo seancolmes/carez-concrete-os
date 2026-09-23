@@ -42,28 +42,29 @@ test('operating metric composition is source-owned and token based',()=>{
 });
 
 
-test('Today is exception-first and uses shared operational components',()=>{
+test('Today uses the compact operations hierarchy and current shared primitives',()=>{
   const page=read('app/page.tsx');
 
-  assert.match(page,/CarezOperationalPulse/);
-  assert.match(page,/CarezSectionHeading/);
-  assert.match(page,/CarezStatus/);
-  assert.match(page,/CarezDataGrid/);
-  assert.match(page,/CarezEmptyState|CarezFeedback/);
+  assert.match(page,/components\/ui\/item/);
+  assert.match(page,/components\/ui\/stat/);
+  assert.match(page,/components\/ui\/tabs/);
+  assert.match(page,/TodayOperationsGrid/);
 
-  const attention=page.indexOf('Management attention');
-  const metrics=page.indexOf("Today's operating position");
-  const production=page.indexOf('Scheduled production');
-  const moves=page.indexOf('What moves next');
+  const work=page.indexOf('today-work-heading');
+  const attention=page.indexOf('today-attention-heading');
+  const status=page.indexOf('today-telemetry-heading');
+  const next=page.indexOf('today-next-heading');
+  const pulse=page.indexOf('business-pulse-heading');
 
-  assert.ok(attention>=0&&production>attention,'Management Attention must precede Scheduled Production');
-  assert.ok(metrics>production,'Operating Position must follow Scheduled Production');
-  assert.ok(moves>metrics,'What Moves Next must follow Operating Position');
+  assert.ok(work>=0&&attention>work,'Attention must follow Today\'s Work');
+  assert.ok(status>attention,'Operating Status must follow Attention');
+  assert.ok(next>status,'Next Operations must follow Operating Status');
+  assert.ok(pulse>next,'Business Pulse must follow Next Operations');
 
-  assert.match(page,/href="\/projects"/);
   assert.match(page,/href="\/schedule"/);
-  assert.match(page,/href="\/cashflow"/);
-  assert.match(page,/href="\/billing"/);
+  assert.match(page,/href:'\/cashflow'/);
+  assert.match(page,/href:'\/billing'/);
+  assert.match(page,/['"]\/projects\/['"]\+p\.id/);
   assert.doesNotMatch(page,/function StatusBadge/);
   assert.doesNotMatch(page,/function OperatingMetric/);
   assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
@@ -143,13 +144,14 @@ test('Project Overview follows the approved operating-record hierarchy',()=>{
 });
 
 
-test('reference slice preserves unavailable-state language and route boundaries',()=>{
+test('reference slice preserves current empty-state language and route boundaries',()=>{
   const today=read('app/page.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
   const projectsPage=read('app/projects/page.tsx');
   const overview=read('app/projects/[id]/page.tsx');
 
-  assert.match(today,/No authoritative budget snapshot/);
+  assert.match(today,/No scheduled production/);
+  assert.match(today,/No management exceptions/);
   assert.match(overview,/Need Progress/);
   assert.match(projects,/not available in this summary/);
   assert.match(projectsPage,/budgetAvailable:Boolean\(b\.project_id\)/);
@@ -186,8 +188,10 @@ test('reference slice preserves semantic severity and keyboard interaction bound
   const today=read('app/page.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
 
-  assert.match(today,/const attentionStatusTone=attention\.some/);
-  assert.match(today,/resolveOperationalState\(row\.state\)/);
+  assert.match(today,/attention\.some\(item=>item\.tone==='danger'\)/);
+  assert.match(today,/attention\.some\(item=>item\.tone==='warning'\)/);
+  assert.match(today,/row\.state==='hold'\?'blocked'/);
+  assert.match(today,/row\.state==='ready'\?'success'/);
   assert.match(projects,/event\.currentTarget!==event\.target/);
   assert.match(projects,/aria-label=\{'Job preview: '\+selected\.name\}/);
 });

@@ -1,9 +1,3 @@
-[Reading 98 lines from start (total: 98 lines, 0 remaining)]
-
-[Reading 84 lines from start (total: 84 lines, 0 remaining)]
-
-[Reading 72 lines from start (total: 72 lines, 0 remaining)]
-
 # Carez Concrete OS - local Codex execution contract
 
 ## Standard cycle

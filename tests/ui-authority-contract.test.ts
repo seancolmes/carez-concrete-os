@@ -33,7 +33,7 @@ test('ADR-025 is current presentation authority while historical/domain contract
   assert.match(currentState, /full rewrite is not complete/i);
   assert.match(currentState, /Issue #76 is open again/i);
   assert.match(readme, /ADR-025/);
-  assert.match(codex, /cloud execution contract/i);
+  assert.match(codex, /local Codex execution contract/i);
   assert.match(pack, /Inter/i);
   assert.match(pack, /Spatial Blueprint/i);
   assert.match(pack, /light.*dark|light\/dark/i);
