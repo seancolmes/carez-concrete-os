@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-21  
+Last reconciled: 2026-09-23
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias
@@ -22,6 +22,26 @@ ChatGPT control room
 Local working-tree changes and local commits are authoritative for in-progress work; `origin/staging` is the shared integration baseline. `staging` remains the development/integration/QA/UAT line, and `main` remains production.
 
 Codex does not commit, push, deploy, mutate remote Supabase/Vercel/GitHub, create or switch branches, reset, rebase, stash, or discard work.
+
+## Command Center / Phase 8
+
+The local Command Center knowledge + observation layer is now implemented through the Phase 8A-8E architecture in `docs/workflow/COMMAND_CENTER_RUNTIME.md`.
+
+Verified local state:
+
+- Phase 8A knowledge/observation authority boundary and eval infrastructure is accepted locally; the canonical live suite passes **18/18** with the repository unchanged.
+- Phase 8B codebase-memory is installed locally, the Carez repository was explicitly indexed, background auto-index/watch/UI behavior is disabled, and the Codex MCP is restricted to the inspection-oriented `analysis` profile.
+- Phase 8C ai-memory is accepted locally on loopback `127.0.0.1:49374`: allowlist capture, prompt capture omitted, embeddings/auto-improve disabled, approval required for proposals, sticky Carez project routing, user-level scheduled startup, and repository-owned `.ai-memory.toml`. The isolated eval runner produces **0 captured sessions / 0 observations**. A real Carez session was captured, a later Codex session recalled it through the ai-memory MCP, then verified current `package.json` directly and treated current source as authority. Normal interactive Codex still requires its one-time hook-trust review.
+- Phase 8D BrowserSkill is accepted locally: CLI/daemon and Codex skill are healthy, the compatible Chrome extension is labeled exactly **Carez QA**, and a bounded local Carez `/login` observation captured DOM/console/network evidence with no business mutation and a clean session stop.
+- Phase 8E reconciles the development workflow and model/token-efficiency policy with the local-authority execution model.
+- Phase 9 **Bounded Execution Orchestration** is locally accepted: source/memory/browser/provider evidence routing is defined in `COMMAND_CENTER_ORCHESTRATION.md`, and the canonical orchestration suite passes **12/12** with the repository unchanged.
+- Phase 10 **Explicit Mutation Gate** architecture is locally accepted: `COMMAND_CENTER_MUTATION_GATE.md` defines explicit provider/environment/action/target authorization, destructive recovery and unknown-effect handling, and the canonical mutation-gate suite passes **14/14** with the repository unchanged.
+- Provider-write capability remains disabled. Strict Command Center health confirms no raw GitHub/Supabase/Vercel MCP is enabled in local Codex.
+- Command Center strict health passes with the dedicated **Carez QA** BrowserSkill profile connected, bounded codebase-memory, loopback allowlisted ai-memory, and the provider-mutation guard intact.
+- Fresh final canonical repository validation for the combined Phase 8-10 batch passes: `pnpm check` -> typecheck PASS, **271 tests PASS / 1 skipped / 0 failed**, Next.js production build PASS.
+- No GitHub, Supabase, or Vercel mutation was performed while implementing or accepting Phases 8-10. ai-memory's private local SQLite schema is tool-internal and is not Carez product database state.
+
+The Command Center architecture is now complete through Phase 10. Phase 10 architecture does not itself enable provider writes; any future mutation capability requires a separate explicitly authorized enablement task.
 
 ## UI / ADR-025
 

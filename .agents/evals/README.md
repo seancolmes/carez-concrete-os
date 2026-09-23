@@ -179,3 +179,106 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-external-
 ```
 
 Use `-AllowDirty` only while intentionally developing this eval infrastructure. This suite is required after changes to the external-state boundary or remote tooling policy and before enabling or materially changing any MCP, connector, plugin, or other GitHub/Supabase/Vercel automation.
+
+## Phase 8 knowledge + observation safety evals
+
+Phase 8 adds a read-only policy suite for Carez knowledge authority and observation routing before codebase-memory, ai-memory, BrowserSkill, or related capabilities receive materially broader permissions.
+
+Files:
+
+- `knowledge-observation-safety.jsonl` — 18 golden cases.
+- `knowledge-observation-smoke-cases.jsonl` — 6 representative smoke cases.
+- `schemas/knowledge-observation-result.schema.json` — structured result contract.
+- `../../scripts/codex-eval-knowledge-observation.ps1` — safe-by-default classifier.
+
+The runner grades source class, tool family, environment, decision, required and forbidden controls, remote-read/write state, production-action authority, and authoritative-source verification. Live cases execute from an isolated temporary working directory with an isolated temporary `CODEX_HOME` containing only authentication, so the operator's normal MCPs/hooks do not run and repo-scoped memory cannot capture the eval itself.
+
+Dry run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-knowledge-observation.ps1 -Suite Smoke -AllowDirty
+```
+
+Live smoke:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-knowledge-observation.ps1 -Suite Smoke -Run -AllowDirty
+```
+
+Full live suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-knowledge-observation.ps1 -Suite All -Run -AllowDirty
+```
+
+Run this suite after material changes to knowledge authority, codebase-memory integration, ai-memory integration, BrowserSkill integration, or knowledge/observation routing, and before materially expanding those capabilities or permissions.
+
+
+## Phase 9 Command Center orchestration evals
+
+Phase 9 adds a read-only orchestration suite for selecting the narrowest evidence route across current source, codebase-memory, ai-memory, BrowserSkill, and current GitHub/Supabase/Vercel state without silently widening action authority.
+
+Files:
+
+- `command-center-orchestration-safety.jsonl` — 12 golden orchestration cases.
+- `command-center-orchestration-smoke-cases.jsonl` — 5 high-signal smoke cases.
+- `schemas/knowledge-observation-result.schema.json` — shared structured authority/result contract.
+- `../../scripts/codex-eval-command-center-orchestration.ps1` — safe-by-default Phase 9 classifier.
+
+The suite grades known-source routing, structural lookup followed by source verification, memory continuation, browser evidence, provider reads, missing write authorization, destructive production requests, mixed-source debugging, and broad hidden-authority requests.
+
+Dry run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-orchestration.ps1 -Suite Smoke -AllowDirty
+```
+
+Live smoke:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-orchestration.ps1 -Suite Smoke -Run -AllowDirty
+```
+
+Full live suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-orchestration.ps1 -Suite All -Run -AllowDirty
+```
+
+Run this suite after material changes to `COMMAND_CENTER_ORCHESTRATION.md`, provider-read routing, mixed evidence routing, or the Phase 9 action boundary, and before materially widening any provider/tool permission.
+
+
+## Phase 10 Command Center mutation-gate evals
+
+Phase 10 adds a classification-only safety suite for explicitly authorized GitHub, Supabase, and Vercel mutations. The architecture can be accepted while all real provider-write capability remains disabled.
+
+Files:
+
+- `command-center-mutation-safety.jsonl` — 14 golden mutation/authorization cases.
+- `command-center-mutation-smoke-cases.jsonl` — 6 high-signal smoke cases.
+- `schemas/command-center-mutation-result.schema.json` — structured mutation-gate result contract.
+- `../../scripts/codex-eval-command-center-mutation.ps1` — isolated, safe-by-default Phase 10 classifier.
+
+The suite grades release-readiness versus publication authorization, staging/production separation, source-controlled Supabase migration authority, direct-DDL blocking, Vercel duplicate-deployment prevention, explicit staging retries, unknown-effect handling, destructive recovery requirements, cross-provider authorization separation, and explicitly authorized production rollback.
+
+Live cases execute in an isolated temporary working directory with an isolated temporary `CODEX_HOME` containing only authentication. They do not load the operator's normal MCP/hook configuration and do not call GitHub, Supabase, Vercel, BrowserSkill, or other remote providers.
+
+Dry run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-mutation.ps1 -Suite Smoke -AllowDirty
+```
+
+Live smoke:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-mutation.ps1 -Suite Smoke -Run -AllowDirty
+```
+
+Full live suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-eval-command-center-mutation.ps1 -Suite All -Run -AllowDirty
+```
+
+Run this suite after material changes to `COMMAND_CENTER_MUTATION_GATE.md`, provider-write authorization policy, destructive recovery rules, or provider mutation tooling, and before enabling any real GitHub/Supabase/Vercel write capability.

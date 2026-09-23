@@ -56,6 +56,10 @@ Load only what the task requires:
 - Takeoff -> target + direct dependencies first; read relevant ADR-020/current Takeoff contracts only when quantity/geometry/role/2D-3D authority or cross-module lineage is involved
 - durable workflow -> the relevant `docs/workflow/` document only when workflow behavior is the task
 - GitHub/Supabase/Vercel external state -> `docs/workflow/EXTERNAL_STATE_BOUNDARY.md` only when current remote truth/action is materially required
+- derived structural knowledge / work memory / browser-runtime observation -> `docs/workflow/KNOWLEDGE_AND_OBSERVATION_BOUNDARY.md` only when that information source is materially required
+- mixed source/memory/browser/provider orchestration -> `docs/workflow/COMMAND_CENTER_ORCHESTRATION.md` only when the task genuinely combines evidence channels or action boundaries
+- GitHub/Supabase/Vercel write, production, rollback, repair, or destructive provider action -> `docs/workflow/COMMAND_CENTER_MUTATION_GATE.md` in addition to the external-state boundary; tool availability never grants the write
+- local Command Center installation/runtime health -> `docs/workflow/COMMAND_CENTER_RUNTIME.md` only when installing, debugging, or changing local Command Center tooling
 
 Do not preload old history, unrelated migrations, unrelated routes, full ADRs for trivial edits, or superseded design artifacts.
 
@@ -63,6 +67,7 @@ Do not preload old history, unrelated migrations, unrelated routes, full ADRs fo
 
 - Durable behavior -> owning module/spec/ADR.
 - Verified implementation state -> `docs/CURRENT_STATE.md`.
-- Future sequence -> `docs/ROADMAP.md`.
+- Product future sequence -> `docs/ROADMAP.md`.
+- Command Center implementation sequence -> `docs/workflow/COMMAND_CENTER_ROADMAP.md`.
 - Development/runtime workflow -> `docs/workflow/`.
 - Git history preserves implementation evidence; do not create checkpoint documents merely because a task occurred.

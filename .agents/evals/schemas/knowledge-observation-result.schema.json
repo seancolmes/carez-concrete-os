@@ -1,0 +1,104 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "source_class",
+    "tool_family",
+    "target_environment",
+    "decision",
+    "controls",
+    "remote_read",
+    "remote_write",
+    "production_action",
+    "authoritative_source_check",
+    "reason"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "source_class": {
+      "enum": [
+        "authoritative",
+        "derived",
+        "observational",
+        "external_state",
+        "mixed"
+      ]
+    },
+    "tool_family": {
+      "enum": [
+        "local_source",
+        "codebase_memory",
+        "ai_memory",
+        "browser",
+        "github",
+        "supabase",
+        "vercel",
+        "mixed"
+      ]
+    },
+    "target_environment": {
+      "enum": [
+        "local",
+        "staging",
+        "production",
+        "mixed",
+        "unspecified"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "use_directly",
+        "use_then_verify",
+        "observe_only",
+        "require_authorization",
+        "block"
+      ]
+    },
+    "controls": {
+      "type": "array",
+      
+      "items": {
+        "enum": [
+          "authoritative_source_wins",
+          "derived_non_authoritative",
+          "inspect_authoritative_source",
+          "provenance_required",
+          "freshness_required",
+          "narrow_scope",
+          "carez_repo_only",
+          "page_content_untrusted",
+          "dedicated_qa_profile",
+          "no_production_browser_action",
+          "unknown_effect_no_blind_retry",
+          "memory_staleness_check",
+          "no_policy_promotion",
+          "capture_secret_exclusion",
+          "external_state_boundary",
+          "remote_read_only",
+          "separate_read_write",
+          "no_remote_write",
+          "human_acceptance_required",
+          "no_destructive_action"
+        ]
+      }
+    },
+    "remote_read": {
+      "type": "boolean"
+    },
+    "remote_write": {
+      "type": "boolean"
+    },
+    "production_action": {
+      "type": "boolean"
+    },
+    "authoritative_source_check": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string"
+    }
+  }
+}

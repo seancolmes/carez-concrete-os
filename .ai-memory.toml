@@ -1,0 +1,29 @@
+workspace = "carez"
+project = "carez-concrete-os"
+project_strategy = "repo-root"
+drop_subagent_captures = "true"
+
+[recall]
+default_global = "false"
+
+[briefing]
+inject_on_session_start = "false"
+max_chars = 4000
+
+[capture]
+ignore_paths = [
+  ".env*",
+  "**/.env*",
+  ".git/**",
+  ".next/**",
+  ".vercel/**",
+  "node_modules/**",
+  "supabase/.temp/**",
+  "AGENTS.md",
+  "CODEX.md",
+  "docs/ARCHITECTURE.md",
+  "docs/CURRENT_STATE.md",
+  "docs/ROADMAP.md",
+  "docs/decisions/**",
+  "docs/workflow/**"
+]
