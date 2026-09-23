@@ -118,6 +118,33 @@ test('P1.4 acknowledgement RPC re-evaluates current state and never accepts clie
   assert.match(sql, /grant execute on function public\.carez_acknowledge_estimate_review\(uuid\) to authenticated,service_role/i);
 });
 
+test('release readiness presentation helper preserves database state without recomputing it', async () => {
+  const { parseEstimateReleaseReadiness, releaseStateLabel } =
+    await import('../lib/estimating/releaseReadiness.ts');
+
+  const parsed = parseEstimateReleaseReadiness({
+    estimate_id: 'e1',
+    workflow_state: 'review',
+    release_state: 'review',
+    blocker_count: 0,
+    warning_count: 1,
+    blockers: [],
+    warnings: [{ finding_key:'margin_below_target', severity:'warning', category:'margin', title:'Margin below target', detail:'26.8% vs 30%', record_id:null, next_action:'margin' }],
+    commercial_fingerprint: 'abc',
+    warning_fingerprint: 'def',
+    acknowledgement_valid: false,
+    acknowledgement_id: null,
+    acknowledged_at: null,
+    acknowledged_by: null,
+    latest_acknowledgement_id: null,
+    latest_acknowledged_at: null,
+  });
+
+  assert.equal(parsed.release_state, 'review');
+  assert.equal(parsed.warning_count, 1);
+  assert.equal(releaseStateLabel(parsed.release_state), 'REVIEW REQUIRED');
+});
+
 test('P1.4 fingerprints aggregate ordered canonical records', () => {
   const sql = requireFile(evaluatorMigrationPath, 'P1.4 readiness evaluator migration must exist');
   assert.match(sql, /jsonb_agg\([\s\S]*order by/i);
