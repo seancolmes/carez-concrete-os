@@ -5,7 +5,7 @@ import test from 'node:test';
 const root=new URL('../',import.meta.url);
 const page=readFileSync(new URL('app/page.tsx',root),'utf8');
 
-const rendered=page.slice(0,page.indexOf('\n\n  return <AppShell',page.indexOf('\n\n  return <AppShell')+1));
+const rendered=page;
 
 test('Today implements the approved compact operating hierarchy',()=>{
   for(const text of ['Open Schedule',"Today&apos;s Work",'Attention','Operating Status','Ready to move','Field active','Hard holds','Customers owe','7-day cash','Next Operations','Business Pulse','Pipeline','Cash'])assert.match(rendered,new RegExp(text));

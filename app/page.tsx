@@ -1,18 +1,12 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,CalendarDays,FileText,Ruler,Wallet,CheckCheck,HardHat,ShieldAlert,Activity,Target,ArrowDownUp} from 'lucide-react';
-import {CarezSectionHeading,CarezOperationalPulse,CarezExperienceEmpty} from '@/components/carez/experience';
+import {CalendarDays,CheckCheck,ShieldAlert} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
-import {CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,CarezEmptyState,CarezStatus} from '@/components/carez';
-import {buttonVariants} from '@/components/ui/button';
 import {Item,ItemActions,ItemContent,ItemDescription,ItemMedia,ItemTitle} from '@/components/ui/item';
 import {Stat,StatIndicator,StatLabel,StatValue} from '@/components/ui/stat';
 import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {TodayOperationsGrid} from '@/components/reui/today-operations-grid';
-import {Card,CardContent,CardHeader} from '@/components/ui/card';
-import {Progress} from '@/components/ui/progress';
 import {createClient} from '@/lib/supabase/server';
-import {resolveOperationalState} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
@@ -82,7 +76,6 @@ export default async function HomePage(){
   const dashboardJobs=[...activeProjects].sort((a:any,b:any)=>stateRank(a.state)-stateRank(b.state)||(a.next?.schedule_date||'9999').localeCompare(b.next?.schedule_date||'9999'));
   const jobsHeld=activeProjects.filter((row:any)=>row.state==='hold').length;
   const jobsReady=activeProjects.filter((row:any)=>row.state==='ready').length;
-  const crewWorking=(shifts||[]).filter((row:any)=>['active','open'].includes(row.status)).length;
   const activeFieldJobs=new Set((shifts||[]).filter((row:any)=>['active','open'].includes(row.status)&&row.project_id).map((row:any)=>row.project_id)).size;
   const timeReview=(shifts||[]).filter((row:any)=>row.status==='submitted').length;
   const ar=(billing||[]).reduce((sum:number,row:any)=>sum+Math.max(0,num(row.outstanding_ar)),0);
@@ -127,10 +120,7 @@ export default async function HomePage(){
     if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Cashflow'});
   }
   attention.sort((a,b)=>a.priority-b.priority);
-  const attentionStatusTone=attention.some(item=>item.tone==='danger')?'error':attention.some(item=>item.tone==='warning')?'warning':attention.length?'info':'neutral';
-
   const openProposals=(proposals||[]).filter((row:any)=>['sent','viewed','needs_reply'].includes(row.conversion_stage));
-  const needsReply=openProposals.filter((row:any)=>row.conversion_stage==='needs_reply').length;
   const openProposalValue=openProposals.reduce((sum:number,row:any)=>sum+num(row.base_sell_price),0);
   const openLeads=(leads||[]).length;
   const followUps=[
@@ -171,149 +161,5 @@ export default async function HomePage(){
     </div>
   </AppShell>;
 
-  return <AppShell userName={profile!.full_name||user!.email||'Owner'}>
-    <div className="carez-today-board mx-auto grid w-full max-w-screen-2xl gap-6">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <p className="carez-dayline"><CalendarDays aria-hidden="true"/>{fmtDate(start)}<span>Today</span></p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Today</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/projects" className={buttonVariants({size:'sm'})}><BriefcaseBusiness/>Projects<ArrowUpRight/></Link>
-          <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
-        </div>
-      </header>
-
-      <section aria-labelledby="today-attention-heading" className="carez-priority-stream">
-        <CarezSectionHeading id="today-attention-heading" icon={<ShieldAlert/>} title="Management attention" description="Clear the constraint. Keep the work moving." action={<CarezStatus tone={attentionStatusTone} label={String(attention.length)}/>}/>
-        {attention.length===0
-          ?<CarezExperienceEmpty icon={<CheckCheck/>} tone="success" title="Nothing needs your attention right now." description="No urgent exceptions in the current field, cash, and follow-up queues."/>
-          :<ol className="carez-priority-list">
-            {attention.slice(0,8).map((item,index)=><li key={item.subject+'-'+index} data-tone={item.tone}>
-              <Link href={item.href} className="carez-priority-link">
-                <span className="carez-priority-marker" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>
-                <span className="min-w-0"><span className="carez-priority-subject">{item.subject}</span><span className="carez-priority-reason">{item.issue}</span><span className="carez-priority-time">{item.when}</span></span>
-                <span className="carez-priority-action"><CarezStatus tone={item.tone==='danger'?'error':item.tone} label={item.tone==='danger'?'Critical':item.tone==='warning'?'Attention':'Follow up'}/><span>{item.action}<ArrowRight aria-hidden="true"/></span></span>
-              </Link>
-            </li>)}
-          </ol>}
-        {attention.length>8?<p className="pt-3 text-xs text-muted-foreground">Showing the 8 highest-priority items of {attention.length}. Open the relevant workspace to review the rest.</p>:null}
-      </section>
-
-      <section className="space-y-3" aria-labelledby="today-production-heading">
-        <CarezSectionHeading id="today-production-heading" icon={<CalendarDays/>} title="Scheduled production" description="Today's field work and whether each operation is physically clear." action={<Link href="/schedule" className={buttonVariants({variant:'ghost',size:'sm'})}>Full schedule<ArrowUpRight/></Link>}/>
-        <CarezDataGrid
-          isEmpty={todayFieldWork.length===0}
-          empty={<CarezEmptyState title="Nothing scheduled today" description="Open Schedule to plan the next ready operation." actions={<Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}>Open schedule</Link>}/>}
-        >
-          <CarezDataGridTable>
-            <CarezDataGridHead>
-              <CarezDataGridRow>
-                <CarezDataGridHeaderCell>Time</CarezDataGridHeaderCell>
-                <CarezDataGridHeaderCell>Job</CarezDataGridHeaderCell>
-                <CarezDataGridHeaderCell>Operation</CarezDataGridHeaderCell>
-                <CarezDataGridHeaderCell>Field</CarezDataGridHeaderCell>
-                <CarezDataGridHeaderCell>Readiness</CarezDataGridHeaderCell>
-              </CarezDataGridRow>
-            </CarezDataGridHead>
-            <CarezDataGridBody>{todayFieldWork.map((itemRaw:any)=>{
-              const item:any=itemRaw,job:any=joinedProject(item),rr:any=item.work_package_operation_id?opReady.get(item.work_package_operation_id):null;
-              const readiness=rr?.ready_to_start_all===false?'blocked':rr?.ready_to_start_all===true?'ready':'scheduled';
-              const field=fieldMap.get(item.project_id)||{working:0,review:0};
-              return <CarezDataGridRow key={item.id}>
-                <CarezDataGridCell numeric>{fmtTime(item.start_time)||'—'}</CarezDataGridCell>
-                <CarezDataGridCell>{item.project_id?<Link href={'/projects/'+item.project_id} className="font-medium hover:text-primary">{job?.job_number||'Job'}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{job?.name||'Project'}</span></Link>:<span className="font-medium">{job?.job_number||'Job'}</span>}</CarezDataGridCell>
-                <CarezDataGridCell><span className="font-medium">{item.title}</span>{readiness==='blocked'&&rr?.start_next_action?<span className="mt-0.5 block max-w-56 whitespace-normal text-xs text-muted-foreground">{rr.start_next_action}</span>:null}</CarezDataGridCell>
-                <CarezDataGridCell><span className="font-medium">{field.working?field.working+' working':'—'}</span>{field.review?<span className="mt-0.5 block text-xs text-muted-foreground">{field.review} timecard review</span>:null}</CarezDataGridCell>
-                <CarezDataGridCell><CarezStatus tone={readiness==='blocked'?'blocked':readiness==='ready'?'success':'neutral'} label={readiness==='blocked'?'Blocked':readiness==='ready'?'Ready':'Scheduled'}/></CarezDataGridCell>
-              </CarezDataGridRow>;
-            })}</CarezDataGridBody>
-          </CarezDataGridTable>
-        </CarezDataGrid>
-      </section>
-
-      <CarezOperationalPulse label="Today's operating position" items={[
-        {label:'Ready to move',value:jobsReady,detail:'Jobs with a physical operation ready.',icon:<CheckCheck/>,tone:'success',href:'/readiness'},
-        {label:'Field active',value:activeFieldJobs,detail:crewWorking+' active field shifts right now.',icon:<HardHat/>,tone:'primary',href:'/field'},
-        {label:'Hard holds',value:jobsHeld,detail:'Inspection, setup, or prerequisite blocks.',icon:<ShieldAlert/>,tone:jobsHeld?'danger':'neutral',href:'/readiness'},
-        {label:'Customers owe',value:money(ar),detail:overdue?money(overdue)+' past due.':'No past-due customer balance.',icon:<Wallet/>,tone:overdue?'warning':'neutral',href:'/billing'},
-        {label:'7-day cash',value:money(cashNet),detail:money(cashIn)+' in · '+money(cashOut)+' out.',icon:<ArrowDownUp/>,tone:cashNet<0?'warning':'primary',href:'/cashflow'},
-      ]}/>
-
-      <section className="space-y-3" aria-labelledby="today-next-heading">
-        <CarezSectionHeading id="today-next-heading" icon={<Activity/>} title="What moves next" description="Current work, next field dates, and the action that moves each job forward." action={<Link href="/projects" className={buttonVariants({variant:'ghost',size:'sm'})}>All projects<ArrowUpRight/></Link>}/>
-        <CarezDataGrid
-          isEmpty={dashboardJobs.length===0}
-          empty={<CarezEmptyState title="No active jobs" description="Accepted proposals and direct jobs will appear here." actions={<Link href="/projects" className={buttonVariants({variant:'outline',size:'sm'})}>Open projects</Link>}/>}
-        >
-          <CarezDataGridTable>
-            <CarezDataGridHead><CarezDataGridRow>
-              <CarezDataGridHeaderCell>Job / client</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell>Status</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell>Next operation</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell>Next date</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell>Field</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell>Readiness</CarezDataGridHeaderCell>
-              <CarezDataGridHeaderCell className="min-w-40">Budget position</CarezDataGridHeaderCell>
-            </CarezDataGridRow></CarezDataGridHead>
-            <CarezDataGridBody>{dashboardJobs.slice(0,8).map((row:any)=>{
-              const p=row.project;
-              const location=[p.city,p.state].filter(Boolean).join(', ');
-              const nextOperation=row.next?.title||(row.state==='hold'?'Clear current hold':num(row.r.ready_operations)>0?'Choose next ready operation':p.next_action||'Plan next work');
-              const operational=resolveOperationalState(row.state);
-              const readiness=row.state==='hold'?{tone:'blocked' as const,label:'Blocked'}:row.state==='ready'?{tone:'success' as const,label:'Ready'}:{tone:'neutral' as const,label:'Plan'};
-              const hasBudget=Boolean(row.budget?.project_id);
-              return <CarezDataGridRow key={p.id} className="carez-job-row" data-state={row.state}>
-                <CarezDataGridCell><Link href={'/projects/'+p.id} className="font-medium hover:text-primary">{p.job_number} · {p.name}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.customer?.name||location||'Customer not linked'}</span>{row.customer?.name&&location?<span className="block text-[11px] font-normal text-muted-foreground">{location}</span>:null}</Link></CarezDataGridCell>
-                <CarezDataGridCell>{operational?<CarezStatus tone={operational.tone} label={operational.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
-                <CarezDataGridCell><Link href={row.state==='hold'?'/readiness':'/projects/'+p.id} className="inline-flex items-center gap-2 font-semibold text-primary hover:underline">{nextOperation}<ArrowUpRight className="size-3.5"/></Link>{row.state==='hold'?<span className="mt-0.5 block max-w-64 whitespace-normal text-xs text-muted-foreground">{num(row.r.failed_inspection_operations)>0?'Inspection must clear before work starts':num(row.r.blocked_operations)+' operation'+(num(row.r.blocked_operations)===1?'':'s')+' blocked'}</span>:null}</CarezDataGridCell>
-                <CarezDataGridCell numeric>{fmtShortDate(row.next?.schedule_date)}<span className="mt-0.5 block font-sans text-xs text-muted-foreground">{row.next?.schedule_date?'Next field date':'Not scheduled'}</span></CarezDataGridCell>
-                <CarezDataGridCell><span className="font-medium">{row.field.working?row.field.working+' working':'—'}</span><span className="mt-0.5 block text-xs text-muted-foreground">{row.field.review?row.field.review+' timecard review':row.field.working?'Active field shift':'No active shift'}</span></CarezDataGridCell>
-                <CarezDataGridCell><CarezStatus tone={readiness.tone} label={readiness.label}/></CarezDataGridCell>
-                <CarezDataGridCell>{hasBudget?<div className="min-w-36"><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className={cn('font-medium',row.budgetUsed>=100&&'text-destructive')}>{row.budgetUsed.toFixed(0)}% used</span><span className="text-muted-foreground">{row.laborRemaining.toFixed(1)} MH left</span></div><Progress value={Math.max(0,Math.min(100,row.budgetUsed))}/></div>:<span className="text-xs text-muted-foreground">No authoritative budget snapshot</span>}</CarezDataGridCell>
-              </CarezDataGridRow>;
-            })}</CarezDataGridBody>
-          </CarezDataGridTable>
-        </CarezDataGrid>
-      </section>
-
-      <div className="carez-command-domains">
-        <Card className="carez-command-domain" data-domain="bids">
-          <CardHeader><CarezSectionHeading icon={<Target/>} title="Bid pipeline" description="The next work to win."/></CardHeader>
-          <CardContent className="flex flex-1 flex-col gap-4">
-            <div className="carez-bid-numbers">
-              {[['Open leads',String(openLeads)],['Proposals out',String(openProposals.length)],['Needs reply',String(needsReply)],['Proposal value',money(openProposalValue)]].map(([label,value])=><div key={label} className="py-2"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">{value}</div></div>)}
-            </div>
-            <div className="carez-follow-up flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0"><div className="text-xs font-medium text-muted-foreground">Next follow-up</div>{nextFollowUp?<><div className="mt-1 truncate text-sm font-medium">{nextFollowUp.label}</div><div className="mt-0.5 text-xs text-muted-foreground">{fmtShortDate(nextFollowUp.date)}</div></>:<div className="mt-1 text-sm text-muted-foreground">No dated follow-up in the current pipeline</div>}</div>
-              {nextFollowUp?<Link href={nextFollowUp.href} className={buttonVariants({variant:'outline',size:'sm'})}>Open<ArrowRight/></Link>:null}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/leads" className={buttonVariants({variant:'outline',size:'sm'})}>Leads</Link>
-              <Link href="/takeoff" className={buttonVariants({variant:'outline',size:'sm'})}><Ruler/>Takeoff</Link>
-              <Link href="/estimates" className={buttonVariants({variant:'outline',size:'sm'})}>Estimates</Link>
-              <Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>Proposals</Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="carez-command-domain" data-domain="cash">
-          <CardHeader><CarezSectionHeading icon={<Wallet/>} title="Operational cash attention" description="Customer balances and the next seven days."/></CardHeader>
-          <CardContent className="flex flex-1 flex-col">
-            <dl className="carez-cash-ledger divide-y divide-border">
-              {[
-                ['Customers owe',money(ar),'normal'],
-                ['Past due',money(overdue),overdue?'danger':'normal'],
-                ['7-day expected in',money(cashIn),'normal'],
-                ['7-day expected out',money(cashOut),'normal'],
-                ['7-day net',money(cashNet),cashNet<0?'warning':'normal'],
-              ].map(([label,value,tone])=><div key={label} className="flex items-center justify-between gap-6 px-3 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className={cn('font-mono text-sm font-semibold tabular-nums',tone==='danger'&&'text-destructive',tone==='warning'&&'text-warning')}>{value}</dd></div>)}
-            </dl>
-            <div className="mt-auto flex gap-2 pt-4"><Link href="/billing" className={buttonVariants({variant:'outline',size:'sm'})}><Wallet/>Billing</Link><Link href="/cashflow" className={buttonVariants({variant:'outline',size:'sm'})}>Cashflow</Link></div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  </AppShell>;
 }
 
