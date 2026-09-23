@@ -21,10 +21,11 @@ IMPLEMENT -> VALIDATE -> REVIEW -> STOP
 
 ## Subagents
 
-- Single-agent execution is the default.
-- Spawn a specialist only when its description's trigger is actually met and its read-heavy work can reduce ambiguity or context pollution.
-- Do not spawn subagents for clear, bounded implementation with known files/direct dependencies.
-- Use at most three concurrent subagents; prefer one or two.
+- Single-agent execution is the default. Skill activation does not imply specialist activation.
+- Spawn a specialist only when its description's trigger is actually met and its read-heavy investigation/review can reduce genuine ambiguity or parent-context pollution.
+- Do not spawn subagents for clear bounded implementation, known files/direct dependencies, already-established root causes, routine validation, or merely to confirm the parent's conclusion.
+- Prefer one specialist. Use parallel specialists only for genuinely independent read-heavy work; evidence chains such as browser -> persistence should escalate sequentially. When the first task is ownership mapping, start with `code_mapper` alone and add a domain investigator only after the map establishes a separate unresolved domain issue.
+- Use at most three concurrent subagents; normal Carez work should use zero or one.
 - Specialists investigate/review only; the parent remains the sole application-code writer unless the task explicitly says otherwise.
 - Never ask a subagent to spawn another agent.
 - Wait for requested specialist results, distill only actionable evidence into the parent context, then close/stop the specialist thread.

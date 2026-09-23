@@ -1,6 +1,6 @@
 ---
 name: carez-ui-implementation
-description: Implement approved Carez Concrete OS UI/UX changes without reopening settled product or design decisions. Use for Carez route, shell, navigation, workspace, component, theme, responsive, accessibility, or interaction changes after the desired direction is known. Preserve Carez domain behavior, Indigo Harbor, ADR-025 hierarchy, shared component ownership, light/dark/system behavior, and concrete-native workstation density. Do not use this skill to brainstorm multiple design directions; resolve design direction first, then invoke this skill for bounded implementation.
+description: Implement an already-decided Carez Concrete OS UI/UX change. Use only when the request states an approved/accepted direction or gives a concrete implementation target and behavior to preserve. Covers bounded Carez route, shell, navigation, workspace, component, theme, responsive, accessibility, or interaction implementation. Preserve domain behavior, Indigo Harbor, shared ownership, and light/dark/system behavior. Do not select this skill for open-ended "redesign", "make it better", or brainstorming requests that still need a design decision.
 ---
 
 # Carez UI Implementation
@@ -9,13 +9,12 @@ Apply an approved Carez UI direction as a bounded code change.
 
 ## Workflow
 
-1. Read `AGENTS.md` and `CODEX.md`.
-2. Read only the named route/component and required direct dependencies.
-3. If the task changes Carez presentation language, shell, shared workspace primitives, or a specialist workstation, read `docs/decisions/ADR-025-carez-operations-workspace.md`.
-4. If shared Carez primitives are involved, read only the relevant section of `docs/design-system/CAREZ_COMPONENT_PACK.md`.
-5. For Takeoff UI, also invoke/use `carez-takeoff-change`; Takeoff domain authority is not owned by this skill.
-6. Implement the smallest coherent change. Preserve data sources, permissions, actions, links, calculations, and workflow semantics unless the task explicitly changes them.
-7. Validate proportionally under `CODEX.md`; UI work always needs focused local browser QA before acceptance.
+1. Start with the named route/component and required direct dependencies only. Project instructions are already loaded; do not reread `AGENTS.md` or `CODEX.md`.
+2. Read the relevant ADR-025 section only when the task changes presentation language, shell/navigation structure, shared workspace primitives, or when hierarchy/ownership is genuinely ambiguous. Do not reopen ADR-025 for a small approved local styling edit.
+3. Read only the relevant section of `docs/design-system/CAREZ_COMPONENT_PACK.md` when shared Carez primitives are actually involved.
+4. For Takeoff UI, also use `carez-takeoff-change`; presentation work must not override Takeoff authority.
+5. Implement the smallest coherent change. Preserve data sources, permissions, actions, links, calculations, and workflow semantics unless the task explicitly changes them.
+6. Validate proportionally under the already-loaded `CODEX.md`; UI work needs focused local browser QA before acceptance.
 
 ## UI constraints
 
@@ -29,4 +28,4 @@ Apply an approved Carez UI direction as a bounded code change.
 
 ## Progressive detail
 
-Read `references/implementation-checklist.md` only when preparing the final implementation review or browser-QA plan.
+For ordinary approved implementation, begin with no progressive reference file. Never load `references/final-review-checklist.md` before implementation; it exists only for the final implementation review or browser-QA planning phase.

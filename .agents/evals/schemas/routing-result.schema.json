@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "selected_skills",
+    "spawn_agents",
+    "decision",
+    "progressive_refs",
+    "remote_actions",
+    "reason"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "selected_skills": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "carez-ui-implementation",
+          "carez-takeoff-change",
+          "carez-db-migration",
+          "carez-browser-debug",
+          "carez-release-gate"
+        ]
+      }
+    },
+    "spawn_agents": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "code_mapper",
+          "browser_investigator",
+          "database_investigator",
+          "docs_researcher",
+          "reviewer"
+        ]
+      }
+    },
+    "decision": {
+      "enum": [
+        "proceed",
+        "clarify",
+        "investigate",
+        "map",
+        "review",
+        "release_gate"
+      ]
+    },
+    "progressive_refs": {
+      "type": "array",
+      "items": {
+        "enum": [
+          ".agents/skills/carez-browser-debug/references/evidence-template.md",
+          ".agents/skills/carez-db-migration/references/migration-review.md",
+          ".agents/skills/carez-release-gate/references/gate-checklist.md",
+          ".agents/skills/carez-takeoff-change/references/authority-map.md",
+          ".agents/skills/carez-ui-implementation/references/final-review-checklist.md"
+        ]
+      }
+    },
+    "remote_actions": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string"
+    }
+  }
+}

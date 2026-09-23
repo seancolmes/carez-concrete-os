@@ -50,13 +50,13 @@ deploy Vercel, mutate remote Supabase, or perform remote GitHub actions unless t
 ## Context routing
 
 Load only what the task requires:
-- local execution/validation -> `CODEX.md`
-- cross-cutting architecture -> `docs/ARCHITECTURE.md`
-- UI -> ADR-025 + current Carez component/design-system authority
-- Takeoff -> ADR-020 + current Takeoff contracts
-- durable workflow -> `docs/workflow/`
+- local execution/validation -> already-loaded `CODEX.md`; do not reread it from skills
+- cross-cutting architecture -> `docs/ARCHITECTURE.md` only when the task actually crosses module boundaries
+- approved bounded UI edit -> target + direct dependencies first; read the relevant ADR-025/design-system section only when presentation hierarchy, shell/shared ownership, or design authority is ambiguous
+- Takeoff -> target + direct dependencies first; read relevant ADR-020/current Takeoff contracts only when quantity/geometry/role/2D-3D authority or cross-module lineage is involved
+- durable workflow -> the relevant `docs/workflow/` document only when workflow behavior is the task
 
-Do not preload old history, unrelated migrations, unrelated routes, or superseded design artifacts.
+Do not preload old history, unrelated migrations, unrelated routes, full ADRs for trivial edits, or superseded design artifacts.
 
 ## Documentation
 

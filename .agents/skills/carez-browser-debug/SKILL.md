@@ -1,6 +1,6 @@
 ---
 name: carez-browser-debug
-description: Diagnose Carez browser/runtime failures from evidence before editing application code. Use for UI behavior that is broken, inconsistent, intermittent, console-erroring, network-failing, hydration-related, or difficult to reproduce. Reproduce the failure, capture the smallest useful browser evidence, trace only the owning code path, then implement a fix only when requested and the failure mode is supported by evidence. Avoid broad repo scans, speculative rewrites, and repeated browser passes.
+description: Diagnose Carez browser/runtime failures from evidence before editing application code. Use for UI behavior that is broken, inconsistent, intermittent, console-erroring, network-failing, hydration-related, or difficult to reproduce. Reproduce only when evidence is missing, capture the smallest useful browser evidence, trace only the owning path, and avoid speculative rewrites. Do not use for ordinary visual polish or a fix whose root cause is already established.
 ---
 
 # Carez Browser Debug
@@ -9,22 +9,27 @@ Turn a browser symptom into a bounded, evidence-backed diagnosis.
 
 ## Workflow
 
-1. Read `AGENTS.md` and `CODEX.md`.
-2. Record the route, exact interaction, expected result, and observed failure.
-3. Reproduce once. Capture only relevant console, network, DOM/state, and screenshot evidence.
-4. Trace from the failing interaction to the smallest owning route/component/action/server boundary. Read direct dependencies only.
-5. Separate observed evidence from hypotheses.
-6. If root cause is still ambiguous, stop with the smallest next diagnostic step; do not compensate with a broad scan.
-7. If a fix is requested and the root cause is supported, make the smallest coherent patch.
-8. Re-run the exact reproduction once, then run the smallest relevant code validation from `CODEX.md`.
+1. Start from the supplied route, interaction, expected result, observed failure, and existing evidence. Project instructions are already loaded; do not reread `AGENTS.md` or `CODEX.md`.
+2. If the failure is not yet evidenced, reproduce once and capture only relevant console, network, DOM/state, and screenshot evidence.
+3. Trace from the failing interaction to the smallest owning route/component/action/server boundary. Read direct dependencies only.
+4. Separate observed evidence from hypotheses.
+5. If root cause is still ambiguous, stop with the smallest next diagnostic step; do not compensate with a broad scan.
+6. If a fix is requested and the root cause is supported, make the smallest coherent patch.
+7. Re-run the exact reproduction once, then run the smallest relevant code validation from `CODEX.md`.
+
+## Specialist routing
+
+- Use `browser_investigator` only when browser reproduction/evidence can materially narrow an unresolved failure.
+- Do not spawn it for visual-design polish, known CSS changes, or when supplied evidence already establishes the failing file/root cause.
+- If browser evidence later establishes a persistence/RLS ambiguity, escalate sequentially to database investigation rather than spawning both specialists preemptively.
 
 ## Tool discipline
 
 - Prefer browser/DevTools evidence for browser claims.
-- Do not use external plugins or production services unless the failure depends on remote truth.
-- Do not edit code during the evidence-gathering phase unless the user explicitly asks for an exploratory instrumentation change.
+- Do not use external plugins or production services unless the failure depends on explicitly authorized remote truth.
+- Do not edit code during evidence gathering unless the user explicitly asks for exploratory instrumentation.
 - Stop after one confirmatory browser pass unless new evidence contradicts the diagnosis.
 
 ## Progressive detail
 
-Read `references/evidence-template.md` only when reporting a diagnosis or handing the task to an implementation agent.
+Read `references/evidence-template.md` when a real reproduction/evidence investigation is beginning so evidence stays bounded and structured. Do not load it for vague failures that still need clarification or for already-diagnosed fixes.
