@@ -391,6 +391,8 @@ test('P1.4 Proposal Setup links an authoritative Customer destination before awa
   assert.match(page, /contactName=lead\?\.customer\?\.contact_name\|\|lead\?\.contact_name/);
   assert.match(page, /contactEmail=lead\?\.customer\?\.email\|\|lead\?\.email/);
   assert.match(page, /mailtoAddress=lead\?\.customer\?\.email\|\|queue\?\.customer_email/);
+  assert.match(page, /queue\?\.project_name\|\|e\.name/);
+  assert.doesNotMatch(page, /queue\.project_name\|\|e\.name/);
   assert.match(page, /<form action=\{linkProposalCustomer\}/);
   assert.match(page, /<form action=\{createProposalCustomer\}/);
   assert.match(page, /becomes the Proposal destination/);

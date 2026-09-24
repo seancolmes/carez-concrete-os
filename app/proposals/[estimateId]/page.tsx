@@ -78,7 +78,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const preview=link?`${link}?preview=1`:'';
   const mailtoAddress=lead?.customer?.email||queue?.customer_email;
   const mailtoName=lead?.customer?.contact_name||lead?.customer?.name||queue?.contact_name||queue?.customer_name||'';
-  const mailto=mailtoAddress?`mailto:${mailtoAddress}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${mailtoName},\n\nI wanted to follow up on ${proposalDisplay} for ${queue.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\nCarez Concrete`)}`:'';
+  const mailto=mailtoAddress?`mailto:${mailtoAddress}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${mailtoName},\n\nI wanted to follow up on ${proposalDisplay} for ${queue?.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\nCarez Concrete`)}`:'';
   const customer=lead?.customer?.name||lead?.customer_name||queue?.customer_name||'Customer';
   const contactName=lead?.customer?.contact_name||lead?.contact_name;
   const contactEmail=lead?.customer?.email||lead?.email;
