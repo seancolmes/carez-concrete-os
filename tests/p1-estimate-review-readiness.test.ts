@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const ackMigrationPath = 'supabase/migrations/20260921232000_estimate_review_acknowledgements.sql';
+const ackHardeningMigrationPath = 'supabase/migrations/20260923123000_estimate_review_acknowledgement_hardening.sql';
 
 const requireFile = (path: string, message: string) => {
   assert.equal(existsSync(path), true, message);
@@ -29,6 +30,17 @@ test('P1.4 stores append-only tenant-scoped Estimate review acknowledgements', (
   assert.match(sql, /public\.get_my_role\(\)[\s\S]*<>\s*'employee'/i);
   assert.doesNotMatch(sql, /grant\s+(insert|update|delete)[\s\S]*estimate_review_acknowledgements\s+to\s+authenticated/i);
   assert.match(sql, /raise exception 'Estimate review acknowledgements are immutable\.'/i);
+});
+
+test('P1.4 acknowledgement follow-up limits authenticated access and indexes the Estimate foreign key', () => {
+  const sql = requireFile(ackHardeningMigrationPath, 'P1.4 acknowledgement hardening migration must exist');
+
+  assert.match(sql, /revoke all\s+on table public\.estimate_review_acknowledgements\s+from authenticated/i);
+  assert.match(sql, /revoke all[\s\S]*?grant select\s+on table public\.estimate_review_acknowledgements\s+to authenticated/i);
+  for (const privilege of ['insert', 'update', 'delete', 'truncate']) {
+    assert.doesNotMatch(sql, new RegExp(`grant\\s+${privilege}\\b[\\s\\S]*?to authenticated`, 'i'));
+  }
+  assert.match(sql, /create index if not exists estimate_review_ack_estimate_id_fk_idx\s+on public\.estimate_review_acknowledgements\s*\(\s*estimate_id\s*\)/i);
 });
 
 const evaluatorMigrationPath = 'supabase/migrations/20260923121000_estimate_release_readiness.sql';
