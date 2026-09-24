@@ -34,9 +34,12 @@ test('P1.4 stores append-only tenant-scoped Estimate review acknowledgements', (
 const evaluatorMigrationPath = 'supabase/migrations/20260923121000_estimate_release_readiness.sql';
 const billingProfileMigrationPath = 'supabase/migrations/20260923120500_reconcile_company_billing_profiles.sql';
 const ackRpcMigrationPath = 'supabase/migrations/20260923122000_estimate_review_acknowledgement_rpc.sql';
+const proposalGuardMigrationPath = 'supabase/migrations/20260923122500_proposal_release_guard.sql';
 const reviewPagePath = 'app/estimates/audit/page.tsx';
 const estimateActionsPath = 'app/estimates/actions.ts';
 const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
+const proposalPagePath = 'app/proposals/[estimateId]/page.tsx';
+const proposalActionsPath = 'app/proposals/actions.ts';
 
 test('P1.4 company billing profile prerequisite reconciles the tenant-scoped defaults contract', () => {
   const sql = requireFile(billingProfileMigrationPath, 'Company billing profile prerequisite migration must exist');
@@ -262,4 +265,37 @@ test('P1.4 labor classification follows the current active company class contrac
   const sql = requireFile(evaluatorMigrationPath, 'P1.4 readiness evaluator migration must exist');
   assert.match(sql, /from public\.li_risk_classes[\s\S]*company_id\s*=\s*v_company_id[\s\S]*tax_year\s*=\s*2026[\s\S]*active/i);
   assert.match(sql, /labor_classification_missing/i);
+});
+
+test('P1.4 Proposal presentations persist and enforce fresh Estimate release evidence', () => {
+  const sql = requireFile(proposalGuardMigrationPath, 'P1.4 proposal release guard migration must exist');
+  for (const column of ['release_commercial_fingerprint', 'release_warning_fingerprint', 'release_acknowledgement_id']) {
+    assert.match(sql, new RegExp(`add column ${column}`, 'i'));
+  }
+  assert.match(sql, /release_acknowledgement_id uuid[\s\S]*references public\.estimate_review_acknowledgements\(id\)/i);
+  assert.match(sql, /create or replace function public\.carez_guard_proposal_release\(\)/i);
+  assert.match(sql, /before insert on public\.proposal_presentations/i);
+  assert.match(sql, /carez_get_estimate_release_readiness\(new\.estimate_id\)/i);
+  assert.match(sql, /release_state[\s\S]*is distinct from 'release_ready'/i);
+  assert.match(sql, /new\.release_commercial_fingerprint is distinct from \(v_readiness->>'commercial_fingerprint'\)/i);
+  assert.match(sql, /new\.release_warning_fingerprint is distinct from \(v_readiness->>'warning_fingerprint'\)/i);
+  assert.match(sql, /v_warning_count>0[\s\S]*new\.release_acknowledgement_id is distinct from/i);
+  assert.match(sql, /v_warning_count=0[\s\S]*new\.release_acknowledgement_id:=null/i);
+});
+
+test('Proposal page and issue action consume authoritative release readiness', () => {
+  const page = requireFile(proposalPagePath, 'Proposal page must exist');
+  const actions = requireFile(proposalActionsPath, 'Proposal actions must exist');
+  assert.match(page, /carez_get_estimate_release_readiness/);
+  assert.match(page, /parseEstimateReleaseReadiness/);
+  assert.match(page, /release\.release_state==='release_ready'&&!locked/);
+  assert.doesNotMatch(page, /readyCount/);
+
+  const issue = actions.slice(actions.indexOf('export async function createProposalLink'), actions.indexOf('export async function revokeProposalLink'));
+  assert.match(issue, /carez_get_estimate_release_readiness/);
+  assert.match(issue, /parseEstimateReleaseReadiness/);
+  assert.match(issue, /release\.release_state!=='release_ready'/);
+  assert.match(issue, /release_commercial_fingerprint:release\.commercial_fingerprint/);
+  assert.match(issue, /release_warning_fingerprint:release\.warning_fingerprint/);
+  assert.match(issue, /release_acknowledgement_id:release\.warning_count>0\?release\.acknowledgement_id:null/);
 });

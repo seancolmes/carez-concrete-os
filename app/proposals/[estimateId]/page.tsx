@@ -10,6 +10,7 @@ import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {createClient} from '@/lib/supabase/server';
+import {parseEstimateReleaseReadiness} from '@/lib/estimating/releaseReadiness';
 import {addProposalClarification,createProposalLink,createProposalRevision,deleteProposalClarification,markProposalResponseHandled,recordProposalFollowUp,revokeProposalLink,saveProposalSettings,toggleValueOptionPresented} from '../actions';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
@@ -40,6 +41,9 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
     supabase.from('company_billing_profiles').select('default_terms_text').eq('company_id',companyId).maybeSingle(),
   ]);
   if(!e)notFound();
+  const {data:releaseData,error:releaseError}=await supabase.rpc('carez_get_estimate_release_readiness',{p_estimate_id:estimateId});
+  if(releaseError)throw new Error(releaseError.message);
+  const release=parseEstimateReleaseReadiness(releaseData);
 
   const queue=q||null;
   const responseEvents=events||[];
@@ -50,14 +54,17 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const ps=settings||{};
   const terms=ps.terms_text||billing?.default_terms_text||'';
   const contactReady=Boolean(lead?.email||lead?.phone);
-  const readiness=[
-    {ok:e.status==='ready',label:'Estimate marked Ready for Audit / Proposal'},
-    {ok:sell>0,label:'Customer price is set'},
-    {ok:(items||[]).length>0,label:'Customer scope is included'},
-    {ok:contactReady,label:'Customer contact is available'},
-    {ok:Boolean(terms),label:'Terms are available'},
+  const canIssue=release.release_state==='release_ready'&&!locked;
+  const setupRows=[
+    {ok:e.status==='ready',label:'Estimate workflow',detail:e.status==='ready'?'Ready for Review':String(e.status).replaceAll('_',' ')},
+    {ok:sell>0,label:'Customer price',detail:money(sell)},
+    {ok:(items||[]).length>0,label:'Customer scope',detail:`${(items||[]).length} Estimate item(s)`},
+    {ok:contactReady,label:'Customer contact',detail:contactReady?'Available':'Not available'},
+    {ok:Boolean(terms),label:'Terms',detail:terms?'Available':'Not entered'},
+    {ok:Boolean(ps.schedule_summary),label:'Schedule',detail:ps.schedule_summary||'Not entered'},
+    {ok:Boolean(ps.payment_summary),label:'Payment',detail:ps.payment_summary||'Not entered'},
+    {ok:(clarifications||[]).length>0,label:'Clarifications',detail:`${(clarifications||[]).length} recorded`},
   ];
-  const readyCount=readiness.filter(x=>x.ok).length;
   const h=await headers();
   const host=h.get('x-forwarded-host')||h.get('host')||'';
   const proto=h.get('x-forwarded-proto')||'https';
@@ -87,7 +94,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
       <MetricCard label="Follow-up" value={issued&&queue.follow_up_due?day(queue.follow_up_due):'—'} help={issued?queue.next_action:'Set automatically when issued.'} tone={issued&&queue.follow_up_due_now?'warning':'default'}/>
     </section>
 
-    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} readiness={readiness} readyCount={readyCount} clarifications={clarifications||[]} options={options||[]}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project}/>} 
+    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} release={release} canIssue={canIssue} setupRows={setupRows} clarifications={clarifications||[]} options={options||[]}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project}/>}
 
     {locked&&['accepted','approved'].includes(e.status)&&project&&<Card className="border-success/30 bg-success/5 shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-success">Awarded</p><h2 className="mt-1 font-semibold">Proposal accepted — operating handoff is active</h2><p className="mt-1 text-sm text-muted-foreground">Carez preserved this revision and created the awarded-job baseline, Work Packages and readiness chain.</p></div><Link className={buttonVariants({size:'sm'})} href={`/projects/${project.id}`}><CheckCircle2/>Open Job</Link></CardContent></Card>}
   </div></AppShell>;
@@ -105,10 +112,10 @@ async function qPromise(supabase:any,companyId:string,estimateId:string){
   return supabase.from('proposal_engagement_events').select('id,presentation_id,event_type,customer_name,customer_email,customer_message,decline_reason,option_id,created_at,handled_at').eq('company_id',companyId).eq('presentation_id',q.presentation_id).is('handled_at',null).neq('event_type','view').order('created_at',{ascending:false});
 }
 
-function ProposalPreparation({e,sell,ps,terms,readiness,readyCount,clarifications,options}:{e:any;sell:number;ps:any;terms:string;readiness:any[];readyCount:number;clarifications:any[];options:any[]}){
+function ProposalPreparation({e,sell,ps,terms,release,canIssue,setupRows,clarifications,options}:{e:any;sell:number;ps:any;terms:string;release:{release_state:string};canIssue:boolean;setupRows:{ok:boolean;label:string;detail:string}[];clarifications:any[];options:any[]}){
   return <>
     <section className="grid gap-4 xl:grid-cols-2">
-      <Card className="shadow-none"><CardHeader><CardTitle>Ready to Issue</CardTitle><CardDescription>Carez checks the minimum before an immutable customer revision can be created.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="divide-y rounded-lg border border-border">{readiness.map((item:any,index:number)=><div key={index} className="flex items-center gap-3 px-3 py-3"><span className={`flex size-7 shrink-0 items-center justify-center rounded-full ${item.ok?'bg-success/10 text-success':'bg-warning/10 text-warning'}`}>{item.ok?<Check className="size-4"/>:<Clock3 className="size-4"/>}</span><strong className="text-sm font-medium">{item.label}</strong></div>)}</div><div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm"><span className="text-muted-foreground">Conversion readiness</span><strong className="tabular-nums">{readyCount}/5</strong></div></CardContent></Card>
+      <Card className="shadow-none"><CardHeader><CardTitle>Proposal setup</CardTitle><CardDescription>Setup details help complete the customer offer. Release readiness is evaluated by Estimate Review.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="divide-y rounded-lg border border-border">{setupRows.map((item,index)=><div key={index} className="flex items-center gap-3 px-3 py-3"><span className={`flex size-7 shrink-0 items-center justify-center rounded-full ${item.ok?'bg-success/10 text-success':'bg-warning/10 text-warning'}`}>{item.ok?<Check className="size-4"/>:<Clock3 className="size-4"/>}</span><span><strong className="text-sm font-medium">{item.label}</strong><span className="ml-2 text-sm text-muted-foreground">{item.detail}</span></span></div>)}</div><div className="flex items-center justify-between border-t border-border pt-3 text-sm"><span className="text-muted-foreground">Estimate release state</span><strong>{release.release_state.replaceAll('_',' ').toUpperCase()}</strong></div></CardContent></Card>
 
       <Card className="shadow-none"><CardHeader><CardTitle>Customer Offer</CardTitle><CardDescription>Customer-facing wording only. Internal cost, labor burden and margin never appear here.</CardDescription></CardHeader><CardContent><form action={saveProposalSettings} className="grid gap-4"><input type="hidden" name="estimate_id" value={e.id}/>
         <div className="grid gap-2"><Label htmlFor={`audience-${e.id}`}>Customer type</Label><select id={`audience-${e.id}`} className={selectClass} name="audience_type" defaultValue={ps.audience_type||'general_contractor'}><option value="general_contractor">General Contractor</option><option value="homeowner">Homeowner</option><option value="commercial_owner">Commercial Owner</option></select></div>
@@ -129,7 +136,7 @@ function ProposalPreparation({e,sell,ps,terms,readiness,readyCount,clarification
       <Card className="shadow-none"><CardHeader><CardTitle>Options / Value Engineering</CardTitle><CardDescription>Choose which approved alternates are actually visible to the customer.</CardDescription></CardHeader><CardContent>{options.length?<div className="divide-y rounded-lg border border-border">{options.map((option:any)=><div key={option.id} className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-medium">{option.name}</div><div className="mt-1 text-xs text-muted-foreground">{option.customer_description||option.function_quality_note||'Alternate option'} · {Number(option.sell_price_change||0)>=0?'+':''}{money(option.sell_price_change)}</div></div><form action={toggleValueOptionPresented}><input type="hidden" name="estimate_id" value={e.id}/><input type="hidden" name="option_id" value={option.id}/><input type="hidden" name="target_status" value={option.status==='presented'?'suggested':'presented'}/><Button type="submit" size="sm" variant={option.status==='presented'?'outline':'secondary'}>{option.status==='presented'?'Shown':'Hidden'}</Button></form></div>)}</div>:<p className="text-sm text-muted-foreground">No value-engineering options are attached to this estimate.</p>}</CardContent></Card>
     </section>
 
-    <Card className={readyCount===5?'border-success/30 bg-success/5 shadow-none':'border-warning/30 bg-warning/5 shadow-none'}><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issue customer revision</p><h2 className="mt-1 font-semibold">{readyCount===5?'Ready to create the customer link':'Finish the readiness items first'}</h2><p className="mt-1 text-sm text-muted-foreground">Issuing creates an immutable snapshot of this exact estimate, scope, customer wording, clarifications and options.</p></div><form action={createProposalLink}><input type="hidden" name="estimate_id" value={e.id}/><Button type="submit" disabled={readyCount<5}><Send/>Issue {money(sell)} Proposal</Button></form></CardContent></Card>
+    <Card className={canIssue?'border-success/30 bg-success/5 shadow-none':'border-warning/30 bg-warning/5 shadow-none'}><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issue customer revision</p><h2 className="mt-1 font-semibold">{canIssue?'Ready to create the customer link':'Complete Estimate Review before issuing'}</h2><p className="mt-1 text-sm text-muted-foreground">Issuing creates an immutable snapshot of this exact estimate, scope, customer wording, clarifications and options.</p></div><form action={createProposalLink}><input type="hidden" name="estimate_id" value={e.id}/><Button type="submit" disabled={!canIssue}><Send/>Issue {money(sell)} Proposal</Button></form></CardContent></Card>
   </>;
 }
 
