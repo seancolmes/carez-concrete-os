@@ -27,6 +27,13 @@ test('every registered destination remains represented by one command group',()=
   assert.deepEqual([...groupedIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
 });
 
+test('Estimate review keeps the compatibility route with Review product language',()=>{
+  const destination=NAVIGATION_DESTINATIONS.find(item=>item.id==='estimate-audit');
+  assert.equal(destination?.href,'/estimates/audit');
+  assert.equal(destination?.label,'Estimate review');
+  assert.equal(destination?.hint,'Commercial recap and release review');
+});
+
 test('seven-surface presentation classifies every destination once with canonical surface routes',()=>{
   assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Today','Preconstruction','Projects','Field','Production','Finance','System']);
   assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/','/leads','/projects','/field','/production','/cashflow','/settings']);

@@ -231,3 +231,17 @@ export async function selectEstimateSupplierQuoteLine(fd:FormData){
   revalidatePath('/estimates');
   revalidatePath('/takeoff');
 }
+
+export async function acknowledgeEstimateReview(fd:FormData){
+  const estimateId=String(fd.get('estimate_id')||'');
+  if(!estimateId)throw new Error('Estimate is required.');
+  const {supabase,companyId}=await ctx();
+  const {data:estimate,error:estimateError}=await supabase.from('estimates').select('id').eq('id',estimateId).eq('company_id',companyId).maybeSingle();
+  if(estimateError||!estimate)throw new Error(estimateError?.message||'Estimate not found.');
+  const {error}=await supabase.rpc('carez_acknowledge_estimate_review',{p_estimate_id:estimateId});
+  if(error)throw new Error(error.message);
+  revalidatePath('/estimates');
+  revalidatePath('/estimates/audit');
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath(`/proposals/${estimateId}`);
+}

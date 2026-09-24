@@ -34,6 +34,9 @@ test('P1.4 stores append-only tenant-scoped Estimate review acknowledgements', (
 const evaluatorMigrationPath = 'supabase/migrations/20260923121000_estimate_release_readiness.sql';
 const billingProfileMigrationPath = 'supabase/migrations/20260923120500_reconcile_company_billing_profiles.sql';
 const ackRpcMigrationPath = 'supabase/migrations/20260923122000_estimate_review_acknowledgement_rpc.sql';
+const reviewPagePath = 'app/estimates/audit/page.tsx';
+const estimateActionsPath = 'app/estimates/actions.ts';
+const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
 
 test('P1.4 company billing profile prerequisite reconciles the tenant-scoped defaults contract', () => {
   const sql = requireFile(billingProfileMigrationPath, 'Company billing profile prerequisite migration must exist');
@@ -143,6 +146,89 @@ test('release readiness presentation helper preserves database state without rec
   assert.equal(parsed.release_state, 'review');
   assert.equal(parsed.warning_count, 1);
   assert.equal(releaseStateLabel(parsed.release_state), 'REVIEW REQUIRED');
+});
+
+test('Estimate Review consumes authoritative readiness and avoids obsolete audit views', () => {
+  const page = requireFile(reviewPagePath, 'Estimate Review page must exist');
+  assert.match(page, /carez_get_estimate_release_readiness/);
+  assert.match(page, /parseEstimateReleaseReadiness/);
+  assert.doesNotMatch(page, /estimate_audit_(?:summary|findings)/);
+  for (const section of ['Release state', 'Commercial Recap', 'Blockers', 'Warnings', 'Commercial Decisions', 'Scope Recap', 'Pricing Recap', 'Labor Recap', 'Proposal preparation', 'Estimate Trace']) {
+    assert.match(page, new RegExp(section, 'i'));
+  }
+  assert.match(page, /Reviewed \/ proceed/);
+  assert.match(page, /latest_acknowledgement_id[\s\S]*acknowledgement_valid[\s\S]*stale/i);
+  assert.match(page, /readiness\.release_state==='review'&&readiness\.blocker_count===0&&readiness\.warning_count>0/);
+  const sectionOrder = ['Release state', 'Commercial Recap', 'Blockers', 'Warnings', 'Commercial Decisions', 'Scope Recap', 'Pricing Recap', 'Labor Recap', 'Proposal preparation', 'Estimate Trace'].map(section => page.indexOf(section));
+  assert.deepEqual(sectionOrder, [...sectionOrder].sort((a, b) => a - b));
+  const warningsSection = page.indexOf('<FindingSection title="Warnings"');
+  const acknowledgement = page.indexOf('Reviewed / proceed');
+  const commercialDecisions = page.indexOf('Commercial Decisions</h2>');
+  assert.ok(warningsSection < acknowledgement && acknowledgement < commercialDecisions, 'Acknowledgement follows Warnings and precedes Commercial Decisions');
+  for (const destination of ['/estimates/${estimateId}#pricing-coverage', '/estimates/${estimateId}#labor-review', '/estimates/${estimateId}#scope-cost', '/estimates/${estimateId}#price-margin', '/proposals/${estimateId}', "return '/takeoff'"]) {
+    assert.ok(page.includes(destination), `Expected finding destination ${destination}`);
+  }
+});
+
+test('Estimate Review recap scopes active source data and shows connected commercial lineage', () => {
+  const page = requireFile(reviewPagePath, 'Estimate Review page must exist');
+  assert.match(page, /takeoff_measurements'[\s\S]*\.eq\('status','active'\)/);
+  assert.match(page, /measurementIds\.length\?[\s\S]*takeoff_measurement_outputs'[\s\S]*\.in\('measurement_id',measurementIds\)/);
+  assert.match(page, /item\.source_takeoff_output_id\|\|activeOutputIds\.includes\(item\.source_takeoff_output_id\)/);
+  assert.match(page, /item\.source_takeoff_measurement_id\|\|measurementIds\.includes\(item\.source_takeoff_measurement_id\)/);
+  assert.match(page, /labor_rate_override_at!==null&&output\.labor_rate_override_at!==undefined/);
+  assert.doesNotMatch(page, /explicitLaborRates=activeOutputs\.filter\(output=>output\.estimate_item_type==='labor'&&output\.price_source_kind==='labor_profile'/);
+  assert.match(page, /project_condition_measurement_roles'[\s\S]*\.in\('measurement_id',measurementIds\)/);
+  assert.match(page, /estimate_supplier_quote_lines'[\s\S]*\.in\('quote_id',quoteIds\)/);
+  assert.match(page, /activeOutputs/);
+  assert.match(page, /B&O classification \/ rate/);
+  assert.match(page, /Payment \/ transaction reserve assumption/);
+  assert.match(page, /bo_classification[\s\S]*bo_rate_percent/);
+  assert.match(page, /payment_processing_rate_percent/);
+  for (const scopeFact of ['Condition\(s\)', 'active Takeoff measurement\(s\)', 'active generated output\(s\)', 'Estimate item\(s\)']) assert.ok(page.includes(scopeFact));
+  for (const count of ['Generated resources', 'Priced', 'Missing price', 'Supplier quote selected', 'Catalog source', 'Template \/ default source', 'Manual override', 'Expired selected quote', 'Unused supplier evidence']) {
+    assert.ok(page.includes(count), `Expected pricing recap count ${count}`);
+  }
+  for (const count of ['Labor operations', 'Estimated MH', 'Direct Labor Cost', 'Baseline assumptions', 'Job MH\/unit overrides', 'Explicit labor-rate selections', 'Missing assumptions', 'Missing rates']) {
+    assert.ok(page.includes(count), `Expected labor recap count ${count}`);
+  }
+  for (const lineage of ['Condition:', 'Measurement / drawing:', 'Output:', 'Production Quantity:', 'Price source:', 'Labor assumption / rate:', 'Direct Cost']) {
+    assert.ok(page.includes(lineage), `Expected connected Estimate Trace field ${lineage}`);
+  }
+  assert.match(page, /legacy_takeoff_output_id===output\?\.id\|\|row\.generated_estimate_item_id===item\.id/);
+  for (const decision of ['Manual price override', 'Selected supplier quote', 'Expired selected supplier quote', 'Job MH/unit override', 'Explicit labor-rate selection', 'Customer Sell below target']) assert.ok(page.includes(decision));
+  assert.match(page, /Commercial Decisions[\s\S]*commercialDecisions\.map/);
+  assert.match(page, /condition_code_snapshot[\s\S]*revision_no/);
+  assert.match(page, /template_code_snapshot[\s\S]*template_name_snapshot[\s\S]*templateVersion\.version_no/);
+  assert.match(page, /archetype_code_snapshot[\s\S]*archetype_name_snapshot[\s\S]*archetypeVersion\.version_no/);
+  assert.match(page, /Condition module \+ [Oo]utput/);
+  assert.match(page, /Generated Estimate item:/);
+  assert.doesNotMatch(page, /Sell allocation/);
+  assert.match(page, /latestReviewer\?\.full_name\|\|latestReviewer\?\.email/);
+  assert.match(page, /from\('profiles'\)\.select\('full_name,email'\)[\s\S]*\.eq\('company_id',companyId\)/);
+  assert.doesNotMatch(page, /previous review by \{latestAck\?\.acknowledged_by/);
+});
+
+test('Estimate review acknowledgement action delegates authority to the RPC', () => {
+  const actions = requireFile(estimateActionsPath, 'Estimate actions must exist');
+  assert.match(actions, /export async function acknowledgeEstimateReview/);
+  assert.match(actions, /carez_acknowledge_estimate_review/);
+  const action = actions.slice(actions.indexOf('export async function acknowledgeEstimateReview'));
+  const body = action.split('export async function', 2)[0] || action;
+  assert.doesNotMatch(body, /fingerprint|warning_snapshot|warning_count/);
+  assert.match(body, /\.eq\('company_id',companyId\)/);
+  assert.match(body, /revalidatePath\('\/estimates\/audit'\)/);
+  assert.match(body, /revalidatePath\(`\/proposals\/\$\{estimateId\}`\)/);
+});
+
+test('Estimate UI uses Ready for Review and Review terminology', () => {
+  const page = requireFile(estimatePagePath, 'Estimate page must exist');
+  assert.match(page, /Ready for Review/);
+  assert.doesNotMatch(page, /Ready for Audit \/ Proposal/);
+  assert.match(page, /'Review'/);
+  for (const anchor of ['scope-cost', 'price-margin', 'pricing-coverage', 'labor-review']) {
+    assert.match(page, new RegExp(`id=["']${anchor}["']`));
+  }
 });
 
 test('P1.4 fingerprints aggregate ordered canonical records', () => {
