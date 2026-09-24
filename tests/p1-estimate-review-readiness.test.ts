@@ -47,6 +47,7 @@ const evaluatorMigrationPath = 'supabase/migrations/20260923121000_estimate_rele
 const billingProfileMigrationPath = 'supabase/migrations/20260923120500_reconcile_company_billing_profiles.sql';
 const ackRpcMigrationPath = 'supabase/migrations/20260923122000_estimate_review_acknowledgement_rpc.sql';
 const proposalGuardMigrationPath = 'supabase/migrations/20260923122500_proposal_release_guard.sql';
+const proposalReconciliationMigrationPath = 'supabase/migrations/20260924083000_reconcile_proposal_conversion_schema.sql';
 const reviewPagePath = 'app/estimates/audit/page.tsx';
 const estimateActionsPath = 'app/estimates/actions.ts';
 const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
@@ -294,6 +295,42 @@ test('P1.4 Proposal presentations persist and enforce fresh Estimate release evi
   assert.match(sql, /new\.release_warning_fingerprint is distinct from \(v_readiness->>'warning_fingerprint'\)/i);
   assert.match(sql, /v_warning_count>0[\s\S]*new\.release_acknowledgement_id is distinct from/i);
   assert.match(sql, /v_warning_count=0[\s\S]*new\.release_acknowledgement_id:=null/i);
+});
+
+test('Proposal schema reconciliation restores the conversion contract without replacing P1.4 authority', () => {
+  const sql = requireFile(proposalReconciliationMigrationPath, 'Proposal schema reconciliation migration must exist');
+
+  for (const object of [
+    'proposal_access_tokens', 'proposal_acceptances', 'proposal_settings', 'proposal_clarifications',
+    'proposal_engagement_events', 'opportunity_sequences', 'next_opportunity_number',
+    'proposal_conversion_queue', 'get_public_proposal', 'track_public_proposal_view',
+    'lead_activities', 'lead_bid_intelligence', 'bid_value_options',
+  ]) assert.ok(sql.includes(object), `Expected reconciled Proposal contract: ${object}`);
+
+  assert.doesNotMatch(sql, /drop\s+table\s+(?:if\s+exists\s+)?public\.proposal_presentations|truncate\s+(?:table\s+)?public\.proposal_presentations|create\s+table(?:\s+if\s+not\s+exists)?\s+public\.proposal_presentations/i);
+  assert.match(sql, /proposal_access_token_id[\s\S]*references public\.proposal_access_tokens\(id\)/i);
+  assert.match(sql, /proposal_presentations_proposal_access_token_id_key[\s\S]*c\.conkey=array\[v_token_attnum\]/i);
+  assert.match(sql, /proposal_presentations must retain the accepted single-column UNIQUE key/i);
+  assert.doesNotMatch(sql, /create unique index if not exists proposal_presentations_access_token_key/i);
+  assert.match(sql, /proposal_presentations is incompatible[\s\S]*missing expected columns/i);
+  for (const column of ['release_commercial_fingerprint', 'release_warning_fingerprint', 'release_acknowledgement_id']) {
+    assert.match(sql, new RegExp(`new\\.${column} is distinct from old\\.${column}`, 'i'));
+  }
+  assert.match(sql, /protect_proposal_presentation_snapshot/i);
+  assert.match(sql, /create trigger protect_proposal_presentation_snapshot before update/i);
+  assert.doesNotMatch(sql, /create or replace function public\.carez_guard_proposal_release|drop trigger[^;]*guard_proposal_release/i);
+  assert.match(sql, /guard_proposal_release[\s\S]*raise exception/i);
+  assert.match(sql, /create policy "office access proposal settings"[\s\S]*get_my_company_id[\s\S]*get_my_role[\s\S]*employee/i);
+  assert.ok(sql.indexOf('drop policy if exists "qa company access proposal_presentations"') < sql.indexOf('create policy "office access proposal presentations"'));
+  assert.match(sql, /revoke all on table[\s\S]*public\.proposal_settings[\s\S]*public\.proposal_presentations[\s\S]*public\.proposal_engagement_events[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /revoke all on table[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant select, insert, update on table public\.proposal_settings to authenticated/i);
+  assert.doesNotMatch(sql, /grant\s+[^;]*(?:truncate|references|trigger)[^;]*\s+to authenticated/i);
+  assert.doesNotMatch(sql, /grant all on table[^;]*to authenticated/i);
+  assert.match(sql, /security_invoker\s*=\s*true/i);
+  assert.doesNotMatch(sql, /\b(?:accept_public_proposal|award_accepted_estimate)\b/i);
+  assert.match(sql, /create_estimate_revision remains deferred pending a current lineage-safe Estimate revision contract/i);
+  assert.doesNotMatch(sql, /create\s+(?:or replace\s+)?function\s+public\.create_estimate_revision\s*\(/i);
 });
 
 test('Proposal page and issue action consume authoritative release readiness', () => {
