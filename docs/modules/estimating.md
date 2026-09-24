@@ -101,18 +101,22 @@ Historical production evidence is advisory only in P1.3. Field production-learni
 
 ## Review and recap
 
-Review emphasizes exceptions and decisions:
+An Estimate status of `ready` means **Ready for Review**. It does not by itself authorize Proposal issuance. Release readiness comes from the server-authoritative database evaluator `carez_get_estimate_release_readiness` and is presented in Estimate Review / Recap.
 
-- unresolved module/3D/input/price/labor/method holds;
-- manual overrides;
-- unusual production assumptions;
-- unpriced or duplicated resources;
-- scope/zone/alternate completeness;
-- supplier coverage;
-- Direct Cost, overhead/reserve policy, and Sell;
-- proposal inclusions/exclusions/clarifications.
+The evaluator reports these product release states:
 
-3D review issues may block estimator review when designated required, but never auto-change scope.
+- **BLOCKED** — objective release blockers remain and must be corrected.
+- **REVIEW REQUIRED** — no blockers remain, but the complete current warning set has not been validly acknowledged for the current commercial fingerprint and warning fingerprint.
+- **RELEASE READY** — no blockers remain and either there are zero warnings or a valid acknowledgement covers the complete current warning set for the current fingerprints.
+- **Not ready** — the Estimate has not entered the Ready for Review workflow state.
+
+Review acknowledgements are append-only audit evidence. A change to the commercial fingerprint or warning fingerprint makes the matching acknowledgement stale automatically. Historical stale acknowledgements remain available as audit evidence but have no current release authority.
+
+Proposal issuance re-evaluates readiness immediately before creating the Proposal. The new Proposal presentation stores the release commercial fingerprint, release warning fingerprint, and applicable acknowledgement ID. A database insertion guard re-evaluates release readiness and checks this evidence; it is the final Proposal release authority.
+
+Estimate Review / Recap is exception-first. It presents release findings, commercial decisions, scope, pricing, labor, and traceability from their existing authoritative sources; it does not own another quantity, pricing, labor, or financial calculation engine. Production Quantity, Direct Cost, and Sell remain separate concepts. P1.4 does not introduce per-line Sell allocation.
+
+Customer contact, terms, schedule, payment, clarifications, and other Proposal setup details remain informational setup facts. Review does not edit Estimate quantities, pricing, labor assumptions, or Proposal content.
 
 ## Accepted scope handoff
 

@@ -40,6 +40,7 @@ const estimateActionsPath = 'app/estimates/actions.ts';
 const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
 const proposalPagePath = 'app/proposals/[estimateId]/page.tsx';
 const proposalActionsPath = 'app/proposals/actions.ts';
+const estimatingSpecPath = 'docs/modules/estimating.md';
 
 test('P1.4 company billing profile prerequisite reconciles the tenant-scoped defaults contract', () => {
   const sql = requireFile(billingProfileMigrationPath, 'Company billing profile prerequisite migration must exist');
@@ -298,4 +299,25 @@ test('Proposal page and issue action consume authoritative release readiness', (
   assert.match(issue, /release_commercial_fingerprint:release\.commercial_fingerprint/);
   assert.match(issue, /release_warning_fingerprint:release\.warning_fingerprint/);
   assert.match(issue, /release_acknowledgement_id:release\.warning_count>0\?release\.acknowledgement_id:null/);
+});
+
+test('Estimating module documents the implemented P1.4 Review and Proposal release contract', () => {
+  const docs = requireFile(estimatingSpecPath, 'Estimating module spec must exist');
+  assert.match(docs, /`ready` means \*\*Ready for Review\*\*/i);
+  assert.match(docs, /BLOCKED/);
+  assert.match(docs, /REVIEW REQUIRED/);
+  assert.match(docs, /RELEASE READY/);
+  assert.match(docs, /Not ready/);
+  assert.match(docs, /complete current warning set/i);
+  assert.match(docs, /commercial fingerprint/i);
+  assert.match(docs, /warning fingerprint/i);
+  assert.match(docs, /append-only audit evidence/i);
+  assert.match(docs, /stale acknowledgements remain available as audit evidence but have no current release authority/i);
+  assert.match(docs, /Proposal issuance re-evaluates readiness immediately before/i);
+  assert.match(docs, /stores the release commercial fingerprint, release warning fingerprint, and applicable acknowledgement ID/i);
+  assert.match(docs, /database insertion guard[\s\S]*final Proposal release authority/i);
+  assert.match(docs, /exception-first/i);
+  assert.match(docs, /does not own another quantity, pricing, labor, or financial calculation engine/i);
+  assert.match(docs, /Production Quantity, Direct Cost, and Sell remain separate concepts/i);
+  assert.match(docs, /does not introduce per-line Sell allocation/i);
 });
