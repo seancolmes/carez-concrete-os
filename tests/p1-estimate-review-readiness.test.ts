@@ -350,6 +350,52 @@ test('Proposal page and issue action consume authoritative release readiness', (
   assert.match(issue, /release_acknowledgement_id:release\.warning_count>0\?release\.acknowledgement_id:null/);
 });
 
+test('P1.4 Proposal Setup links an authoritative Customer destination before award', () => {
+  const page = requireFile(proposalPagePath, 'Proposal page must exist');
+  const actions = requireFile(proposalActionsPath, 'Proposal actions must exist');
+  const link = actions.slice(actions.indexOf('export async function linkProposalCustomer'), actions.indexOf('export async function createProposalCustomer'));
+  const create = actions.slice(actions.indexOf('export async function createProposalCustomer'), actions.indexOf('export async function createProposalLink'));
+  for (const action of [link, create]) {
+    assert.match(action, /assertRevisionEditable\(supabase,companyId,estimateId\)/);
+    assert.match(action, /from\('estimates'\)[\s\S]*\.eq\('company_id',companyId\)/);
+    assert.match(action, /revalidateCustomerDestination\(estimateId\)/);
+  }
+  assert.match(link, /from\('customers'\)[\s\S]*\.eq\('company_id',companyId\)[\s\S]*\.eq\('active',true\)/);
+  assert.match(link, /customer\.email\|\|customer\.phone/);
+  assert.match(link, /if\(estimate\.lead_id\)/);
+  assert.match(link, /from\('leads'\)\.update\(\{customer_id:customer\.id\}\)/);
+  assert.match(link, /else\{const \{data:lead,error\}=await supabase\.from\('leads'\)\.insert[\s\S]*status:'estimating'[\s\S]*from\('estimates'\)\.update\(\{lead_id:lead\.id\}\)/);
+  assert.match(create, /from\('customers'\)\.insert/);
+  assert.match(create, /if\(!\(email\|\|phone\)\)/);
+  assert.match(create, /23505[\s\S]*already exists[\s\S]*Select that Customer/);
+  assert.match(create, /if\(estimate\.lead_id\)[\s\S]*from\('leads'\)\.update\(\{customer_id:customer\.id\}\)[\s\S]*else\{const \{data:lead,error:leadError\}=await supabase\.from\('leads'\)\.insert[\s\S]*status:'estimating'[\s\S]*from\('estimates'\)\.update\(\{lead_id:lead\.id\}\)/);
+  assert.match(create, /else\{[\s\S]*from\('leads'\)\.insert[\s\S]*from\('estimates'\)\.update\(\{lead_id:lead\.id\}\)/);
+  assert.equal((create.match(/from\('leads'\)\.insert/g)||[]).length, 1, 'Standalone Estimate creates exactly one minimal Lead');
+  const revalidate = actions.slice(actions.indexOf('function revalidateCustomerDestination'), actions.indexOf('export async function linkProposalCustomer'));
+  assert.match(revalidate, /revalidatePath\(`\/estimates\/\$\{estimateId\}`\)/);
+  assert.match(revalidate, /revalidatePath\('\/estimates\/audit'\)/);
+  assert.match(revalidate, /revalidatePath\(`\/proposals\/\$\{estimateId\}`\)/);
+  assert.match(revalidate, /revalidatePath\('\/proposals'\)/);
+  assert.doesNotMatch(revalidate, /\/estimates\/\$\{estimateId\}\/audit/);
+  assert.match(page, /linkProposalCustomer/);
+  assert.match(page, /createProposalCustomer/);
+  assert.match(page, /Customer destination/);
+  assert.match(page, /from\('customers'\)[\s\S]*\.eq\('company_id',companyId\)[\s\S]*\.eq\('active',true\)/);
+  assert.match(page, /\.or\('email\.not\.is\.null,phone\.not\.is\.null'\)/);
+  assert.match(page, /proposalCustomers=\(customers\|\|\[\]\)\.filter\([\s\S]*email\|\|''\)[\s\S]*phone\|\|''[\s\S]*\.trim\(\)/);
+  assert.match(page, /customers=\{proposalCustomers\}/);
+  assert.match(page, /lead\.customer_id/);
+  assert.doesNotMatch(page, /contactReady=Boolean\(lead\?\.email\|\|lead\?\.phone\)/);
+  assert.match(page, /lead\?\.customer\?\.email\|\|lead\?\.customer\?\.phone/);
+  assert.match(page, /customer=lead\?\.customer\?\.name\|\|lead\?\.customer_name/);
+  assert.match(page, /contactName=lead\?\.customer\?\.contact_name\|\|lead\?\.contact_name/);
+  assert.match(page, /contactEmail=lead\?\.customer\?\.email\|\|lead\?\.email/);
+  assert.match(page, /mailtoAddress=lead\?\.customer\?\.email\|\|queue\?\.customer_email/);
+  assert.match(page, /<form action=\{linkProposalCustomer\}/);
+  assert.match(page, /<form action=\{createProposalCustomer\}/);
+  assert.match(page, /becomes the Proposal destination/);
+});
+
 test('Estimating module documents the implemented P1.4 Review and Proposal release contract', () => {
   const docs = requireFile(estimatingSpecPath, 'Estimating module spec must exist');
   assert.match(docs, /`ready` means \*\*Ready for Review\*\*/i);

@@ -11,7 +11,7 @@ import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {createClient} from '@/lib/supabase/server';
 import {parseEstimateReleaseReadiness} from '@/lib/estimating/releaseReadiness';
-import {addProposalClarification,createProposalLink,createProposalRevision,deleteProposalClarification,markProposalResponseHandled,recordProposalFollowUp,revokeProposalLink,saveProposalSettings,toggleValueOptionPresented} from '../actions';
+import {addProposalClarification,createProposalCustomer,createProposalLink,createProposalRevision,deleteProposalClarification,linkProposalCustomer,markProposalResponseHandled,recordProposalFollowUp,revokeProposalLink,saveProposalSettings,toggleValueOptionPresented} from '../actions';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const dt=(v:any)=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
@@ -27,23 +27,28 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();if(!profile?.company_id)redirect('/login');if(profile.role==='employee')redirect('/employee');
   const companyId=profile.company_id;
-  const [{data:e},{data:summary},{data:q},{data:settings},{data:clarifications},{data:options},{data:lead},{data:project},{data:items},{data:events},{data:billing}]=await Promise.all([
+  const [{data:e},{data:summary},{data:q},{data:settings},{data:clarifications},{data:options},{data:eLead},{data:project},{data:items},{data:events},{data:billing},{data:customers}]=await Promise.all([
     supabase.from('estimates').select('*').eq('id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('estimate_financial_summary').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('proposal_conversion_queue').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('proposal_settings').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('proposal_clarifications').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
     supabase.from('bid_value_options').select('id,estimate_id,name,customer_description,sell_price_change,schedule_days_change,status,function_quality_note,approval_required').eq('estimate_id',estimateId).eq('company_id',companyId).order('created_at'),
-    supabase.from('leads').select('id,customer_name,contact_name,email,phone,project_name,address,city,state,postal_code,scope,follow_up,status').eq('id',(await supabase.from('estimates').select('lead_id').eq('id',estimateId).single()).data?.lead_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
+    supabase.from('leads').select('id,customer_id,customer_name,contact_name,email,phone,project_name,address,city,state,postal_code,scope,follow_up,status').eq('id',(await supabase.from('estimates').select('lead_id').eq('id',estimateId).single()).data?.lead_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
     supabase.from('projects').select('id,job_number,name,address,city,state').eq('id',(await supabase.from('estimates').select('project_id').eq('id',estimateId).single()).data?.project_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
     supabase.from('estimate_items').select('id,section_id,description,quantity,unit,item_type').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
     qPromise(supabase,companyId,estimateId),
     supabase.from('company_billing_profiles').select('default_terms_text').eq('company_id',companyId).maybeSingle(),
+    supabase.from('customers').select('id,name,email,phone,contact_name').eq('company_id',companyId).eq('active',true).or('email.not.is.null,phone.not.is.null').order('name'),
   ]);
   if(!e)notFound();
   const {data:releaseData,error:releaseError}=await supabase.rpc('carez_get_estimate_release_readiness',{p_estimate_id:estimateId});
   if(releaseError)throw new Error(releaseError.message);
   const release=parseEstimateReleaseReadiness(releaseData);
+
+  const lead:any=eLead?{...eLead}:null;
+  const customerLink=lead?.customer_id?(await supabase.from('customers').select('id,name,email,phone,contact_name').eq('id',lead.customer_id).eq('company_id',companyId).maybeSingle()).data:null;
+  if(lead)lead.customer=customerLink;
 
   const queue=q||null;
   const responseEvents=events||[];
@@ -53,7 +58,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const proposalDisplay=queue?.proposal_number||`P-${e.opportunity_number||String(e.estimate_number||'').replace(/^E-/,'')}-R${Number(e.version||0)}`;
   const ps=settings||{};
   const terms=ps.terms_text||billing?.default_terms_text||'';
-  const contactReady=Boolean(lead?.email||lead?.phone);
+  const contactReady=Boolean(lead?.customer?.email||lead?.customer?.phone);
   const canIssue=release.release_state==='release_ready'&&!locked;
   const setupRows=[
     {ok:e.status==='ready',label:'Estimate workflow',detail:e.status==='ready'?'Ready for Review':String(e.status).replaceAll('_',' ')},
@@ -71,15 +76,20 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   const origin=host?`${proto}://${host}`:'';
   const link=queue&&origin?`${origin}/proposal/${queue.token}`:'';
   const preview=link?`${link}?preview=1`:'';
-  const mailto=queue?.customer_email?`mailto:${queue.customer_email}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${queue.contact_name||queue.customer_name||''},\n\nI wanted to follow up on ${proposalDisplay} for ${queue.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\nCarez Concrete`)}`:'';
-  const customer=lead?.customer_name||queue?.customer_name||'Customer';
+  const mailtoAddress=lead?.customer?.email||queue?.customer_email;
+  const mailtoName=lead?.customer?.contact_name||lead?.customer?.name||queue?.contact_name||queue?.customer_name||'';
+  const mailto=mailtoAddress?`mailto:${mailtoAddress}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${mailtoName},\n\nI wanted to follow up on ${proposalDisplay} for ${queue.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\nCarez Concrete`)}`:'';
+  const customer=lead?.customer?.name||lead?.customer_name||queue?.customer_name||'Customer';
+  const contactName=lead?.customer?.contact_name||lead?.contact_name;
+  const contactEmail=lead?.customer?.email||lead?.email;
+  const proposalCustomers=(customers||[]).filter((candidate:any)=>String(candidate.email||'').trim()||String(candidate.phone||'').trim());
   const job=lead?.project_name||project?.name||e.name;
   const viewed=issued&&Number(queue.view_count||0)>0;
   const stage=issued?stageLabel(queue.conversion_stage):'Prep';
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{lead?.contact_name?` · ${lead.contact_name}`:''}{lead?.email?` · ${lead.email}`:''}</p></div>
+      <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{contactName?` · ${contactName}`:""}{contactEmail?` · ${contactEmail}`:""}</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><ArrowLeft/>Proposals</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/estimates/${e.id}`}><FileText/>Estimate</Link></div>
     </header>
 
@@ -94,7 +104,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
       <MetricCard label="Follow-up" value={issued&&queue.follow_up_due?day(queue.follow_up_due):'—'} help={issued?queue.next_action:'Set automatically when issued.'} tone={issued&&queue.follow_up_due_now?'warning':'default'}/>
     </section>
 
-    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} release={release} canIssue={canIssue} setupRows={setupRows} clarifications={clarifications||[]} options={options||[]}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project}/>}
+    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} release={release} canIssue={canIssue} setupRows={setupRows} clarifications={clarifications||[]} options={options||[]} lead={lead} customers={proposalCustomers} locked={locked}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project}/>}
 
     {locked&&['accepted','approved'].includes(e.status)&&project&&<Card className="border-success/30 bg-success/5 shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-success">Awarded</p><h2 className="mt-1 font-semibold">Proposal accepted — operating handoff is active</h2><p className="mt-1 text-sm text-muted-foreground">Carez preserved this revision and created the awarded-job baseline, Work Packages and readiness chain.</p></div><Link className={buttonVariants({size:'sm'})} href={`/projects/${project.id}`}><CheckCircle2/>Open Job</Link></CardContent></Card>}
   </div></AppShell>;
@@ -112,8 +122,13 @@ async function qPromise(supabase:any,companyId:string,estimateId:string){
   return supabase.from('proposal_engagement_events').select('id,presentation_id,event_type,customer_name,customer_email,customer_message,decline_reason,option_id,created_at,handled_at').eq('company_id',companyId).eq('presentation_id',q.presentation_id).is('handled_at',null).neq('event_type','view').order('created_at',{ascending:false});
 }
 
-function ProposalPreparation({e,sell,ps,terms,release,canIssue,setupRows,clarifications,options}:{e:any;sell:number;ps:any;terms:string;release:{release_state:string};canIssue:boolean;setupRows:{ok:boolean;label:string;detail:string}[];clarifications:any[];options:any[]}){
+function ProposalPreparation({e,sell,ps,terms,release,canIssue,setupRows,clarifications,options,lead,customers,locked}:{e:any;sell:number;ps:any;terms:string;release:{release_state:string};canIssue:boolean;setupRows:{ok:boolean;label:string;detail:string}[];clarifications:any[];options:any[];lead:any;customers:any[];locked:boolean}){
   return <>
+    <Card className="shadow-none"><CardHeader><CardTitle>Customer destination</CardTitle><CardDescription>Link this Estimate to the Customer who will receive the Proposal.</CardDescription></CardHeader><CardContent className="grid gap-5 md:grid-cols-2">
+      {lead?.customer_id?<div className="rounded-md border p-3"><p className="text-sm font-medium">{lead.customer?.name||'Linked Customer'}</p><p className="mt-1 text-sm text-muted-foreground">{lead.customer?.email||lead.customer?.phone||'Add an email or phone before issuing.'}</p></div>:<p className="text-sm text-muted-foreground">No Customer is linked to this Estimate yet.</p>}
+      {!locked&&<>{customers.length>0&&<form action={linkProposalCustomer} className="grid gap-2"><input type="hidden" name="estimate_id" value={e.id}/><Label htmlFor={`customer-destination-${e.id}`}>Existing Customer</Label><div className="flex gap-2"><select id={`customer-destination-${e.id}`} className={selectClass} name="customer_id" required defaultValue=""><option value="" disabled>Choose Customer</option>{customers.map((customer:any)=><option key={customer.id} value={customer.id}>{customer.name}{customer.email?` · ${customer.email}`:customer.phone?` · ${customer.phone}`:''}</option>)}</select><Button type="submit" variant="outline">Link</Button></div></form>}
+      <form action={createProposalCustomer} className="grid gap-3 md:col-span-2"><input type="hidden" name="estimate_id" value={e.id}/><p className="text-sm font-medium">Create Customer</p><div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor={`new-customer-name-${e.id}`}>Name</Label><Input id={`new-customer-name-${e.id}`} name="name" required/></div><div className="grid gap-2"><Label htmlFor={`new-customer-contact-${e.id}`}>Contact name</Label><Input id={`new-customer-contact-${e.id}`} name="contact_name"/></div><div className="grid gap-2"><Label htmlFor={`new-customer-email-${e.id}`}>Email</Label><Input id={`new-customer-email-${e.id}`} name="email" type="email"/></div><div className="grid gap-2"><Label htmlFor={`new-customer-phone-${e.id}`}>Phone</Label><Input id={`new-customer-phone-${e.id}`} name="phone" type="tel"/></div></div><p className="text-xs text-muted-foreground">This Customer becomes the Proposal destination. Enter an email or phone number for delivery.</p><Button type="submit" variant="outline" className="w-fit">Create and link Customer</Button></form></>}
+    </CardContent></Card>
     <section className="grid gap-4 xl:grid-cols-2">
       <Card className="shadow-none"><CardHeader><CardTitle>Proposal setup</CardTitle><CardDescription>Setup details help complete the customer offer. Release readiness is evaluated by Estimate Review.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="divide-y rounded-lg border border-border">{setupRows.map((item,index)=><div key={index} className="flex items-center gap-3 px-3 py-3"><span className={`flex size-7 shrink-0 items-center justify-center rounded-full ${item.ok?'bg-success/10 text-success':'bg-warning/10 text-warning'}`}>{item.ok?<Check className="size-4"/>:<Clock3 className="size-4"/>}</span><span><strong className="text-sm font-medium">{item.label}</strong><span className="ml-2 text-sm text-muted-foreground">{item.detail}</span></span></div>)}</div><div className="flex items-center justify-between border-t border-border pt-3 text-sm"><span className="text-muted-foreground">Estimate release state</span><strong>{release.release_state.replaceAll('_',' ').toUpperCase()}</strong></div></CardContent></Card>
 
