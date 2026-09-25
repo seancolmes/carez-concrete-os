@@ -36,4 +36,9 @@ test('GOV-001 knowledge governance is canonical, discoverable, and independent o
   }
   assert.match(governance, /inactive for \*\*more than 14 calendar days\*\* and no preserved active worktree remains[\s\S]*close and archive the chat/i);
   assert.match(governance, /Archived chats are historical evidence only; they must never become current implementation authority/i);
+  assert.match(governance, /If a fresh chat receives only \*\*“Carez rehydrate this session”\*\*[\s\S]*Work ID and objective \*\*UNRESOLVED\*\*/i);
+  assert.match(governance, /Do not infer or select an active task from chat history, memory, recency, visible chat lists, old PRs, old branches, archived chats, or prior issue references/i);
+  assert.match(governance, /Historical context may help locate evidence, but it cannot establish the active work unit/i);
+  assert.match(governance, /Remote Desktop Commander must not be invoked during rehydration unless Nik explicitly authorizes Remote Desktop Commander in the current request/i);
+  assert.match(governance, /If current local Git state is required but unavailable, request a read-only local Codex rehydration packet or exact user-supplied Git status, HEAD, and diff evidence/i);
 });

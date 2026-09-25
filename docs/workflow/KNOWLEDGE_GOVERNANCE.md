@@ -142,6 +142,12 @@ Keep the packet concise but sufficient to reconstruct the work. Link large evide
 
 The command **“Carez rehydrate this session”** means reconstruct the current task from the continuation packet, current repository instructions/source, current Git state, and only the narrowly required current evidence. It does not mean resume from chat memory alone. Verify freshness-sensitive claims against their owning authority. If the required state cannot be reconstructed safely, stop and report the missing item rather than guessing.
 
+#### Trigger-only cold start
+
+If a fresh chat receives only **“Carez rehydrate this session”** and no current user instruction, continuation packet, or current authoritative evidence establishes a Work ID and objective, leave both the Work ID and objective **UNRESOLVED**. Do not infer or select an active task from chat history, memory, recency, visible chat lists, old PRs, old branches, archived chats, or prior issue references. Historical context may help locate evidence, but it cannot establish the active work unit. Request the current authoritative task and local-state evidence needed to reconstruct it; do not guess.
+
+Remote Desktop Commander must not be invoked during rehydration unless Nik explicitly authorizes Remote Desktop Commander in the current request. Tool availability is not authorization. If current local Git state is required but unavailable, request a read-only local Codex rehydration packet or exact user-supplied Git status, HEAD, and diff evidence. Do not substitute remote desktop inspection for unavailable local state.
+
 ## Project governance
 
 A new ChatGPT Project represents a durable **authority, product, repository, or security boundary**. It is not a folder for a topic, issue, feature, phase, or team activity. A new Carez issue, feature, or phase remains in the existing Carez Project unless it changes one of those boundaries.
