@@ -137,7 +137,7 @@ Final staging acceptance is complete. Issue #39 is closed. No production promoti
 - `staging` remains bound to isolated Supabase QA.
 - `main` remains production.
 - Local validation and local browser/runtime QA precede Nik acceptance and the GitHub Desktop local commit; accepted work enters staging in batched releases.
-- Issue #59 technical evidence gates pass: the ACL-faithful production-schema clone rehearsal passed all 34 `SAFE_TO_APPLY` migrations, and the scoped read-only production row preflight passed for branding, pricing provenance, and Proposal opportunity-number uniqueness. The expected pricing legacy backfill initializes 12 priced Takeoff outputs and propagates their provenance to 12 one-to-one Estimate items; no existing provenance columns were present to overwrite. No production data incompatibility or remediation requirement was identified. Production write authorization remains **NOT GRANTED**, and no production migrations have been applied.
+- Issue #59 production bridge application completed and verified: all 34 authorized `SAFE_TO_APPLY` migrations were applied in canonical source order. Production history uses application-time versions `20260925021524` through `20260925022046`, with canonical migration names matching the manifest 1:1; `20260924083100_proposal_authority_cutover` ran last. Proposal guard, ACL, and deferred-capability checks passed. Branding and the pricing provenance legacy backfill passed for 12 priced Takeoff outputs and 12 one-to-one linked Estimate items. No production data incompatibility or remediation requirement was identified. Issue #59 is no longer a production-release blocker. This documentation task authorizes no further production write.
 - Issue #58 remains open pending authenticated staging browser acceptance of the already-implemented Estimate pricing-save fix.
 - QA still lacks `public.next_opportunity_number()`, which blocks successful direct-job creation/populated Project Overview acceptance in that environment.
 - GPU-capable manual browser QA has passed for the accepted Takeoff 2D / Split / 3D workstation behavior and for the final P0.5E stable-staging cutover.
@@ -150,8 +150,8 @@ One cross-cutting UI workstream remains open:
 
 The P0.5 Concrete Condition foundation, including Issue #39 P0.5E legacy migration and formula-first UI retirement, is accepted on `staging`. The next domain phase is **P1 Estimating** when authorized.
 
-Issue #59 must be resolved before any migration-dependent `staging` → `main` production release.
+The Issue #59 production migration bridge is applied and verified; it no longer blocks a production release on migration-bridge reconciliation. Other release acceptance and action-specific production authorization requirements still apply.
 
 ## Production rule
 
-Promotion from `staging` to `main` is an explicit production release action after acceptance. No production migration promotion occurs while Issue #59 remains unresolved.
+Promotion from `staging` to `main` is an explicit production release action after acceptance. This Issue #59 documentation update authorizes no additional production write.

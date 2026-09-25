@@ -2,16 +2,16 @@
 
 ## Purpose and authority
 
-This manifest reconciles the accepted QA migration chain with the existing production schema before any production migration is considered. Source migrations define the desired contract; read-only production schema and migration history define the comparison baseline. This document authorizes no provider mutation.
+This manifest reconciles the accepted QA migration chain with the existing production schema and records the completed Issue #59 bridge application. Source migrations define the desired contract; read-only production schema and migration history define the comparison baseline. This document authorizes no provider mutation.
 
-The read-only production migration history currently ends at `20260831075000_method_profile_commit_fix`. Every canonical dated migration after that point is classified below; historical production equivalents verified by preflight are classified `ALREADY_MATERIALIZED`.
+Before the Issue #59 application, read-only production migration history ended at `20260831075000_method_profile_commit_fix`. The completed bridge is recorded below using the application-time versions created by successful migration application; canonical source filenames remain the manifest authority.
 
-**ISSUE #59 TECHNICAL EVIDENCE GATES: PASS.** The production schema-only dump was restored into a separate ACL-faithful local Supabase target, all 34 `SAFE_TO_APPLY` migrations passed in source order with the Proposal authority cutover last, and the scoped production row-dependent preflight passed. No production data incompatibility or remediation requirement was identified. Production write authorization remains **NOT GRANTED**; no production migration is authorized by this evidence.
+**ISSUE #59 PRODUCTION BRIDGE: APPLIED AND VERIFIED.** The production schema-only dump was restored into a separate ACL-faithful local Supabase target, all 34 `SAFE_TO_APPLY` migrations passed in source order, the scoped production row-dependent preflight passed, and the specifically authorized production application completed successfully. Production migration history records application-time versions `20260925021524` through `20260925022046`; the 34 canonical migration names match the manifest entries 1:1 and in source order. `20260924083100_proposal_authority_cutover` was applied last. No production data incompatibility or remediation requirement was identified. This documentation update authorizes no further production write; production write authorization is **NOT GRANTED** by this record.
 
 Production project ref: `snbnwgetfuvkjkhfxmmz`
 QA project ref: `tkcirsdfvvahwrcratkn`
 
-**Never run a blind `supabase db push` against production until Issue #59 bridge acceptance is complete.** Rehearse only against an isolated local clone built from a production schema-only dump. Never include production row data.
+**Never run a blind `supabase db push` against production.** Issue #59 completion does not authorize later production mutations. Rehearse only against an isolated local clone built from a production schema-only dump. Never include production row data.
 
 ## Classifications
 
@@ -113,4 +113,12 @@ This procedure produced an ACL-faithful clone for the sampled Issue #59 objects.
 
 The completed rehearsal used the ACL-faithful clone, applied only `SAFE_TO_APPLY` migrations in source order, and applied `20260924083100_proposal_authority_cutover` last. All 34 migrations passed. Historical production-only schema, `projects.source_estimate_id`, identity helper ACLs, current Condition/P1 schema, immutable review acknowledgements, readiness and acknowledgement RPCs, Proposal release evidence, the single `guard_proposal_release` INSERT authority, historical trigger removal, deferred function ACLs, and public Proposal view/question-response functions were verified. No production or QA writes occurred, and no production business rows were copied.
 
-Current status: **ACL-FAITHFUL CLONE PASS / 34-MIGRATION SCHEMA REHEARSAL PASS / PRODUCTION ROW PREFLIGHT PASS / PRODUCTION WRITE AUTHORIZATION NOT GRANTED.**
+Current status: **ACL-FAITHFUL CLONE PASS / 34-MIGRATION SCHEMA REHEARSAL PASS / PRODUCTION ROW PREFLIGHT PASS / 34-OF-34 PRODUCTION MIGRATIONS APPLIED / PROPOSAL AUTHORITY CUTOVER LAST / PRODUCTION WRITE AUTHORIZATION NOT GRANTED BY THIS DOCUMENTATION UPDATE.**
+
+## Production bridge application — completed
+
+The authorized Issue #59 bridge was applied successfully: all 34 `SAFE_TO_APPLY` migrations completed in canonical source order. Production migration-history versions were assigned at application time from `20260925021524` through `20260925022046`; canonical migration names match the manifest 1:1. No manual migration-history repair was performed. The `20260924083100_proposal_authority_cutover` migration ran last.
+
+Post-apply verification passed: `guard_proposal_release` is the sole Proposal INSERT release authority; the historical `carez_proposal_audit_gate` is absent; the historical Acceptance/Award/Revision functions remain defined but application execution is revoked for `PUBLIC`, `anon`, and `authenticated`, with `service_role` treatment preserved. Readiness and acknowledgement authority, identity-helper ACLs, relevant RLS/policies, and public Proposal view/question-response capabilities remain intact. Customer Acceptance, Award → Project, and Create Next Revision remain deferred.
+
+Expected data effects passed: the `carez-branding` bucket was configured as intended, and pricing provenance was backfilled for 12 priced Takeoff outputs and their 12 one-to-one linked Estimate items. Proposal reconciliation passed. No unrelated production mutation was identified. Issue #59 is no longer a production-release blocker for this migration bridge; any later production write requires its own explicit authorization.

@@ -38,7 +38,9 @@ test('Issue #59 manifest classifies migration handling and explicit deferrals', 
   assert.match(manifest, /never run a blind `?supabase db push`? against production/i);
   assert.match(manifest, /20260906175305_reconcile_identity_helper_rpc_lockdown[\s\S]*ALREADY_MATERIALIZED/i);
   assert.match(manifest, /production bridge acceptance requires[\s\S]*ACL-faithful production-schema clone rehearsal/i);
-  assert.match(manifest, /Issue #59 technical evidence gates: pass[\s\S]*all 34[\s\S]*production migration is authorized/i);
+  assert.match(manifest, /Issue #59 production bridge: applied and verified[\s\S]*all 34[\s\S]*production application completed successfully/i);
+  assert.match(manifest, /application-time versions `20260925021524` through `20260925022046`[\s\S]*canonical migration names match the manifest entries 1:1/i);
+  assert.match(manifest, /proposal_authority_cutover` was applied last/i);
   assert.match(manifest, /production row-dependent preflight — read-only[\s\S]*expected legacy backfill — pass/i);
   assert.match(manifest, /production write authorization: \*\*not granted\*\*/i);
   for (const migration of [
