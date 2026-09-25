@@ -137,7 +137,7 @@ Final staging acceptance is complete. Issue #39 is closed. No production promoti
 - `staging` remains bound to isolated Supabase QA.
 - `main` remains production.
 - Local validation and local browser/runtime QA precede Nik acceptance and the GitHub Desktop local commit; accepted work enters staging in batched releases.
-- Issue #59 remains a hard production-release blocker until production Supabase migration history is safely bridged to the canonical staging/QA migration model.
+- Issue #59 technical evidence gates pass: the ACL-faithful production-schema clone rehearsal passed all 34 `SAFE_TO_APPLY` migrations, and the scoped read-only production row preflight passed for branding, pricing provenance, and Proposal opportunity-number uniqueness. The expected pricing legacy backfill initializes 12 priced Takeoff outputs and propagates their provenance to 12 one-to-one Estimate items; no existing provenance columns were present to overwrite. No production data incompatibility or remediation requirement was identified. Production write authorization remains **NOT GRANTED**, and no production migrations have been applied.
 - Issue #58 remains open pending authenticated staging browser acceptance of the already-implemented Estimate pricing-save fix.
 - QA still lacks `public.next_opportunity_number()`, which blocks successful direct-job creation/populated Project Overview acceptance in that environment.
 - GPU-capable manual browser QA has passed for the accepted Takeoff 2D / Split / 3D workstation behavior and for the final P0.5E stable-staging cutover.

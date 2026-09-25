@@ -2,62 +2,85 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationPath = 'supabase/migrations/20260923120000_reconcile_proposal_conversion_schema.sql';
-
-const requireMigration = () => {
-  assert.equal(existsSync(migrationPath), true, 'Proposal schema reconciliation migration must exist');
-  return readFileSync(migrationPath, 'utf8');
+const removedOrphanPath = 'supabase/migrations/20260923120000_reconcile_proposal_conversion_schema.sql';
+const canonicalPath = 'supabase/migrations/20260924083000_reconcile_proposal_conversion_schema.sql';
+const bridgePath = 'supabase/migrations/20260924083100_proposal_authority_cutover.sql';
+const manifestPath = 'docs/workflow/PRODUCTION_MIGRATION_BRIDGE.md';
+const source = (path: string) => {
+  assert.equal(existsSync(path), true, `Expected source contract ${path}`);
+  return readFileSync(path, 'utf8');
 };
 
-test('proposal schema reconciliation restores only the missing historical proposal contract', () => {
-  const sql = requireMigration();
-
-  for (const table of [
-    'proposal_access_tokens',
-    'proposal_acceptances',
-    'proposal_settings',
-    'proposal_clarifications',
-    'proposal_engagement_events',
-  ]) {
-    assert.match(sql, new RegExp(`create table if not exists public\\.${table}`, 'i'));
-  }
-
-  assert.doesNotMatch(sql, /create table if not exists public\.proposal_presentations/i);
-  assert.match(sql, /alter table public\.proposal_presentations enable row level security/i);
-  assert.match(sql, /proposal_presentations[\s\S]*foreign key \(proposal_access_token_id\)[\s\S]*proposal_access_tokens\(id\)/i);
+test('orphaned Proposal migration is absent from the canonical QA chain', () => {
+  assert.equal(existsSync(removedOrphanPath), false, 'QA never applied 20260923120000; it must not remain in the source migration chain');
+  const manifest = source(manifestPath);
+  assert.match(manifest, /20260923120000[\s\S]*NOT_APPLICABLE[\s\S]*removed from (?:the )?canonical (?:QA )?chain/i);
 });
 
-test('proposal reconciliation preserves the historical public proposal behavior surface', () => {
-  const sql = requireMigration();
-
-  for (const fn of [
-    'protect_proposal_presentation_snapshot',
-    'sync_proposal_token_revocation',
-    'get_public_proposal',
-    'track_public_proposal_view',
-    'submit_public_proposal_response',
-    'accept_public_proposal',
-    'create_estimate_revision',
-  ]) {
-    assert.match(sql, new RegExp(`create or replace function public\\.${fn}`, 'i'));
-  }
-
-  assert.match(sql, /create or replace view public\.proposal_conversion_queue/i);
-  assert.match(sql, /Sent proposal snapshot cannot be rewritten\. Create a proposal revision instead\./i);
-  assert.match(sql, /interval '15 minutes'/i);
-  assert.match(sql, /insert into public\.proposal_acceptances/i);
-  assert.match(sql, /status='accepted'/i);
-  assert.match(sql, /status=case when status='accepted' then status else 'superseded' end/i);
+test('canonical reconciliation remains the current Proposal schema authority', () => {
+  const sql = source(canonicalPath);
+  assert.match(sql, /release_commercial_fingerprint/i);
+  assert.match(sql, /release_warning_fingerprint/i);
+  assert.match(sql, /release_acknowledgement_id/i);
+  assert.match(sql, /guard_proposal_release/i);
+  assert.doesNotMatch(sql, /create or replace function public\.carez_guard_proposal_release/i);
+  assert.doesNotMatch(sql, /accept_public_proposal|award_accepted_estimate/i);
+  assert.match(sql, /create_estimate_revision remains deferred/i);
 });
 
-test('proposal reconciliation keeps tenant/RLS boundaries and current application columns', () => {
-  const sql = requireMigration();
+test('Issue #59 manifest classifies migration handling and explicit deferrals', () => {
+  const manifest = source(manifestPath);
+  for (const classification of ['ALREADY_MATERIALIZED', 'SAFE_TO_APPLY', 'BRIDGE_ONLY', 'NOT_APPLICABLE']) {
+    assert.match(manifest, new RegExp(classification));
+  }
+  assert.match(manifest, /Customer Acceptance[\s\S]*Award[\s\S]*deferred/i);
+  assert.match(manifest, /Create Next Revision[\s\S]*deferred/i);
+  assert.match(manifest, /never run a blind `?supabase db push`? against production/i);
+  assert.match(manifest, /20260906175305_reconcile_identity_helper_rpc_lockdown[\s\S]*ALREADY_MATERIALIZED/i);
+  assert.match(manifest, /production bridge acceptance requires[\s\S]*ACL-faithful production-schema clone rehearsal/i);
+  assert.match(manifest, /Issue #59 technical evidence gates: pass[\s\S]*all 34[\s\S]*production migration is authorized/i);
+  assert.match(manifest, /production row-dependent preflight — read-only[\s\S]*expected legacy backfill — pass/i);
+  assert.match(manifest, /production write authorization: \*\*not granted\*\*/i);
+  for (const migration of [
+    '20260901044057_takeoff_nested_activation_missing_input',
+    '20260903040801_assembly_builder_revision_clone',
+    '20260903044953_qa_reconcile_custom_assembly_create_rpc',
+    '20260903052242_scope_recipe_project_variants',
+    '20260903061837_formula_composer_authoring',
+    '20260904210858_company_branding',
+    '20260905155018_strip_footing_edge_modules_v2',
+    '20260905205715_strip_footing_estimator_model_v3',
+    '20260906150633_strip_footing_bulkheads_v4',
+    '20260906150800_strip_footing_bulkheads_v4_upgrade_order',
+    '20260906160338_strip_footing_form_resources_v5',
+  ]) {
+    assert.match(manifest, new RegExp(`${migration}[\\s\\S]*SAFE_TO_APPLY`));
+  }
+});
 
-  assert.match(sql, /proposal_access_tokens[\s\S]*proposal_number text/i);
-  assert.match(sql, /proposal_settings[\s\S]*schedule_summary text[\s\S]*payment_summary text[\s\S]*terms_text text/i);
-  assert.match(sql, /proposal_engagement_events[\s\S]*handled_at timestamptz[\s\S]*handled_by uuid/i);
-  assert.match(sql, /public\.get_my_company_id\(\)/i);
-  assert.match(sql, /public\.get_my_role\(\)[\s\S]*<>\s*'employee'/i);
-  assert.match(sql, /grant select,insert,update,delete on public\.proposal_settings/i);
-  assert.match(sql, /grant select on public\.proposal_conversion_queue to authenticated/i);
+test('Proposal authority bridge checks the P1.4 guard before removing historical authority', () => {
+  const sql = source(bridgePath);
+  const guardCheck = sql.search(/if\s+not\s+exists[\s\S]*?guard_proposal_release[\s\S]*?carez_guard_proposal_release/i);
+  const historicalRemoval = sql.search(/drop trigger if exists carez_proposal_audit_gate on public\.proposal_presentations/i);
+  assert.notEqual(guardCheck, -1, 'Bridge must verify trigger guard_proposal_release invokes public.carez_guard_proposal_release()');
+  assert.match(sql, /trigger_row\.tgenabled\s*=\s*'O'/i, 'Accepted guard trigger must be enabled for origin sessions');
+  assert.match(sql, /trigger_row\.tgtype\s*=\s*7/i, 'Accepted guard trigger must be BEFORE ROW INSERT');
+  assert.notEqual(historicalRemoval, -1, 'Bridge must conditionally remove the historical trigger');
+  assert.ok(guardCheck < historicalRemoval, 'P1.4 authority verification must precede historical trigger removal');
+  for (const signature of [
+    'public.accept_public_proposal(uuid,text,text,text)',
+    'public.award_accepted_estimate(uuid)',
+    'public.create_estimate_revision(uuid)',
+  ]) {
+    assert.ok(sql.toLowerCase().includes(signature.toLowerCase()), `Bridge must identify ${signature}`);
+    assert.ok(sql.toLowerCase().includes(`revoke execute on function ${signature.toLowerCase()} from public, anon, authenticated`), `Bridge must revoke app-role EXECUTE on ${signature}`);
+  }
+  assert.doesNotMatch(sql, /grant\s+.*service_role|revoke\s+.*service_role/i);
+  for (const relation of ['proposal_presentations', 'estimates', 'projects']) {
+    assert.doesNotMatch(sql, new RegExp(`\\binsert\\s+into\\s+public\\.${relation}\\b`, 'i'));
+    assert.doesNotMatch(sql, new RegExp(`\\bupdate\\s+public\\.${relation}\\b`, 'i'));
+    assert.doesNotMatch(sql, new RegExp(`\\bdelete\\s+from\\s+public\\.${relation}\\b`, 'i'));
+    assert.doesNotMatch(sql, new RegExp(`\\btruncate\\s+(?:table\\s+)?public\\.${relation}\\b`, 'i'));
+  }
+  assert.doesNotMatch(sql, /drop function|create or replace function|perform\s+public\.(?:accept_public_proposal|award_accepted_estimate|create_estimate_revision)/i);
 });
