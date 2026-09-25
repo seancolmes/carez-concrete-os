@@ -70,4 +70,5 @@ Do not preload old history, unrelated migrations, unrelated routes, full ADRs fo
 - Product future sequence -> `docs/ROADMAP.md`.
 - Command Center implementation sequence -> `docs/workflow/COMMAND_CENTER_ROADMAP.md`.
 - Development/runtime workflow -> `docs/workflow/`.
+- Chat, Project, context-loading, and knowledge-promotion governance -> `docs/workflow/KNOWLEDGE_GOVERNANCE.md`.
 - Git history preserves implementation evidence; do not create checkpoint documents merely because a task occurred.
