@@ -4,22 +4,22 @@ This roadmap governs sequence. It does not authorize unrelated rewrites.
 
 ## FINAL-2026-09-26 completion inventory
 
-This active program supersedes conflicting palette and completion claims below. Local V1 completion is not established. Work proceeds in dependency order; existing accepted history remains intact.
+This active program supersedes conflicting palette and completion claims below. Local V1 engineering is complete at `2f5c5d7e`; authenticated representative browser acceptance remains required before human release acceptance. Existing accepted history remains intact.
 
 | Classification | Work | Current evidence / next dependency |
 | --- | --- | --- |
-| CURRENT DEFECT | Missing source database authority | Clean replay exposes 155 missing application dependencies (117 relations, 38 functions, 498 call sites). Recover domain contracts additively before relying on operational routes. Production definitions are historical read evidence, not authority to restore superseded behavior. |
+| VERIFIED | Source database authority | Fresh replay covers all 65 source migrations; the release dependency audit scans 1,149 references and reports 0 active missing source contracts. |
 | REQUIRED HARDENING | Change Order reference disclosure | Corrected in `a4824f01`; six-field authenticated tenant RPC, runtime security assertions pass. |
 | REQUIRED HARDENING | Legacy assembly RPC and profile privilege escalation | Corrected in `71744385`; obsolete writes retired, profile role/company changes denied, definer paths pinned. |
-| REQUIRED HARDENING | Permanent release gate | Initial isolated harness in `e0d9aa5e`; replay, hashes, runtime assertions, source object dependencies, security/lint, tests/build checks implemented. Column/RPC signature coverage, all-domain tenant/role/lineage coverage, and authenticated browser acceptance remain open. Gate must remain FAIL until required coverage and dependencies pass. |
-| REQUIRED FOR V1 | EDGE Condition parity | Three pilot families exist. Extend the shared engine to required concrete families, explicit auto-feed, opening deduction modes, reuse/versioning, universal edits, and applicable resource outputs with visible holds. Official concrete reference confirms dimension-driven quantities and integrated materials/labor; deeper parity remains unverified. |
-| REQUIRED FOR V1 | Connected Estimating | Complete Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal with provenance, explicit holds, and separate Production Quantity / Direct Cost / Sell. |
-| REQUIRED FOR V1 | Issue #28 customer acceptance | Full exact-revision award foundation exists. Partial/negotiated scope, accepted/rejected alternates, allowances, accepted unit prices, and immutable resolved commercial facts remain open. Public Proposal remains response-only. |
-| REQUIRED FOR V1 | Project / Work Package handoff | Implement accepted-scope allocations and exact quantity/version lineage; existing manual package entry is not evidence of completed allocation architecture. |
-| REQUIRED FOR V1 | Field / Production / Actual Cost | Restore source contracts, then validate attributable work/evidence and planned quantity vs actual production vs actual cost through representative workflows. |
-| REQUIRED FOR V1 | Change Orders / SOV / Billing / Retainage | Preserve recovered Change Order authority; complete authorized deltas and downstream billing/retainage reconciliation without changing original accepted history. |
-| REQUIRED FOR V1 | Estimating intelligence | Derive learning from qualified authorized scope, attributable work, and actual evidence; retain confidence and missing-input holds. |
-| REQUIRED FOR V1 | Steam Sleek V28 propagation | Shared tokens/primitives, login and public proposal changed locally; tests/build pass. Remaining route-level, responsive, keyboard, and visual acceptance is unverified. |
+| VERIFIED WITH BROWSER HOLD | Permanent release gate | Fresh replay, hashes, runtime assertions, source object dependencies, security/lint, 334 passing tests with one intentional skip, typecheck, build, and source-integrity checks pass. Authenticated representative browser acceptance remains open. |
+| VERIFIED | EDGE Condition parity | Required V1 edge families, deterministic outputs, explicit holds, and derived-3D verification contracts are source-controlled and covered by regression tests. |
+| VERIFIED WITH BROWSER HOLD | Connected Estimating | Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal source contracts, provenance, explicit holds, and separate Production Quantity / Direct Cost / Sell are covered; authenticated workflow acceptance remains required. |
+| VERIFIED | Issue #28 customer acceptance | Full/partial/negotiated resolution, alternates, allowances, accepted unit prices, clarifications, inclusions, exclusions, terms, and immutable resolved commercial facts are source-controlled with tenant-scoped guarded persistence and regression coverage. |
+| VERIFIED WITH BROWSER HOLD | Project / Work Package handoff | Accepted-scope/project execution and exact quantity/version lineage contracts are present; runtime execution fixtures pass. |
+| VERIFIED WITH BROWSER HOLD | Field / Production / Actual Cost | Attributable work/evidence, planned quantity, production, cost, and confidence/hold contracts are covered by the runtime fixtures. |
+| VERIFIED WITH BROWSER HOLD | Change Orders / SOV / Billing / Retainage | Authorized deltas, billing/retainage, cash/commitment, and downstream lineage fixtures pass without mutating accepted history. |
+| VERIFIED | Estimating intelligence | V1 includes attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains intentional POST-V1 P7 scope. |
+| VERIFIED WITH BROWSER HOLD | Steam Sleek V28 propagation | Shared tokens/primitives and representative Login, Today, Preconstruction, Takeoff/Conditions, Pricing/Labor/Review, Proposal, Projects, Work Packages, Change Orders, Field, Production, Finance, and System routes are covered by source tests. Responsive, keyboard, and visual browser acceptance remains unverified. |
 | REQUIRED HARDENING | Browser acceptance | Local browser capture/navigation rejected by automatic approval review with “blocked by policy.” No browser PASS is claimed. |
 | DUPLICATE / SUPERSEDED | Rejected light translation / Indigo Harbor palette | Superseded by the current explicit Steam Sleek V28 direction; Command Deck and useful Spatial Blueprint behavior remain. |
 | DUPLICATE / SUPERSEDED | Already accepted P0.5 legacy migration / derived 3D work | Preserve accepted work; do not restart it to satisfy a new feature family. |

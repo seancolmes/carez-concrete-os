@@ -7,17 +7,18 @@ User QA target: stable `staging` Vercel alias
 
 ## Execution model
 
-### FINAL-2026-09-26 local completion program — incomplete
+### FINAL-2026-09-26 local completion program — local engineering complete; browser acceptance required
 
-The current instruction authorizes local implementation and local commits on `staging`; it does not authorize push, deployment, or provider writes. Earlier accepted milestones below are historical evidence, not proof that V1 is complete.
+The current instruction authorizes local implementation and local commits on `staging`; it does not authorize push, deployment, or provider writes. The current local release gate establishes engineering readiness at `2f5c5d7e`; authenticated representative browser acceptance remains required before human release acceptance.
 
 - Approved Change Order reference RPC correction committed locally (`a4824f01`), with the original recovery migration preserved.
 - Stale legacy assembly creation RPC retired; profile authority columns protected from caller updates; nine definer search paths hardened (`71744385`).
-- Isolated release replay and source dependency checking implemented (`e0d9aa5e`). A fresh 53-migration replay, 29 database assertions, and SQL lint pass. The gate correctly fails on **155 missing application dependencies: 117 relations and 38 functions across 498 call sites**. Source completeness is not established by migration replay alone. See `docs/workflow/RELEASE_GATE.md` for gate coverage and remaining gaps.
+- The release gate now replays all 65 source migrations and reports **0 active missing source contracts** after scanning 1,149 references. All twelve runtime SQL fixtures, schema security, schema lint, 334 passing tests with one intentional skip, typecheck, production build, whitespace, and source-integrity checks pass.
 - The earlier light translation (`ffbcd08e`) was explicitly rejected. The current theme correction adopts Steam Sleek V28 dark tokens and layered chrome, labelled primary navigation, shared controls, Change Orders proof composition, and public proposal styling. All saved appearance preferences normalize to dark while preserving density. Browser acceptance remains **unverified** following the earlier automatic approval rejection. Manual acceptance checks are recorded in the component pack. The user has separated V1 completion into another workstream; this correction changes presentation only.
-- EDGE Condition parity beyond the three pilot families, partial/negotiated acceptance, and the full downstream execution/finance lineage remain open. V1 and release readiness are **not complete**.
+- V1 Condition edge-family parity, derived-3D verification, and Issue #28 acceptance-resolution vocabulary are present in source-controlled contracts with regression coverage. Project execution, production, finance, billing/retainage, cash/commitment, scope/resource, and pour-control fixtures pass. The remaining release hold is authenticated representative browser acceptance.
+- Estimating intelligence is V1-scoped through attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains an intentional POST-V1 P7 capability and is not a V1 blocker.
 
-Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790408703932-b63c10`. No production or QA database was mutated by this program.
+Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790442130852-eb32b2`. No production or QA database was mutated by this program.
 
 Carez implementation follows the normal local workflow:
 
@@ -172,11 +173,11 @@ Issue #39 is closed. `main` remains untouched.
 
 ## Active workstreams
 
-One cross-cutting UI workstream remains open:
+One cross-cutting UI acceptance item remains open:
 
-1. **Issue #76 — ADR-025 application-wide Experience System rollout.** The reference slice is accepted; broad propagation, richer purposeful motion, and explicitly deferred spatial/3D experience work remain unfinished.
+1. **Issue #76 / ADR-025 — Steam Sleek V28 route acceptance.** Source integration covers the representative application routes and shared shell; authenticated responsive, keyboard, and visual browser acceptance remains outstanding.
 
-The P0.5 Concrete Condition foundation, including Issue #39 P0.5E legacy migration and formula-first UI retirement, is accepted on `staging`. The next domain phase is **P1 Estimating** when authorized.
+The P0.5 Concrete Condition foundation, Issue #39 P0.5E legacy migration, P1 estimating source slices, and V1 commercial handoff contracts are implemented on `staging`; authenticated representative workflow acceptance remains the outstanding release step.
 
 The Issue #59 production migration bridge is applied and verified; it no longer blocks a production release on migration-bridge reconciliation. Other release acceptance and action-specific production authorization requirements still apply.
 
