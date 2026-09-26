@@ -170,6 +170,8 @@ The old Scope Recipe, Project Scope Variant, System Block, Formula Composer, and
 
 Existing published recipes/assemblies, formula ASTs, outputs, method profiles, estimate links, and accepted references remain readable and immutable. Supported editable pilot work is reconciled through Concrete Conditions; unsupported or historical compatibility records remain untouched. The legacy Assembly History surface is read-only, active recipe/formula authoring is removed from normal Takeoff, and no referenced history is deleted.
 
+The obsolete `carez_create_custom_assembly` RPC is retired additively: application/service execution is revoked, and privileged stale callers receive an explicit unsupported-operation error directing them to Project Concrete Conditions. Its signature remains for deliberate compatibility failure; no historical assembly records are changed and no obsolete folder schema is recreated.
+
 ## Current foundation
 
 P0 geometry/editor/atomic recalculation and the Concrete Condition workstation are implemented. Issue #41 synchronized derived 2D/3D verification is closed and accepted. The active 3D path is the client-only R3F/Three.js viewer backed by the exact PDF sheet plane and existing derived scene authority. The SVG pseudo-3D renderer and legacy formula-first authoring path are retired from normal Takeoff. Current P0.5E release/acceptance state is tracked in docs/CURRENT_STATE.md and Issue #39.
