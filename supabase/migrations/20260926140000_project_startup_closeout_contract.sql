@@ -94,7 +94,8 @@ with payment as (
   from public.project_payment_milestones m left join public.invoice_financial_summary i on i.company_id=m.company_id and i.invoice_id=m.invoice_id
   group by m.company_id,m.project_id
 )
-select p.company_id,p.id project_id,p.job_number,p.name,p.address,p.city,p.state,
+select p.company_id,p.id project_id,p.job_number,p.name project_name,p.name,p.address,p.city,p.state,
+  true award_setup_applies,a.agreement_number,a.proposal_number,a.accepted_name,a.accepted_email,a.accepted_at,
   exists(select 1 from public.project_award_records a where a.company_id=p.company_id and a.project_id=p.id and a.status='accepted') agreement_captured,
   (p.sales_tax_exempt or (coalesce(p.sales_tax_rate_percent,0)>0 and nullif(btrim(coalesce(p.sales_tax_jurisdiction,'')),'') is not null)) billing_ready,
   coalesce(pay.required_before_start_count,0)::integer required_before_start_count,
@@ -108,7 +109,8 @@ select p.company_id,p.id project_id,p.job_number,p.name,p.address,p.city,p.state
     when not (p.sales_tax_exempt or (coalesce(p.sales_tax_rate_percent,0)>0 and nullif(btrim(coalesce(p.sales_tax_jurisdiction,'')),'') is not null)) then 'Project sales-tax treatment is not complete.'
     when coalesce(pay.required_before_start_open_count,0)>0 then format('%s required-before-start payment item(s) remain open.',pay.required_before_start_open_count)
     else 'Job setup is complete.' end readiness_reason
-from public.projects p left join payment pay on pay.company_id=p.company_id and pay.project_id=p.id;
+from public.projects p left join public.project_award_records a on a.company_id=p.company_id and a.project_id=p.id and a.status='accepted'
+left join payment pay on pay.company_id=p.company_id and pay.project_id=p.id;
 
 create or replace view public.project_work_readiness_summary with (security_invoker=true) as
 select p.company_id,p.id project_id,p.job_number,p.name,
