@@ -117,6 +117,43 @@ enable_confirmations = false
       const output=sql(readFileSync(join(root,'tests','fixtures','release-security.sql'),'utf8'));
       writeFileSync(join(workspace,'security.log'),output);assertTapPassed(output);
     });
+    phase('trigger-function ACL',()=>{
+      const output=sql(`
+with allowlist(signature) as (values
+  ('public.get_public_proposal(uuid)'),
+  ('public.submit_public_proposal_response(uuid,text,text,text,text,text,uuid)'),
+  ('public.track_public_proposal_view(uuid)')
+), audited_functions as (
+  select distinct p.oid,p.proacl
+  from pg_trigger t
+  join pg_proc p on p.oid=t.tgfoid
+  join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and not t.tgisinternal
+  union
+  select p.oid,p.proacl
+  from pg_proc p
+  join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public'
+    and p.oid::regprocedure::text in ('public.snapshot_purchase_order_branding()','public.sync_project_award_record()')
+), findings as (
+  select p.oid::regprocedure::text as signature,
+    coalesce(bool_or(a.grantee=0 and a.privilege_type='EXECUTE'),false) as public_execute,
+    has_function_privilege('anon',p.oid,'execute') as anon_execute,
+    has_function_privilege('authenticated',p.oid,'execute') as authenticated_execute
+  from audited_functions f
+  join pg_proc p on p.oid=f.oid
+  left join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a on true
+  where p.oid::regprocedure::text not in (select signature from allowlist)
+  group by p.oid
+)
+select format('%s [PUBLIC=%s, anon=%s, authenticated=%s]',signature,public_execute,anon_execute,authenticated_execute)
+from findings
+where public_execute or anon_execute or authenticated_execute
+order by signature;
+`);
+      if(output.trim())throw new Error(`Internal trigger/helper functions have unintended app-role EXECUTE:\n${output.trim()}`);
+      return '0 public-schema trigger/internal helpers have unintended PUBLIC, anon, or authenticated EXECUTE';
+    });
     phase('schema lint',()=>assertLintPassed(cli(['db','lint','--local','--level','error'])));
   }
   if(!databaseOnly){
