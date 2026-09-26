@@ -2,6 +2,32 @@
 
 This roadmap governs sequence. It does not authorize unrelated rewrites.
 
+## FINAL-2026-09-26 completion inventory
+
+This active program supersedes conflicting palette and completion claims below. Local V1 completion is not established. Work proceeds in dependency order; existing accepted history remains intact.
+
+| Classification | Work | Current evidence / next dependency |
+| --- | --- | --- |
+| CURRENT DEFECT | Missing source database authority | Clean replay exposes 155 missing application dependencies (117 relations, 38 functions, 498 call sites). Recover domain contracts additively before relying on operational routes. Production definitions are historical read evidence, not authority to restore superseded behavior. |
+| REQUIRED HARDENING | Change Order reference disclosure | Corrected in `a4824f01`; six-field authenticated tenant RPC, runtime security assertions pass. |
+| REQUIRED HARDENING | Legacy assembly RPC and profile privilege escalation | Corrected in `71744385`; obsolete writes retired, profile role/company changes denied, definer paths pinned. |
+| REQUIRED HARDENING | Permanent release gate | Initial isolated harness in `e0d9aa5e`; replay, hashes, runtime assertions, source object dependencies, security/lint, tests/build checks implemented. Column/RPC signature coverage, all-domain tenant/role/lineage coverage, and authenticated browser acceptance remain open. Gate must remain FAIL until required coverage and dependencies pass. |
+| REQUIRED FOR V1 | EDGE Condition parity | Three pilot families exist. Extend the shared engine to required concrete families, explicit auto-feed, opening deduction modes, reuse/versioning, universal edits, and applicable resource outputs with visible holds. Official concrete reference confirms dimension-driven quantities and integrated materials/labor; deeper parity remains unverified. |
+| REQUIRED FOR V1 | Connected Estimating | Complete Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal with provenance, explicit holds, and separate Production Quantity / Direct Cost / Sell. |
+| REQUIRED FOR V1 | Issue #28 customer acceptance | Full exact-revision award foundation exists. Partial/negotiated scope, accepted/rejected alternates, allowances, accepted unit prices, and immutable resolved commercial facts remain open. Public Proposal remains response-only. |
+| REQUIRED FOR V1 | Project / Work Package handoff | Implement accepted-scope allocations and exact quantity/version lineage; existing manual package entry is not evidence of completed allocation architecture. |
+| REQUIRED FOR V1 | Field / Production / Actual Cost | Restore source contracts, then validate attributable work/evidence and planned quantity vs actual production vs actual cost through representative workflows. |
+| REQUIRED FOR V1 | Change Orders / SOV / Billing / Retainage | Preserve recovered Change Order authority; complete authorized deltas and downstream billing/retainage reconciliation without changing original accepted history. |
+| REQUIRED FOR V1 | Estimating intelligence | Derive learning from qualified authorized scope, attributable work, and actual evidence; retain confidence and missing-input holds. |
+| REQUIRED FOR V1 | Steam Light propagation | Shared tokens/primitives, login and public proposal changed locally; tests/build pass. Remaining route-level, responsive, keyboard, and visual acceptance is unverified. |
+| REQUIRED HARDENING | Browser acceptance | Local browser capture/navigation rejected by automatic approval review with “blocked by policy.” No browser PASS is claimed. |
+| DUPLICATE / SUPERSEDED | Previous dark-heavy / Indigo Harbor palette | Superseded by the current explicit Steam Light direction; Command Deck and useful Spatial Blueprint behavior remain. |
+| DUPLICATE / SUPERSEDED | Already accepted P0.5 legacy migration / derived 3D work | Preserve accepted work; do not restart it to satisfy a new feature family. |
+| EXPLICITLY DEFERRED | Client Package Studio, Markup Sheet, Quick Estimate | Existing roadmap deferrals remain; the new shared visual system does not authorize those separate product projects. |
+| POST-V1 | Broader AI Plan Intelligence and decorative immersive layers | Do not promote future P7 assistance or optional 3D experiences into V1 blockers. |
+
+No item is complete solely because a screen, migration, or historical production object exists. Verified implementation status belongs in `docs/CURRENT_STATE.md`; release procedure and remaining gate limitations belong in `docs/workflow/RELEASE_GATE.md`.
+
 ## Current program state
 
 The Carez UI program still has one open cross-cutting workstream:
