@@ -1,4 +1,8 @@
 import ts from 'typescript';
+import {readdirSync, readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {sourceAuthorityFor, assertSourceAuthorityManifest, isReleaseBlockingSourceClass} from './source-authority-manifest.ts';
+import type {DatabaseObjectKind, SourceAuthorityEntry} from './source-authority-manifest.ts';
 
 export function assertTapPassed(output:string){
   if (/^not ok\b|^Bail out!/m.test(output)) throw new Error(`pgTAP failed:\n${output}`);
@@ -23,7 +27,7 @@ export function assertLintPassed(output:string){
 }
 
 export function databaseReferences(source:string,file:string){
-  const result:{kind:'relation'|'function';name:string;file:string;line:number}[]=[];
+  const result:{kind:DatabaseObjectKind;name:string;file:string;line:number}[]=[];
   const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,file.endsWith('.tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);
   function visit(node:ts.Node){
     if(ts.isCallExpression(node)&&ts.isPropertyAccessExpression(node.expression)){
@@ -38,6 +42,51 @@ export function databaseReferences(source:string,file:string){
   }
   visit(tree);
   return result;
+}
+
+export function migrationObjectOwners(migrationsDirectory:string){
+  const owners=new Map<string,string[]>();
+  for(const file of readdirSync(migrationsDirectory).filter(name=>name.endsWith('.sql')).sort()){
+    const source=readFileSync(join(migrationsDirectory,file),'utf8');
+    const patterns:[DatabaseObjectKind,RegExp][]=[
+      ['relation',/create\s+(?:or\s+replace\s+)?(?:table|view|materialized\s+view)\s+(?:if\s+not\s+exists\s+)?public\.([a-z_][a-z0-9_]*)/gi],
+      ['function',/create\s+(?:or\s+replace\s+)?function\s+public\.([a-z_][a-z0-9_]*)/gi],
+    ];
+    for(const [kind,pattern] of patterns){
+      for(const match of source.matchAll(pattern)){
+        const key=`${kind}:${match[1]}`;
+        owners.set(key,[...(owners.get(key)??[]),file]);
+      }
+    }
+  }
+  return owners;
+}
+
+export type ClassifiedDatabaseReference = {
+  kind: DatabaseObjectKind;
+  name: string;
+  file: string;
+  line: number;
+  classification?: SourceAuthorityEntry['classification'];
+  reason?: string;
+  owners: string[];
+};
+
+export function classifyMissingDatabaseReferences(
+  references:{kind:DatabaseObjectKind;name:string;file:string;line:number}[],
+  existing:Set<string>,
+  owners:Map<string,string[]>,
+): ClassifiedDatabaseReference[] {
+  const missing=references.filter(reference => !existing.has(reference.name));
+  assertSourceAuthorityManifest(missing);
+  return missing.map(reference => {
+    const authority=sourceAuthorityFor(reference.kind,reference.name)!;
+    return {...reference,classification:authority.classification,reason:authority.reason,owners:owners.get(`${reference.kind}:${reference.name}`)??[]};
+  });
+}
+
+export function releaseBlockingDatabaseReferences(missing:ClassifiedDatabaseReference[]) {
+  return missing.filter(reference => reference.classification && isReleaseBlockingSourceClass(reference.classification));
 }
 
 export function assertLocalUrl(value:string){

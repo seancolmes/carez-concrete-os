@@ -4,7 +4,7 @@ import {mkdirSync,readFileSync,writeFileSync,readdirSync,copyFileSync} from 'nod
 import {homedir} from 'node:os';
 import {join,relative} from 'node:path';
 import net from 'node:net';
-import {assertTapPassed,assertLintPassed,databaseReferences} from './release-gate-support.ts';
+import {assertTapPassed,assertLintPassed,databaseReferences,classifyMissingDatabaseReferences,migrationObjectOwners,releaseBlockingDatabaseReferences} from './release-gate-support.ts';
 
 const root=process.cwd();
 const databaseOnly=process.argv.includes('--database-only');
@@ -104,10 +104,14 @@ enable_confirmations = false
       const refs=['app','components','lib'].flatMap(dir=>files(join(root,dir))).filter(f=>/\.tsx?$/.test(f)).flatMap(f=>databaseReferences(readFileSync(f,'utf8'),relative(root,f)));
       const relations=new Set(sql("select relname from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public';").trim().split(/\r?\n/));
       const functions=new Set(sql("select proname from pg_proc join pg_namespace n on n.oid=pronamespace where n.nspname='public';").trim().split(/\r?\n/));
-      const missing=refs.filter(ref=>!(ref.kind==='relation'?relations:functions).has(ref.name));
-      writeFileSync(join(workspace,'database-dependencies.json'),JSON.stringify({references:refs,missing},null,2));
-      if(missing.length)throw new Error(`${new Set(missing.map(ref=>ref.kind+':'+ref.name)).size} missing objects across ${missing.length} references; see database-dependencies.json`);
-      return `${refs.length} literal database references resolve in fresh source schema`;
+      const owners=migrationObjectOwners(join(root,'supabase','migrations'));
+      const missingRelations=classifyMissingDatabaseReferences(refs.filter(ref=>ref.kind==='relation'),relations,owners);
+      const missingFunctions=classifyMissingDatabaseReferences(refs.filter(ref=>ref.kind==='function'),functions,owners);
+      const missing=[...missingRelations,...missingFunctions];
+      const blocking=releaseBlockingDatabaseReferences(missing);
+      writeFileSync(join(workspace,'database-dependencies.json'),JSON.stringify({references:refs,missing,summary:{scannedReferences:refs.length,missingReferences:missing.length,missingObjects:new Set(missing.map(ref=>`${ref.kind}:${ref.name}`)).size,blockingReferences:blocking.length,blockingObjects:new Set(blocking.map(ref=>`${ref.kind}:${ref.name}`)).size,byClassification:Object.fromEntries([...new Set(missing.map(ref=>ref.classification))].map(classification=>[classification,missing.filter(ref=>ref.classification===classification).length]))}},null,2));
+      if(blocking.length)throw new Error(`${new Set(blocking.map(ref=>ref.kind+':'+ref.name)).size} active source contracts missing across ${blocking.length} references; deferred findings are recorded in database-dependencies.json`);
+      return `${refs.length} references scanned; ${missing.length} classified deferred findings; 0 active missing source contracts`;
     });
     phase('schema security',()=>{
       const output=sql(readFileSync(join(root,'tests','fixtures','release-security.sql'),'utf8'));

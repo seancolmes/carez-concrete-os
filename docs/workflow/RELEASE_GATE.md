@@ -8,7 +8,7 @@ Checks currently implemented:
 
 - fresh migration replay and exact migration ledger/hash reconciliation;
 - all `tests/fixtures/*-runtime.sql` transactional fixtures and pgTAP assertions;
-- literal application table/view/RPC dependencies against the freshly replayed database;
+- classified application table/view/RPC dependencies against the freshly replayed database;
 - exposed table RLS, invoker views, explicit trusted definer search paths, and policies on exposed tenant tables;
 - SQL lint findings, including errors returned with exit code zero;
 - complete TypeScript test suite, typecheck, production build, whitespace, and stable-source checks.
@@ -21,7 +21,7 @@ The full gate deliberately fails until authenticated representative browser acce
 
 ## Source authority recovery
 
-The first full-chain audit on 2026-09-26 found 155 distinct application-referenced objects absent from the source-replayed schema (117 relations and 38 functions). Representative operational objects exist in production and are absent from QA. Preserve current source and applied migrations; recover missing capabilities additively from verified contracts and schema evidence. Do not blindly replay historical production migration statements, import customer rows, or replace current Award/Change Order authority with older implementations.
+The source authority manifest in `scripts/source-authority-manifest.ts` classifies every missing application object as A–I and requires an explicit entry before the gate can proceed. Classes A, B, and I block the release; C–H remain visible with their reason, and migration-source owners are reported when discoverable. The first full-chain audit on 2026-09-26 found 155 distinct application-referenced objects absent from the source-replayed schema (117 relations and 38 functions); the current manifest separates 64 active V1 source-contract objects from 91 deferred/post-V1 objects. Representative operational objects exist in production and are absent from QA. Preserve current source and applied migrations; recover missing capabilities additively from verified contracts and schema evidence. Do not blindly replay historical production migration statements, import customer rows, or replace current Award/Change Order authority with older implementations.
 
 ## Publication
 
