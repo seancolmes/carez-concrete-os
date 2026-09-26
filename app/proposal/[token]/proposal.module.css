@@ -12,3 +12,14 @@
 .form :is(input,textarea,select):focus-visible,:is(.primaryButton,.secondaryButton,.textButton):focus-visible{outline:2px solid var(--ring);outline-offset:2px}
 .noticeSuccess,.accepted{background:color-mix(in srgb,var(--success) 8%,var(--card));border-color:var(--success)}
 .noticeNeutral,.previewBar{background:color-mix(in srgb,var(--warning) 8%,var(--card));border-color:var(--warning)}
+/* Public document uses the same Steam chrome without changing response authority. */
+.page{background:var(--steam-page-gradient) 50% 0 / 100vw 100vh fixed no-repeat var(--steam-page-bg)}
+.document,.scopeCard,.optionCard{background:var(--steam-panel-surface)}
+.header,.scopeHeading,.pricePanel{background:var(--steam-header-surface)}
+.hero{background:var(--steam-panel-surface);padding:28px 32px}
+.hero h1{font-size:30px}
+.section{padding:24px 32px}
+.section h2,.actionSection h2{font-size:22px}
+.primaryButton{background:linear-gradient(180deg,#8ed8ff,#66c0f4);color:#0d1116}
+.primaryButton:hover{background:linear-gradient(180deg,#b4e6ff,#8ed8ff)}
+@media(max-width:640px){.hero,.section{padding:20px 16px}.hero h1{font-size:26px}}

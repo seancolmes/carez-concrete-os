@@ -19,9 +19,9 @@ This active program supersedes conflicting palette and completion claims below. 
 | REQUIRED FOR V1 | Field / Production / Actual Cost | Restore source contracts, then validate attributable work/evidence and planned quantity vs actual production vs actual cost through representative workflows. |
 | REQUIRED FOR V1 | Change Orders / SOV / Billing / Retainage | Preserve recovered Change Order authority; complete authorized deltas and downstream billing/retainage reconciliation without changing original accepted history. |
 | REQUIRED FOR V1 | Estimating intelligence | Derive learning from qualified authorized scope, attributable work, and actual evidence; retain confidence and missing-input holds. |
-| REQUIRED FOR V1 | Steam Light propagation | Shared tokens/primitives, login and public proposal changed locally; tests/build pass. Remaining route-level, responsive, keyboard, and visual acceptance is unverified. |
+| REQUIRED FOR V1 | Steam Sleek V28 propagation | Shared tokens/primitives, login and public proposal changed locally; tests/build pass. Remaining route-level, responsive, keyboard, and visual acceptance is unverified. |
 | REQUIRED HARDENING | Browser acceptance | Local browser capture/navigation rejected by automatic approval review with “blocked by policy.” No browser PASS is claimed. |
-| DUPLICATE / SUPERSEDED | Previous dark-heavy / Indigo Harbor palette | Superseded by the current explicit Steam Light direction; Command Deck and useful Spatial Blueprint behavior remain. |
+| DUPLICATE / SUPERSEDED | Rejected light translation / Indigo Harbor palette | Superseded by the current explicit Steam Sleek V28 direction; Command Deck and useful Spatial Blueprint behavior remain. |
 | DUPLICATE / SUPERSEDED | Already accepted P0.5 legacy migration / derived 3D work | Preserve accepted work; do not restart it to satisfy a new feature family. |
 | EXPLICITLY DEFERRED | Client Package Studio, Markup Sheet, Quick Estimate | Existing roadmap deferrals remain; the new shared visual system does not authorize those separate product projects. |
 | POST-V1 | Broader AI Plan Intelligence and decorative immersive layers | Do not promote future P7 assistance or optional 3D experiences into V1 blockers. |

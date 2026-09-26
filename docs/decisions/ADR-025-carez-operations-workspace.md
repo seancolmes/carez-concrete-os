@@ -25,36 +25,19 @@ ADR-025 is the active staging presentation authority.
 
 It supersedes ADR-024 presentation and ADR-016 shell arrangement where ADR-025 speaks while preserving compatible accessibility/theme/component foundations. ADR-020 and current Takeoff module contracts continue to govern Takeoff quantity/domain invariants.
 
-### Visual / interaction language — Steam Sleek Light Blue Steel
+### Visual / interaction language — CAREZ STEAM SLEEK V28
 
-On 2026-09-26, FINAL-2026-09-26 supersedes the former Indigo Harbor palette and dark/system presentation. The approved direction translates Steam Sleek V28 control precision into a LIGHT contractor workspace. The supplied stylesheet is a design reference, not CSS to copy into Carez.
+The explicit FINAL-2026-09-26 correction rejects the prior light interpretation. Steam-Sleek-V28.css itself is the primary presentation specification. Translate its component rules into Carez selectors; do not import ChatGPT-specific selectors.
 
-- Light cool-concrete canvas, white working surfaces, pale steel secondary surfaces.
-- Deep blue-charcoal text, steel secondary text, thin steel borders.
-- Azure/cyan identifies interaction, selection, and focus; it is not a page-wide blue fill.
-- Compact desktop controls normally 30–34px; touch controls retain a larger usable target.
-- Mostly square geometry with 2–7px corners, compact navigation rows, aligned grids, and strong selected edges.
-- Inter remains the interface face; IBM Plex Mono is reserved for technical values and identifiers.
-- Preserve Command Rail, Domain Deck, contextual Command Bar, large workspaces, semantic status colors, keyboard behavior, and reduced motion.
-- No black/charcoal page shells, dark card walls, glassmorphism, or decorative gradients. Bounded steel control gradients are optional where useful.
-
-Core tokens:
-
-| Token | Value |
-| --- | --- |
-| background | #f3f7fa |
-| card / popover | #ffffff |
-| foreground | #17232d |
-| muted | #e7eef3 |
-| muted foreground | #526574 |
-| secondary | #e2eaf0 |
-| accent / selection | #d6e8f3 |
-| border | #c6d3dc |
-| input border | #b8c8d3 |
-| primary | #0877b3 |
-| focus ring | #168bd2 |
-
-The slightly deeper primary azure preserves AA contrast for white button labels and small interactive text. Brighter cyan remains focus/structural emphasis. Saved dark/system preferences normalize to Steam Light before paint; density preferences remain available. Theme changes never alter quantities, commercial authority, permissions, or workflow behavior.
+- Foundation: #0d1116, #11161c, #171d24; elevated steel: #1d242c, #252d36, #303a45.
+- Blue steel: #102838, #18384c, #21465d, #2a5670. Interaction: #66c0f4; hover/focus: #8ed8ff.
+- Text: #d8dee4, #c4d0d9, #a4b3bf, #8a9baa. Borders: #27313a, #303a44, #414d59.
+- Preserve the reference sidebar, panel, header, control, table, and viewport-stable page gradients through shared steam tokens in app/globals.css.
+- Dense 28–34px desktop rows, icon-plus-label primary navigation, blue selected rows with cyan edges, low-radius technical chrome, compact data tables.
+- Inter / Segoe UI-compatible interface typography; existing IBM Plex Mono for technical values.
+- ADR-026 operating sections, Command Deck / useful Spatial Blueprint principles, permissions, quantities, and commercial behavior remain authoritative.
+- Saved light/system preferences normalize to dark before paint. Density remains configurable. No second light design is required.
+- Browser-unavailable implementation checks do not constitute visual acceptance. Verify representative populated and empty routes, mobile overflow, keyboard/focus, and all interaction states manually before claiming visual PASS.
 
 ### Motion
 

@@ -7,7 +7,7 @@ export const CAREZ_DENSITY_STORAGE_KEY = 'carez.density';
 export const CAREZ_THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 export function normalizeThemePreference(_value: unknown): CarezThemePreference {
-  return 'light';
+  return 'dark';
 }
 
 export function normalizeDensityPreference(value: unknown): CarezDensityPreference {
@@ -15,12 +15,12 @@ export function normalizeDensityPreference(value: unknown): CarezDensityPreferen
 }
 
 export function resolveThemePreference(_preference: CarezThemePreference, _prefersDark: boolean): CarezResolvedTheme {
-  return 'light';
+  return 'dark';
 }
 
 export const CAREZ_APPEARANCE_BOOT_SCRIPT = `(() => {
   const root = document.documentElement;
-  const themePreference = 'light';
+  const themePreference = 'dark';
   let densityPreference = 'default';
 
   try {
@@ -28,7 +28,7 @@ export const CAREZ_APPEARANCE_BOOT_SCRIPT = `(() => {
     if (storedDensity === 'default' || storedDensity === 'compact' || storedDensity === 'comfortable') densityPreference = storedDensity;
   } catch {}
 
-  const resolvedTheme = 'light';
+  const resolvedTheme = 'dark';
 
   root.dataset.themePreference = themePreference;
   root.dataset.theme = resolvedTheme;

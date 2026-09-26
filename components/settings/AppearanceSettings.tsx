@@ -14,9 +14,9 @@ export function AppearanceSettings() {
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
       <div>
         <div className="text-sm font-medium">Theme</div>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Steam Light — cool concrete surfaces, steel borders, and azure controls.</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Steam Sleek V28 — dark steel surfaces, compact chrome, and cyan controls.</p>
       </div>
-      <span className="text-sm font-medium text-foreground">Steam Light</span>
+      <span className="text-sm font-medium text-foreground">Steam Sleek V28</span>
     </div>
 
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">

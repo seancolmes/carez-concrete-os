@@ -14,7 +14,7 @@ The current instruction authorizes local implementation and local commits on `st
 - Approved Change Order reference RPC correction committed locally (`a4824f01`), with the original recovery migration preserved.
 - Stale legacy assembly creation RPC retired; profile authority columns protected from caller updates; nine definer search paths hardened (`71744385`).
 - Isolated release replay and source dependency checking implemented (`e0d9aa5e`). A fresh 53-migration replay, 29 database assertions, and SQL lint pass. The gate correctly fails on **155 missing application dependencies: 117 relations and 38 functions across 498 call sites**. Source completeness is not established by migration replay alone. See `docs/workflow/RELEASE_GATE.md` for gate coverage and remaining gaps.
-- Steam Light shared palette, controls, appearance compatibility, login, and public proposal styling are implemented locally. Legacy dark/system preferences normalize to light while preserving density. Validation: 322 tests passed, one existing optional database test skipped, production build/type checking passed. Browser acceptance is **unverified**: automatic approval review rejected the local browser capture/navigation command with only “blocked by policy.”
+- The earlier light translation (`ffbcd08e`) was explicitly rejected. The current theme correction adopts Steam Sleek V28 dark tokens and layered chrome, labelled primary navigation, shared controls, Change Orders proof composition, and public proposal styling. All saved appearance preferences normalize to dark while preserving density. Browser acceptance remains **unverified** following the earlier automatic approval rejection. Manual acceptance checks are recorded in the component pack. The user has separated V1 completion into another workstream; this correction changes presentation only.
 - EDGE Condition parity beyond the three pilot families, partial/negotiated acceptance, and the full downstream execution/finance lineage remain open. V1 and release readiness are **not complete**.
 
 Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790408703932-b63c10`. No production or QA database was mutated by this program.
@@ -67,7 +67,7 @@ The accepted design direction is:
 - selective spatial/3D treatment where it improves technical or customer-facing experiences;
 - Inter-led hierarchy with IBM Plex Mono reserved for technical alignment;
 - stronger shared tabs, meaningful domain icons, three depth levels, and no competing component system.
-- current ADR-025 palette authority: **Steam Light / light blue steel**, explicitly directed on 2026-09-26, superseding the Indigo Harbor palette accepted on 2026-09-21. Light surfaces, steel separators, and azure interactions preserve the Command Deck / Spatial Blueprint workflow philosophy. Visual acceptance of the new implementation remains outstanding.
+- current ADR-025 palette authority: **CAREZ STEAM SLEEK V28**, explicitly directed on 2026-09-26, superseding the Indigo Harbor palette accepted on 2026-09-21. Dark layered surfaces, steel separators, and cyan interactions preserve the Command Deck / Spatial Blueprint workflow philosophy. Visual acceptance of the new implementation remains outstanding.
 
 ### Accepted reference implementation
 

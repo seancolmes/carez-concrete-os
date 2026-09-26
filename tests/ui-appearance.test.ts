@@ -12,11 +12,11 @@ import {
 } from '../lib/ui/appearance.ts';
 
 test('theme preference normalizes safely', () => {
-  assert.equal(normalizeThemePreference('light'), 'light');
-  assert.equal(normalizeThemePreference('dark'), 'light');
-  assert.equal(normalizeThemePreference('system'), 'light');
-  assert.equal(normalizeThemePreference('sepia'), 'light');
-  assert.equal(normalizeThemePreference(null), 'light');
+  assert.equal(normalizeThemePreference('light'), 'dark');
+  assert.equal(normalizeThemePreference('dark'), 'dark');
+  assert.equal(normalizeThemePreference('system'), 'dark');
+  assert.equal(normalizeThemePreference('sepia'), 'dark');
+  assert.equal(normalizeThemePreference(null), 'dark');
 });
 
 test('density preference normalizes safely', () => {
@@ -27,18 +27,18 @@ test('density preference normalizes safely', () => {
   assert.equal(normalizeDensityPreference(undefined), 'default');
 });
 
-test('legacy appearance preferences resolve to the approved Steam Light workspace', () => {
-  assert.equal(resolveThemePreference('system', false), 'light');
-  assert.equal(resolveThemePreference('system', true), 'light');
-  assert.equal(resolveThemePreference('light', true), 'light');
-  assert.equal(resolveThemePreference('dark', false), 'light');
+test('legacy appearance preferences resolve to the approved Steam Sleek V28 workspace', () => {
+  assert.equal(resolveThemePreference('system', false), 'dark');
+  assert.equal(resolveThemePreference('system', true), 'dark');
+  assert.equal(resolveThemePreference('light', true), 'dark');
+  assert.equal(resolveThemePreference('dark', false), 'dark');
 });
 
 test('boot migrates saved dark preference before paint and preserves density', () => {
-  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(_name:string,value:boolean){assert.equal(value,false);}}};
+  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(_name:string,value:boolean){assert.equal(value,true);}}};
   runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{document:{documentElement:root},window:{matchMedia:()=>({matches:true})},localStorage:{getItem:(key:string)=>key===CAREZ_DENSITY_STORAGE_KEY?'compact':'dark'}});
-  assert.equal(root.dataset.themePreference,'light');
-  assert.equal(root.dataset.theme,'light');
+  assert.equal(root.dataset.themePreference,'dark');
+  assert.equal(root.dataset.theme,'dark');
   assert.equal(root.dataset.density,'compact');
-  assert.equal(root.style.colorScheme,'light');
+  assert.equal(root.style.colorScheme,'dark');
 });

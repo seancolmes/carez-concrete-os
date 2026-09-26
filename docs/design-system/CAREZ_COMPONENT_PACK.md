@@ -16,7 +16,7 @@ Carez modules must reuse one compact set of source-owned shadcn-compatible primi
 
 The pack is intentionally small. It establishes the components that recur across Takeoff, estimating, CRM, projects, field, finance, documents, and reporting. Module-specific compositions may wrap these primitives, but they should not create a competing local design system.
 
-All shared Carez components use the ADR-025 governed semantic token system, Steam Sleek Light Blue Steel surfaces, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
+All shared Carez components use the ADR-025 governed semantic token system, CAREZ STEAM SLEEK V28 surfaces, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
 
 Third-party component libraries are reference/source pools only. Any copied/adapted code must be license-vetted, reviewed for accessibility and bundle cost, converted to Carez semantic tokens, and owned in the Carez repository.
 
@@ -48,22 +48,22 @@ Reviewed 2026-09-21 from the 21st.dev shadcn registry directory. These remain **
 - **ReUI Gantt** — candidate source for P3 scheduling/look-ahead prototyping. It is not authorized as a scheduling domain model; Carez committed milestones, rolling lookahead, READY/AT RISK/BLOCKED state, Constraints, and Blocker Events remain authoritative.
 - **HextaUI Task Filters** — lightweight reference for reusable filter/search bars on Projects, Readiness, Procurement, Documents, and operational queues.
 - **HextaUI Timeline** — reference for Job Spine activity, proposal/award history, change-event history, project evidence, and other chronological lineage views.
-- **HextaUI Clean & Minimal Sign In** — reference only. The current Carez login already owns its Supabase behavior and Steam Light composition; do not replace it merely to adopt a third-party block.
+- **HextaUI Clean & Minimal Sign In** — reference only. The current Carez login already owns its Supabase behavior and Steam Sleek V28 composition; do not replace it merely to adopt a third-party block.
 - **COSS Number Field / Input Group / Fieldset** — preferred low-level interaction reference for Carez Number Field and governed technical forms where Base UI behavior materially improves keyboard entry or validation.
 
-Any adopted source must be copied/adapted into Carez-owned components, tokenized to Steam Light, accessibility-reviewed, dependency-vetted, and validated against the owning domain workflow. Do not install an entire registry for one component.
+Any adopted source must be copied/adapted into Carez-owned components, tokenized to Steam Sleek V28, accessibility-reviewed, dependency-vetted, and validated against the owning domain workflow. Do not install an entire registry for one component.
 
 ## Operations Workspace foundation
 
 Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
 
-Steam Light is the current presentation. Saved dark/system preferences normalize to Light before paint. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
+Steam Sleek V28 is the current presentation. Saved dark/system preferences normalize to Dark before paint. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
 
 Primary UI/display typography is Inter. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
-### Steam Light color contract
+### Steam Sleek V28 color contract
 
-Use the semantic tokens and accessible color pairs in ADR-025. White and cool concrete canvas, pale steel surfaces, thin borders, and azure/cyan interaction are shared across all seven operating surfaces. Primary controls are compact, overlay shells use 6px corners, tables have steel headers, and touch targets remain at least 44px where shared primitives apply.
+Use the semantic tokens and accessible color pairs in ADR-025. Dark navy canvas, layered blue-steel surfaces, thin borders, and azure/cyan interaction are shared across all seven operating surfaces. Primary controls are compact, overlay shells use 6px corners, tables have steel headers, and touch targets remain at least 44px where shared primitives apply.
 
 ## 1. Carez Data Grid
 
@@ -408,4 +408,20 @@ When converting a module:
 
 ## Acceptance
 
-The pack is accepted in implementation only when shared source components exist, are used by representative module surfaces, pass relevant accessibility/keyboard checks, typecheck/tests/build pass, and browser evidence confirms the components behave correctly in representative Carez light and dark workspaces.
+The pack is accepted in implementation only when shared source components exist, are used by representative module surfaces, pass relevant accessibility/keyboard checks, typecheck/tests/build pass, and browser evidence confirms the components behave correctly in representative Carez Steam Sleek V28 workspaces.
+
+### Steam Sleek V28 manual visual acceptance
+
+Automatic token/source tests are regression protection, not screenshot acceptance. Browser capture was unavailable during this correction; visual acceptance remains unverified.
+
+Check Today; Preconstruction; Takeoff with Conditions, Pricing, Labor and Review; Proposal; Projects and Project Detail; Work Packages; Change Orders; Field; Production; Finance/Billing/SOV/Retainage; System; Login; and Public Proposal:
+
+- Dark navy canvas and layered blue-steel headers, panels and tables visibly match the supplied V28 reference.
+- Desktop navigation shows compact icons and labels, clear selected blue fill and cyan edge; mobile navigation remains usable.
+- Change Orders shows compact header/status band, cyan Create control, bounded dark register, and usable empty/populated states.
+- Neutral, primary, pressed, disabled, destructive and ghost buttons remain distinct; menus, tabs and inputs use the same chrome.
+- At desktop, laptop and mobile widths, tables and Takeoff retain usable scroll containment without clipped actions.
+- Tab through navigation, menus and forms; cyan focus stays visible. Check validation, semantic status colors and reduced motion.
+- Confirm public proposal remains response-only and document/plan backgrounds retain their domain meaning.
+
+Do not mark visual authority PASS until these visible checks pass. Shared theme propagation alone is insufficient.
