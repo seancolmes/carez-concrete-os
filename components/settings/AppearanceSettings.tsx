@@ -6,9 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export function AppearanceSettings() {
   const {
     ready,
-    themePreference,
     densityPreference,
-    setThemePreference,
     setDensityPreference,
   } = useCarezAppearance();
 
@@ -16,18 +14,9 @@ export function AppearanceSettings() {
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
       <div>
         <div className="text-sm font-medium">Theme</div>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Follow this device or use an explicit Carez light/dark theme.</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Steam Light — cool concrete surfaces, steel borders, and azure controls.</p>
       </div>
-      <Select value={themePreference} onValueChange={value => {
-        if (value === 'light' || value === 'dark' || value === 'system') setThemePreference(value);
-      }}>
-        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez theme"><SelectValue /></SelectTrigger>
-        <SelectContent align="end">
-          <SelectItem value="system">System</SelectItem>
-          <SelectItem value="light">Light</SelectItem>
-          <SelectItem value="dark">Dark</SelectItem>
-        </SelectContent>
-      </Select>
+      <span className="text-sm font-medium text-foreground">Steam Light</span>
     </div>
 
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">

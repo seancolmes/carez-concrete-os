@@ -52,7 +52,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative grid min-h-screen w-full grid-cols-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_auto] bg-neutral-950 font-sans text-white select-none overflow-x-hidden lg:overflow-hidden">
+    <main className="relative grid min-h-screen w-full grid-cols-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_auto] bg-background font-sans text-foreground overflow-x-hidden lg:overflow-hidden">
       <StructuralDraftingCanvas />
 
       <div
@@ -64,26 +64,26 @@ export default function LoginPage() {
         style={{ top: `${coords.y}px`, left: 0 }}
       />
 
-      <section className="relative z-10 flex h-full min-h-[50vh] w-full flex-col justify-between p-8 sm:p-12 md:p-16 lg:min-h-0 lg:border-r border-neutral-900 lg:p-24">
-        <header className="flex w-full items-center justify-between font-mono text-[10px] tracking-widest text-neutral-500">
-          <span className="font-semibold text-neutral-400">CAREZ // PROJECT OPERATING SYSTEM</span>
-          <span className="hidden items-center gap-1.5 rounded border border-neutral-800/60 bg-neutral-900/40 px-2 py-0.5 font-mono text-[9px] text-cyan-400 sm:flex">
-            <Crosshair size={9} className="animate-spin" style={{ animationDuration: '6s' }} />
+      <section className="relative z-10 flex h-full min-h-[50vh] w-full flex-col justify-between p-8 sm:p-12 md:p-16 lg:min-h-0 lg:border-r border-border lg:p-24">
+        <header className="flex w-full items-center justify-between font-mono text-[10px] tracking-widest text-muted-foreground">
+          <span className="font-semibold text-muted-foreground">CAREZ // PROJECT OPERATING SYSTEM</span>
+          <span className="hidden items-center gap-1.5 rounded border border-border bg-secondary px-2 py-0.5 font-mono text-[9px] text-primary sm:flex">
+            <Crosshair size={9} />
             X:{coords.x.toFixed(0)} Y:{coords.y.toFixed(0)}
           </span>
         </header>
 
         <div className="my-auto flex max-w-xl flex-col justify-center space-y-5 py-12 text-left lg:py-0">
-          <div className="inline-flex w-fit items-center gap-1.5 rounded border border-emerald-900/40 bg-emerald-950/20 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-emerald-400">
-            <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+          <div className="inline-flex w-fit items-center gap-1.5 rounded border border-success/30 bg-success/10 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-success">
+            <span className="h-1 w-1  rounded-full bg-emerald-400" />
             SYS // OPTIMAL_YIELD_ENGINE
           </div>
 
-          <h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-neutral-100 sm:text-4xl lg:text-[40px]">
+          <h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-4xl lg:text-[40px]">
             {loginLandingContent.headline}
           </h1>
 
-          <p className="max-w-md text-sm leading-relaxed text-neutral-400">
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             {loginLandingContent.subheadline}
           </p>
 
@@ -95,8 +95,8 @@ export default function LoginPage() {
                   size: 'default',
                   className:
                     cta.emphasis === 'primary'
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer shadow-lg shadow-blue-950/40'
-                      : 'border-neutral-800 text-neutral-300 hover:bg-neutral-900 font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer',
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer shadow-sm'
+                      : 'border-border text-foreground hover:bg-secondary font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer',
                 })}
                 href={cta.href}
                 key={cta.href}
@@ -109,7 +109,7 @@ export default function LoginPage() {
       </section>
 
       <section
-        className="relative z-10 flex h-full min-h-[50vh] w-full items-center justify-center bg-neutral-950 p-8 sm:p-12 md:p-16 lg:min-h-0 lg:p-24"
+        className="relative z-10 flex h-full min-h-[50vh] w-full items-center justify-center bg-background p-8 sm:p-12 md:p-16 lg:min-h-0 lg:p-24"
         id="sign-in"
         aria-label="Sign in"
       >
@@ -119,12 +119,12 @@ export default function LoginPage() {
       </section>
 
       <footer
-        className="relative z-10 w-full lg:col-span-2 border-t border-neutral-900 pt-4 pb-6 px-8 sm:px-12 md:px-16 lg:px-24 bg-neutral-950/90 font-mono text-[10px] tracking-wider text-neutral-500 flex flex-wrap gap-x-2 gap-y-1"
+        className="relative z-10 w-full lg:col-span-2 border-t border-border pt-4 pb-6 px-8 sm:px-12 md:px-16 lg:px-24 bg-background font-mono text-[10px] tracking-wider text-muted-foreground flex flex-wrap gap-x-2 gap-y-1"
         aria-label="Platform capabilities"
       >
         {loginLandingContent.categories.map((category, index) => (
-          <span key={category} className="text-neutral-500">
-            {index > 0 && <i aria-hidden="true" className="mx-2 font-normal text-neutral-800">/</i>}
+          <span key={category} className="text-muted-foreground">
+            {index > 0 && <i aria-hidden="true" className="mx-2 font-normal text-muted-foreground">/</i>}
             {category}
           </span>
         ))}

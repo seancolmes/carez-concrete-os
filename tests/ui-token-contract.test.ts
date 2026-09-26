@@ -24,16 +24,13 @@ const requiredModeTokens = [
   '--info', '--info-foreground', '--border', '--input', '--ring',
 ];
 
-test('light and dark token blocks are independent and complete', () => {
+test('Steam Light semantic tokens are complete', () => {
   assert.doesNotMatch(globals, /:root\s*,\s*\.dark/);
   const light = block(/:root\s*\{([\s\S]*?)\n\}/, globals);
-  const dark = block(/\.dark\s*\{([\s\S]*?)\n\}/, globals);
   assert.ok(light.length > 0);
-  assert.ok(dark.length > 0);
   for (const token of inheritedSemanticTokens) assert.match(light, new RegExp(`${token}:`));
   for (const token of requiredModeTokens) {
     assert.match(light, new RegExp(`${token}:`));
-    assert.match(dark, new RegExp(`${token}:`));
   }
 });
 
@@ -45,7 +42,7 @@ test('density and typography contracts are present', () => {
   assert.match(globals, /html\[data-density=['"]comfortable['"]\]/);
   assert.match(globals, /--font-mono:\s*var\(--font-ibm-plex-mono\)/);
   assert.match(globals, /html\s*\{[\s\S]*?color-scheme:\s*light/);
-  assert.match(globals, /html\.dark\s*\{[\s\S]*?color-scheme:\s*dark/);
+  assert.match(globals, /html\.dark\s*\{[\s\S]*?color-scheme:\s*light/);
 });
 
 test('layout bootstraps appearance without a forced dark server class', () => {

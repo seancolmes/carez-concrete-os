@@ -54,7 +54,7 @@ test('landing locks the marketing and login columns to a centered structural axi
   const page = readFileSync('app/login/page.tsx', 'utf8');
 
   assert.match(page, /grid-cols-1 lg:grid-cols-2 lg:grid-rows-\[minmax\(0,1fr\)_auto\]/);
-  assert.match(page, /lg:border-r border-neutral-900/);
-  assert.match(page, /lg:col-span-2[^"]*border-t border-neutral-900 pt-4/);
+  assert.match(page, /lg:border-r border-border/);
+  assert.match(page, /lg:col-span-2[^"]*border-t border-border pt-4/);
   assert.ok(page.indexOf('aria-label="Sign in"') < page.indexOf('aria-label="Platform capabilities"'));
 });

@@ -11,9 +11,9 @@ test('Settings exposes Carez appearance preferences', () => {
   const component = read('components/settings/AppearanceSettings.tsx');
   const settings = read('app/settings/page.tsx');
   assert.match(component, /useCarezAppearance/);
-  assert.match(component, /System/);
+  assert.match(component, /Steam Light/);
   assert.match(component, /Light/);
-  assert.match(component, /Dark/);
+  assert.doesNotMatch(component, /value="dark"/);
   assert.match(component, /Workspace default/);
   assert.match(component, /Compact/);
   assert.match(component, /Comfortable/);

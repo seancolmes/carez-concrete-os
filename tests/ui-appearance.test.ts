@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {
   CAREZ_APPEARANCE_BOOT_SCRIPT,
   CAREZ_DENSITY_STORAGE_KEY,
@@ -12,10 +13,10 @@ import {
 
 test('theme preference normalizes safely', () => {
   assert.equal(normalizeThemePreference('light'), 'light');
-  assert.equal(normalizeThemePreference('dark'), 'dark');
-  assert.equal(normalizeThemePreference('system'), 'system');
-  assert.equal(normalizeThemePreference('sepia'), 'system');
-  assert.equal(normalizeThemePreference(null), 'system');
+  assert.equal(normalizeThemePreference('dark'), 'light');
+  assert.equal(normalizeThemePreference('system'), 'light');
+  assert.equal(normalizeThemePreference('sepia'), 'light');
+  assert.equal(normalizeThemePreference(null), 'light');
 });
 
 test('density preference normalizes safely', () => {
@@ -26,20 +27,18 @@ test('density preference normalizes safely', () => {
   assert.equal(normalizeDensityPreference(undefined), 'default');
 });
 
-test('system resolves from OS while explicit themes do not', () => {
+test('legacy appearance preferences resolve to the approved Steam Light workspace', () => {
   assert.equal(resolveThemePreference('system', false), 'light');
-  assert.equal(resolveThemePreference('system', true), 'dark');
+  assert.equal(resolveThemePreference('system', true), 'light');
   assert.equal(resolveThemePreference('light', true), 'light');
-  assert.equal(resolveThemePreference('dark', false), 'dark');
+  assert.equal(resolveThemePreference('dark', false), 'light');
 });
 
-test('boot script owns persistence and DOM state', () => {
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, new RegExp(CAREZ_THEME_STORAGE_KEY));
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, new RegExp(CAREZ_DENSITY_STORAGE_KEY));
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /prefers-color-scheme: dark/);
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.themePreference/);
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.theme/);
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /dataset\.density/);
-  assert.match(CAREZ_APPEARANCE_BOOT_SCRIPT, /classList\.toggle\('dark'/);
-  assert.equal(CAREZ_THEME_MEDIA_QUERY, '(prefers-color-scheme: dark)');
+test('boot migrates saved dark preference before paint and preserves density', () => {
+  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(_name:string,value:boolean){assert.equal(value,false);}}};
+  runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{document:{documentElement:root},window:{matchMedia:()=>({matches:true})},localStorage:{getItem:(key:string)=>key===CAREZ_DENSITY_STORAGE_KEY?'compact':'dark'}});
+  assert.equal(root.dataset.themePreference,'light');
+  assert.equal(root.dataset.theme,'light');
+  assert.equal(root.dataset.density,'compact');
+  assert.equal(root.style.colorScheme,'light');
 });

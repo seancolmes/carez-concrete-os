@@ -16,7 +16,7 @@ Carez modules must reuse one compact set of source-owned shadcn-compatible primi
 
 The pack is intentionally small. It establishes the components that recur across Takeoff, estimating, CRM, projects, field, finance, documents, and reporting. Module-specific compositions may wrap these primitives, but they should not create a competing local design system.
 
-All shared Carez components use the ADR-025 governed semantic token system, first-class light/dark themes, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
+All shared Carez components use the ADR-025 governed semantic token system, Steam Sleek Light Blue Steel surfaces, source-owned React code, accessible keyboard/focus behavior, restrained radii, workspace-adaptive density, and functional motion. A module may choose the specialist or operations workspace expression, but neither becomes a separate theme or component library.
 
 Third-party component libraries are reference/source pools only. Any copied/adapted code must be license-vetted, reviewed for accessibility and bundle cost, converted to Carez semantic tokens, and owned in the Carez repository.
 
@@ -48,77 +48,22 @@ Reviewed 2026-09-21 from the 21st.dev shadcn registry directory. These remain **
 - **ReUI Gantt** — candidate source for P3 scheduling/look-ahead prototyping. It is not authorized as a scheduling domain model; Carez committed milestones, rolling lookahead, READY/AT RISK/BLOCKED state, Constraints, and Blocker Events remain authoritative.
 - **HextaUI Task Filters** — lightweight reference for reusable filter/search bars on Projects, Readiness, Procurement, Documents, and operational queues.
 - **HextaUI Timeline** — reference for Job Spine activity, proposal/award history, change-event history, project evidence, and other chronological lineage views.
-- **HextaUI Clean & Minimal Sign In** — reference only. The current Carez login already owns its Supabase behavior and Indigo Harbor/Spatial Blueprint composition; do not replace it merely to adopt a third-party block.
+- **HextaUI Clean & Minimal Sign In** — reference only. The current Carez login already owns its Supabase behavior and Steam Light composition; do not replace it merely to adopt a third-party block.
 - **COSS Number Field / Input Group / Fieldset** — preferred low-level interaction reference for Carez Number Field and governed technical forms where Base UI behavior materially improves keyboard entry or validation.
 
-Any adopted source must be copied/adapted into Carez-owned components, tokenized to Indigo Harbor, accessibility-reviewed, dependency-vetted, and validated against the owning domain workflow. Do not install an entire registry for one component.
+Any adopted source must be copied/adapted into Carez-owned components, tokenized to Steam Light, accessibility-reviewed, dependency-vetted, and validated against the owning domain workflow. Do not install an entire registry for one component.
 
 ## Operations Workspace foundation
 
 Shared components consume semantic application tokens rather than hard-coded light/dark palettes. Required families include surface canvas/panel/raised, primary/secondary/muted text, default/strong borders, primary/selection/focus interactions, success/warning/error/info states, and density control-height/row-height/workspace-gap.
 
-Appearance preference is `light | dark | system`; System is default. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
+Steam Light is the current presentation. Saved dark/system preferences normalize to Light before paint. Root density preference is `default | compact | comfortable`. Workspace archetypes may constrain density to preserve readability and touch safety.
 
 Primary UI/display typography is Inter. IBM Plex Mono is reserved for technical identifiers/aligned technical data where mono materially helps; tabular figures remain standard for quantities, money, rates, percentages, and dimensions.
 
-### Indigo Harbor color contract
+### Steam Light color contract
 
-ADR-025 uses the supplied **Indigo Harbor** palette as the Carez color foundation. Components consume semantic Carez tokens rather than hard-coded local palettes.
-
-```css
-/* Light */
---background: #f3f5fb;
---card: #ffffff;
---foreground: #010101;
---muted: #f5f5f5;
---muted-foreground: #454545;
---accent: #19398d;
---border: #e3e3e3;
---input: #ffffff;
---ring: #324f9a;
---primary: #19398d;
---sidebar: #001B3C;
-
-/* Dark */
---background: #050505;
---card: #0a0a0a;
---foreground: #fafafa;
---muted: #262626;
---muted-foreground: #a1a1a1;
---accent: #404040;
---border: #282828;
---input: #121212;
---ring: #6a8dd8;
---primary: #6a8dd8;
---sidebar: #0a0a0a;
-```
-
-Carez aliases:
-
-```css
---surface-canvas: var(--background);
---surface-panel: var(--card);
---surface-raised: var(--popover);
---text-primary: var(--foreground);
---text-secondary: var(--muted-foreground);
---text-muted: var(--muted-foreground);
---border-default: var(--border);
---border-strong: var(--ring);
---interaction-primary: var(--primary);
---interaction-selection: var(--accent);
---interaction-focus: var(--ring);
---spatial-accent: var(--primary);
-
-/* Shell uses explicit Indigo Harbor sidebar values because
-   .carez-shell rebinds the core semantic variables. */
---shell-background: #001B3C;
---shell-surface: #001B3C;
---shell-foreground: #f4f5fc;
---shell-accent: #19398d;
---shell-primary: #19398d;
-```
-
-Inter is the primary Carez UI/display font; IBM Plex Mono remains the technical font. Indigo Harbor applies across the shared shell and specialist workspaces with no separate module palette. Reusable grid-pattern visuals remain low-contrast construction-document backgrounds rather than decorative product chrome.
+Use the semantic tokens and accessible color pairs in ADR-025. White and cool concrete canvas, pale steel surfaces, thin borders, and azure/cyan interaction are shared across all seven operating surfaces. Primary controls are compact, overlay shells use 6px corners, tables have steel headers, and touch targets remain at least 44px where shared primitives apply.
 
 ## 1. Carez Data Grid
 
