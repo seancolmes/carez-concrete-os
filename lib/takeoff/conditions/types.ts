@@ -2,6 +2,15 @@ export const CONDITION_ARCHETYPE_KEYS = [
   'pad_column_footing',
   'strip_wall_footing',
   'slab_on_grade',
+  'thickened_edge',
+  'thickened_slab',
+  'grade_beam',
+  'foundation_wall',
+  'column_pier',
+  'elevated_slab',
+  'stairs',
+  'curb',
+  'opening_boxout',
 ] as const;
 
 export type ConditionArchetypeKey = (typeof CONDITION_ARCHETYPE_KEYS)[number];

@@ -76,6 +76,28 @@ test('strip footing projects the shared continuous run footprint', () => {
   assert.equal(scene.solids[0].shape.top, 11);
 });
 
+test('edge linear families use their governed width and depth for verification projection', () => {
+  const scene = buildDerived3DScene({
+    conditions: [{
+      conditionId: 'condition-grade-beam', conditionVersionId: 'version-grade-beam', code: 'GB-1', name: 'Grade Beam',
+      archetypeKey: 'grade_beam', color: '#34d399',
+      planFacts: { width_ft: 1.5, depth_ft: 2 }, drawingInputs: { elevation_ft: 10, elevation_reference: 'bottom' },
+      roles: [{ roleKey: 'run', measurementId: 'measurement-grade-beam' }],
+    }],
+    measurements: [{
+      id: 'measurement-grade-beam', sheet_id: 'sheet-1', name: 'Grade Beam', raw_quantity: 18, raw_unit: 'LF',
+      geometry: { type: 'polyline', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.1 }, { x: 0.2, y: 0.2 }] },
+    }],
+    sheets: [sheet],
+  });
+
+  assert.equal(scene.solids.length, 1);
+  assert.equal(scene.solids[0].shape.kind, 'prism');
+  assert.equal(scene.solids[0].shape.bottom, 10);
+  assert.equal(scene.solids[0].shape.top, 12);
+  assert.equal(scene.issues.length, 0);
+});
+
 test('pad footing count points project independently without becoming quantity authority', () => {
   const scene = buildDerived3DScene({
     conditions: [{

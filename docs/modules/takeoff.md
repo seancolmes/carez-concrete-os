@@ -37,7 +37,7 @@ The estimator chooses a concrete family/template or an existing Project Concrete
 - recent/favorite/company-standard filters when supported;
 - create/edit without leaving the Takeoff route.
 
-Initial families are Pad/Column Footing, Strip/Wall Footing, and Slab on Grade. Later families include walls, grade beams, mats, piers/columns, sidewalks/curbs, and other company-priority work.
+The published V1 family set includes Pad/Column Footing, Strip/Wall Footing, Slab on Grade, Thickened Edge, Thickened Slab, Grade Beam, Foundation Wall, Column/Pier, Elevated Slab, Concrete Stairs, Concrete Curb, and Opening/Boxout. Additional company-priority families such as mats and sidewalks remain additive extensions; they do not change the geometry, server-calculation, or human-authority invariants below.
 
 ### Condition Properties boundary
 

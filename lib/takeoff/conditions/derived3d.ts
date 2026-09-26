@@ -8,6 +8,9 @@ export type * from './derived3d/contracts.ts';
 export { stableDerived3DHash } from './derived3d/coordinates.ts';
 export const PROJECTION_VERSION = 'concrete-projection-v2';
 const STRIP_PROJECTION_CONTRACT_VERSIONS = new Set([1, 2, 3, 4, 5]);
+const AREA_PROJECTION_FAMILIES = new Set(['slab_on_grade', 'thickened_slab', 'elevated_slab']);
+const LINEAR_PROJECTION_FAMILIES = new Set(['strip_wall_footing', 'thickened_edge', 'grade_beam', 'foundation_wall', 'curb']);
+const COUNT_PROJECTION_FAMILIES = new Set(['pad_column_footing', 'column_pier', 'stairs']);
 
 function geometryFromSource(value: unknown): DrawingGeometry {
   const raw = record(value);
@@ -48,7 +51,7 @@ function buildSheetPlanes(input: BuildDerived3DSceneInput): Record<string, Deriv
 }
 
 export function projectionCapability(condition: Derived3DConditionSource): { supported: boolean; reason?: string } {
-  if (!['strip_wall_footing', 'slab_on_grade', 'pad_column_footing'].includes(condition.archetypeKey)) return { supported: false, reason: 'This Condition family has no supported projection adapter.' };
+  if (!AREA_PROJECTION_FAMILIES.has(condition.archetypeKey) && !LINEAR_PROJECTION_FAMILIES.has(condition.archetypeKey) && !COUNT_PROJECTION_FAMILIES.has(condition.archetypeKey)) return { supported: false, reason: 'This Condition family has no supported projection adapter.' };
   const version = condition.contractVersion ?? 1;
   const supportedVersion = condition.archetypeKey === 'strip_wall_footing' ? STRIP_PROJECTION_CONTRACT_VERSIONS.has(version) : version === 1;
   if (!supportedVersion || (condition.engineKey !== undefined && condition.engineKey !== 'concrete_condition_v1')) return { supported: false, reason: 'This Condition version has no supported physical projection adapter.' };
@@ -105,18 +108,26 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
       if (rawQuantity === null || rawQuantity < 0 || measurement.raw_unit !== primaryRole.unit) { report('quantity_mismatch', 'The saved measurement quantity or unit is invalid.', 'general'); continue; }
       const elevation = finiteNumber(condition.drawingInputs.elevation_ft);
       if (elevation === null) { report('3d_input_required', 'Enter an elevation for 3D verification.'); continue; }
-      const depth = condition.archetypeKey === 'slab_on_grade' ? positiveNumber(condition.planFacts.thickness_in) : positiveNumber(condition.planFacts.depth_ft);
+      const depth = AREA_PROJECTION_FAMILIES.has(condition.archetypeKey)
+        ? positiveNumber(condition.planFacts.thickness_in)
+        : condition.archetypeKey === 'foundation_wall'
+          ? positiveNumber(condition.planFacts.height_ft)
+          : condition.archetypeKey === 'curb'
+            ? positiveNumber(condition.planFacts.height_ft)
+            : condition.archetypeKey === 'stairs'
+              ? positiveNumber(condition.planFacts.waist_thickness_in) === null ? null : positiveNumber(condition.planFacts.waist_thickness_in)! / 12
+              : positiveNumber(condition.planFacts.depth_ft);
       if (!depth) { report('3d_input_required', condition.archetypeKey === 'slab_on_grade' ? 'Enter slab thickness for 3D verification.' : 'Enter footing depth for 3D verification.', 'general'); continue; }
-      const range = elevationRange(elevation, condition.archetypeKey === 'slab_on_grade' ? depth / 12 : depth, condition.drawingInputs.elevation_reference);
+      const range = elevationRange(elevation, AREA_PROJECTION_FAMILIES.has(condition.archetypeKey) ? depth / 12 : depth, condition.drawingInputs.elevation_reference);
       if (!range) { report('3d_input_required', 'Choose Top, Bottom, or Centerline as the elevation reference.'); continue; }
       const shapes: Array<{ part: string; shape: Derived3DShape }> = [];
       try {
-        if (condition.archetypeKey === 'slab_on_grade') {
+        if (AREA_PROJECTION_FAMILIES.has(condition.archetypeKey)) {
           const outer = geometry.points.map(p => toPlanPoint(p, sheet, scale)), holes = (geometry.holes || []).map(r => r.map(p => toPlanPoint(p, sheet, scale)));
           validateFootprint(outer, holes);
           shapes.push({ part: 'body', shape: { kind: 'prism', outer, holes, ...range } });
-        } else if (condition.archetypeKey === 'strip_wall_footing') {
-          const width = positiveNumber(condition.planFacts.width_ft);
+        } else if (LINEAR_PROJECTION_FAMILIES.has(condition.archetypeKey)) {
+          const width = positiveNumber(condition.planFacts.width_ft) || positiveNumber(condition.planFacts.thickness_ft);
           if (!width) { report('3d_input_required', 'Enter footing width for 3D verification.', 'general'); continue; }
           const version = condition.contractVersion ?? 1;
           const profile = version >= 2 ? condition.concreteProfile?.profile : 'rectangular';
@@ -134,8 +145,12 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
           validateFootprint(outer);
           if (topOuter) validateFootprint(topOuter);
           shapes.push({ part: 'run', shape: { kind: 'prism', outer, holes: [], ...(topOuter ? { topOuter } : {}), ...range } });
-        } else {
-          const width = positiveNumber(condition.planFacts.width_ft), length = positiveNumber(condition.planFacts.length_ft);
+        } else if (COUNT_PROJECTION_FAMILIES.has(condition.archetypeKey)) {
+          const width = positiveNumber(condition.planFacts.width_ft) || positiveNumber(condition.planFacts.stair_width_ft);
+          const length = positiveNumber(condition.planFacts.length_ft)
+            || (positiveNumber(condition.planFacts.tread_depth_ft) && positiveNumber(condition.planFacts.riser_count)
+              ? positiveNumber(condition.planFacts.tread_depth_ft)! * positiveNumber(condition.planFacts.riser_count)!
+              : null);
           if (!width || !length) { report('3d_input_required', 'Enter footing width and length.', 'general'); continue; }
           const yawValue = condition.drawingInputs.rotation_deg;
           const yaw = yawValue === undefined ? 0 : finiteNumber(yawValue);

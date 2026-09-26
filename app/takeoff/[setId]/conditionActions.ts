@@ -82,15 +82,10 @@ export async function createProjectConcreteConditionPilot(input: {
   if (existingConditionsError) throw new Error(existingConditionsError.message);
   const code = nextAvailableConditionCode(requestedCode, (existingConditions || []).map((row: any) => row.code));
 
-  let template: any = null;
-  for (const pilotKey of CONDITION_ARCHETYPE_KEYS) {
-    const isStrip = pilotKey === 'strip_wall_footing';
-    const { data, error: templateError } = isStrip
-      ? await supabase.rpc('carez_ensure_strip_footing_v5_template')
-      : await supabase.rpc('carez_ensure_pilot_condition_template', { p_archetype_code: pilotKey });
-    if (templateError) throw new Error(templateError.message);
-    if (pilotKey === archetypeKey) template = data;
-  }
+  const { data: template, error: templateError } = archetypeKey === 'strip_wall_footing'
+    ? await supabase.rpc('carez_ensure_strip_footing_v5_template')
+    : await supabase.rpc('carez_ensure_pilot_condition_template', { p_archetype_code: archetypeKey });
+  if (templateError) throw new Error(templateError.message);
   const templateVersionId = String(template?.template_version_id || '');
   const compatibilityAssemblyVersionId = String(template?.legacy_assembly_version_id || '');
   if (!templateVersionId || !compatibilityAssemblyVersionId) {

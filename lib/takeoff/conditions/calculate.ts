@@ -217,6 +217,267 @@ export function calculateCondition(request: ConditionCalculationRequest): Condit
     };
   };
 
+  const hasOutput = (outputKey: string) => archetype.outputs.some(definition => definition.outputKey === outputKey);
+  const emitIf = (outputKey: string, draft: DraftOutput) => {
+    if (hasOutput(outputKey)) emit(outputKey, draft);
+  };
+  const scale = (base: DraftOutput, divisor: number): DraftOutput => ({
+    quantity: base.quantity === null ? null : base.quantity / divisor,
+    holds: base.holds,
+    values: base.values,
+    measurementIds: base.measurementIds,
+  });
+  const sum = (...parts: DraftOutput[]): DraftOutput => {
+    const holds = parts.flatMap(part => part.holds || []);
+    return {
+      quantity: holds.length ? null : parts.reduce((total, part) => total + Number(part.quantity), 0),
+      holds,
+      values: parts.flatMap(part => part.values || []),
+      measurementIds: parts.flatMap(part => part.measurementIds || []),
+    };
+  };
+  const difference = (left: DraftOutput, right: DraftOutput): DraftOutput => {
+    const holds = [...(left.holds || []), ...(right.holds || [])];
+    return {
+      quantity: holds.length ? null : Math.max(0, Number(left.quantity) - Number(right.quantity)),
+      holds,
+      values: [...(left.values || []), ...(right.values || [])],
+      measurementIds: [...(left.measurementIds || []), ...(right.measurementIds || [])],
+    };
+  };
+  const emitEdgeVolume = (volume: DraftOutput, wasteKey = 'concrete_waste_pct') => {
+    emitIf('concrete.installed_cy', volume);
+    if (hasOutput('concrete.procurement_cy')) emitIf('concrete.procurement_cy', withWaste('concrete.installed_cy', wasteKey));
+  };
+  const emitEdgeLabor = () => {
+    emitIf('labor.place_concrete_mh', laborFrom(['concrete.installed_cy'], 'place_concrete_mh_per_cy'));
+    emitIf('labor.forms_mh', laborFrom(['forms.contact_sf'], 'form_mh_per_sf'));
+    emitIf('labor.reinforcing_mh', laborFrom(['reinforcing.steel_lb'], 'rebar_mh_per_lb'));
+  };
+
+  if (['thickened_edge', 'thickened_slab', 'grade_beam', 'foundation_wall', 'column_pier', 'elevated_slab', 'stairs', 'curb', 'opening_boxout'].includes(archetype.key)) {
+    if (archetype.key === 'opening_boxout') {
+      const count = roleQuantity('locations', true);
+      const width = numberInput('planFacts', 'width_ft', { positive: true });
+      const height = numberInput('planFacts', 'height_ft', { positive: true });
+      const depth = numberInput('planFacts', 'depth_ft', { positive: true });
+      const opening = scale(multiply(count, width, height, depth), 27);
+      emitIf('concrete.opening_cy', opening);
+
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 4 });
+      const formInputs = [count, width, height, depth, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(count.value) * 2 * (Number(width.value) + Number(height.value)) * Number(depth.value) * (Number(formedSides.value) / 4),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: count.measurementIds,
+      });
+      emitIf('labor.forms_mh', laborFrom(['forms.contact_sf'], 'form_mh_per_sf'));
+    } else if (archetype.key === 'thickened_edge') {
+      const run = roleQuantity('run', true);
+      const width = numberInput('planFacts', 'width_ft', { positive: true });
+      const depth = numberInput('planFacts', 'depth_ft', { positive: true });
+      const slabThickness = numberInput('planFacts', 'slab_thickness_in', { positive: true });
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const grossDepth = scale(multiply(run, width, depth), 27);
+      const slabDepth = scale(multiply(run, width, slabThickness), 12 * 27);
+      emitEdgeVolume(difference(grossDepth, slabDepth));
+
+      const formInputs = [run, depth, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(run.value) * Number(depth.value) * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+      const bars = numberInput('methods', 'longitudinal_bar_count', { positive: true, integer: true });
+      const weight = numberInput('methods', 'rebar_unit_weight_lb_per_ft', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [run, bars, weight, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(run.value) * Number(bars.value) * Number(weight.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+      emitEdgeLabor();
+    } else if (archetype.key === 'thickened_slab') {
+      const area = roleQuantity('area', true);
+      const edge = roleQuantity('thickened_edge', false);
+      const thickness = numberInput('planFacts', 'thickness_in', { positive: true });
+      const thickenedWidth = numberInput('planFacts', 'thickened_width_ft', { positive: true });
+      const thickenedDepth = numberInput('planFacts', 'thickened_depth_in', { positive: true });
+      const baseVolume = scale(multiply(area, thickness), 12 * 27);
+      const increment = scale(multiply(edge, thickenedWidth, thickenedDepth), 12 * 27);
+      emitEdgeVolume(sum(baseVolume, increment));
+
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const formInputs = [edge, thickenedDepth, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(edge.value) * Number(thickenedDepth.value) / 12 * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: edge.measurementIds,
+      });
+      const allowance = numberInput('methods', 'reinforcing_lb_per_sf', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [area, allowance, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(area.value) * Number(allowance.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: area.measurementIds,
+      });
+      emitEdgeLabor();
+    } else if (archetype.key === 'grade_beam' || archetype.key === 'foundation_wall') {
+      const run = roleQuantity('run', true);
+      const width = numberInput('planFacts', archetype.key === 'grade_beam' ? 'width_ft' : 'thickness_ft', { positive: true });
+      const depth = numberInput('planFacts', archetype.key === 'grade_beam' ? 'depth_ft' : 'height_ft', { positive: true });
+      const concrete = scale(multiply(run, width, depth), 27);
+      emitEdgeVolume(concrete);
+
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const formInputs = [run, depth, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(run.value) * Number(depth.value) * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+      const bars = numberInput('methods', 'longitudinal_bar_count', { positive: true, integer: true });
+      const weight = numberInput('methods', 'rebar_unit_weight_lb_per_ft', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [run, bars, weight, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(run.value) * Number(bars.value) * Number(weight.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+
+      const excavationWidth = numberInput('planFacts', 'excavation_width_ft', { positive: true });
+      const excavationDepth = numberInput('planFacts', 'excavation_depth_ft', { positive: true });
+      const excavation = scale(multiply(run, excavationWidth, excavationDepth), 27);
+      emitIf('excavation_backfill.excavation_cy', excavation);
+      emitIf('excavation_backfill.backfill_cy', difference(excavation, concrete));
+      emitEdgeLabor();
+    } else if (archetype.key === 'column_pier') {
+      const count = roleQuantity('locations', true);
+      const width = numberInput('planFacts', 'width_ft', { positive: true });
+      const length = numberInput('planFacts', 'length_ft', { positive: true });
+      const depth = numberInput('planFacts', 'depth_ft', { positive: true });
+      emitEdgeVolume(scale(multiply(count, width, length, depth), 27));
+
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 4 });
+      const formInputs = [count, width, length, depth, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(count.value) * 2 * (Number(width.value) + Number(length.value)) * Number(depth.value) * (Number(formedSides.value) / 4),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: count.measurementIds,
+      });
+      const rebarLf = numberInput('methods', 'rebar_lf_per_each', { positive: true });
+      const weight = numberInput('methods', 'rebar_unit_weight_lb_per_ft', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [count, rebarLf, weight, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(count.value) * Number(rebarLf.value) * Number(weight.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: count.measurementIds,
+      });
+      emitEdgeLabor();
+    } else if (archetype.key === 'elevated_slab') {
+      const area = roleQuantity('area', true);
+      const thickness = numberInput('planFacts', 'thickness_in', { positive: true });
+      emitEdgeVolume(scale(multiply(area, thickness), 12 * 27));
+      const edge = roleQuantity('edge_forms', false);
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const formInputs = [edge, thickness, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(edge.value) * Number(thickness.value) / 12 * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: edge.measurementIds,
+      });
+      const allowance = numberInput('methods', 'reinforcing_lb_per_sf', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [area, allowance, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(area.value) * Number(allowance.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: area.measurementIds,
+      });
+      emitEdgeLabor();
+    } else if (archetype.key === 'stairs') {
+      const count = roleQuantity('locations', true);
+      const width = numberInput('planFacts', 'stair_width_ft', { positive: true });
+      const tread = numberInput('planFacts', 'tread_depth_ft', { positive: true });
+      const risers = numberInput('planFacts', 'riser_count', { positive: true, integer: true });
+      const riserHeight = numberInput('planFacts', 'riser_height_in', { positive: true });
+      const waist = numberInput('planFacts', 'waist_thickness_in', { positive: true });
+      emitEdgeVolume(scale(multiply(count, width, tread, risers, riserHeight, waist), 12 * 27));
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const formInputs = [count, width, risers, riserHeight, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(count.value) * Number(width.value) * (Number(risers.value) + 1) * Number(riserHeight.value) / 12 * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: count.measurementIds,
+      });
+      const allowance = numberInput('methods', 'reinforcing_lb_per_sf', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarArea = multiply(count, width, tread, risers);
+      const rebarInputs = [count, width, tread, risers, allowance, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(rebarArea.quantity) * Number(allowance.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: count.measurementIds,
+      });
+      emitEdgeLabor();
+    } else if (archetype.key === 'curb') {
+      const run = roleQuantity('run', true);
+      const width = numberInput('planFacts', 'width_ft', { positive: true });
+      const height = numberInput('planFacts', 'height_ft', { positive: true });
+      emitEdgeVolume(scale(multiply(run, width, height), 27));
+      const formedSides = numberInput('methods', 'formed_sides', { integer: true, maximum: 2 });
+      const formInputs = [run, height, formedSides];
+      const formHolds = formInputs.flatMap(input => input.holds);
+      emitIf('forms.contact_sf', {
+        quantity: formHolds.length ? null : Number(run.value) * Number(height.value) * Number(formedSides.value),
+        holds: formHolds,
+        values: formInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+      const rebarAllowance = numberInput('methods', 'rebar_lb_per_lf', { positive: true });
+      const waste = numberInput('commercial', 'rebar_waste_pct', { maximum: 100 });
+      const rebarInputs = [run, rebarAllowance, waste];
+      const rebarHolds = rebarInputs.flatMap(input => input.holds);
+      emitIf('reinforcing.steel_lb', {
+        quantity: rebarHolds.length ? null : Number(run.value) * Number(rebarAllowance.value) * (1 + Number(waste.value) / 100),
+        holds: rebarHolds,
+        values: rebarInputs.flatMap(input => input.trace),
+        measurementIds: run.measurementIds,
+      });
+      emitEdgeLabor();
+    }
+  }
+
   if (archetype.key === 'pad_column_footing') {
     const count = roleQuantity('locations', true);
     const width = numberInput('planFacts', 'width_ft', { positive: true });

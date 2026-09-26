@@ -36,6 +36,45 @@ const commonDrawingInputs: ConditionInputDefinition[] = [
   { key: 'elevation_reference', label: 'Elevation reference', group: 'drawing', valueType: 'select', options: ['top', 'bottom', 'centerline'], requiredBy: ['3d_projection'] },
 ];
 
+const edgeCommonInputs = [
+  ...commonWasteInputs,
+  ...commonLaborInputs.filter(input => input.key !== 'anchor_embed_mh_per_ea'),
+  ...commonDrawingInputs,
+];
+
+const edgeOutputs = (options: { excavation?: boolean } = {}): ConditionOutputDefinition[] => [
+  output('concrete.installed_cy', 'concrete', 'Concrete — installed', 'material', 'CY', 'edge-volume-v1', 'concrete'),
+  output('concrete.procurement_cy', 'concrete', 'Concrete — procurement', 'material', 'CY', 'waste-adjustment-v1', 'concrete_procurement'),
+  output('forms.contact_sf', 'forms', 'Form contact area', 'material', 'SF', 'edge-form-contact-v1', 'forms'),
+  output('reinforcing.steel_lb', 'reinforcing', 'Reinforcing steel', 'material', 'LB', 'edge-rebar-weight-v1', 'rebar'),
+  ...(options.excavation ? [
+    output('excavation_backfill.excavation_cy', 'excavation_backfill', 'Excavation', 'material', 'CY', 'linear-excavation-v1', 'excavation'),
+    output('excavation_backfill.backfill_cy', 'excavation_backfill', 'Backfill', 'material', 'CY', 'excavation-less-concrete-v1', 'backfill'),
+  ] : []),
+  output('labor.place_concrete_mh', 'labor', 'Place concrete labor', 'labor', 'HR', 'production-rate-v1', 'labor_place'),
+  output('labor.forms_mh', 'labor', 'Form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
+  output('labor.reinforcing_mh', 'labor', 'Reinforcing labor', 'labor', 'HR', 'production-rate-v1', 'labor_rebar'),
+];
+
+const edgeModules = ['concrete', 'forms', 'reinforcing', 'excavation_backfill', 'labor'];
+
+const edgeDefinition = (
+  key: 'thickened_edge' | 'thickened_slab' | 'grade_beam' | 'foundation_wall' | 'column_pier' | 'elevated_slab' | 'stairs' | 'curb',
+  name: string,
+  primaryUnit: 'EA' | 'LF' | 'SF',
+  roles: ConditionArchetypeDefinition['roles'],
+  inputs: ConditionInputDefinition[],
+  options: { excavation?: boolean } = {},
+): ConditionArchetypeDefinition => ({
+  key,
+  name,
+  primaryUnit,
+  roles,
+  inputs,
+  defaultModules: edgeModules,
+  outputs: edgeOutputs(options),
+});
+
 export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> = {
   pad_column_footing: {
     key: 'pad_column_footing',
@@ -139,6 +178,151 @@ export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> 
       output('labor.forms_mh', 'labor', 'Form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
       output('labor.reinforcing_mh', 'labor', 'Reinforcing labor', 'labor', 'HR', 'production-rate-v1', 'labor_rebar'),
       output('labor.anchors_embeds_mh', 'labor', 'Anchor / embed labor', 'labor', 'HR', 'production-rate-v1', 'labor_anchors'),
+    ],
+  },
+  thickened_edge: edgeDefinition(
+    'thickened_edge',
+    'Thickened Edge',
+    'LF',
+    [{ key: 'run', label: 'Thickened edge run', unit: 'LF', geometryType: 'polyline', primary: true, required: true }],
+    [
+      numberInput('width_ft', 'Thickened width', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('depth_ft', 'Thickened depth', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('slab_thickness_in', 'Adjacent slab thickness', 'planFacts', 'IN', ['concrete.installed_cy']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('longitudinal_bar_count', 'Longitudinal bar count', 'methods', 'EA', ['reinforcing.steel_lb']),
+      numberInput('rebar_unit_weight_lb_per_ft', 'Rebar unit weight', 'methods', 'LB/LF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+  ),
+  thickened_slab: edgeDefinition(
+    'thickened_slab',
+    'Thickened Slab',
+    'SF',
+    [
+      { key: 'area', label: 'Net slab area', unit: 'SF', geometryType: 'polygon', primary: true, required: true },
+      { key: 'thickened_edge', label: 'Thickened edge run', unit: 'LF', geometryType: 'polyline', primary: false, required: false },
+    ],
+    [
+      numberInput('thickness_in', 'Slab thickness', 'planFacts', 'IN', ['concrete.installed_cy']),
+      numberInput('thickened_width_ft', 'Thickened width', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('thickened_depth_in', 'Thickened depth', 'planFacts', 'IN', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('reinforcing_lb_per_sf', 'Reinforcing allowance', 'methods', 'LB/SF', ['reinforcing.steel_lb']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      ...edgeCommonInputs,
+    ],
+  ),
+  grade_beam: edgeDefinition(
+    'grade_beam',
+    'Grade Beam',
+    'LF',
+    [{ key: 'run', label: 'Grade beam run', unit: 'LF', geometryType: 'polyline', primary: true, required: true }],
+    [
+      numberInput('width_ft', 'Width', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('depth_ft', 'Depth', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('excavation_width_ft', 'Excavation width', 'planFacts', 'FT', ['excavation_backfill.excavation_cy']),
+      numberInput('excavation_depth_ft', 'Excavation depth', 'planFacts', 'FT', ['excavation_backfill.excavation_cy']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('longitudinal_bar_count', 'Longitudinal bar count', 'methods', 'EA', ['reinforcing.steel_lb']),
+      numberInput('rebar_unit_weight_lb_per_ft', 'Rebar unit weight', 'methods', 'LB/LF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+    { excavation: true },
+  ),
+  foundation_wall: edgeDefinition(
+    'foundation_wall',
+    'Foundation Wall',
+    'LF',
+    [{ key: 'run', label: 'Foundation wall run', unit: 'LF', geometryType: 'polyline', primary: true, required: true }],
+    [
+      numberInput('thickness_ft', 'Wall thickness', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('height_ft', 'Wall height', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('excavation_width_ft', 'Excavation width', 'planFacts', 'FT', ['excavation_backfill.excavation_cy']),
+      numberInput('excavation_depth_ft', 'Excavation depth', 'planFacts', 'FT', ['excavation_backfill.excavation_cy']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('longitudinal_bar_count', 'Longitudinal bar count', 'methods', 'EA', ['reinforcing.steel_lb']),
+      numberInput('rebar_unit_weight_lb_per_ft', 'Rebar unit weight', 'methods', 'LB/LF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+    { excavation: true },
+  ),
+  column_pier: edgeDefinition(
+    'column_pier',
+    'Column / Pier',
+    'EA',
+    [{ key: 'locations', label: 'Column / pier locations', unit: 'EA', geometryType: 'count', primary: true, required: true }],
+    [
+      numberInput('width_ft', 'Width', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('length_ft', 'Length', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('depth_ft', 'Depth', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('rebar_lf_per_each', 'Reinforcing length per column / pier', 'methods', 'LF/EA', ['reinforcing.steel_lb']),
+      numberInput('rebar_unit_weight_lb_per_ft', 'Rebar unit weight', 'methods', 'LB/LF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+  ),
+  elevated_slab: edgeDefinition(
+    'elevated_slab',
+    'Elevated Slab',
+    'SF',
+    [
+      { key: 'area', label: 'Net elevated slab area', unit: 'SF', geometryType: 'polygon', primary: true, required: true },
+      { key: 'edge_forms', label: 'Elevated slab edge forms', unit: 'LF', geometryType: 'polyline', primary: false, required: false },
+    ],
+    [
+      numberInput('thickness_in', 'Slab thickness', 'planFacts', 'IN', ['concrete.installed_cy']),
+      numberInput('reinforcing_lb_per_sf', 'Reinforcing allowance', 'methods', 'LB/SF', ['reinforcing.steel_lb']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      ...edgeCommonInputs,
+    ],
+  ),
+  stairs: edgeDefinition(
+    'stairs',
+    'Concrete Stairs',
+    'EA',
+    [{ key: 'locations', label: 'Stair flights', unit: 'EA', geometryType: 'count', primary: true, required: true }],
+    [
+      numberInput('stair_width_ft', 'Stair width', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('tread_depth_ft', 'Tread depth', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('riser_count', 'Riser count', 'planFacts', 'EA', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('riser_height_in', 'Riser height', 'planFacts', 'IN', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('waist_thickness_in', 'Waist thickness', 'planFacts', 'IN', ['concrete.installed_cy']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('reinforcing_lb_per_sf', 'Reinforcing allowance', 'methods', 'LB/SF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+  ),
+  curb: edgeDefinition(
+    'curb',
+    'Concrete Curb',
+    'LF',
+    [{ key: 'run', label: 'Curb run', unit: 'LF', geometryType: 'polyline', primary: true, required: true }],
+    [
+      numberInput('width_ft', 'Width', 'planFacts', 'FT', ['concrete.installed_cy']),
+      numberInput('height_ft', 'Height', 'planFacts', 'FT', ['concrete.installed_cy', 'forms.contact_sf']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      numberInput('rebar_lb_per_lf', 'Reinforcing allowance', 'methods', 'LB/LF', ['reinforcing.steel_lb']),
+      ...edgeCommonInputs,
+    ],
+  ),
+  opening_boxout: {
+    key: 'opening_boxout',
+    name: 'Opening / Boxout',
+    primaryUnit: 'EA',
+    roles: [{ key: 'locations', label: 'Opening / boxout locations', unit: 'EA', geometryType: 'count', primary: true, required: true }],
+    inputs: [
+      numberInput('width_ft', 'Opening width', 'planFacts', 'FT', ['concrete.opening_cy', 'forms.contact_sf']),
+      numberInput('height_ft', 'Opening height', 'planFacts', 'FT', ['concrete.opening_cy', 'forms.contact_sf']),
+      numberInput('depth_ft', 'Opening depth', 'planFacts', 'FT', ['concrete.opening_cy', 'forms.contact_sf']),
+      numberInput('formed_sides', 'Formed sides', 'methods', 'EA', ['forms.contact_sf'], 0),
+      ...commonLaborInputs.filter(input => ['form_mh_per_sf'].includes(input.key)),
+      ...commonDrawingInputs,
+    ],
+    defaultModules: ['concrete', 'forms', 'labor'],
+    outputs: [
+      output('concrete.opening_cy', 'concrete', 'Concrete opening deduction', 'material', 'CY', 'opening-volume-v1', 'opening'),
+      output('forms.contact_sf', 'forms', 'Opening form contact area', 'material', 'SF', 'opening-form-contact-v1', 'forms'),
+      output('labor.forms_mh', 'labor', 'Opening form labor', 'labor', 'HR', 'production-rate-v1', 'labor_forms'),
     ],
   },
 };
