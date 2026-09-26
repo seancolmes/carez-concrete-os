@@ -7,18 +7,19 @@ User QA target: stable `staging` Vercel alias
 
 ## Execution model
 
-### FINAL-2026-09-26 local completion program — local engineering complete; browser acceptance required
+### FINAL-2026-09-26 local completion program — local and staging acceptance complete
 
-The current instruction authorizes local implementation and local commits on `staging`; it does not authorize push, deployment, or provider writes. The current local release gate establishes engineering readiness at `2f5c5d7e`; authenticated representative browser acceptance remains required before human release acceptance.
+The current instruction records local implementation and manual authenticated staging acceptance on `staging`; production remains unauthorized. Local V1 engineering and Steam Sleek V28 are complete, and the final acceptance is **PASS** for Login, Today, Takeoff / Conditions, Estimate / Pricing / Labor / Review, Proposal / Award, Project, Change Orders, Field / Production, and Finance.
 
 - Approved Change Order reference RPC correction committed locally (`a4824f01`), with the original recovery migration preserved.
 - Stale legacy assembly creation RPC retired; profile authority columns protected from caller updates; nine definer search paths hardened (`71744385`).
-- The release gate now replays all 65 source migrations and reports **0 active missing source contracts** after scanning 1,149 references. All twelve runtime SQL fixtures, schema security, schema lint, 334 passing tests with one intentional skip, typecheck, production build, whitespace, and source-integrity checks pass.
-- The earlier light translation (`ffbcd08e`) was explicitly rejected. The current theme correction adopts Steam Sleek V28 dark tokens and layered chrome, labelled primary navigation, shared controls, Change Orders proof composition, and public proposal styling. All saved appearance preferences normalize to dark while preserving density. Browser acceptance remains **unverified** following the earlier automatic approval rejection. Manual acceptance checks are recorded in the component pack. The user has separated V1 completion into another workstream; this correction changes presentation only.
-- V1 Condition edge-family parity, derived-3D verification, and Issue #28 acceptance-resolution vocabulary are present in source-controlled contracts with regression coverage. Project execution, production, finance, billing/retainage, cash/commitment, scope/resource, and pour-control fixtures pass. The remaining release hold is authenticated representative browser acceptance.
+- The release gate replays the current source chain and reports **0 active missing source contracts** after scanning 1,149 references. Runtime SQL fixtures, schema security, schema lint, tests, typecheck, production build, whitespace, source-integrity checks, and the trigger/helper ACL regression pass.
+- The earlier light translation (`ffbcd08e`) was explicitly rejected. The accepted presentation uses Steam Sleek V28 dark tokens and layered chrome, labelled primary navigation, shared controls, Change Orders proof composition, and public proposal styling. All saved appearance preferences normalize to dark while preserving density. Manual authenticated staging acceptance is complete.
+- QA is canonical through **66 migrations** on Supabase project `tkcirsdfvvahwrcratkn`; trigger/helper ACL hardening is applied and verified, with the targeted security findings resolved. No further QA diagnostic crawling is required after completed acceptance; egress is conserved for production-authorized work.
+- V1 Condition edge-family parity, derived-3D verification, Issue #28 acceptance-resolution vocabulary, project execution, production, finance, billing/retainage, cash/commitment, scope/resource, and pour-control contracts are complete with regression coverage. Local/staging V1 acceptance is complete.
 - Estimating intelligence is V1-scoped through attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains an intentional POST-V1 P7 capability and is not a V1 blocker.
 
-Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790442130852-eb32b2`. No production or QA database was mutated by this program.
+Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790442130852-eb32b2`. QA acceptance is complete; production remains untouched and not authorized.
 
 Carez implementation follows the normal local workflow:
 
