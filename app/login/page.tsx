@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Crosshair } from 'lucide-react';
-import { StructuralDraftingCanvas } from './StructuralDraftingCanvas';
+import { ArrowRight, LockKeyhole, Terminal } from 'lucide-react';
 import { loginLandingContent } from './loginLandingContent';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { buttonVariants } from '@/components/ui/button';
@@ -12,7 +11,6 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const supabase = createClient();
@@ -31,104 +29,51 @@ export default function LoginPage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    let frame = 0;
-    let pending = { x: 0, y: 0 };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      pending = { x: event.clientX, y: event.clientY };
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        setCoords(pending);
-        frame = 0;
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
   return (
-    <main className="relative grid min-h-screen w-full grid-cols-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_auto] bg-background font-sans text-foreground overflow-x-hidden lg:overflow-hidden">
-      <StructuralDraftingCanvas />
-
-      <div
-        className="pointer-events-none absolute z-0 hidden h-full w-px bg-cyan-500/5 transition-all duration-75 lg:block"
-        style={{ left: `${coords.x}px`, top: 0 }}
-      />
-      <div
-        className="pointer-events-none absolute z-0 hidden h-px w-full bg-cyan-500/5 transition-all duration-75 lg:block"
-        style={{ top: `${coords.y}px`, left: 0 }}
-      />
-
-      <section className="relative z-10 flex h-full min-h-[50vh] w-full flex-col justify-between p-8 sm:p-12 md:p-16 lg:min-h-0 lg:border-r border-border lg:p-24">
-        <header className="flex w-full items-center justify-between font-mono text-[10px] tracking-widest text-muted-foreground">
-          <span className="font-semibold text-muted-foreground">CAREZ // PROJECT OPERATING SYSTEM</span>
-          <span className="hidden items-center gap-1.5 rounded border border-border bg-secondary px-2 py-0.5 font-mono text-[9px] text-primary sm:flex">
-            <Crosshair size={9} />
-            X:{coords.x.toFixed(0)} Y:{coords.y.toFixed(0)}
-          </span>
+    <main className="carez-auth-shell">
+      <div className="carez-auth-window">
+        <header className="carez-auth-titlebar">
+          <div className="carez-auth-brand"><Terminal aria-hidden="true"/><span>CAREZ // CONCRETE CONTRACTOR OS</span></div>
+          <div className="carez-auth-access"><LockKeyhole aria-hidden="true"/><span>WORKSPACE ACCESS</span></div>
         </header>
 
-        <div className="my-auto flex max-w-xl flex-col justify-center space-y-5 py-12 text-left lg:py-0">
-          <div className="inline-flex w-fit items-center gap-1.5 rounded border border-success/30 bg-success/10 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-success">
-            <span className="h-1 w-1  rounded-full bg-emerald-400" />
-            SYS // OPTIMAL_YIELD_ENGINE
-          </div>
+        <div className="carez-auth-body">
+          <section className="carez-auth-intro" aria-labelledby="login-headline">
+            <div className="carez-auth-kicker">ENTERPRISE // BLUEPRINT &amp; POUR OPERATIONS</div>
+            <div className="carez-auth-copy">
+              <h1 id="login-headline">{loginLandingContent.headline}</h1>
+              <p>{loginLandingContent.subheadline}</p>
+              <div className="carez-auth-actions">
+                {loginLandingContent.ctas.map((cta) => (
+                  <Link
+                    className={buttonVariants({
+                      variant: cta.emphasis === 'primary' ? 'default' : 'outline',
+                      size: 'sm',
+                      className: cta.emphasis === 'primary' ? 'carez-auth-primary-action' : 'carez-auth-secondary-action',
+                    })}
+                    href={cta.href}
+                    key={cta.href}
+                  >
+                    {cta.label}<ArrowRight aria-hidden="true"/>
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <footer className="carez-auth-capabilities" aria-label="Platform capabilities">
+              {loginLandingContent.categories.map((category, index) => (
+                <span key={category}>{index > 0 && <i aria-hidden="true">/</i>}{category}</span>
+              ))}
+            </footer>
+          </section>
 
-          <h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-4xl lg:text-[40px]">
-            {loginLandingContent.headline}
-          </h1>
-
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            {loginLandingContent.subheadline}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            {loginLandingContent.ctas.map((cta) => (
-              <Link
-                className={buttonVariants({
-                  variant: cta.emphasis === 'primary' ? 'default' : 'outline',
-                  size: 'default',
-                  className:
-                    cta.emphasis === 'primary'
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer shadow-sm'
-                      : 'border-border text-foreground hover:bg-secondary font-medium text-xs px-4 py-2 transition-all duration-200 cursor-pointer',
-                })}
-                href={cta.href}
-                key={cta.href}
-              >
-                {cta.label}
-              </Link>
-            ))}
-          </div>
+          <section className="carez-auth-form-panel" aria-label="Sign in">
+            <div className="carez-auth-form-frame">
+              <div className="carez-auth-form-label"><LockKeyhole aria-hidden="true"/>SECURE WORKSPACE SIGN IN</div>
+              <LoginForm />
+            </div>
+          </section>
         </div>
-      </section>
-
-      <section
-        className="relative z-10 flex h-full min-h-[50vh] w-full items-center justify-center bg-background p-8 sm:p-12 md:p-16 lg:min-h-0 lg:p-24"
-        id="sign-in"
-        aria-label="Sign in"
-      >
-        <div className="pointer-events-auto w-full max-w-sm">
-          <LoginForm />
-        </div>
-      </section>
-
-      <footer
-        className="relative z-10 w-full lg:col-span-2 border-t border-border pt-4 pb-6 px-8 sm:px-12 md:px-16 lg:px-24 bg-background font-mono text-[10px] tracking-wider text-muted-foreground flex flex-wrap gap-x-2 gap-y-1"
-        aria-label="Platform capabilities"
-      >
-        {loginLandingContent.categories.map((category, index) => (
-          <span key={category} className="text-muted-foreground">
-            {index > 0 && <i aria-hidden="true" className="mx-2 font-normal text-muted-foreground">/</i>}
-            {category}
-          </span>
-        ))}
-      </footer>
+      </div>
     </main>
   );
 }

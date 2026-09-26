@@ -36,3 +36,16 @@ test('representative application routes retain the shared Steam shell',()=>{
     assert.doesNotMatch(source,/bg-(?:white|slate-50|gray-50)\b/,`${route} must not restore a pale canvas`);
   }
 });
+
+test('Steam login and Change Orders keep dark tokens, visible focus, and narrow layouts',()=>{
+  for(const color of ['#f3f7fa','#e7eef3','#e2eaf0','#b8c8d3','#c6d3dc']) assert.doesNotMatch(css,new RegExp(color,'i'));
+  assert.match(css,/color-scheme:\s*dark/);
+  assert.match(css,/:where\(a,button,summary,select\):focus-visible/);
+  assert.match(css,/@media\(max-width:680px\)[\s\S]*\.carez-auth-shell/);
+  assert.match(css,/@media\(max-width:520px\)[\s\S]*\.carez-co-row-summary/);
+  const login=readFileSync('app/login/page.tsx','utf8');
+  const changeOrders=readFileSync('app/change-orders/page.tsx','utf8');
+  assert.match(login,/LoginForm/);
+  assert.match(changeOrders,/className="carez-co-row"/);
+  assert.match(changeOrders,/approveChangeOrder|rejectChangeOrder|updateChangeOrder/);
+});

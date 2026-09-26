@@ -49,12 +49,24 @@ test('structural drafting animation keeps a bounded number of visible drafts', (
   }
 });
 
-
-test('landing locks the marketing and login columns to a centered structural axis with a full-width capability rail', () => {
+test('login uses the Steam authentication shell and preserves real Supabase sign-in', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
+  const loginForm = readFileSync('components/auth/LoginForm.tsx', 'utf8');
+  const globalStyles = readFileSync('app/globals.css', 'utf8');
 
-  assert.match(page, /grid-cols-1 lg:grid-cols-2 lg:grid-rows-\[minmax\(0,1fr\)_auto\]/);
-  assert.match(page, /lg:border-r border-border/);
-  assert.match(page, /lg:col-span-2[^"]*border-t border-border pt-4/);
-  assert.ok(page.indexOf('aria-label="Sign in"') < page.indexOf('aria-label="Platform capabilities"'));
+  assert.match(page, /className="carez-auth-shell"/);
+  assert.match(page, /className="carez-auth-titlebar"/);
+  assert.ok(page.indexOf('aria-label="Platform capabilities"') < page.indexOf('aria-label="Sign in"'));
+  assert.match(globalStyles, /\.carez-auth-shell[^\n]*var\(--steam-bg-0\)/);
+  assert.match(loginForm, /supabase\.auth\.signInWithPassword\(\{email,password\}\)/);
+  assert.match(loginForm, /router\.push\(profile\?\.role==='employee'\?'\/employee':'\/'\)/);
+  assert.doesNotMatch(page, /authSuccess|setTimeout|mousemove|coords|SECURE_GATEWAY_ACTIVE|SYS \/\/ METALLIC_ENGINE/);
+});
+
+test('Steam login contains no demo-only auth claims or inline remote font imports', () => {
+  const page = readFileSync('app/login/page.tsx', 'utf8');
+  const globalStyles = readFileSync('app/globals.css', 'utf8');
+
+  assert.doesNotMatch(page, /256-bit|SSL|@import\s+url\(/i);
+  assert.doesNotMatch(globalStyles, /@import\s+url\(/i);
 });

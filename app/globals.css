@@ -582,3 +582,93 @@ body { background: transparent; font-size: 13px; }
 [data-slot="button"].carez-button-ghost:hover { background: var(--steam-control-hover); }
 [data-slot="button"].carez-button-destructive { background: color-mix(in srgb,var(--destructive) 12%,var(--steam-bg-2)); border-color: var(--destructive); color: var(--destructive); }
 [data-slot="button"].carez-button-destructive:hover { background: color-mix(in srgb,var(--destructive) 22%,var(--steam-bg-2)); }
+/* Steam Sleek V28 authentication surface; Supabase behavior lives in LoginForm. */
+.carez-auth-shell { min-height:100svh; display:grid; place-items:center; padding:clamp(12px,2.5vw,32px); color:var(--steam-text); background:var(--steam-bg-0); }
+.carez-auth-window { width:min(100%,1600px); min-height:min(90svh,900px); display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--steam-border); background:var(--steam-bg-1); box-shadow:0 32px 80px rgb(0 0 0 / .56); }
+.carez-auth-titlebar { display:flex; min-height:42px; align-items:center; justify-content:space-between; gap:16px; padding:8px 18px; border-bottom:1px solid var(--steam-border); background:var(--steam-header-surface); font:500 10px var(--steam-code-font); letter-spacing:.08em; }
+.carez-auth-brand,.carez-auth-access { display:flex; min-width:0; align-items:center; gap:9px; }
+.carez-auth-brand { color:var(--steam-text-soft); }
+.carez-auth-brand svg { width:15px; height:15px; color:var(--steam-cyan); }
+.carez-auth-access { color:var(--steam-text-muted); }
+.carez-auth-access svg { width:13px; height:13px; color:var(--steam-cyan); }
+.carez-auth-body { display:grid; flex:1; grid-template-columns:minmax(0,1.12fr) minmax(360px,.88fr); background:var(--steam-bg-0); }
+.carez-auth-intro { display:flex; min-width:0; flex-direction:column; justify-content:space-between; padding:clamp(26px,5vw,76px); border-right:1px solid var(--steam-border); background:var(--steam-sidebar-surface); }
+.carez-auth-kicker { color:var(--steam-text-muted); font:500 10px var(--steam-code-font); letter-spacing:.1em; }
+.carez-auth-copy { width:min(100%,620px); margin-block:auto; padding-block:48px; }
+.carez-auth-copy h1 { max-width:16ch; color:var(--steam-text); font-size:clamp(32px,4vw,54px); font-weight:650; line-height:1.08; letter-spacing:-.035em; text-wrap:balance; }
+.carez-auth-copy p { max-width:54ch; margin-top:18px; color:var(--steam-text-soft); font-size:14px; line-height:1.7; }
+.carez-auth-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+.carez-auth-actions a { min-height:34px; font-size:11px; }
+.carez-auth-actions a svg { width:13px; height:13px; }
+.carez-auth-primary-action { box-shadow:0 6px 18px rgb(0 0 0 / .24); }
+.carez-auth-secondary-action { border-color:var(--steam-border-strong)!important; background:var(--steam-bg-3)!important; color:var(--steam-text)!important; }
+.carez-auth-secondary-action:hover { border-color:var(--steam-cyan)!important; background:var(--steam-bg-4)!important; }
+.carez-auth-capabilities { display:flex; flex-wrap:wrap; gap:7px 10px; color:var(--steam-text-muted); font:500 9px var(--steam-code-font); letter-spacing:.035em; }
+.carez-auth-capabilities span { display:flex; align-items:center; gap:10px; }
+.carez-auth-capabilities i { color:var(--steam-border-strong); font-style:normal; }
+.carez-auth-form-panel { display:grid; place-items:center; min-width:0; padding:clamp(24px,4vw,60px); background:var(--steam-bg-1); }
+.carez-auth-form-frame { position:relative; width:min(100%,390px); padding:28px 26px 24px; border:1px solid var(--steam-border-strong); background:var(--steam-panel-surface); box-shadow:0 18px 44px rgb(0 0 0 / .32); }
+.carez-auth-form-label { position:absolute; top:-11px; left:16px; display:flex; align-items:center; gap:6px; padding:3px 8px; border:1px solid var(--steam-border-strong); background:var(--steam-bg-2); color:var(--steam-cyan); font:500 9px var(--steam-code-font); letter-spacing:.07em; }
+.carez-auth-form-label svg { width:12px; height:12px; }
+.carez-auth-form-frame [data-slot=card-title] { font-size:23px; }
+.carez-auth-form-frame [data-slot=card-description] { line-height:1.6; }
+.carez-auth-form-frame [data-slot=input] { font-family:var(--steam-code-font); font-size:12px; }
+.carez-auth-form-frame [data-slot=button] { min-height:36px; }
+@media(max-width:850px) { .carez-auth-body { grid-template-columns:minmax(0,1fr) minmax(320px,.9fr); } .carez-auth-intro { padding:30px; } }
+@media(max-width:680px) { .carez-auth-shell { display:block; padding:0; } .carez-auth-window { min-height:100svh; border:0; box-shadow:none; } .carez-auth-titlebar { padding-inline:14px; } .carez-auth-access { font-size:0; } .carez-auth-body { grid-template-columns:1fr; } .carez-auth-intro { min-height:390px; padding:28px 22px 18px; border-right:0; border-bottom:1px solid var(--steam-border); } .carez-auth-copy { padding-block:38px; } .carez-auth-copy h1 { font-size:clamp(34px,10vw,48px); } .carez-auth-copy p { font-size:13px; } .carez-auth-capabilities { gap:7px 8px; } .carez-auth-form-panel { padding:38px 18px; } .carez-auth-form-frame { padding:26px 20px 20px; } }
+@media(prefers-reduced-motion:reduce) { .carez-auth-shell * { scroll-behavior:auto; transition-duration:.01ms!important; } }
+
+/* Dense Steam register treatment for Change Orders; financial authority stays server-owned. */
+.carez-change-orders { gap:10px!important; }
+.carez-change-orders .carez-page-heading { background:var(--steam-header-surface); }
+.carez-change-orders>.carez-page-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:11px 14px; }
+.carez-change-orders>.carez-page-heading h1 { margin-top:2px; font-size:22px; }
+.carez-change-orders>.carez-page-heading p { margin-top:3px; font-size:12px; }
+.carez-change-orders .carez-summary-ledger { grid-template-columns:repeat(4,minmax(0,1fr)); background:var(--steam-hairline); }
+.carez-change-orders .carez-summary-ledger>[data-slot=card] { min-width:0; background:var(--steam-panel-surface); }
+.carez-change-orders .carez-summary-ledger [data-slot=card-content] { padding:10px 13px; }
+.carez-change-orders .carez-summary-ledger [data-slot=card-content]>div:first-child { font:500 9px var(--steam-code-font); letter-spacing:.025em; }
+.carez-change-orders .carez-summary-ledger [data-slot=card-content]>div:last-child { overflow-wrap:anywhere; font-size:20px; }
+.carez-change-orders>details { border-color:var(--steam-border-strong); border-radius:3px; background:var(--steam-bg-2); }
+.carez-change-orders .carez-create-change { display:flex; min-height:36px; align-items:center; justify-content:space-between; padding:7px 12px; color:var(--steam-bg-0); font-size:11px; }
+.carez-change-orders .carez-create-change::after { content:"+"; font:600 16px var(--steam-code-font); }
+.carez-change-orders .carez-register { padding:10px; background:var(--steam-panel-surface); }
+.carez-change-orders .carez-register>div:first-child h2 { margin-top:2px; font-size:15px; }
+.carez-change-orders .carez-register>div:first-child>div { font:500 9px var(--steam-code-font); letter-spacing:.08em; }
+.carez-change-orders .carez-register [data-slot=card] { border-color:var(--steam-border); background:linear-gradient(180deg,#202d39 0%,#1b2530 100%); }
+.carez-change-orders .carez-register [data-slot=card-content] { padding:11px 13px; }
+.carez-change-orders .carez-register .carez-page-heading { margin:0; padding:0 0 9px; }
+.carez-change-orders .carez-register .carez-page-heading h3 { font-size:13px; }
+.carez-change-orders .carez-register .carez-page-heading p { font-size:10px; }
+.carez-change-orders .carez-register .carez-page-heading [data-slot=badge] { border-radius:2px; padding:2px 6px; font:500 9px var(--steam-code-font); text-transform:uppercase; }
+.carez-change-orders .carez-register [data-slot=card-content] section { gap:9px; }
+.carez-change-orders .carez-register [data-slot=card-content] section>div:first-child h4 { font-size:12px; }
+.carez-change-orders .carez-register [data-slot=card-content] section>div:first-child p { margin-top:2px; font-size:10px; }
+.carez-change-orders .carez-register [data-slot=card-content] section>div.grid>div { border-radius:2px; background:color-mix(in srgb,var(--steam-bg-1) 84%,transparent); padding:9px; }
+.carez-change-orders .carez-register [data-slot=card-content] section>div.grid>div>div:first-child { font-size:10px; }
+.carez-change-orders .carez-register [data-slot=card-content] section>div.grid>div>div:nth-child(2) { font-size:15px; }
+.carez-change-orders .carez-register [data-slot=card-content] section.border-t { padding-top:11px; }
+.carez-change-orders details summary:focus-visible { outline-offset:-2px; }
+@media(max-width:760px) { .carez-change-orders .carez-summary-ledger { grid-template-columns:repeat(2,minmax(0,1fr)); } .carez-change-orders>.carez-page-heading { align-items:flex-start; } }
+@media(max-width:420px) { .carez-change-orders .carez-summary-ledger [data-slot=card-content] { padding-inline:9px; } .carez-change-orders .carez-summary-ledger [data-slot=card-content]>div:first-child { font-size:8px; } .carez-change-orders .carez-summary-ledger [data-slot=card-content]>div:last-child { font-size:17px; } }
+
+.carez-change-orders .carez-co-row { overflow:hidden; border:1px solid var(--steam-border); background:var(--steam-table-row); }
+.carez-change-orders .carez-co-row+.carez-co-row { margin-top:6px; }
+.carez-change-orders .carez-co-row-summary { display:grid; min-height:48px; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:7px 11px; cursor:pointer; list-style:none; border-left:2px solid transparent; }
+.carez-change-orders .carez-co-row-summary::-webkit-details-marker { display:none; }
+.carez-change-orders .carez-co-row-summary:hover { background:color-mix(in srgb,var(--steam-blue-1) 60%,transparent); }
+.carez-change-orders .carez-co-row[open]>.carez-co-row-summary { border-left-color:var(--steam-cyan); background:var(--steam-header-surface); }
+.carez-change-orders .carez-co-row-summary h3 { color:var(--steam-text); font-size:12px; font-weight:650; }
+.carez-change-orders .carez-co-row-summary p { margin-top:2px; color:var(--steam-text-muted); font-size:10px; }
+.carez-change-orders .carez-co-row-meta { display:flex; align-items:center; gap:12px; }
+.carez-change-orders .carez-co-row-meta>strong { color:var(--steam-cyan-hover); font:600 13px var(--steam-code-font); font-variant-numeric:tabular-nums; }
+.carez-change-orders .carez-co-row-meta [data-slot=badge] { border-radius:2px; padding:2px 6px; font:500 9px var(--steam-code-font); text-transform:uppercase; }
+.carez-change-orders .carez-co-row [data-slot=card-content] { padding:10px 12px; }
+.carez-change-orders .carez-co-row [data-slot=card-content] section { gap:9px; }
+.carez-change-orders .carez-co-row [data-slot=card-content] section.border-t { padding-top:11px; }
+.carez-change-orders .carez-co-row details>summary { min-height:34px; }
+@media(max-width:520px) { .carez-change-orders .carez-co-row-summary { grid-template-columns:minmax(0,1fr); gap:5px; } .carez-change-orders .carez-co-row-meta { justify-content:space-between; } }
+
+.carez-change-orders .carez-co-row-copy { display:block; min-width:0; }
+.carez-change-orders .carez-co-row-title { display:block; color:var(--steam-text); font-size:12px; font-weight:650; }
+.carez-change-orders .carez-co-row-description { display:block; margin-top:2px; color:var(--steam-text-muted); font-size:10px; }

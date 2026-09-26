@@ -37,6 +37,6 @@ test('sign in is product-neutral and does not render the legacy Carez Concrete l
   assert.equal(form.includes("from 'next/image'"), false);
   assert.match(form, /Sign in to Carez/);
   assert.match(form, /Show password/);
-  assert.match(page, /CAREZ \/\/ PROJECT OPERATING SYSTEM/);
+  assert.match(page, /CAREZ \/\/ CONCRETE CONTRACTOR OS/);
   assert.equal(page.includes('CAREZ / CONCRETE OPERATIONS'), false);
 });
