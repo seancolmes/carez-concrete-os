@@ -71,7 +71,7 @@ export default async function EstimatesPage(){
     const stageLabel=stage==='working'
       ?'Pricing'
       :stage==='ready'
-        ?'Ready for audit'
+        ?'Ready for review'
         :stage==='issued'
           ?proposal?.proposal_number||'Issued'
           :stage==='awarded'
@@ -82,7 +82,7 @@ export default async function EstimatesPage(){
     const secondary=stage==='working'&&!takeoffObjects
       ?{href:'/takeoff',label:'Start takeoff'}
       :stage==='ready'
-        ?{href:'/estimates/audit',label:'Audit'}
+        ?{href:'/estimates/audit',label:'Review'}
         :stage==='issued'
           ?{href:`/proposals/${estimate.id}`,label:'Proposal'}
           :stage==='awarded'&&project
@@ -116,18 +116,18 @@ export default async function EstimatesPage(){
         <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Estimates</h1></div>
         <div className="flex flex-wrap items-center gap-2">
           <Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Takeoff</Link>
-          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Audit</Link>
+          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Review</Link>
           <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><FileText/>Proposals</Link>
         </div>
       </header>
 
       <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
-        {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===1?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+        {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} className={index===1?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
       </nav>
 
       <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
         <Metric label="Pricing now" value={String(working.length)} help="Editable bid revisions."/>
-        <Metric label="Ready for audit" value={String(ready.length)} help="Price and scope marked ready." tone={ready.length?'success':'default'}/>
+        <Metric label="Ready for review" value={String(ready.length)} help="Price and scope marked ready." tone={ready.length?'success':'default'}/>
         <Metric label="Issued / awarded" value={`${issued.length} / ${awarded.length}`} help="Customer-facing and won revisions."/>
         <Metric label="Pricing pipeline" value={money(pipeline)} help="Recommended value still being priced."/>
       </section>

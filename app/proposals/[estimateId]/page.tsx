@@ -1,7 +1,7 @@
 import {headers} from 'next/headers';
 import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowLeft,ArrowRight,Check,CheckCircle2,Clock3,ExternalLink,FileText,Mail,MessageSquareText,RefreshCw,Send} from 'lucide-react';
+import {ArrowLeft,ArrowRight,Check,CheckCircle2,Clock3,ExternalLink,FileText,Mail,MessageSquareText,Send} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
@@ -11,7 +11,7 @@ import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {createClient} from '@/lib/supabase/server';
 import {parseEstimateReleaseReadiness} from '@/lib/estimating/releaseReadiness';
-import {addProposalClarification,createProposalCustomer,createProposalLink,createProposalRevision,deleteProposalClarification,linkProposalCustomer,markProposalResponseHandled,recordProposalFollowUp,revokeProposalLink,saveProposalSettings,toggleValueOptionPresented} from '../actions';
+import {addProposalClarification,awardProposalAndCreateProject,createNextProposalRevision,createProposalCustomer,createProposalLink,deleteProposalClarification,linkProposalCustomer,markProposalResponseHandled,recordProposalFollowUp,revokeProposalLink,saveProposalSettings,toggleValueOptionPresented} from '../actions';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const dt=(v:any)=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
@@ -51,6 +51,11 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
   if(lead)lead.customer=customerLink;
 
   const queue=q||null;
+  const [awardHoldResult,{data:awardRecord}]=queue?.presentation_id?await Promise.all([
+    supabase.rpc('carez_get_proposal_award_hold',{p_proposal_revision_id:queue.presentation_id}),
+    supabase.from('award_decisions').select('id,project_id').eq('proposal_revision_id',queue.presentation_id).eq('company_id',companyId).maybeSingle(),
+  ]):[{data:null,error:null},{data:null}];
+  const awardHold=awardHoldResult.error?.message||awardHoldResult.data||null;
   const responseEvents=events||[];
   const sell=Number(queue?.base_sell_price||summary?.selected_sell_price||summary?.recommended_sell_price||0);
   const issued=Boolean(queue);
@@ -94,7 +99,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
     </header>
 
     <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
-      {['Takeoff','Estimate','Audit','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+      {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
     </nav>
 
     <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
@@ -104,9 +109,9 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
       <MetricCard label="Follow-up" value={issued&&queue.follow_up_due?day(queue.follow_up_due):'—'} help={issued?queue.next_action:'Set automatically when issued.'} tone={issued&&queue.follow_up_due_now?'warning':'default'}/>
     </section>
 
-    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} release={release} canIssue={canIssue} setupRows={setupRows} clarifications={clarifications||[]} options={options||[]} lead={lead} customers={proposalCustomers} locked={locked}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project}/>}
+    {!issued?<ProposalPreparation e={e} sell={sell} ps={ps} terms={terms} release={release} canIssue={canIssue} setupRows={setupRows} clarifications={clarifications||[]} options={options||[]} lead={lead} customers={proposalCustomers} locked={locked}/>:<IssuedProposal e={e} queue={queue} responseEvents={responseEvents} preview={preview} link={link} mailto={mailto} lead={lead} project={project} awardHold={awardHold||null} awardRecord={awardRecord||null}/>}
 
-    {locked&&['accepted','approved'].includes(e.status)&&project&&<Card className="border-success/30 bg-success/5 shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-success">Awarded</p><h2 className="mt-1 font-semibold">Proposal accepted — operating handoff is active</h2><p className="mt-1 text-sm text-muted-foreground">Carez preserved this revision and created the awarded-job baseline, Work Packages and readiness chain.</p></div><Link className={buttonVariants({size:'sm'})} href={`/projects/${project.id}`}><CheckCircle2/>Open Job</Link></CardContent></Card>}
+    {awardRecord&&project&&<Card className="border-success/30 bg-success/5 shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-success">Awarded</p><h2 className="mt-1 font-semibold">Exact Proposal revision is awarded</h2><p className="mt-1 text-sm text-muted-foreground">The internal Award Decision, Accepted Scope Snapshot and original commercial baseline are frozen.</p></div><Link className={buttonVariants({size:'sm'})} href={`/projects/${project.id}`}><CheckCircle2/>Open Project</Link></CardContent></Card>}
   </div></AppShell>;
 }
 
@@ -155,7 +160,7 @@ function ProposalPreparation({e,sell,ps,terms,release,canIssue,setupRows,clarifi
   </>;
 }
 
-function IssuedProposal({e,queue,responseEvents,preview,link,mailto,lead,project}:{e:any;queue:any;responseEvents:any[];preview:string;link:string;mailto:string;lead:any;project:any}){
+function IssuedProposal({e,queue,responseEvents,preview,link,mailto,lead,project,awardHold,awardRecord}:{e:any;queue:any;responseEvents:any[];preview:string;link:string;mailto:string;lead:any;project:any;awardHold:string|null;awardRecord:any}){
   const needsReply=queue.conversion_stage==='needs_reply';
   const accepted=queue.conversion_stage==='accepted';
   return <>
@@ -169,8 +174,8 @@ function IssuedProposal({e,queue,responseEvents,preview,link,mailto,lead,project
       <Card className="shadow-none"><CardHeader><CardTitle>Follow-up</CardTitle><CardDescription>Record what happened and schedule the next touch.</CardDescription></CardHeader><CardContent>{lead?.id?<form action={recordProposalFollowUp} className="grid gap-4"><input type="hidden" name="lead_id" value={lead.id}/><div className="grid gap-2"><Label htmlFor={`followup-note-${e.id}`}>What happened?</Label><Textarea id={`followup-note-${e.id}`} name="note" required rows={3} placeholder="Spoke with GC — reviewing inclusions with owner…"/></div><div className="grid gap-2"><Label htmlFor={`followup-date-${e.id}`}>Next follow-up</Label><Input id={`followup-date-${e.id}`} name="next_follow_up" type="date" defaultValue={queue.follow_up_due||lead.follow_up||''}/></div><Button type="submit" variant="outline" className="w-fit">Save Follow-up</Button></form>:<p className="text-sm text-muted-foreground">This standalone proposal is not linked to a CRM lead.</p>}</CardContent></Card>
     </section>
 
-    {!['accepted','superseded'].includes(queue.conversion_stage)&&<Card className="shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Revision control</p><h2 className="mt-1 font-semibold">Do not rewrite what the customer already received</h2><p className="mt-1 text-sm text-muted-foreground">Any price or scope change creates the next estimate/proposal revision so history remains exact.</p></div><div className="flex flex-wrap gap-2"><form action={createProposalRevision}><input type="hidden" name="estimate_id" value={e.id}/><Button type="submit"><RefreshCw/>Create Next Revision</Button></form>{!queue.revoked_at&&queue.proposal_access_token_id&&<form action={revokeProposalLink}><input type="hidden" name="id" value={queue.proposal_access_token_id}/><Button type="submit" variant="outline">Turn Customer Link Off</Button></form>}</div></CardContent></Card>}
+    <Card className="shadow-none"><CardContent className="flex flex-col gap-4"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Internal commercial decision</p><h2 className="mt-1 font-semibold">Award this exact issued revision</h2><p className="mt-1 text-sm text-muted-foreground">Award records the full scope as issued and creates its Project and frozen baseline.</p></div>{awardRecord?<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-success/30 bg-success/5 p-3"><p className="text-sm">This revision is awarded. Its decision, accepted scope and baseline are frozen.</p><Link className={buttonVariants({size:'sm'})} href={`/projects/${awardRecord.project_id}`}><CheckCircle2/>Open Project</Link></div>:<><div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm"><strong>{awardHold?'Award on hold':'Ready for internal award'}</strong>{awardHold&&<p className="mt-1 text-muted-foreground">{awardHold}</p>}</div><div className="flex flex-wrap gap-2"><form action={awardProposalAndCreateProject}><input type="hidden" name="proposal_revision_id" value={queue.presentation_id}/><Button type="submit" disabled={Boolean(awardHold)}><CheckCircle2/>Award / Create Project</Button></form><form action={createNextProposalRevision}><input type="hidden" name="proposal_revision_id" value={queue.presentation_id}/><Button type="submit" variant="outline">Create Next Revision</Button></form>{!queue.revoked_at&&queue.proposal_access_token_id&&<form action={revokeProposalLink}><input type="hidden" name="id" value={queue.proposal_access_token_id}/><Button type="submit" variant="outline">Turn Customer Link Off</Button></form>}</div></>}</CardContent></Card>
 
-    {queue.conversion_stage==='accepted'&&project&&<Card className="border-success/30 bg-success/5 shadow-none"><CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide text-success">Won</p><h2 className="mt-1 font-semibold">Customer accepted this revision</h2><p className="mt-1 text-sm text-muted-foreground">The accepted estimate is locked and Carez has handed it into Job Setup, budget and field planning.</p></div><Link className={buttonVariants({size:'sm'})} href={`/projects/${project.id}`}><CheckCircle2/>Open Job</Link></CardContent></Card>}
+    {queue.conversion_stage==='accepted'&&!awardRecord&&<Card className="border-warning/30 bg-warning/5 shadow-none"><CardContent><Badge variant="outline">Customer Accepted</Badge><p className="mt-2 text-sm text-muted-foreground">Customer acceptance is recorded against this issued revision. An authorized internal Award Decision is still required to create the Project.</p></CardContent></Card>}
   </>;
 }

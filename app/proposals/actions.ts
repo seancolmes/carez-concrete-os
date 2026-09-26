@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {parseEstimateReleaseReadiness} from '@/lib/estimating/releaseReadiness';
 
@@ -131,7 +132,28 @@ export async function createProposalLink(fd:FormData){
 }
 
 export async function revokeProposalLink(fd:FormData){const id=text(fd,'id');if(!id)return;const {supabase,companyId}=await ctx();const {error}=await supabase.from('proposal_access_tokens').update({revoked_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);refresh();}
-export async function createProposalRevision(fd:FormData){const estimateId=text(fd,'estimate_id');if(!estimateId)return;const {supabase}=await ctx();const {error}=await supabase.rpc('create_estimate_revision',{p_estimate_id:estimateId});if(error)throw new Error(error.message);refresh();}
+
+export async function createNextProposalRevision(fd:FormData){
+ const id=text(fd,'proposal_revision_id');if(!id)throw new Error('Proposal revision is required.');
+ const {supabase}=await ctx();
+ const {data,error}=await supabase.rpc('carez_create_next_proposal_revision',{p_proposal_revision_id:id});
+ if(error)throw new Error(error.message);
+ const estimateId=String(data?.estimate_id||'');if(!estimateId)throw new Error('The next Estimate revision was not created.');
+ revalidatePath('/estimates');revalidatePath('/proposals');revalidatePath(`/proposals/${estimateId}`);
+ redirect(`/proposals/${estimateId}`);
+}
+
+export async function awardProposalAndCreateProject(fd:FormData){
+ const id=text(fd,'proposal_revision_id');if(!id)throw new Error('Proposal revision is required.');
+ const {supabase}=await ctx();
+ const {data,error}=await supabase.rpc('carez_award_proposal_and_create_project',{
+  p_proposal_revision_id:id,p_effective_at:null,p_evidence_reference:text(fd,'evidence_reference')||null,
+ });
+ if(error)throw new Error(error.message);
+ const projectId=String(data?.project_id||'');if(!projectId)throw new Error('The awarded Project was not created.');
+ for(const path of ['/','/estimates','/proposals','/leads',`/projects/${projectId}`])revalidatePath(path);
+ redirect(`/projects/${projectId}`);
+}
 
 export async function markProposalResponseHandled(fd:FormData){
  const eventId=text(fd,'event_id');if(!eventId)return;const {supabase,user,companyId}=await ctx();const {data:event,error:readError}=await supabase.from('proposal_engagement_events').select('id,presentation_id').eq('id',eventId).eq('company_id',companyId).maybeSingle();if(readError||!event)throw new Error(readError?.message||'Response not found.');const now=new Date().toISOString();const {error}=await supabase.from('proposal_engagement_events').update({handled_at:now,handled_by:user.id}).eq('id',eventId).eq('company_id',companyId);if(error)throw new Error(error.message);const [{count},{data:presentation}]=await Promise.all([supabase.from('proposal_engagement_events').select('id',{count:'exact',head:true}).eq('presentation_id',event.presentation_id).is('handled_at',null).neq('event_type','view'),supabase.from('proposal_presentations').select('id,status,first_viewed_at').eq('id',event.presentation_id).eq('company_id',companyId).maybeSingle()]);if((count||0)===0&&presentation?.status==='needs_reply')await supabase.from('proposal_presentations').update({status:presentation.first_viewed_at?'viewed':'sent'}).eq('id',presentation.id).eq('company_id',companyId);refresh();

@@ -26,3 +26,9 @@ Job Spine creation, Opportunity/contact linkage, ITB intake, plans/specs, bid da
 - Project creation consumes an explicit Accepted Scope Snapshot; it does not infer acceptance from the latest estimate or every line in an issued proposal.
 - Bid board/calendar focus on estimator workload and deadlines, not generic sales metrics.
 
+## Implemented V1 award foundation
+
+Migration `20260926010000_job_spine_award_foundation.sql` adds the tenant-owned Job Spine to Opportunity, Estimate, Proposal revision, Award Decision, Accepted Scope Snapshot, and Project. Existing unambiguous Opportunity and source-Estimate links are backfilled; orphan phases are given a distinct spine with a migration review record.
+
+The internal Award action can award one full exact issued Proposal revision. It creates or links a Project on the same spine in one database transaction and returns the existing result on repeat execution. Public Proposal actions remain limited to response handling. Customer questions, change requests, unresolved alternates, missing frozen internal evidence, and unresolved Condition outputs hold award.
+

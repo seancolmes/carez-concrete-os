@@ -1,6 +1,6 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-23
+Last reconciled: 2026-09-25
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias
@@ -130,7 +130,21 @@ Verified staging / QA evidence:
 
 The **EDGE-style Condition-first estimator workflow** remains the estimating UX contract: named Concrete Conditions, concrete-native module/property organization, direct Takeoff-to-Estimate lineage, and no normal formula-first authoring. Carez retains its own visual system, deterministic engine, versioning, Job Spine, commercial lineage, and production-learning architecture.
 
-Final staging acceptance is complete. Issue #39 is closed. No production promotion is implied; `main` remains untouched and Issue #59 still blocks migration-dependent production release.
+### P1.4 Review, release, and Proposal issuance — accepted runtime state
+
+Stable `staging` browser/runtime QA passed the sequence **BLOCKED → Customer destination → REVIEW → acknowledgement → RELEASE READY → Proposal issuance → public view → customer question/NEEDS REPLY**. Accepted staging commit: `daba9a6c8460f33cce8d20be11433817981ba43a`.
+
+Issued Proposal release evidence preserved the commercial fingerprint, warning fingerprint, and acknowledgement lineage. Customer Acceptance/Award → Project and Create Next Revision remain deferred and are **not** part of this acceptance. This records acceptance of the P1.4 runtime slice; it does not claim P1 Estimating is complete.
+
+The local Proposal UI now follows the authority cutover: public proposals support questions, change requests, option interest, and decline responses, while online acceptance and Create Next Revision are not offered. Existing historical accepted records remain readable. The Projects empty state identifies direct-job creation as the currently available entry path.
+
+### REL-2026-09-25-RC1 — V1 commercial handoff foundation
+
+The source-controlled migration `20260926010000_job_spine_award_foundation.sql` adds tenant-scoped Job Spine identity, exact-revision internal Award, immutable Accepted Scope Snapshot, original frozen commercial baseline, and Create Next Revision. Create Next Revision is available before Award; Award freezes the exact issued Proposal/Estimate revision used for the Snapshot and baseline. Post-award scope/value changes use authorized appended lineage/deltas, while ordinary revisions of an awarded Proposal are rejected. This is a later implementation slice; it does not change the historical P1.4 acceptance above. Public Proposal responses do not create Projects. Historical customer acceptances without trustworthy frozen internal evidence remain held.
+
+Local verification on 2026-09-26: the complete migration chain replayed successfully against a fresh isolated local Supabase project; the commercial runtime fixture passed award, repeat-award idempotency, draft revision lineage/parent immutability, explicit historical evidence hold, tenant RLS, and least-privilege assertions. Authenticated UI acceptance passed for Proposal → Award → Project, including repeat-Award idempotence and post-award freeze. The issued-evidence P1 fix passed targeted regression coverage; targeted tests, typecheck, `pnpm check`, and `git diff --check` passed. No P0/P1 blocker remains for this commercial foundation. No staging/QA/production provider was mutated.
+
+Final staging acceptance is complete. Issue #39 is closed. No production promotion is implied; `main` remains untouched.
 
 ## Environment / blockers
 
@@ -138,8 +152,8 @@ Final staging acceptance is complete. Issue #39 is closed. No production promoti
 - `main` remains production.
 - Local validation and local browser/runtime QA precede Nik acceptance and the GitHub Desktop local commit; accepted work enters staging in batched releases.
 - Issue #59 production bridge application completed and verified: all 34 authorized `SAFE_TO_APPLY` migrations were applied in canonical source order. Production history uses application-time versions `20260925021524` through `20260925022046`, with canonical migration names matching the manifest 1:1; `20260924083100_proposal_authority_cutover` ran last. Proposal guard, ACL, and deferred-capability checks passed. Branding and the pricing provenance legacy backfill passed for 12 priced Takeoff outputs and 12 one-to-one linked Estimate items. No production data incompatibility or remediation requirement was identified. Issue #59 is no longer a production-release blocker. This documentation task authorizes no further production write.
-- Issue #58 remains open pending authenticated staging browser acceptance of the already-implemented Estimate pricing-save fix.
-- QA still lacks `public.next_opportunity_number()`, which blocks successful direct-job creation/populated Project Overview acceptance in that environment.
+- Issue #58 stable-staging acceptance passed on staging commit `8fee33de221fbab316b476d6cc28749d7757e156`: QA Estimate `QA-26-001-R1 — QA Takeoff Persistence` saved with HTTP 200, and target margin 30%, retailing B&O reserve consistent with the governed 0.471% rate, processing reserve 0%, and $4,079.65 sell persisted after reopening. Takeoff lineage remained intact for `QA FTG Line Pump 100 LF · QA Zone A · QA-1` (100 LF), including generated Takeoff-linked Ready-mix concrete at 6.36 CY. All four acceptance criteria passed. No production/main change is implied.
+- A read-only QA schema check on 2026-09-25 confirmed `public.next_opportunity_number()` exists and `authenticated` has EXECUTE. The former missing-function blocker is resolved at the schema/ACL level; direct-job creation and populated Project Overview still need transaction-level browser acceptance.
 - GPU-capable manual browser QA has passed for the accepted Takeoff 2D / Split / 3D workstation behavior and for the final P0.5E stable-staging cutover.
 
 ## Active workstreams

@@ -118,7 +118,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
     toolbar={toolbar}
     status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select to preview · Enter to open project</span></>}
     isEmpty={filtered.length===0}
-    empty={rows.length===0?<CarezExperienceEmpty icon={<BriefcaseBusiness/>} title="Your next job starts here." description="Accepted proposals create projects ready for setup. For emergency or direct work, use New direct job above." actions={<Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>View proposals<ArrowUpRight/></Link>}/>:<CarezExperienceEmpty icon={<Search/>} title="No jobs match this view" description="Try another state, search, or stage to find the work you need." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/> }
+    empty={rows.length===0?<CarezExperienceEmpty icon={<BriefcaseBusiness/>} title="Your next job starts here." description="An eligible issued Proposal can be Awarded internally to create or link its Project on the same Job Spine. Customer acceptance alone does not create a Project." actions={<Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>View proposals<ArrowUpRight/></Link>}/>:<CarezExperienceEmpty icon={<Search/>} title="No jobs match this view" description="Try another state, search, or stage to find the work you need." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/> }
   >
     <CarezDataGridTable>
       <CarezDataGridHead>

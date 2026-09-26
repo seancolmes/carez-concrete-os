@@ -12,6 +12,14 @@ Scope/Conditions → Takeoff → Pricing → Labor → Review/Recap → Proposal
 
 Award boundary: Proposal Revision → Award Decision/Customer Acceptance → Accepted Scope Snapshot → Frozen Commercial Baseline/Budget.
 
+## Implemented V1 commercial handoff
+
+Migration `20260926010000_job_spine_award_foundation.sql` captures a separate internal commercial evidence object when an issued Proposal is created. It preserves the exact Estimate and financial summary, Estimate items and provenance, Takeoff sets/sheets/measurements/outputs, Concrete Condition versions/modules/roles/outputs, and the customer-facing revision snapshot. The issued customer JSON alone is not treated as proof of internal Direct Cost or Production Quantity facts.
+
+The authorized Award RPC snapshots only the exact issued Proposal revision and derives an immutable original commercial baseline from that snapshot. Total Direct Cost and total Sell remain separate; Sell is not allocated to lines where no line-level Sell fact exists. Historical issued proposals without the internal evidence object are held for a reviewed new revision.
+
+Create Next Revision is a pre-award workflow only. It makes one linked Estimate draft, copies editable Estimate/Proposal content and source references, and does not copy issued, customer response, acknowledgement, Award, snapshot, or baseline state. Award freezes the exact Proposal/Estimate revision used for the Accepted Scope Snapshot and Commercial Baseline; an awarded Proposal cannot create another ordinary revision. Broader estimating and release workflow work remains in scope beyond this handoff foundation.
+
 ## Condition Engine boundary
 
 Concrete Condition authoring/calculation is owned by the Concrete Condition & Resource Engine in docs/modules/assembly-resource-engine.md. Estimating consumes deterministic resource/labor/equipment outputs from exact Project Concrete Condition, Company Condition Template, Platform Condition Archetype, module, and measurement-role versions.

@@ -24,3 +24,9 @@ Changes preserve the immutable Accepted Scope Snapshot and original frozen comme
 - Financial calculations are server-authoritative.
 - Supplier/vendor pricing and actual cost history may inform future estimates but never overwrite historical estimates automatically.
 
+## V1 baseline persistence
+
+Migration `20260926010000_job_spine_award_foundation.sql` provides the original frozen commercial baseline because the current source-controlled schema has no canonical accepted-scope baseline table to reuse. It is created transactionally from the immutable Accepted Scope Snapshot and records total Direct Cost and total Sell separately with exact revision provenance. Later scope changes must add new lineage; they do not edit this original baseline. Downstream procurement, Work Package budget allocation, and actual-cost integration remain separate work.
+
+After Award, contracted scope or value changes append authorized commercial lineage/deltas. They do not create ordinary revisions of the awarded Proposal; that path awaits the dedicated Change Order or authorized-commercial-delta workflow.
+

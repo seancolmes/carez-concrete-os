@@ -8,6 +8,10 @@ Translate an immutable Accepted Scope Snapshot and frozen commercial baseline in
 ## Operating model
 Job Spine → Project → Accepted Scope Snapshot / Frozen Commercial Baseline → Work Package → Operation → Production Work Unit → Versioned Scope Allocation → Schedule / Readiness → Assignment / Field Actuals → Production Evidence → Cost / Forecast.
 
+## V1 commercial source lineage
+
+The V1 award migration creates an immutable original commercial baseline tied to the Project, Award Decision, exact Proposal revision, Estimate revision, and Accepted Scope Snapshot. The Project view exposes that lineage and the separate baseline Direct Cost and Sell totals. This source baseline does not imply that downstream Work Package allocation or project-budget actual integrations are complete.
+
 ## Work package contents
 Accepted-scope lineage, frozen budget allocation, drawings/revisions, operations, production work units, scope-allocation versions, readiness constraints, crew needs, production targets, material needs, pour linkage, inspections, notes, photos, and cost/forecast lineage.
 

@@ -86,3 +86,19 @@ test('Proposal authority bridge checks the P1.4 guard before removing historical
   }
   assert.doesNotMatch(sql, /drop function|create or replace function|perform\s+public\.(?:accept_public_proposal|award_accepted_estimate|create_estimate_revision)/i);
 });
+
+test('Proposal UI exposes only actions supported after the authority cutover', () => {
+  const publicPage = source('app/proposal/[token]/page.tsx');
+  const publicActions = source('app/proposal/[token]/actions.ts');
+  const ownerPage = source('app/proposals/[estimateId]/page.tsx');
+  const ownerActions = source('app/proposals/actions.ts');
+  assert.doesNotMatch(publicPage, /Accept Proposal|action=\{acceptProposal\}/);
+  assert.doesNotMatch(publicActions, /accept_public_proposal/);
+  assert.match(publicPage, /online acceptance is not available/);
+  assert.match(publicPage, /action=\{submitProposalResponse\}/);
+  assert.match(ownerPage, /Create Next Revision/);
+  assert.match(ownerPage, /Award \/ Create Project/);
+  assert.match(ownerActions, /carez_create_next_proposal_revision/);
+  assert.match(ownerActions, /carez_award_proposal_and_create_project/);
+  assert.doesNotMatch(publicActions, /carez_award_proposal_and_create_project|carez_create_next_proposal_revision/);
+});

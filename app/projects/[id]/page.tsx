@@ -42,6 +42,11 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
   supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true})
  ]);
  const p:any=projectR.data;if(!p)notFound();
+ const [awardR,baselineR]=p.award_decision_id?await Promise.all([
+  supabase.from('award_decisions').select('id,proposal_revision_id,estimate_id,decided_at').eq('id',p.award_decision_id).eq('company_id',profile.company_id).maybeSingle(),
+  supabase.from('commercial_baselines').select('id,total_direct_cost,total_sell,accepted_scope_snapshot_id,proposal_revision_id').eq('project_id',id).eq('company_id',profile.company_id).maybeSingle(),
+ ]):[{data:null},{data:null}];
+ const sourceProposal=awardR.data?.proposal_revision_id?await supabase.from('proposal_presentations').select('proposal_number').eq('id',awardR.data.proposal_revision_id).eq('company_id',profile.company_id).maybeSingle():{data:null};
  const financialAvailable=Boolean(financialR.data);
  const budgetAvailable=Boolean(budgetR.data);
  const billingAvailable=Boolean(billingR.data);
@@ -85,6 +90,13 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Order Materials</Link>
     </>}
    />
+
+   {p.job_spine_id&&<section className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Commercial handoff lineage">
+    <div><p className="text-xs text-muted-foreground">Job Spine</p><p className="mt-1 break-all font-mono text-xs">{p.job_spine_id}</p></div>
+    <div><p className="text-xs text-muted-foreground">Awarded Proposal</p><p className="mt-1 text-sm font-medium">{sourceProposal.data?.proposal_number||'No Award Decision'}</p>{awardR.data?.proposal_revision_id&&<Link className="text-xs text-primary underline" href={`/proposals/${awardR.data.estimate_id}`}>Open exact revision</Link>}</div>
+    <div><p className="text-xs text-muted-foreground">Accepted Scope Snapshot</p><p className="mt-1 break-all font-mono text-xs">{baselineR.data?.accepted_scope_snapshot_id||'Not recorded'}</p></div>
+    <div><p className="text-xs text-muted-foreground">Frozen Commercial Baseline</p><p className="mt-1 text-sm font-medium">{baselineR.data?`Direct Cost ${money(baselineR.data.total_direct_cost)} · Sell ${money(baselineR.data.total_sell)}`:'Not recorded'}</p></div>
+   </section>}
 
    <div className="flex flex-col gap-6">
     <section className="order-1 space-y-3" aria-labelledby="project-attention-heading">
