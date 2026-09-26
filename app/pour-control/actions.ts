@@ -25,7 +25,7 @@ export async function createPourPlan(fd:FormData){
   const budgetSectionId=String(fd.get('budget_section_id')||'')||null;
   const changeOrderId=String(fd.get('change_order_id')||'')||null;
   if(budgetSectionId){const {data:s}=await supabase.from('project_budget_sections').select('id,budget_id,project_budgets(project_id)').eq('id',budgetSectionId).maybeSingle();if(!s||((s as any).project_budgets?.project_id!==projectId))throw new Error('Budget scope does not belong to this project.');}
-  if(changeOrderId){const {data:co}=await supabase.from('approved_change_order_references').select('id,project_id').eq('id',changeOrderId).eq('company_id',companyId).maybeSingle();if(!co||co.project_id!==projectId)throw new Error('Only an approved change order from this project can be linked.');}
+  if(changeOrderId){const {data:references,error:referenceError}=await supabase.rpc('carez_list_approved_change_order_references',{p_project_id:projectId});if(referenceError)throw new Error(referenceError.message);if(!references?.some((co:{id:string;project_id:string})=>co.id===changeOrderId&&co.project_id===projectId))throw new Error('Only an approved change order from this project can be linked.');}
   const {error}=await supabase.from('pour_plans').insert({
     company_id:companyId,project_id:projectId,budget_section_id:budgetSectionId,change_order_id:changeOrderId,
     name,scheduled_date:String(fd.get('scheduled_date')||'')||null,

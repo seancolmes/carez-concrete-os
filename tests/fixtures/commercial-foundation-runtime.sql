@@ -299,17 +299,19 @@ begin
   exception when raise_exception then
     if sqlerrm<>'Change Order not found.' then raise; end if;
   end;
-  if exists(select 1 from public.change_orders where id=v_co) or exists(select 1 from public.approved_change_order_references where id=v_co)
+  if exists(select 1 from public.change_orders where id=v_co) or exists(select 1 from public.carez_list_approved_change_order_references() where id=v_co)
     or exists(select 1 from public.project_authorized_contract_summary where project_id=v_project)
     or exists(select 1 from public.commercial_baseline_item_references where project_id=v_project)
     or exists(select 1 from public.commercial_baselines where id=v_baseline) then raise exception 'cross-company read/reference escaped tenant scope'; end if;
+  begin perform public.carez_list_approved_change_order_references(v_project); raise exception 'cross-company Change Order references were exposed';
+  exception when raise_exception then if sqlerrm<>'Project not found.' then raise; end if; end;
   begin perform public.carez_create_change_order(v_project,'Cross-company project probe','additive'); raise exception 'cross-company project could create a Change Order';
   exception when raise_exception then if sqlerrm<>'Project not found.' then raise; end if; end;
   begin perform public.carez_update_change_order(v_co,'{"proposed_sell_price":151}'::jsonb); raise exception 'cross-company owner modified another tenant Change Order';
   exception when raise_exception then if sqlerrm<>'Only draft Change Orders can be edited.' then raise; end if; end;
   perform set_config('request.jwt.claim.sub','abababab-abab-4bab-8bab-abababababab',true);
   if exists(select 1 from public.change_orders where id=v_co) then raise exception 'employee can read internal Change Order base row'; end if;
-  if not exists(select 1 from public.approved_change_order_references where id=v_co and project_id=v_project) then raise exception 'employee cannot consume narrow approved Change Order reference'; end if;
+  if not exists(select 1 from public.carez_list_approved_change_order_references(v_project) where id=v_co and project_id=v_project and status='approved') then raise exception 'employee cannot consume narrow approved Change Order reference'; end if;
   if exists(select 1 from public.change_order_financial_summary where change_order_id=v_co) then raise exception 'employee can read internal Change Order pricing evidence'; end if;
   if exists(select 1 from public.project_authorized_contract_summary where project_id=v_project) then raise exception 'employee can read authorized contract pricing summary'; end if;
   if exists(select 1 from public.commercial_baseline_item_references where project_id=v_project) then raise exception 'employee can read baseline commercial pricing evidence'; end if;
@@ -344,7 +346,7 @@ begin
 end
 $conflict$;
 reset role;
-select extensions.plan(14);
+select extensions.plan(17);
 select extensions.ok(not has_function_privilege('anon','public.carez_award_proposal_and_create_project(uuid,timestamptz,text)','EXECUTE'),'anonymous role cannot execute award');
 select extensions.ok(not has_table_privilege('authenticated','public.award_decisions','INSERT'),'authenticated clients cannot insert Award Decisions directly');
 select extensions.ok(not has_table_privilege('authenticated','public.commercial_baselines','UPDATE'),'authenticated clients cannot rewrite a frozen baseline');
@@ -353,10 +355,13 @@ select extensions.ok((select relrowsecurity from pg_class where oid='public.chan
 select extensions.ok(not has_table_privilege('authenticated','public.approved_commercial_deltas','INSERT'),'clients cannot manufacture approved commercial deltas');
 select extensions.ok(not has_function_privilege('anon','public.approve_change_order(uuid)','EXECUTE'),'anonymous role cannot approve a Change Order');
 select extensions.ok((select bool_and(reloptions @> array['security_invoker=true']) from pg_class where oid in ('public.change_order_financial_summary'::regclass,'public.project_authorized_contract_summary'::regclass,'public.commercial_baseline_item_references'::regclass)),'internal commercial views execute with invoker RLS');
-select extensions.ok((select reloptions @> array['security_barrier=true'] from pg_class where oid='public.approved_change_order_references'::regclass),'narrow employee reference view is a security barrier');
-select extensions.ok(not has_table_privilege('anon','public.change_order_financial_summary','SELECT') and not has_table_privilege('anon','public.approved_change_order_references','SELECT') and not has_table_privilege('anon','public.project_authorized_contract_summary','SELECT') and not has_table_privilege('anon','public.commercial_baseline_item_references','SELECT'),'anonymous role cannot read commercial views');
+select extensions.ok(to_regclass('public.approved_change_order_references') is null,'approved_change_order_references view was not removed');
+select extensions.ok((select prosecdef and proconfig @> array['search_path=pg_catalog, public'] from pg_proc where oid='public.carez_list_approved_change_order_references(uuid)'::regprocedure),'approved operational reference RPC is SECURITY DEFINER with a safe search_path');
+select extensions.ok((select proargnames[2:7]=array['id','project_id','co_number','title','status','field_work_status'] from pg_proc where oid='public.carez_list_approved_change_order_references(uuid)'::regprocedure),'approved operational reference RPC returns only the six approved fields');
+select extensions.ok(has_function_privilege('authenticated','public.carez_list_approved_change_order_references(uuid)','EXECUTE') and not has_function_privilege('anon','public.carez_list_approved_change_order_references(uuid)','EXECUTE'),'approved operational reference RPC is authenticated-only');
+select extensions.ok(not has_table_privilege('anon','public.change_order_financial_summary','SELECT') and not has_table_privilege('anon','public.project_authorized_contract_summary','SELECT') and not has_table_privilege('anon','public.commercial_baseline_item_references','SELECT'),'anonymous role cannot read commercial views');
 select extensions.ok(not has_table_privilege('anon','public.change_orders','SELECT') and not has_table_privilege('anon','public.change_order_items','SELECT') and not has_table_privilege('anon','public.approved_commercial_deltas','SELECT'),'anonymous role cannot read internal Change Order tables');
-select extensions.ok((select bool_and(not has_table_privilege('authenticated',format('public.%I',views.view_name),'INSERT') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'UPDATE') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'DELETE')) from unnest(array['change_order_financial_summary','approved_change_order_references','project_authorized_contract_summary','commercial_baseline_item_references']) as views(view_name)),'authenticated view grants are read-only');
+select extensions.ok((select bool_and(not has_table_privilege('authenticated',format('public.%I',views.view_name),'INSERT') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'UPDATE') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'DELETE')) from unnest(array['change_order_financial_summary','project_authorized_contract_summary','commercial_baseline_item_references']) as views(view_name)),'authenticated view grants are read-only');
 select extensions.ok(not has_table_privilege('authenticated','public.approved_commercial_delta_items','INSERT') and not has_table_privilege('authenticated','public.approved_commercial_deltas','UPDATE'),'authenticated clients cannot mutate approved delta evidence');
 select extensions.ok(not has_function_privilege('anon','public.carez_create_change_order(uuid,text,text,date,text,text,text,uuid,numeric,uuid)','EXECUTE') and not has_function_privilege('anon','public.carez_transition_change_order(uuid,text,text,text,text,text,timestamptz,text,text,numeric)','EXECUTE') and not has_function_privilege('anon','public.carez_update_change_order(uuid,jsonb)','EXECUTE') and not has_function_privilege('anon','public.approve_change_order(uuid)','EXECUTE'),'anonymous role cannot invoke commercial Change Order mutations');
 select * from extensions.finish();

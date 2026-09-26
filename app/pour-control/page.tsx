@@ -35,7 +35,7 @@ export default async function PourControlPage(){
     supabase.from('pour_authorization_snapshots').select('*').order('reviewed_at',{ascending:false}),
     supabase.from('project_budget_sections').select('id,budget_id,name,scope_type').order('sort_order'),
     supabase.from('project_budgets').select('id,project_id,status,budget_type,label').eq('status','active'),
-    supabase.from('approved_change_order_references').select('id,project_id,co_number,title,status').order('co_number'),
+    supabase.rpc('carez_list_approved_change_order_references',{p_project_id:null}),
     supabase.from('crew_members').select('id,name,hourly_rate,internal_field_rate,is_owner,active').eq('active',true).order('name'),
     supabase.from('li_risk_classes').select('code,name').eq('company_id',companyId).eq('tax_year',year).eq('active',true).order('code'),
     supabase.from('cost_codes').select('id,code,name,cost_type,default_unit').eq('company_id',companyId).eq('active',true).order('sort_order'),

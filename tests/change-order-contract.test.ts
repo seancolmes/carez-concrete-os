@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import test from 'node:test';
 import {signedChangeOrderCost, signedChangeOrderSell} from '../lib/change-orders/contracts.ts';
 
 const migrationPath='supabase/migrations/20260926020000_change_order_contract_recovery.sql';
+const referenceMigrationPath='supabase/migrations/20260926080000_change_order_reference_rpc.sql';
 
 test('Change Order signs keep physical quantity separate from Sell and Direct Cost direction',()=>{
   assert.equal(signedChangeOrderSell('deductive',125),-125);
@@ -26,11 +27,32 @@ test('Change Order migration captures immutable tenant-scoped approval lineage',
   assert.match(sql,/Original Award contract_value is immutable/i);
 });
 
-test('Change Order views enforce caller-scoped access and narrow reference grants',()=>{
+test('Change Order pricing views enforce caller-scoped access',()=>{
   const sql=readFileSync(migrationPath,'utf8');
   for(const view of ['change_order_financial_summary','project_authorized_contract_summary','commercial_baseline_item_references'])
     assert.match(sql,new RegExp(`create or replace view public\\.${view} with \\(security_invoker=true\\) as`,'i'));
-  assert.match(sql,/create or replace view public\.approved_change_order_references with \(security_barrier=true\) as/i);
-  assert.match(sql,/revoke all on public\.change_order_financial_summary,[\s\S]*?from public,anon,authenticated/i);
-  assert.match(sql,/grant select on public\.change_order_financial_summary,[\s\S]*?to authenticated/i);
+});
+
+test('approved operational references use an authenticated tenant-scoped RPC instead of a definer view',()=>{
+  assert.ok(existsSync(referenceMigrationPath),'additive reference RPC migration is missing');
+  const sql=readFileSync(referenceMigrationPath,'utf8');
+  assert.match(sql,/drop view public\.approved_change_order_references/i);
+  assert.match(sql,/create or replace function public\.carez_list_approved_change_order_references\(p_project_id uuid default null\)[\s\S]*?returns table\s*\(\s*id uuid,\s*project_id uuid,\s*co_number text,\s*title text,\s*status text,\s*field_work_status text\s*\)/i);
+  assert.match(sql,/security definer\s+set search_path=pg_catalog,public/i);
+  assert.match(sql,/auth\.uid\(\) is null/i);
+  assert.match(sql,/public\.carez_commercial_actor_company\(\)/i);
+  assert.match(sql,/p\.id=p_project_id and p\.company_id=v_company/i);
+  assert.match(sql,/co\.company_id=v_company[\s\S]*?co\.status='approved'/i);
+  assert.match(sql,/revoke all on function public\.carez_list_approved_change_order_references\(uuid\) from public,anon/i);
+  assert.match(sql,/grant execute on function public\.carez_list_approved_change_order_references\(uuid\) to authenticated/i);
+  assert.doesNotMatch(sql,/create (?:or replace )?view public\.approved_change_order_references/i);
+
+  for(const file of ['app/field/actions.ts','app/pour-control/actions.ts','app/pour-control/page.tsx']) {
+    const source=readFileSync(file,'utf8');
+    assert.match(source,/\.rpc\('carez_list_approved_change_order_references'/i);
+    assert.doesNotMatch(source,/\.from\('approved_change_order_references'\)/i);
+  }
+  const fixture=readFileSync('tests/fixtures/commercial-foundation-runtime.sql','utf8');
+  assert.match(fixture,/carez_list_approved_change_order_references/i);
+  assert.match(fixture,/approved_change_order_references view was not removed/i);
 });
