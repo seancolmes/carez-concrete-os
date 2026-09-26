@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient as createAnonClient} from '@supabase/supabase-js';
 import {classifyOutlookMessage,decryptOutlookToken,encryptOutlookToken,graphRequest,refreshOutlookToken} from '@/lib/outlook';
+import {providerMutationAllowed,PROVIDER_MUTATION_DENIED_MESSAGE} from '@/lib/provider-mutation-policy';
 
 export const runtime='nodejs';
 
@@ -8,6 +9,7 @@ function anon(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.N
 
 export async function POST(req:NextRequest){
   const validation=req.nextUrl.searchParams.get('validationToken');if(validation)return new NextResponse(validation,{status:200,headers:{'Content-Type':'text/plain'}});
+  if(!providerMutationAllowed())return NextResponse.json({error:PROVIDER_MUTATION_DENIED_MESSAGE},{status:403});
   try{
     const body:any=await req.json(),supabase=anon();
     for(const n of body?.value||[]){

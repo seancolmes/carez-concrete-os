@@ -15,6 +15,7 @@ This workflow defines when Carez work may inspect or change GitHub, Supabase, an
 - Production GitHub/main, production Supabase, and production Vercel changes require explicit production-target authorization in the current task.
 - Migration repair, rollback, force push, branch deletion, reset-like remote action, or other destructive recovery/history operation requires explicit named authorization and a recovery plan.
 - Credentials and secrets never belong in repository docs, scripts, or log output.
+- Ordinary AppShell navigation does not authorize Plaid or Outlook sync. Plaid and Outlook mutation entry points require an explicit production runtime (`NODE_ENV=production` and `VERCEL_ENV=production`); local and preview/staging runtimes fail closed before provider or database work. There is no local/staging override. Any future deliberate provider QA override requires separately authorized, server-only opt-in configuration that defaults off.
 
 ## Provider action matrix
 

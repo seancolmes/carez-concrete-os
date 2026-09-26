@@ -1,13 +1,19 @@
 import crypto from 'node:crypto';
 
-const PLAID_BASE:Record<string,string>={sandbox:'https://sandbox.plaid.com',development:'https://development.plaid.com',production:'https://production.plaid.com'};
+const PLAID_BASE={sandbox:'https://sandbox.plaid.com',development:'https://development.plaid.com',production:'https://production.plaid.com'} as const;
 
-export function plaidConfigured(){return Boolean(process.env.PLAID_CLIENT_ID&&process.env.PLAID_SECRET);}
+export function plaidEnvironment(value:string|undefined){
+  const env=value?.trim().toLowerCase();
+  return env==='sandbox'||env==='development'||env==='production'?env:null;
+}
+
+export function plaidConfigured(){return Boolean(process.env.PLAID_CLIENT_ID&&process.env.PLAID_SECRET&&plaidEnvironment(process.env.PLAID_ENV));}
 function cfg(){
   const clientId=process.env.PLAID_CLIENT_ID,secret=process.env.PLAID_SECRET;
   if(!clientId||!secret)throw new Error('Plaid environment variables are missing.');
-  const env=(process.env.PLAID_ENV||'production').toLowerCase();
-  return {clientId,secret,env,base:PLAID_BASE[env]||PLAID_BASE.production};
+  const env=plaidEnvironment(process.env.PLAID_ENV);
+  if(!env)throw new Error('PLAID_ENV must be sandbox, development, or production.');
+  return {clientId,secret,env,base:PLAID_BASE[env]};
 }
 export async function plaidPost<T=any>(path:string,body:Record<string,any>):Promise<T>{
   const {clientId,secret,base}=cfg();

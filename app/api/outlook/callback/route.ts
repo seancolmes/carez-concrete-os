@@ -2,10 +2,12 @@ import crypto from 'node:crypto';
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient} from '@/lib/supabase/server';
 import {createOutlookSubscription,encryptOutlookToken,exchangeOutlookCode,graphRequest,syncOutlookMailbox} from '@/lib/outlook';
+import {providerMutationAllowed,PROVIDER_MUTATION_DENIED_MESSAGE} from '@/lib/provider-mutation-policy';
 
 export const runtime='nodejs';
 
 export async function GET(req:NextRequest){
+  if(!providerMutationAllowed())return NextResponse.json({error:PROVIDER_MUTATION_DENIED_MESSAGE},{status:403});
   const url=new URL(req.url),origin=url.origin,error=url.searchParams.get('error'),code=url.searchParams.get('code'),state=url.searchParams.get('state');
   if(error)return NextResponse.redirect(new URL(`/leads/inbox?error=${encodeURIComponent(error)}`,origin));
   const expected=req.cookies.get('carez_outlook_oauth_state')?.value;

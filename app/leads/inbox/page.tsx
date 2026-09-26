@@ -9,6 +9,7 @@ import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} f
 import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
 import {createClient} from '@/lib/supabase/server';
 import {outlookConfigured} from '@/lib/outlook';
+import {providerMutationAllowed} from '@/lib/provider-mutation-policy';
 import {createLeadFromCandidate,disconnectOutlook,ignoreLeadCandidate,syncOutlookNow} from './actions';
 import {cn} from '@/lib/utils';
 
@@ -36,30 +37,32 @@ export default async function LeadInboxPage(){
     supabase.from('outlook_messages').select('id,subject,sender_name,sender_email,received_at,classification,confidence,lead_id,leads(opportunity_number,project_name)').eq('company_id',p.company_id).not('lead_id','is',null).order('received_at',{ascending:false}).limit(20),
   ]);
 
-  const configured=outlookConfigured();
+  const configured=outlookConfigured(),providerEnabled=providerMutationAllowed();
   const connected=connection?.status==='active';
   const background=Boolean(connection?.subscription_id&&connection?.subscription_expires_at&&new Date(connection.subscription_expires_at).getTime()>Date.now());
 
   return <AppShell userName={p.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Lead inbox</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Outlook watches for concrete opportunities. Clear leads can be created automatically; uncertain messages wait here for owner review.</p></div>
-        <div className="flex flex-wrap items-center gap-2">{connected?<form action={syncOutlookNow}><Button type="submit" size="sm"><RefreshCw/>Check Outlook now</Button></form>:<a className={buttonVariants({size:'sm'})} href="/api/outlook/connect"><Mail/>Connect Outlook</a>}<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads"><Users/>Job pipeline</Link></div>
+        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Lead inbox</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Connected Outlook can bring concrete opportunities here. Clear leads may be created automatically; uncertain messages wait for review.</p></div>
+        <div className="flex flex-wrap items-center gap-2">{connected?<form action={syncOutlookNow}><Button type="submit" size="sm" disabled={!providerEnabled}><RefreshCw/>Check Outlook now</Button></form>:providerEnabled?<a className={buttonVariants({size:'sm'})} href="/api/outlook/connect"><Mail/>Connect Outlook</a>:<Button type="button" size="sm" disabled><Mail/>Connect Outlook</Button>}<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads"><Users/>Job pipeline</Link></div>
       </header>
+
+      {!providerEnabled&&<p role="status" className="text-sm text-muted-foreground">Outlook connection and sync are disabled in this environment.</p>}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Outlook" value={connected?'Connected':'Not connected'} help={connection?.mailbox_email||'Connect the Carez mailbox.'} tone={connected?'success':'warning'}/>
         <Metric label="Needs review" value={String((candidates||[]).length)} help="Possible jobs Carez was not confident enough to create automatically." tone={(candidates||[]).length?'warning':'success'}/>
         <Metric label="Created from email" value={String((messages||[]).length)} help="Recent Outlook messages already tied to numbered leads."/>
-        <Metric label="Background watch" value={connected?(background?'On':'Needs attention'):'Off'} help={background?`Microsoft subscription through ${new Date(connection.subscription_expires_at).toLocaleDateString()}.`:'Manual sync still works; background notification setup may need attention.'} tone={connected&&background?'success':connected?'warning':'default'}/>
+        <Metric label="Background watch" value={!providerEnabled?'Paused':connected?(background?'On':'Needs attention'):'Off'} help={!providerEnabled?'Provider sync is disabled in this environment.':background?`Microsoft subscription through ${new Date(connection.subscription_expires_at).toLocaleDateString()}.`:'Manual sync still works; background notification setup may need attention.'} tone={providerEnabled&&connected&&background?'success':providerEnabled&&connected?'warning':'default'}/>
       </section>
 
-      {!configured?<div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm"><ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning"/><div><div className="font-medium text-warning">Microsoft app setup is not finished.</div><div className="mt-1 text-xs leading-5 text-muted-foreground">Carez needs the Microsoft client credentials in Vercel before Outlook authorization can complete.</div></div></div>:null}
+      {providerEnabled&&!configured?<div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm"><ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning"/><div><div className="font-medium text-warning">Microsoft app setup is not finished.</div><div className="mt-1 text-xs leading-5 text-muted-foreground">Carez needs the Microsoft client credentials before Outlook authorization can complete.</div></div></div>:null}
       {connection?.last_error?<div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm"><ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning"/><div><div className="font-medium text-warning">Outlook needs attention</div><div className="mt-1 text-xs leading-5 text-muted-foreground">{connection.last_error}</div></div></div>:null}
 
       <section className="space-y-4">
         <SectionHeading kicker="Review" title="Possible leads" description="Create it if this is real concrete work. Ignore vendor mail, spam, or existing-job conversation."/>
-        {(candidates||[]).length===0?<Empty className="min-h-56 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Inbox/></EmptyMedia><EmptyTitle>Nothing waiting for review</EmptyTitle><EmptyDescription>New uncertain Outlook opportunities will land here.</EmptyDescription></EmptyHeader><EmptyContent>{connected?<form action={syncOutlookNow}><Button type="submit" variant="outline"><RefreshCw/>Check Outlook</Button></form>:null}</EmptyContent></Empty>:
+        {(candidates||[]).length===0?<Empty className="min-h-56 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Inbox/></EmptyMedia><EmptyTitle>Nothing waiting for review</EmptyTitle><EmptyDescription>New uncertain Outlook opportunities will land here.</EmptyDescription></EmptyHeader><EmptyContent>{connected?<form action={syncOutlookNow}><Button type="submit" variant="outline" disabled={!providerEnabled}><RefreshCw/>Check Outlook</Button></form>:null}</EmptyContent></Empty>:
           <div className="grid gap-3 xl:grid-cols-2">{(candidates||[]).map((candidate:any)=>{
             const message:any=candidate.outlook_messages||{};
             return <Card key={candidate.id} className="gap-0 py-0 shadow-none">
@@ -76,7 +79,7 @@ export default async function LeadInboxPage(){
           <Card className="py-0 shadow-none"><Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Lead</TableHead><TableHead>Sender</TableHead><TableHead>Received</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{(messages||[]).map((message:any)=><TableRow key={message.id}><TableCell><Link href="/leads" className="font-medium hover:text-primary">L-{message.leads?.opportunity_number||'—'} — {message.leads?.project_name||message.subject}</Link></TableCell><TableCell className="text-muted-foreground">{message.sender_name||message.sender_email||'Email'}</TableCell><TableCell className="text-xs text-muted-foreground">{message.received_at?new Date(message.received_at).toLocaleString():'—'}</TableCell><TableCell><Badge variant="secondary" className="bg-success/10 text-success">Created</Badge></TableCell></TableRow>)}</TableBody></Table></Card>}
       </section>
 
-      {connected?<Card className="shadow-none"><CardHeader className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center"><div><CardTitle className="text-sm">Mailbox connection</CardTitle><CardDescription className="mt-1">Disconnect only when Carez should stop reading this mailbox for lead automation.</CardDescription></div><form action={disconnectOutlook}><Button type="submit" variant="outline" size="sm">Disconnect Outlook</Button></form></CardHeader></Card>:null}
+      {connected?<Card className="shadow-none"><CardHeader className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center"><div><CardTitle className="text-sm">Mailbox connection</CardTitle><CardDescription className="mt-1">Disconnect only when Carez should stop reading this mailbox for lead automation.</CardDescription></div><form action={disconnectOutlook}><Button type="submit" variant="outline" size="sm" disabled={!providerEnabled}>Disconnect Outlook</Button></form></CardHeader></Card>:null}
     </div>
   </AppShell>;
 }

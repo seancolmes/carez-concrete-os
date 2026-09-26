@@ -2,10 +2,11 @@
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {ensureOutlookAccessToken,graphRequest,syncOutlookMailbox} from '@/lib/outlook';
+import {providerMutationAllowed,PROVIDER_MUTATION_DENIED_MESSAGE} from '@/lib/provider-mutation-policy';
 
 async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:p}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!p?.company_id||p.role==='employee')throw new Error('Owner access required');return {supabase,user,companyId:p.company_id};}
 
-export async function syncOutlookNow(){const {supabase,companyId}=await ctx();const {data:c}=await supabase.from('outlook_connections').select('*').eq('company_id',companyId).eq('status','active').maybeSingle();if(!c)throw new Error('Connect Outlook first.');await syncOutlookMailbox(supabase,companyId,c);revalidatePath('/');revalidatePath('/leads');revalidatePath('/leads/inbox');}
+export async function syncOutlookNow(){if(!providerMutationAllowed())throw new Error(PROVIDER_MUTATION_DENIED_MESSAGE);const {supabase,companyId}=await ctx();const {data:c}=await supabase.from('outlook_connections').select('*').eq('company_id',companyId).eq('status','active').maybeSingle();if(!c)throw new Error('Connect Outlook first.');await syncOutlookMailbox(supabase,companyId,c);revalidatePath('/');revalidatePath('/leads');revalidatePath('/leads/inbox');}
 
 export async function createLeadFromCandidate(fd:FormData){
  const id=String(fd.get('candidate_id')||'');if(!id)return;const {supabase,user,companyId}=await ctx();
@@ -20,4 +21,4 @@ export async function createLeadFromCandidate(fd:FormData){
 
 export async function ignoreLeadCandidate(fd:FormData){const id=String(fd.get('candidate_id')||'');if(!id)return;const {supabase,companyId}=await ctx();await supabase.from('lead_inbox_candidates').update({status:'ignored',updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);revalidatePath('/leads/inbox');}
 
-export async function disconnectOutlook(){const {supabase,companyId}=await ctx();const {data:c}=await supabase.from('outlook_connections').select('*').eq('company_id',companyId).maybeSingle();if(!c)return;try{if(c.subscription_id){const access=await ensureOutlookAccessToken(supabase,c);await graphRequest(access,`/subscriptions/${encodeURIComponent(c.subscription_id)}`,{method:'DELETE'});}}catch{}await supabase.from('outlook_connections').update({status:'disconnected',subscription_id:null,subscription_client_state:null,subscription_expires_at:null,updated_at:new Date().toISOString()}).eq('id',c.id);revalidatePath('/leads/inbox');}
+export async function disconnectOutlook(){if(!providerMutationAllowed())throw new Error(PROVIDER_MUTATION_DENIED_MESSAGE);const {supabase,companyId}=await ctx();const {data:c}=await supabase.from('outlook_connections').select('*').eq('company_id',companyId).maybeSingle();if(!c)return;try{if(c.subscription_id){const access=await ensureOutlookAccessToken(supabase,c);await graphRequest(access,`/subscriptions/${encodeURIComponent(c.subscription_id)}`,{method:'DELETE'});}}catch{}await supabase.from('outlook_connections').update({status:'disconnected',subscription_id:null,subscription_client_state:null,subscription_expires_at:null,updated_at:new Date().toISOString()}).eq('id',c.id);revalidatePath('/leads/inbox');}

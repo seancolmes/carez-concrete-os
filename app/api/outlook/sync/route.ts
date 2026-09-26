@@ -2,10 +2,12 @@ import crypto from 'node:crypto';
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient} from '@/lib/supabase/server';
 import {createOutlookSubscription,ensureOutlookAccessToken,outlookConfigured,renewOutlookSubscription,syncOutlookMailbox} from '@/lib/outlook';
+import {providerMutationAllowed,PROVIDER_MUTATION_DENIED_MESSAGE} from '@/lib/provider-mutation-policy';
 
 export const runtime='nodejs';
 
 export async function POST(req:NextRequest){
+  if(!providerMutationAllowed())return NextResponse.json({error:PROVIDER_MUTATION_DENIED_MESSAGE},{status:403});
   if(!outlookConfigured())return NextResponse.json({configured:false,connected:false});
   try{
     const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});

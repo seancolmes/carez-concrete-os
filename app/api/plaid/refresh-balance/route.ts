@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { plaidConfigured,syncPlaidConnection } from '@/lib/plaid';
+import {providerMutationAllowed,PROVIDER_MUTATION_DENIED_MESSAGE} from '@/lib/provider-mutation-policy';
 
 export const runtime='nodejs';
 export async function POST(){
+  if(!providerMutationAllowed())return NextResponse.json({error:PROVIDER_MUTATION_DENIED_MESSAGE},{status:403});
   if(!plaidConfigured())return NextResponse.json({error:'Plaid is not configured'},{status:400});
   try{
     const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});
