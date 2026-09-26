@@ -29,7 +29,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
  const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
  const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).maybeSingle();
  if(!profile?.company_id)redirect('/login');if(profile.role==='employee')redirect('/employee');
- const [projectR,financialR,budgetR,billingR,commitR,forecastR,prodR,shiftR,coR,pourR]=await Promise.all([
+ const [projectR,financialR,budgetR,billingR,commitR,forecastR,prodR,shiftR,coR,pourR,authorizedContractR]=await Promise.all([
   supabase.from('projects').select('*,customers(name,contact_name,phone,email)').eq('id',id).eq('company_id',profile.company_id).maybeSingle(),
   supabase.from('project_financial_summary').select('*').eq('project_id',id).maybeSingle(),
   supabase.from('project_budget_actual_summary').select('*').eq('project_id',id).maybeSingle(),
@@ -39,7 +39,8 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
   supabase.from('production_rate_history').select('*').eq('project_id',id).order('work_date',{ascending:false}).limit(12),
   supabase.from('employee_shift_sessions').select('id,status,work_date,clock_in_inside_geofence,clock_out_inside_geofence,crew_members(name)').eq('project_id',id).in('status',['open','submitted']).order('work_date',{ascending:false}),
   supabase.from('change_orders').select('id,co_number,title,status,field_work_status,proposed_sell_price,requested_date').eq('project_id',id).in('status',['draft','submitted','approved']).order('requested_date',{ascending:false}),
-  supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true})
+  supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true}),
+  supabase.from('project_authorized_contract_summary').select('original_contract_value,authorized_contract_value').eq('project_id',id).maybeSingle()
  ]);
  const p:any=projectR.data;if(!p)notFound();
  const [awardR,baselineR]=p.award_decision_id?await Promise.all([
@@ -114,7 +115,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
     <section className="order-2 space-y-3" aria-labelledby="project-operating-heading">
      <div><h2 id="project-operating-heading" className="text-lg font-semibold tracking-tight">Operating Position</h2><p className="mt-1 text-sm text-muted-foreground">Contract, budget, labor, receivables, commitments and forecast position.</p></div>
      <CarezOperatingMetricStrip columns={6}>
-      <CarezOperatingMetric label="Contract" value={money(f.adjusted_contract||p.contract_value)} help="Original contract plus approved changes."/>
+      <CarezOperatingMetric label="Contract" value={money(authorizedContractR.data?.authorized_contract_value??p.contract_value)} help="Original contract plus approved changes."/>
       <CarezOperatingMetric label="Budget Used" value={budgetAvailable?pct(budgetUsed):'No Budget'} help={budgetAvailable?(b.label?`Against ${b.label}.`:'Current approved budget position.'):'Approve an estimate to establish the baseline.'} tone={!budgetAvailable?'neutral':budgetUsed>=100?'error':budgetUsed>=85?'warning':'neutral'}/>
       <CarezOperatingMetric label="Labor Hours Used" value={budgetAvailable&&num(b.budget_labor_hours)>0?pct(laborUsed):budgetAvailable?'No Labor Budget':'No Budget'} help={budgetAvailable?`${hrs(b.actual_labor_hours)} used · ${hrs(b.labor_hours_remaining)} remaining.`:'No authoritative budget snapshot.'} tone={!budgetAvailable?'neutral':laborUsed>=100?'error':laborUsed>=85?'warning':'neutral'}/>
       <CarezOperatingMetric label="Customer Owes Us" value={billingAvailable?money(bill.outstanding_ar):'Unavailable'} help={billingAvailable?(num(bill.overdue_ar)>0?`${money(bill.overdue_ar)} is past due.`:'No overdue customer balance.'):'Billing summary unavailable.'} tone={!billingAvailable?'neutral':num(bill.overdue_ar)>0?'error':num(bill.outstanding_ar)>0?'warning':'neutral'}/>
