@@ -5,6 +5,7 @@ import { PourtraceAntProvider } from '@/components/PourtraceAntProvider';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
+import { GatewayTransitionProvider } from '@/components/brand/GatewayTransitionProvider';
 import './globals.css';
 import './takeoff-v3.css';
 
@@ -42,10 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return <html lang="en" suppressHydrationWarning className={`${firaSans.variable} ${robotoSlab.variable} ${sourceCodePro.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('pourtrace-landing-boot')==='seen')document.documentElement.dataset.ptBootSeen='true'}catch{}" }} />
+      <style>{'html[data-pt-boot-seen="true"] .pt-splash{display:none!important}'}</style>
     </head>
     <body className={firaSans.className}>
       <CarezAppearanceProvider>
-        <AntdRegistry><PourtraceAntProvider><TooltipProvider>{children}</TooltipProvider></PourtraceAntProvider></AntdRegistry>
+        <GatewayTransitionProvider><AntdRegistry><PourtraceAntProvider><TooltipProvider>{children}</TooltipProvider></PourtraceAntProvider></AntdRegistry></GatewayTransitionProvider>
       </CarezAppearanceProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}

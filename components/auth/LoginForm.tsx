@@ -1,19 +1,24 @@
 'use client';
 
-import {Eye,EyeOff,LockKeyhole,Mail} from 'lucide-react';
+import {Eye,EyeOff} from 'lucide-react';
 import {FormEvent,useState} from 'react';
+import {AnimatePresence,motion} from 'framer-motion';
+import Link from 'next/link';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {signInToWorkspace} from '@/app/login/actions';
+import {useGatewayTransition} from '@/components/brand/GatewayTransitionProvider';
 
-export function LoginForm(){
+export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
   const [showPassword,setShowPassword]=useState(false);
   const [message,setMessage]=useState('');
   const [busy,setBusy]=useState(false);
+  const [authenticated,setAuthenticated]=useState(false);
+  const {begin}=useGatewayTransition();
 
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setBusy(true);setMessage('');
@@ -31,44 +36,46 @@ export function LoginForm(){
         setBusy(false);
         return;
       }
-      window.location.assign(result.destination||'/');
+      setAuthenticated(true);
+      begin(result.destination||'/');
     }catch{
       setMessage('Your account signed in, but the workspace check could not complete. Please try again.');
       setBusy(false);
     }
   }
 
-  return <Card className="w-full max-w-md border-0 bg-transparent shadow-none">
+  return <Card className="w-full max-w-md border-0 bg-transparent shadow-none" style={{backgroundColor:'transparent',padding:0}}>
     <CardHeader className="space-y-4 px-0">
-      <div className="font-mono text-[10px] font-semibold uppercase tracking-[.16em] text-muted-foreground">Secure workspace access</div>
+      <div className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">Workspace access</div>
       <div>
-        <CardTitle className="text-3xl font-semibold tracking-tight">Sign in to Pourtrace</CardTitle>
-        <CardDescription className="mt-2 max-w-sm text-sm leading-6">Use the account associated with your organization to continue to your workspace.</CardDescription>
+        <CardTitle className="font-sans text-2xl font-semibold tracking-tight">Sign in to Pourtrace</CardTitle>
+        <CardDescription className="mt-2 max-w-sm text-sm leading-6">Sign in to Pourtrace with the account associated with your organization.</CardDescription>
       </div>
     </CardHeader>
     <CardContent className="px-0">
-      <form className="grid gap-4" onSubmit={submit}>
+      <AnimatePresence mode="wait" initial={false}>{authenticated?
+        <motion.div key="authenticated" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} className="flex min-h-[270px] flex-col items-center justify-center gap-3 text-center" role="status" aria-live="polite"><span className="inline-flex size-9 items-center justify-center rounded-full border border-[#009966]/40 bg-[#009966]/10 text-[#009966]">✓</span><span className="font-mono text-sm font-semibold tracking-wide text-[#171B19] dark:text-[#F4F6F5]">AUTHENTICATED...<br/>ROUTING_TO_WORKSPACE<span className="animate-pulse text-[#009966] motion-reduce:animate-none" aria-hidden="true">_</span></span></motion.div>
+      :<motion.div key="credentials" exit={{opacity:0,y:-8}} transition={{duration:0.16}}><form className="grid gap-4" onSubmit={submit}>
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor={`${idPrefix}-email`}>Email</Label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true"/>
-            <Input id="email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email" placeholder="name@company.com" className="pl-9"/>
+            <Input id={`${idPrefix}-email`} type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email" placeholder="name@company.com" className="h-11 rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-3 font-sans text-[#171B19] dark:border-[#343A3F] dark:bg-[#25292C] dark:text-[#F4F6F5]"/>
           </div>
         </div>
         <div className="grid gap-2">
-          <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Password</Label><span className="text-[11px] text-muted-foreground">Case sensitive</span></div>
+          <div className="flex items-center justify-between gap-3"><Label htmlFor={`${idPrefix}-password`}>Password</Label><span className="text-[11px] text-muted-foreground">Case sensitive</span></div>
           <div className="relative">
-            <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true"/>
-            <Input id="password" type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password" className="px-9"/>
+            <Input id={`${idPrefix}-password`} type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password" className="h-11 rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-3 pr-11 font-sans text-[#171B19] dark:border-[#343A3F] dark:bg-[#25292C] dark:text-[#F4F6F5]"/>
             <button type="button" aria-label={showPassword?'Hide password':'Show password'} aria-pressed={showPassword} onClick={()=>setShowPassword(value=>!value)} className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
               {showPassword?<EyeOff className="size-4"/>:<Eye className="size-4"/>}
             </button>
           </div>
         </div>
         {message&&<div role="alert" className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{message}</div>}
-        <Button type="submit" className="mt-1 w-full" disabled={busy}>{busy?'Signing in...':'Sign in'}</Button>
+        <Button type="submit" className="mt-1 h-11 w-full rounded-lg bg-[#007A52] text-white hover:bg-[#009966] dark:bg-[#009966] dark:hover:bg-[#00AD73]" disabled={busy}>{busy?'Signing in...':'Sign in'}</Button>
+        <p className="mt-4 text-center text-sm text-muted-foreground">Don't have a workspace? <Link href="/signup" className="font-medium text-[#007A52] underline-offset-4 hover:underline focus-visible:underline dark:text-[#009966]">Sign up here</Link></p>
         <p className="text-center text-[11px] leading-5 text-muted-foreground">Your organization controls access to this workspace.</p>
-      </form>
+      </form></motion.div>}</AnimatePresence>
     </CardContent>
   </Card>;
 }

@@ -13,7 +13,7 @@ const fmtTime=(v?:string|null)=>{if(!v)return '';const [h,m]=String(v).split(':'
 const joinedProject=(item:any)=>Array.isArray(item?.projects)?item.projects[0]:item?.projects;
 const joinedCustomer=(project:any)=>Array.isArray(project?.customers)?project.customers[0]:project?.customers;
 type AttentionTone='danger'|'warning'|'info';
-type Attention={priority:number;tone:AttentionTone;subject:string;issue:string;when:string;href:string;action:string;};
+type Attention={priority:number;tone:AttentionTone;subject:string;issue:string;when:string;href:string;action:string;urgent?:boolean;timestamp?:string;};
 export default async function HomePage(){
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
@@ -88,30 +88,30 @@ export default async function HomePage(){
     const r:any=opReady.get(item.work_package_operation_id);
     const job:any=joinedProject(item);
     if(r?.ready_to_start_all===false){
-      attention.push({priority:1,tone:'danger',subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,issue:r.start_next_action||`${item.title} is not ready to start`,when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',href:'/readiness',action:'Clear hold'});
+      attention.push({priority:1,tone:'danger',urgent:true,subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,issue:r.start_next_action||`${item.title} is not ready to start`,when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',href:'/readiness',action:'Clear hold'});
     }
   }
 
   for(const row of activeProjects){
     if(row.state!=='hold'||todayFieldWork.some((item:any)=>item.project_id===row.project.id))continue;
     const failed=num(row.r.failed_inspection_operations),blocked=num(row.r.blocked_operations);
-    attention.push({priority:2,tone:'danger',subject:`${row.project.job_number} · ${row.project.name}`,issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',href:'/readiness',action:'Open readiness'});
+    attention.push({priority:2,tone:'danger',urgent:true,subject:`${row.project.job_number} · ${row.project.name}`,issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',href:'/readiness',action:'Open readiness'});
   }
 
   if(timeReview)attention.push({priority:3,tone:'warning',subject:'Field time review',issue:`${timeReview} submitted timecard${timeReview===1?' needs':'s need'} approval or correction.`,when:'Before payroll / job cost',href:'/field/review',action:'Review time'});
   if(overdue>0)attention.push({priority:4,tone:'warning',subject:'Accounts receivable',issue:`${money(overdue)} customer balance is past due.`,when:`${money(ar)} total outstanding`,href:'/billing',action:'Open billing'});
 
   for(const proposal of proposals||[]){
-    if(proposal.conversion_stage==='needs_reply')attention.push({priority:5,tone:'warning',subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,when:proposal.follow_up_due?`Reply due · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',href:`/proposals/${proposal.estimate_id}`,action:'Reply to customer'});
+    if(proposal.conversion_stage==='needs_reply')attention.push({priority:5,tone:'warning',urgent:Boolean(proposal.follow_up_due&&proposal.follow_up_due<start),subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,when:proposal.follow_up_due?`Reply due · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',href:`/proposals/${proposal.estimate_id}`,action:'Reply to customer'});
     else if(proposal.follow_up_due_now)attention.push({priority:6,tone:'info',subject:`Follow up · ${proposal.proposal_number}`,issue:`${proposal.customer_name||'Customer'} · ${proposal.project_name||'Proposal'}`,when:proposal.follow_up_due?`Due · ${fmtShortDate(proposal.follow_up_due)}`:'Due now',href:`/proposals/${proposal.estimate_id}`,action:'Follow up'});
   }
 
   for(const lead of leads||[]){
-    if(lead.follow_up&&lead.follow_up<=start)attention.push({priority:7,tone:'info',subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,issue:lead.project_name||'Open opportunity needs follow-up.',when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/leads/${lead.id}`,action:'Follow up lead'});
+    if(lead.follow_up&&lead.follow_up<=start)attention.push({priority:7,tone:'info',urgent:lead.follow_up<start,subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,issue:lead.project_name||'Open opportunity needs follow-up.',when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/leads/${lead.id}`,action:'Follow up lead'});
   }
 
   for(const event of cash||[]){
-    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Review cashflow'});
+    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',urgent:true,subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Review cashflow'});
   }
   attention.sort((a,b)=>a.priority-b.priority);
   const openProposals=(proposals||[]).filter((row:any)=>['sent','viewed','needs_reply'].includes(row.conversion_stage));
@@ -131,12 +131,12 @@ export default async function HomePage(){
   const planningJobs=dashboardJobs.filter((row:any)=>!row.next).slice(0,5);
   const cashStatus=cashError?'Unavailable':openCash.length?money(cashNet):'No events';
   const statusMetrics=[
-    {label:'Ready to move',value:projectsError||workReadyError?'Unavailable':String(jobsReady),detail:'Projects with an operation ready to start'},
-    {label:'Field active',value:shiftsError?'Unavailable':String(activeFieldJobs),detail:'Projects with an open field shift'},
-    {label:'Hard holds',value:projectsError||workReadyError?'Unavailable':String(jobsHeld),detail:'Projects blocked from starting work'},
-    {label:'Customers owe',value:billingError?'Unavailable':money(ar),detail:'Outstanding customer balance'},
-    {label:'7-day cash',value:cashStatus,detail:`Open cash in less cash out · ${fmtShortDate(start)}–${fmtShortDate(weekEnd)}`},
-  ];
+    {label:'Ready to move',value:projectsError||workReadyError?null:jobsReady,detail:'Projects with an operation ready to start',tone:jobsReady>0?'success':'neutral'},
+    {label:'Field active',value:shiftsError?null:activeFieldJobs,detail:'Projects with an open field shift',tone:'neutral'},
+    {label:'Hard holds',value:projectsError||workReadyError?null:jobsHeld,detail:'Projects blocked from starting work',tone:jobsHeld>0?'danger':'neutral'},
+    {label:'Customers owe',value:billingError?null:ar,prefix:'$',detail:'Outstanding customer balance',tone:'neutral'},
+    {label:'7-day cash',value:cashError?null:Math.abs(cashNet),prefix:cashNet<0?'−$':'$',detail:openCash.length?`Open cash in less cash out · ${fmtShortDate(start)}–${fmtShortDate(weekEnd)}`:'No scheduled cash events',tone:cashNet<0?'warning':'neutral'},
+  ] as const;
 
   return <AppShell userName={profile!.full_name||user!.email||'Owner'}>
     <TodaySurface

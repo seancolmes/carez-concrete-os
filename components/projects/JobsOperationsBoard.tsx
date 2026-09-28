@@ -36,6 +36,10 @@ export type JobsBoardRow={
   contractValue:number;
   billedAmount:number;
   budgetUsed:number;
+  budgetCost:number;
+  actualCost:number;
+  budgetLaborHours:number;
+  actualLaborHours:number;
   laborRemaining:number;
   budgetAvailable:boolean;
   customerOwed:number;
@@ -215,7 +219,13 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
   const router=useRouter();
   const state=resolveOperationalState(row.state);
   const priority=resolvePriority(priorityKindFor(row));
-  const budgetProgress=row.budgetAvailable?Math.max(0,Math.min(100,row.budgetUsed)):null;
+  const budgetProgress=row.budgetAvailable&&row.budgetCost>0?Math.max(0,Math.min(100,row.actualCost/row.budgetCost*100)):null;
+  const laborProgress=row.budgetAvailable&&row.budgetLaborHours>0?Math.max(0,Math.min(100,row.actualLaborHours/row.budgetLaborHours*100)):null;
+  const costOverBudget=budgetProgress!==null&&row.actualCost>row.budgetCost;
+  const laborOverBudget=laborProgress!==null&&row.actualLaborHours>row.budgetLaborHours;
+  const progressDanger='[&_[data-slot=progress-indicator]]:bg-[#B84558] dark:[&_[data-slot=progress-indicator]]:bg-[#E06B74]';
+  const hours=(value:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value);
+  const currency=(value:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
 
   return <section aria-label={`${row.name} project workspace`} className="w-[calc(100vw-2rem)] border-y border-[#D4DBD7] bg-[#F5F7F6] p-6 text-[#171B19] shadow-inner dark:border-[#343A3F] dark:bg-[#121212] dark:text-[#F4F6F5] lg:w-auto">
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F]">
@@ -241,13 +251,13 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
       <div className="min-w-0 space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-[#525C57] dark:text-[#B6BEBA]">Financial pulse</h3>
         <div>
-          <div className="mb-1 flex justify-between gap-2 text-xs"><span>Budget consumed</span><span className="font-mono tabular-nums">{row.budgetAvailable?`${row.budgetUsed.toFixed(1)}%`:'Not available'}</span></div>
-          <Progress aria-label="Budget consumed" value={budgetProgress}/>
+          <div className="mb-1 flex justify-between gap-2 text-xs text-muted-foreground"><span>Budget consumed</span><span className="font-mono tabular-nums">{budgetProgress!==null?`${currency(row.actualCost)} / ${currency(row.budgetCost)}`:'Not available'}</span></div>
+          <Progress aria-label="Budget consumed" value={budgetProgress} className={cn(costOverBudget&&progressDanger)}/>
         </div>
         <div>
-          <div className="mb-1 flex justify-between gap-2 text-xs"><span>Labor remaining</span><span className="font-mono tabular-nums">{row.budgetAvailable?`${row.laborRemaining.toFixed(1)} MH`:'Not available'}</span></div>
-          <Progress aria-label="Labor remaining; percentage unavailable" value={null}/>
-          <p className="mt-1 text-[10px] text-[#7B8580] dark:text-[#7C8580]">No percentage without a labor baseline.</p>
+          <div className="mb-1 flex justify-between gap-2 text-xs text-muted-foreground"><span>Labor consumed</span><span className="font-mono tabular-nums">{laborProgress!==null?`${hours(row.actualLaborHours)} / ${hours(row.budgetLaborHours)} hrs`:'Not available'}</span></div>
+          <Progress aria-label="Labor consumed" value={laborProgress} className={cn(laborOverBudget&&progressDanger)}/>
+          {laborProgress===null?<p className="mt-1 text-[10px] text-[#7B8580] dark:text-[#7C8580]">No percentage without a labor baseline.</p>:null}
         </div>
         <dl className="divide-y divide-[#D4DBD7] border-t border-[#D4DBD7] text-xs dark:divide-[#343A3F] dark:border-[#343A3F]">
           <FinancialLine label="Contract amount" value={money(row.contractValue)}/>
@@ -261,10 +271,10 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
         <h3 className="text-xs font-semibold uppercase tracking-wider text-[#525C57] dark:text-[#B6BEBA]">Cost codes <span className="font-normal normal-case tracking-normal">· sample layout</span></h3>
         <p className="mt-1 text-[10px] text-[#7B8580] dark:text-[#7C8580]">Illustrative quantities and variances; no cost-code records are loaded here.</p>
         <div className="max-h-64 overflow-y-auto">
-          <CSICostCodeStrip/>
-          <CSICostCodeStrip code="03 20 00" name="Reinforcing" completed={260} total={400} unit="LF" variance={-120}/>
-          <CSICostCodeStrip code="03 10 00" name="Concrete Forming" completed={175} total={220} unit="SF" variance={180}/>
-          <CSICostCodeStrip code="03 35 00" name="Concrete Finishing" completed={85} total={140} unit="SF" variance={-75}/>
+          <CSICostCodeStrip code="03 30 00" name="Cast-in-Place" actual={400} estimated={500} unit="CY" budget={1000} spent={550}/>
+          <CSICostCodeStrip code="03 20 00" name="Reinforcing" actual={260} estimated={400} unit="LF" budget={1000} spent={1120}/>
+          <CSICostCodeStrip code="03 10 00" name="Concrete Forming" actual={175} estimated={220} unit="SF" budget={1000} spent={820}/>
+          <CSICostCodeStrip code="03 35 00" name="Concrete Finishing" actual={85} estimated={140} unit="SF" budget={1000} spent={1075}/>
         </div>
       </div>
     </div>

@@ -1,0 +1,6 @@
+.logo{position:relative;display:inline-flex;width:178px;aspect-ratio:1591/385;flex:none;align-items:center}
+.logo[data-size=lg]{width:min(72vw,430px)}
+.logo :global(.pt-brand-logo){width:100%;height:100%}
+.trace{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.logo[data-drawing=true] :global(.pt-brand-logo__mark-accent){opacity:0}
+@media(prefers-reduced-motion:reduce){.logo[data-drawing=true] :global(.pt-brand-logo__mark-accent){opacity:1}.trace{display:none}}
