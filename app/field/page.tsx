@@ -19,7 +19,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-2 py-4 shadow-none"><CardHeader className="gap-1 px-4"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-4 text-xs leading-5 text-muted-foreground">{help}</CardContent></Card>;
+  return <Card className="gap-1 py-3 shadow-none"><CardHeader className="gap-1 px-3"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="hidden px-3 text-xs leading-5 text-muted-foreground sm:block">{help}</CardContent></Card>;
 }
 
 export default async function FieldPage(){
@@ -42,25 +42,24 @@ export default async function FieldPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Field control</h1></div>
+        <div><h1>Field control</h1></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access"><HardHat/>Employee access</Link></div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Metric label="Time waiting for approval" value={String((waiting||[]).length)} help="Clocked-out employee shifts still needing approval." tone={(waiting||[]).length?'warning':'success'}/>
         <Metric label="Active jobs" value={String((projects||[]).length)} help="Jobs employees can choose when they clock in."/>
-        <Metric label="Employees" value={String((crew||[]).filter((c:any)=>!c.is_owner).length)} help="Active crew records available for timekeeping."/>
+        <div className="col-span-2 sm:col-span-1"><Metric label="Employees" value={String((crew||[]).filter((c:any)=>!c.is_owner).length)} help="Active crew records available for timekeeping."/></div>
       </section>
 
-      <section className="space-y-4">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">GPS</p><h2 className="mt-1 text-lg font-semibold">Jobsite locations</h2><p className="mt-1 text-sm text-muted-foreground">Set the job pin once. Carez then compares employee clock events against that jobsite location.</p></div>
-        <Card className="shadow-none"><CardContent><JobsiteLocationSetter projects={(projects||[]) as any}/></CardContent></Card>
+      <section>
+        <div className="carez-section-heading flex-wrap"><MapPin className="size-4 text-primary"/><div className="min-w-0 flex-1"><h2>Jobsite locations</h2><p>Set the job pin once. Pourtrace compares employee clock events against that location.</p></div><div className="w-full sm:w-auto"><JobsiteLocationSetter projects={(projects||[]) as any}/></div></div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card className="shadow-none">
-          <CardHeader><div className="flex items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><FileClock className="size-4"/></span><div><CardTitle>Daily log</CardTitle><CardDescription className="mt-1">Capture what happened, how much concrete was placed, and what affected production.</CardDescription></div></div></CardHeader>
-          <CardContent>
+          <CardHeader><div className="flex items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><FileClock className="size-4"/></span><div><CardTitle>Daily log</CardTitle><CardDescription className="mt-1">Record completed work and placed concrete.</CardDescription></div></div></CardHeader>
+          <CardContent><Dialog><DialogTrigger render={<Button/>}><Plus/>New daily log</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Daily log</DialogTitle><DialogDescription>Capture what happened, how much concrete was placed, and what affected production.</DialogDescription></DialogHeader>
             <form action={createDailyLog} className="grid gap-4">
               <div className="grid gap-2"><Label htmlFor="daily-project">Job</Label><select id="daily-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div>
               <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-date">Date</Label><Input id="daily-date" type="date" name="log_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="daily-crew">Crew count</Label><Input id="daily-crew" type="number" min="0" name="crew_count" defaultValue="0"/></div></div>
@@ -70,7 +69,7 @@ export default async function FieldPage(){
               <div className="grid gap-2"><Label htmlFor="daily-notes">Notes</Label><Input id="daily-notes" name="notes"/></div>
               <div><Button type="submit">Save daily log</Button></div>
             </form>
-          </CardContent>
+          </DialogContent></Dialog></CardContent>
         </Card>
 
         <div className="space-y-4">
@@ -84,7 +83,6 @@ export default async function FieldPage(){
             <div className="flex justify-end"><Button type="submit">Save manual time</Button></div>
           </form></DialogContent></Dialog></CardContent></Card>
 
-          <Card className="shadow-none"><CardHeader><CardTitle>Field data rules</CardTitle><CardDescription>Daily logs describe field reality. Approved time and verified quantities remain the source for production evidence.</CardDescription></CardHeader><CardContent className="space-y-2 text-sm text-muted-foreground"><div className="flex gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-primary"/><span>GPS proximity is review evidence, not an automatic verdict on whether labor is valid.</span></div><div className="flex gap-2"><Clock3 className="mt-0.5 size-4 shrink-0 text-primary"/><span>Submitted shifts remain pending until approved or corrected.</span></div></CardContent></Card>
         </div>
       </div>
 

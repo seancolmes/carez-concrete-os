@@ -6,6 +6,7 @@ const migrationPath = 'supabase/migrations/20260921224000_estimate_supplier_quot
 const indexMigrationPath = 'supabase/migrations/20260921224500_estimate_supplier_quote_indexes.sql';
 const coveragePath = 'lib/estimating/pricingCoverage.ts';
 const panelPath = 'components/estimates/PricingCoverage.tsx';
+const gridPath = 'components/estimates/PricingExceptionGrid.tsx';
 const pagePath = 'app/estimates/[estimateId]/page.tsx';
 const actionsPath = 'app/estimates/actions.ts';
 
@@ -87,6 +88,7 @@ test('pricing coverage distinguishes holds, source selections, expiry and unused
 
 test('Estimate workspace exposes supplier quote entry, coverage and explicit selection without quantity editing', () => {
   const panel = requireFile(panelPath, 'P1.2 PricingCoverage component must exist');
+  const grid = requireFile(gridPath, 'Pricing exception grid must exist');
   const page = requireFile(pagePath, 'Estimate page must exist');
   const actions = requireFile(actionsPath, 'Estimate actions must exist');
 
@@ -94,7 +96,7 @@ test('Estimate workspace exposes supplier quote entry, coverage and explicit sel
   assert.match(panel, /Supplier quote sets/i);
   assert.match(panel, /Missing price/i);
   assert.match(panel, /Expired/i);
-  assert.match(panel, /Quote candidates/i);
+  assert.match(grid, /Quote candidates/i);
   assert.match(panel, /Select quote/i);
   assert.match(panel, /supplier_name/i);
   assert.match(panel, /supplier_quote_number/i);

@@ -6,6 +6,9 @@ IMPLEMENT -> VALIDATE -> REVIEW -> STOP
 
 ## Start
 
+- Before implementation, apply the mandatory Carez skill and Command Center routing from `AGENTS.md`.
+- When a Carez skill is activated, state its name in the first progress update.
+- When bounded `ai-memory` recall is required, perform it before implementation and then reconcile it with current source.
 - Work in the current local Carez repository.
 - Expected normal branch: `staging`.
 - Preserve intentional current work.

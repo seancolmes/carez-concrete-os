@@ -19,9 +19,9 @@ This active program supersedes conflicting palette and completion claims below. 
 | VERIFIED WITH BROWSER HOLD | Field / Production / Actual Cost | Attributable work/evidence, planned quantity, production, cost, and confidence/hold contracts are covered by the runtime fixtures. |
 | VERIFIED WITH BROWSER HOLD | Change Orders / SOV / Billing / Retainage | Authorized deltas, billing/retainage, cash/commitment, and downstream lineage fixtures pass without mutating accepted history. |
 | VERIFIED | Estimating intelligence | V1 includes attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains intentional POST-V1 P7 scope. |
-| VERIFIED WITH BROWSER HOLD | Steam Sleek V28 propagation | Shared tokens/primitives and representative Login, Today, Preconstruction, Takeoff/Conditions, Pricing/Labor/Review, Proposal, Projects, Work Packages, Change Orders, Field, Production, Finance, and System routes are covered by source tests. Responsive, keyboard, and visual browser acceptance remains unverified. |
-| REQUIRED HARDENING | Browser acceptance | Local browser capture/navigation rejected by automatic approval review with “blocked by policy.” No browser PASS is claimed. |
-| DUPLICATE / SUPERSEDED | Rejected light translation / Indigo Harbor palette | Superseded by the current explicit Steam Sleek V28 direction; Command Deck and useful Spatial Blueprint behavior remain. |
+| LOCAL PALETTE APPLIED / FULL BROWSER HOLD | ADR-027 PourTrace palette | Shared light/dark tokens and direct color overrides use the approved palette. Local authenticated browser smoke checks covered Projects, Opportunities, Billing, and Takeoff; complete responsive and route-by-route visual acceptance remains open. |
+| REQUIRED HARDENING | Browser acceptance | Local authenticated browser smoke checks now cover representative routes. Full responsive, keyboard, and route-by-route visual acceptance remains open; no complete browser PASS is claimed. |
+| DUPLICATE / SUPERSEDED | Indigo Harbor / Steam Sleek color directions | Superseded by ADR-027; Command Deck and useful Spatial Blueprint behavior remain. |
 | DUPLICATE / SUPERSEDED | Already accepted P0.5 legacy migration / derived 3D work | Preserve accepted work; do not restart it to satisfy a new feature family. |
 | EXPLICITLY DEFERRED | Client Package Studio, Markup Sheet, Quick Estimate | Existing roadmap deferrals remain; the new shared visual system does not authorize those separate product projects. |
 | POST-V1 | Broader AI Plan Intelligence and decorative immersive layers | Do not promote future P7 assistance or optional 3D experiences into V1 blockers. |
@@ -56,7 +56,7 @@ Accepted:
 - ADR-025 design authority;
 - approximately 80% Command Deck / 20% Spatial Blueprint direction;
 - Inter-led hierarchy, meaningful icon language, stronger shared tabs, three depth levels, restrained functional motion rules;
-- final accepted **Indigo Harbor** light/dark theme with deep harbor-navy shell and indigo interaction identity;
+- approved **PourTrace** light/dark palette under ADR-027, with graphite neutral surfaces and distinct semantic state colors;
 - shared workspace/masthead/favorites language;
 - Today — Daily Command Center;
 - Projects — Operations Board;
@@ -93,7 +93,7 @@ Accepted closeout:
 - final stable-staging browser acceptance passed;
 - the **EDGE-style Condition-first estimator workflow** remains the estimating UX contract.
 
-Issue #59 remains a production migration blocker and is not bypassed by P0.5E. Any physical legacy-schema removal is a separate future approved/recoverable migration, not part of this accepted foundation.
+Issue #59 production migration bridge was applied and verified on 2026-09-25; it is no longer a production migration blocker. Any physical legacy-schema removal is a separate future approved/recoverable migration, not part of this accepted foundation.
 
 ## P1 — Estimating
 
@@ -105,6 +105,8 @@ Outcome:
 - immutable Condition/template/archetype/output lineage, with legacy compatibility retained while referenced;
 - explicit Proposal Revision → Award Decision/Customer Acceptance → Accepted Scope Snapshot → Frozen Commercial Baseline/Budget handoff.
 
+V1 handoff foundation delivered in source migration `20260926010000_job_spine_award_foundation.sql`: a full award of one exact issued revision, internal commercial evidence capture, immutable accepted scope and original baseline, and lineage-safe next-draft creation. Historical issued proposals without trustworthy internal baseline evidence are held. This closes the V1 award/revision persistence blocker; wider estimator workflow and downstream budget allocation remain in their owning phases.
+
 ## P2 — CRM / Preconstruction
 
 Outcome:
@@ -113,6 +115,8 @@ Outcome:
 - estimator workload and bid calendar;
 - won/lost/rebid history remains distinct and traceable;
 - an authorized award action creates the immutable Accepted Scope Snapshot and distinct Project on the same Job Spine without re-entry; an Opportunity never mutates into a Project.
+
+V1 exact-revision award and Project creation persistence is implemented. CRM intake, bid calendar, and broader won/lost workflow remain roadmap work.
 
 ## P3 — Projects / Work Packages / Scheduling
 

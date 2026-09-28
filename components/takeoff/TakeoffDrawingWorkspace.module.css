@@ -1,6 +1,6 @@
 .workstation{display:flex;flex:1;min-height:0;min-width:0;flex-direction:column;background:var(--card);overflow:hidden}
-.scaleTelemetry{display:block;flex:none;max-width:310px;overflow:hidden;color:var(--muted-foreground);font:600 9px/1.2 var(--font-ibm-plex-mono),ui-monospace,monospace;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}
-.emptyTelemetry{position:absolute;right:12px;bottom:12px;z-index:6;max-width:360px;border-left:1px solid var(--primary);background:color-mix(in oklch,var(--card) 88%,transparent);padding:7px 9px;color:var(--muted-foreground);font:500 10px/1.4 var(--font-ibm-plex-mono),ui-monospace,monospace;pointer-events:none}
+.scaleTelemetry{display:block;flex:none;max-width:310px;overflow:hidden;color:var(--muted-foreground);font:600 9px/1.2 var(--font-source-code-pro),ui-monospace,monospace;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}
+.emptyTelemetry{position:absolute;right:12px;bottom:12px;z-index:6;max-width:360px;border-left:1px solid var(--primary);background:color-mix(in oklch,var(--card) 88%,transparent);padding:7px 9px;color:var(--muted-foreground);font:500 10px/1.4 var(--font-source-code-pro),ui-monospace,monospace;pointer-events:none}
 .workspace{position:relative;display:grid;grid-template-columns:242px minmax(0,1fr) 326px;grid-template-rows:minmax(0,1fr);flex:1;min-height:0;background:var(--card);border-top:1px solid var(--border);overflow:hidden;color:var(--foreground)}
 .noSheets{grid-template-columns:minmax(0,1fr) 326px}.noInspector{grid-template-columns:242px minmax(0,1fr)}.noSheets.noInspector{grid-template-columns:minmax(0,1fr)}
 .sidebar,.inspector{min-width:0;min-height:0;overflow:auto;background:var(--card);scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
@@ -15,8 +15,8 @@
 .toolButton{height:31px;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 7px;border:1px solid transparent;border-radius:3px;background:transparent;color:var(--muted-foreground);font-size:11px;font-weight:650;white-space:nowrap;cursor:pointer;box-shadow:none}.toolButton:hover{background:var(--muted);border-color:var(--border);color:var(--foreground)}.toolButton:disabled{opacity:.32;cursor:not-allowed}.toolButtonActive{background:var(--accent);border-color:var(--primary);color:var(--foreground);box-shadow:inset 0 -2px var(--border)}.measureButton{color:var(--primary)}.toggleActive{background:var(--accent);border-color:var(--border);color:var(--primary)}.finishButton{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}.finishButton:hover{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
 .currentAssembly{min-width:0;max-width:250px;display:flex;align-items:center;gap:6px;height:29px;padding:0 8px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--muted-foreground);white-space:nowrap}.currentAssembly span{font-size:10px;font-weight:650;color:var(--primary)}.currentAssembly strong{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--foreground)}
 .zoomGroup{display:flex;align-items:center;gap:2px;flex:none}.zoomLabel{height:28px;min-width:58px;padding:0 6px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--foreground);font-size:11px;font-weight:650;cursor:pointer}.zoomLabel i{margin-left:4px;font-style:normal;font-size:10px;color:var(--warning)}
-.canvasViewport{position:relative;min-height:0;overflow:auto;overscroll-behavior:contain;background-color:var(--card);background-image:linear-gradient(rgba(75,88,102,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(75,88,102,.18) 1px,transparent 1px);background-size:24px 24px;touch-action:none;scrollbar-color:var(--border-strong) transparent}
-.paper{position:relative;margin:13px auto;background:#fff;border:1px solid #4a5662;box-shadow:0 8px 24px rgba(0,0,0,.36);transform-origin:0 0;user-select:none}.pdfCanvas{display:block;width:100%;height:100%;background:#fff}.overlay{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:none}.overlayPan{cursor:grab}.overlayPanning{cursor:grabbing}.overlaySelect{cursor:default}.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted-foreground);font-size:11px;background:var(--card);z-index:5}
+.canvasViewport{position:relative;min-height:0;overflow:auto;overscroll-behavior:contain;background-color:var(--card);background-image:linear-gradient(rgba(70,80,88,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(70,80,88,.18) 1px,transparent 1px);background-size:24px 24px;touch-action:none;scrollbar-color:var(--border-strong) transparent}
+.paper{position:relative;margin:13px auto;background:#fff;border:1px solid var(--pt-line-strong);box-shadow:0 8px 24px rgba(0,0,0,.36);transform-origin:0 0;user-select:none}.pdfCanvas{display:block;width:100%;height:100%;background:#fff}.overlay{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:none}.overlayPan{cursor:grab}.overlayPanning{cursor:grabbing}.overlaySelect{cursor:default}.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted-foreground);font-size:11px;background:var(--card);z-index:5}
 .liveReadout{position:sticky;left:10px;bottom:10px;display:flex;width:max-content;max-width:calc(100% - 20px);align-items:baseline;gap:7px;margin:0 0 10px 10px;padding:5px 7px;border:1px solid var(--primary);border-radius:3px;background:var(--popover);color:var(--foreground);pointer-events:none;box-shadow:none}.liveReadout strong{font-size:11px}.liveReadout span{font-size:10px;color:var(--muted-foreground)}.cutoutReadout{border-color:var(--warning);color:var(--warning)}.cutoutReadout span{color:var(--warning)}
 .statusbar{min-width:0;display:flex;align-items:center;gap:9px;padding:0 7px;background:var(--card);border-top:1px solid var(--border);color:var(--muted-foreground);font-size:10px;white-space:nowrap;overflow:hidden}.statusbar strong{color:var(--foreground)}.statusOk{color:var(--success)}.statusHold{color:var(--warning)}.statusHint{color:var(--muted-foreground)}.statusMessage{margin-left:auto;min-width:0;max-width:38%;overflow:hidden;text-overflow:ellipsis;color:var(--muted-foreground)}
 .inspectorBody{display:grid;gap:6px;padding:6px}.group{display:grid;gap:6px;padding:7px;border:1px solid var(--border);border-radius:2px;background:var(--card)}.groupHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.groupTitle{font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}.groupHelp{margin-top:2px;font-size:10px;line-height:1.3;color:var(--muted-foreground)}.scaleGate{border-color:var(--warning);background:color-mix(in oklch,var(--warning) 8%,var(--card))}.scaleGate .groupHead svg{color:var(--warning)}.scaleReady{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;padding:5px 7px;border:1px solid var(--success);border-radius:2px;background:var(--card);font-size:10px;color:var(--success)}.scaleReady strong{font-size:10px;color:var(--success)}.scaleReady button{border:0;background:transparent;color:var(--primary);font-size:10px;font-weight:650;cursor:pointer}
@@ -124,7 +124,7 @@
 /* Mobile review mode intentionally omits Takeoff authoring and the persistent worksheet. */
 .mobileReviewTools{display:flex;align-items:center;gap:2px;flex:none}
 .mobilePageGroup{display:flex;align-items:center;gap:2px;flex:none}
-.mobilePageLabel{display:grid;min-width:42px;height:28px;place-items:center;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--foreground);font:650 10px var(--font-ibm-plex-mono),ui-monospace,monospace}
+.mobilePageLabel{display:grid;min-width:42px;height:28px;place-items:center;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--foreground);font:650 10px var(--font-source-code-pro),ui-monospace,monospace}
 .mobileReviewStatus{margin-left:auto;color:var(--muted-foreground);font-weight:650}
 @media(max-width:860px){
   .workstation[data-mobile-review="true"]{height:100%;min-height:0}
@@ -133,10 +133,16 @@
   .workstation[data-mobile-review="true"] .noInspector,
   .workstation[data-mobile-review="true"] .noSheets.noInspector{grid-template-columns:minmax(0,1fr);min-height:0}
   .workstation[data-mobile-review="true"] .center{grid-template-rows:auto minmax(0,1fr) 28px}
-  .workstation[data-mobile-review="true"] .toolbar{min-height:42px;padding:5px;gap:3px}
+  .workstation[data-mobile-review="true"] .toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;min-height:76px;padding:5px;gap:4px;overflow:visible}
+  .workstation[data-mobile-review="true"] .pageSelect{grid-column:1/-1;grid-row:1;width:100%;max-width:none}
+  .workstation[data-mobile-review="true"] .mobileReviewTools{grid-column:1;grid-row:2}
+  .workstation[data-mobile-review="true"] .toolbarSpacer{grid-column:2;grid-row:2}
+  .workstation[data-mobile-review="true"] .zoomGroup{grid-column:3;grid-row:2}
   .workstation[data-mobile-review="true"] .toolButton,
-  .workstation[data-mobile-review="true"] .iconTool{width:30px;height:30px;padding:0}
-  .workstation[data-mobile-review="true"] .toolButton span{display:none}
+  .workstation[data-mobile-review="true"] .iconTool{height:30px}
+  .workstation[data-mobile-review="true"] .toolButton{width:auto;min-width:60px;padding:0 8px}
+  .workstation[data-mobile-review="true"] .toolButton span{display:inline}
+  .workstation[data-mobile-review="true"] .iconTool{width:32px;padding:0}
   .workstation[data-mobile-review="true"] .zoomLabel{min-width:48px;height:30px}
   .workstation[data-mobile-review="true"] .mobilePageLabel{height:30px}
   .workstation[data-mobile-review="true"] .statusbar{min-height:28px;padding-inline:8px;gap:8px}
@@ -172,3 +178,9 @@
 .scaleTelemetry{padding-right:7px;border-right:1px solid var(--border)}
 @media(max-width:1180px){.scaleTelemetry{display:none}}
 @media(max-width:860px){.emptyTelemetry{right:8px;bottom:8px;max-width:calc(100% - 16px)}}
+
+.pageSelect{display:flex;min-width:0;max-width:240px;align-items:center;gap:7px;padding:0 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);color:var(--foreground);font-size:11px;font-weight:650;white-space:nowrap}
+.pageSelect select{width:100%;min-width:72px;height:32px;border:0;background:transparent;color:var(--foreground);font:inherit;outline:none;cursor:pointer;text-overflow:ellipsis}
+.pageSelect:focus-within{outline:2px solid var(--ring);outline-offset:1px}
+.pageSelect option{background:var(--card);color:var(--foreground)}
+@media(max-width:860px){.pageSelect{max-width:130px;padding-inline:6px}.pageSelect span{display:none}.pageSelect select{min-width:90px;height:34px}}

@@ -60,7 +60,7 @@ export type NavigationRouteGroup = {
   destinationIds: readonly string[];
 };
 
-export type WorkspaceSurfaceId = 'today'|'preconstruction'|'projects'|'field'|'production'|'finance'|'system';
+export type WorkspaceSurfaceId = 'today'|'preconstruction'|'projects'|'finance'|'system';
 export type WorkspaceDestinationClassification = 'primary-surface'|'internal-view'|'contextual-tool'|'compatibility-entry';
 export type WorkspacePresentationDestination = {
   id: string;
@@ -90,10 +90,10 @@ export type ProjectRouteContext = {
 };
 
 export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
-  {id:'today',href:'/',label:'Today',hint:'Daily operating command center',domain:'today',icon:'home'},
+  {id:'today',href:'/',label:'Overview',hint:'Work and decisions across the company',domain:'today',icon:'home'},
   {id:'reports',href:'/reports',label:'Owner reports',hint:'Company and job reporting',domain:'today',icon:'reports'},
-  {id:'leads',href:'/leads',label:'Leads',hint:'Opportunities and customer follow-up',domain:'preconstruction',icon:'users'},
-  {id:'lead-inbox',href:'/leads/inbox',label:'Lead inbox',hint:'Incoming bid opportunities',domain:'preconstruction',icon:'inbox'},
+  {id:'leads',href:'/leads',label:'Opportunities',hint:'Pursuits and customer follow-up',domain:'preconstruction',icon:'users'},
+  {id:'lead-inbox',href:'/leads/inbox',label:'Intake',hint:'Incoming bid opportunities',domain:'preconstruction',icon:'inbox'},
   {id:'bid-intelligence',href:'/bid-intelligence',label:'Bid intelligence',hint:'Pursuit and pricing intelligence',domain:'preconstruction',icon:'trending'},
   {id:'takeoff',href:'/takeoff',label:'Takeoff',hint:'Plans, conditions and quantities',domain:'estimating',icon:'ruler'},
   {id:'estimates',href:'/estimates',label:'Estimates',hint:'Scope, pricing and review',domain:'estimating',icon:'calculator'},
@@ -143,38 +143,25 @@ export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
 ] as const;
 
 export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurface[] = [
-  {id:'today',label:'Today',href:'/',sections:[{id:'today',label:'Today',destinations:[{id:'today',classification:'primary-surface'}]}]},
-  {id:'preconstruction',label:'Preconstruction',href:'/leads',sections:[
+  {id:'today',label:'Overview',href:'/',sections:[{id:'today',label:'Overview',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
+  {id:'preconstruction',label:'Opportunities',href:'/leads',sections:[
     {id:'opportunities',label:'Opportunities',destinations:[{id:'leads',classification:'primary-surface'},{id:'lead-inbox',classification:'internal-view'},{id:'bid-intelligence',classification:'internal-view'}]},
-    {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'},{id:'assemblies',classification:'compatibility-entry'}]},
-    {id:'commercial',label:'Commercial',destinations:[{id:'estimates',classification:'internal-view'},{id:'estimate-audit',classification:'internal-view'},{id:'proposals',classification:'internal-view'},{id:'job-setup',classification:'internal-view'}]},
+    {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'},{id:'assemblies',classification:'compatibility-entry'},{id:'production-intelligence',classification:'contextual-tool'}]},
+    {id:'commercial',label:'Commercial',destinations:[{id:'estimates',classification:'internal-view'},{id:'estimate-audit',classification:'internal-view'},{id:'proposals',classification:'internal-view'}]},
   ]},
   {id:'projects',label:'Projects',href:'/projects',sections:[
-    {id:'project-control',label:'Project Control',destinations:[{id:'projects',classification:'primary-surface'}]},
-    {id:'planning',label:'Planning',destinations:[{id:'change-orders',classification:'internal-view'}]},
-    {id:'commercial-records',label:'Commercial / Records',destinations:[{id:'documents',classification:'internal-view'},{id:'reports',classification:'internal-view'}]},
+    {id:'project-control',label:'Project Control',destinations:[{id:'projects',classification:'primary-surface'},{id:'job-setup',classification:'internal-view'},{id:'documents',classification:'internal-view'}]},
+    {id:'planning',label:'Planning',destinations:[{id:'schedule',classification:'internal-view'},{id:'look-ahead',classification:'contextual-tool'},{id:'readiness',classification:'contextual-tool'},{id:'resources',classification:'contextual-tool'},{id:'work-packages',classification:'contextual-tool'}]},
+    {id:'delivery',label:'Delivery',destinations:[{id:'field',classification:'internal-view'},{id:'production',classification:'internal-view'},{id:'pour-control',classification:'compatibility-entry'},{id:'scope-drift',classification:'contextual-tool'},{id:'change-orders',classification:'internal-view'},{id:'forecast',classification:'internal-view'}]},
   ]},
-  {id:'field',label:'Field',href:'/field',sections:[
-    {id:'schedule',label:'Schedule',destinations:[{id:'schedule',classification:'internal-view'},{id:'look-ahead',classification:'internal-view'}]},
-    {id:'readiness',label:'Readiness',destinations:[{id:'readiness',classification:'internal-view'},{id:'resources',classification:'internal-view'}]},
-    {id:'crew',label:'Crew',destinations:[{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'contextual-tool'}]},
-    {id:'field-control',label:'Field Control',destinations:[{id:'field',classification:'primary-surface'},{id:'equipment',classification:'contextual-tool'}]},
-  ]},
-  {id:'production',label:'Production',href:'/production',sections:[
-    {id:'control',label:'Control',destinations:[{id:'production',classification:'primary-surface'},{id:'production-intelligence',classification:'contextual-tool'}]},
-    {id:'work-packages',label:'Work Packages',destinations:[{id:'work-packages',classification:'internal-view'}]},
-    {id:'scope',label:'Scope',destinations:[{id:'scope-drift',classification:'internal-view'}]},
-    {id:'pour',label:'Pour',destinations:[{id:'pour-control',classification:'internal-view'}]},
-    {id:'forecast',label:'Forecast',destinations:[{id:'forecast',classification:'internal-view'}]},
-  ]},
-  {id:'finance',label:'Finance',href:'/cashflow',sections:[
-    {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'primary-surface'}]},
-    {id:'billing-payables',label:'Billing & Payables',destinations:[{id:'billing',classification:'internal-view'},{id:'payables',classification:'internal-view'}]},
+  {id:'finance',label:'Financials',href:'/billing',sections:[
+    {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'internal-view'}]},
+    {id:'billing-payables',label:'Billing & Payables',destinations:[{id:'billing',classification:'primary-surface'},{id:'payables',classification:'internal-view'}]},
     {id:'procurement',label:'Procurement',destinations:[{id:'procurement',classification:'internal-view'}]},
     {id:'banking',label:'Banking',destinations:[{id:'banking',classification:'internal-view'},{id:'reconcile',classification:'internal-view'},{id:'bank-rules',classification:'internal-view'}]},
     {id:'payroll-cost',label:'Payroll & Cost',destinations:[{id:'payroll',classification:'internal-view'},{id:'costs',classification:'internal-view'},{id:'overhead',classification:'internal-view'}]},
   ]},
-  {id:'system',label:'System',href:'/settings',sections:[{id:'administration',label:'Administration',destinations:[{id:'settings',classification:'primary-surface'}]}]},
+  {id:'system',label:'Administration',href:'/settings',sections:[{id:'administration',label:'Administration',destinations:[{id:'settings',classification:'primary-surface'},{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'internal-view'},{id:'equipment',classification:'internal-view'}]}]},
 ] as const;
 
 const destinationById = new Map(NAVIGATION_DESTINATIONS.map(destination=>[destination.id,destination]));

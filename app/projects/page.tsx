@@ -64,7 +64,7 @@ export default async function ProjectsPage(){
     const attention=hardHold||overdue>0||laborRemaining<0||budgetUsed>=100||field.gps>0||field.waiting>0;
     const state:JobsBoardRow['state']=j.status==='completed'?'completed':hardHold?'hold':ready>0?'ready':openOps>0?'planning':j.status==='on_hold'?'hold':'setup';
     const nextStep=hardHold?(reasons[0]||'Clear hold before work starts'):next?.title||j.next_action||(ready>0?'Choose and schedule the next ready work package':'Build the next Work Package / schedule');
-    return{id:j.id,jobNumber:j.job_number||null,name:j.name||'Unnamed job',customer:j.customers?.name||'Customer not linked',location:[j.address,j.city,j.state].filter(Boolean).join(', ')||'Address not entered',projectStatus:String(j.status||'active'),state,nextStep,scheduleDate:next?.schedule_date?String(next.schedule_date).slice(0,10):null,contractValue:num(j.contract_value),budgetUsed,laborRemaining,budgetAvailable:Boolean(b.project_id),customerOwed:num(bill.outstanding_ar),overdue,billingAvailable:Boolean(bill.project_id),readyOperations:ready,blockedOperations:blocked,openOperations:openOps,activeShifts:field.clocked,pendingTimecards:field.waiting,gpsExceptions:field.gps,reasons,attention,setupHold};
+    return{id:j.id,jobNumber:j.job_number||null,name:j.name||'Unnamed job',customer:j.customers?.name||'Customer not linked',location:[j.address,j.city,j.state].filter(Boolean).join(', ')||'Address not entered',projectStatus:String(j.status||'active'),state,nextStep,scheduleDate:next?.schedule_date?String(next.schedule_date).slice(0,10):null,contractValue:num(j.contract_value),billedAmount:num(bill.billed_amount),budgetUsed,laborRemaining,budgetAvailable:Boolean(b.project_id),customerOwed:num(bill.outstanding_ar),overdue,billingAvailable:Boolean(bill.project_id),readyOperations:ready,blockedOperations:blocked,openOperations:openOps,activeShifts:field.clocked,pendingTimecards:field.waiting,gpsExceptions:field.gps,reasons,attention,setupHold};
   });
 
   const activeRows=rows.filter(row=>row.state!=='completed');
@@ -79,13 +79,17 @@ export default async function ProjectsPage(){
   };
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-projects-page mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="carez-page-context">Operations</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h1></div>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="carez-projects-page mx-auto flex w-full max-w-screen-2xl flex-col">
+      <header className="mb-6 flex flex-col justify-between border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F] md:flex-row md:items-start">
+        <div className="space-y-1">
+          <nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/">Dashboard</Link><span className="mx-1 opacity-50">/</span>Projects</nav>
+          <h1 className="text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Projects</h1>
+          <p className="text-sm text-[#7B8580] dark:text-[#7C8580]">Current work · Find the constraint. Line up the next operation.</p>
+        </div>
+        <div className="mt-4 flex items-center gap-2 md:mt-0">
           <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
           <Dialog>
-            <DialogTrigger render={<Button size="sm"/>}><Plus/>New direct job</DialogTrigger>
+            <DialogTrigger render={<Button size="sm" className="bg-[#007A52] text-white hover:bg-[#007A52]/90 dark:bg-[#009966] dark:text-[#121212] dark:hover:bg-[#009966]/90"/>}><Plus/>New direct job</DialogTrigger>
             <DialogContent className="sm:max-w-xl">
               <DialogHeader><DialogTitle>Create direct job</DialogTitle><DialogDescription>Direct-job exception only. Accepted proposals create jobs automatically.</DialogDescription></DialogHeader>
               <form action={createProject} className="grid gap-4">

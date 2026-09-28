@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export function AppearanceSettings() {
   const {
     ready,
+    themePreference,
+    setThemePreference,
     densityPreference,
     setDensityPreference,
   } = useCarezAppearance();
@@ -14,9 +16,18 @@ export function AppearanceSettings() {
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
       <div>
         <div className="text-sm font-medium">Theme</div>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Steam Sleek V28 — dark steel surfaces, compact chrome, and cyan controls.</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Choose light, dark, or your device setting. Both use the PourTrace color system.</p>
       </div>
-      <span className="text-sm font-medium text-foreground">Steam Sleek V28</span>
+      <Select value={themePreference} onValueChange={value => {
+        if (value === 'light' || value === 'dark' || value === 'system') setThemePreference(value);
+      }}>
+        <SelectTrigger className="w-full" disabled={!ready} aria-label="Workspace theme"><SelectValue /></SelectTrigger>
+        <SelectContent align="end">
+          <SelectItem value="system">Use device setting</SelectItem>
+          <SelectItem value="light">Light</SelectItem>
+          <SelectItem value="dark">Dark</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <div className="grid items-center gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
@@ -27,7 +38,7 @@ export function AppearanceSettings() {
       <Select value={densityPreference} onValueChange={value => {
         if (value === 'default' || value === 'compact' || value === 'comfortable') setDensityPreference(value);
       }}>
-        <SelectTrigger className="w-full" disabled={!ready} aria-label="Carez density"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="w-full" disabled={!ready} aria-label="Workspace density"><SelectValue /></SelectTrigger>
         <SelectContent align="end">
           <SelectItem value="default">Workspace default</SelectItem>
           <SelectItem value="compact">Compact</SelectItem>

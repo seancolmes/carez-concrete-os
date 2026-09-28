@@ -55,7 +55,7 @@
 .derivedOverlay{position:absolute;z-index:80;top:34px;right:0;min-width:0;min-height:0;overflow:hidden;border-left:1px solid var(--border);background:var(--background)}
 .derivedOverlay3d{left:260px}
 .conditionColor{width:10px;height:10px;flex:none;border-radius:3px;background:var(--success);box-shadow:0 0 0 1px color-mix(in oklch,var(--foreground) 10%,transparent)}
-.conditionColor[data-family="slab_on_grade"]{background:var(--chart-1)}
+.conditionColor[data-family="slab_on_grade"]{background:var(--primary)}
 .conditionColor[data-family="pad_column_footing"]{background:var(--warning)}
 .tabsWrap{border-bottom:1px solid var(--border)}
 .tabsList{width:100%;height:43px;justify-content:flex-start;overflow-x:auto;padding:0 10px}
@@ -153,7 +153,7 @@
 .spatialContext{display:flex;align-items:center;gap:8px;min-width:0;flex:1;font-size:11px;color:var(--muted-foreground)}
 .spatialContext>span:not(.datumMark),.spatialContext strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spatialContext strong{color:var(--foreground);font-weight:600;animation:contextArrival 180ms ease-out}
-.datumMark{font:18px var(--font-ibm-plex-mono),monospace;color:var(--primary)}
+.datumMark{font:18px var(--font-source-code-pro),monospace;color:var(--primary)}
 .viewAuthority{flex:none;color:var(--muted-foreground);font-size:11px}
 .viewModeSwitch{flex:none;border-color:var(--border);background:var(--background)}
 .viewModeSwitch button{font-size:11px;transition:background-color 180ms ease,color 180ms ease,box-shadow 180ms ease}
@@ -178,9 +178,6 @@
 /* Condition Properties — compact CAD/BIM inspector treatment. */
 .integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)}
 .propertiesPane{position:relative;background:var(--card)}
-.propertiesResizer{position:absolute;z-index:125;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize;touch-action:none;outline:none}
-.propertiesResizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:1px;background:transparent;transition:background-color 140ms ease,box-shadow 140ms ease}
-.propertiesResizer:hover::after,.propertiesResizer:focus-visible::after{background:var(--ring);box-shadow:0 0 0 2px color-mix(in oklch,var(--ring) 14%,transparent)}
 .propertiesHeader{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
 .conditionSummaryLine{flex:none}
 .tabsWrap{flex:none;background:var(--card)}
@@ -188,20 +185,17 @@
 .tabsList::-webkit-scrollbar{display:none}
 .tabsList button{display:inline-flex;height:43px;align-items:center;gap:6px;border-radius:0;padding-inline:9px;font-size:11px;white-space:nowrap}
 .tabsList button[data-state="active"]{background:transparent;color:var(--foreground);box-shadow:inset 0 -2px var(--primary)}
-.tabIndex{font:600 9px var(--font-ibm-plex-mono),ui-monospace,monospace;color:var(--muted-foreground);letter-spacing:.02em}
+.tabIndex{font:600 9px var(--font-source-code-pro),ui-monospace,monospace;color:var(--muted-foreground);letter-spacing:.02em}
 .tabsList button[data-state="active"] .tabIndex{color:var(--primary)}
 .propertiesScroll{padding:0 12px 12px}
 .propertySection{margin:0;overflow:visible;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent}
 .propertySection:first-child{border-top:0}
 .sectionHead{min-height:40px;padding:0 4px;border-bottom:0;background:transparent}
 .sectionHead strong{font-size:12px;font-weight:650}
-.sectionHead small{font:500 10px var(--font-ibm-plex-mono),ui-monospace,monospace}
+.sectionHead small{font:500 10px var(--font-source-code-pro),ui-monospace,monospace}
 .roleList,.fieldGrid{padding:10px 4px 12px}
 .roleRow{grid-template-columns:minmax(96px,.8fr) minmax(148px,1.2fr) auto}
 .propertiesFooter{flex:none;background:color-mix(in oklch,var(--card) 94%,var(--background))}
-@media(max-width:1180px){.integrated{grid-template-columns:minmax(0,1fr) var(--condition-properties-width,430px)!important}}
-@media(max-width:860px){.propertiesResizer{display:none}}
-@media(prefers-reduced-motion:reduce){.propertiesResizer::after{transition:none}}
 
 
 /* Mobile Takeoff is review-only: one 2D plan surface, sheet drawer, no authoring panes. */
@@ -228,6 +222,58 @@
 }
 .integrated,.drawingHost,.propertiesPane,.contextPortal,.spatialRail{background:transparent}
 .propertiesHeader{min-height:58px;border-top:0;background:transparent}
-.propertiesHeader span{font:600 10px var(--font-ibm-plex-mono),ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}
+.propertiesHeader span{font:600 10px var(--font-source-code-pro),ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}
 .propertiesHeader strong{font-size:14px}
 .propertySection{background:transparent}
+
+/* Takeoff canvas: all editing stays in an on-demand, scrollable window. */
+.integrated,.conditionDialog{--background:var(--pt-bg);--card:var(--pt-surface);--popover:var(--pt-surface-raised);--foreground:var(--pt-text);--card-foreground:var(--pt-text);--popover-foreground:var(--pt-text);--muted-foreground:var(--pt-text-secondary);--muted:var(--pt-surface-raised);--border:var(--pt-line);--border-strong:var(--pt-line-strong);--input:var(--pt-line-strong);--accent:var(--pt-brand-muted);--accent-foreground:var(--pt-text);--primary:var(--pt-brand);--primary-foreground:var(--pt-bg);--ring:var(--pt-brand-hover);--success:var(--pt-success);--warning:var(--pt-warning);color-scheme:dark}
+.integrated,.integrated[data-mobile-review="true"]{grid-template-columns:minmax(0,1fr)!important}
+.drawingHost,.integrated[data-mobile-review="true"] .drawingHost{grid-template-rows:48px minmax(0,1fr) 34px!important}
+.drawingHost>div:first-child{grid-row:2}
+.drawingHost>div:first-child>div:first-child,.integrated[data-mobile-review="true"] .drawingHost>div:first-child>div:first-child{grid-template-columns:minmax(0,1fr)!important}
+.drawingHost>div:first-child>div:first-child>aside:last-child{display:block!important;position:absolute;z-index:90;top:0;right:0;bottom:0;width:min(370px,90vw);border-left:1px solid var(--border-strong);background:var(--card)!important;box-shadow:-8px 0 28px rgb(0 0 0 / .22)}
+.conditionToolbar{z-index:21;grid-row:1;grid-column:1;display:flex;min-width:0;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);background:var(--pt-surface-2)}
+.conditionPicker{display:flex;min-width:0;max-width:400px;flex:1;align-items:center;gap:8px}
+.conditionPicker label{color:var(--muted-foreground);font-size:11px;font-weight:650}
+.conditionPicker select{min-width:0;width:100%;height:34px;padding:0 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--background);color:var(--foreground);font-size:12px}
+.conditionPicker select:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+.conditionsMenu{position:relative;flex:none;font-size:11px}
+.conditionsMenu summary{display:flex;height:34px;align-items:center;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--foreground);cursor:pointer;list-style:none}
+.conditionsMenu summary::-webkit-details-marker{display:none}
+.conditionsMenu summary:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+.conditionsMenuBody{position:absolute;z-index:120;top:39px;left:0;width:min(330px,calc(100vw - 24px));max-height:min(520px,70dvh);overflow:auto;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--popover);box-shadow:0 12px 30px rgb(0 0 0 / .26)}
+.conditionsSearch{display:flex;align-items:center;gap:6px;padding:8px;border-bottom:1px solid var(--border)}
+.conditionsSearch input{min-width:0;width:100%;height:30px;border:1px solid var(--border);background:var(--background);padding:0 6px;color:var(--foreground);font-size:11px}
+.conditionsSearch input:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+.conditionToolbar button{flex:none}
+.conditionToolbarHint{min-width:0;overflow:hidden;color:var(--muted-foreground);font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.spatialRail,.integrated[data-mobile-review="true"] .spatialRail{grid-row:3!important;grid-column:1;padding-inline:12px!important}
+.derivedOverlay{top:48px}
+.derivedOverlay3d{left:0!important}
+.conditionDialog{display:block!important;width:min(920px,calc(100vw - 24px))!important;max-width:none!important;height:min(850px,calc(100dvh - 24px));max-height:none!important;overflow:hidden!important;padding:0!important;border:1px solid var(--border-strong)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;box-shadow:0 22px 70px rgb(0 0 0 / .38)!important}
+.conditionDialog .propertiesPane{height:100%;border:0;background:var(--background)}
+.conditionDialog .propertiesHeader{min-height:64px;padding:10px 18px;border-left:4px solid var(--primary);background:var(--pt-surface-2)}
+.conditionDialog .propertiesHeader strong{max-width:none}
+.conditionDialog .propertiesScroll{padding:0 20px 20px}
+.conditionDialog .propertySection{padding-block:8px 12px}
+.conditionDialog .propertySection:has(>[data-slot=collapsible-trigger]){padding:0;border:1px solid var(--border);background:var(--card);margin:8px 0}
+.propertySectionTrigger{width:100%;text-align:left;cursor:pointer;outline-offset:-2px}
+.conditionDialog .propertySectionTrigger{min-height:46px;padding:8px 13px;background:var(--pt-surface-2);border-left:3px solid var(--primary)}
+.propertySectionTrigger:hover{filter:brightness(1.08)}
+.propertySectionChevron{margin-left:auto;flex:none;transition:transform 180ms ease}
+.propertySection[data-open] .propertySectionChevron{transform:rotate(180deg)}
+.propertySectionContent{padding:12px 13px 14px}
+.drawingFacts{display:grid;gap:6px;padding:8px 4px}
+.drawingFact{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;border:1px solid var(--border);background:var(--card)}
+.drawingFact strong,.drawingFact small{display:block}
+.drawingFact strong{font-size:12px}
+.drawingFact small{margin-top:3px;color:var(--muted-foreground);font-size:11px}
+.drawingFact b{white-space:nowrap;font:600 12px var(--font-source-code-pro),ui-monospace,monospace}
+.conditionDialog .fieldGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.conditionDialog .roleRow{grid-template-columns:minmax(120px,.7fr) minmax(160px,1.4fr) auto}
+.conditionDialog .propertiesFooter{padding:10px 18px;background:var(--card)}
+.rateRecommendation{display:grid;gap:5px;margin-top:7px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--card);color:var(--foreground);font-size:11px;line-height:1.4;box-shadow:0 8px 20px rgb(0 0 0 / .2)}
+.rateRecommendation strong{font-size:12px}
+.rateRecommendation span,.rateRecommendation small{color:var(--muted-foreground)}
+@media(max-width:860px){.conditionToolbar{gap:6px;padding-inline:8px}.conditionToolbarHint,.conditionPicker label,.conditionsMenu,.newConditionButton{display:none!important}.conditionToolbar button{padding-inline:8px;font-size:11px}.conditionDialog{width:100vw!important;height:100dvh;border:0!important;border-radius:0!important}.conditionDialog .propertiesScroll{padding-inline:12px}.conditionDialog .fieldGrid{grid-template-columns:1fr}.conditionDialog .roleRow{grid-template-columns:1fr}.integrated[data-mobile-review="true"] .propertiesPane{display:flex!important}}

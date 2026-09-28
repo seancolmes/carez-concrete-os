@@ -45,7 +45,7 @@ export function Takeoff3DSolid({ solid, selected, issue, onJumpToIssue, onSelect
     {colors.map((color, index) => <meshStandardMaterial key={index} attach={`material-${index}`} color={color}
       roughness={0.85} metalness={0} flatShading transparent={false} opacity={1}
       emissive={solid.color} emissiveIntensity={selected ? 0.16 : 0} />)}
-    <Edges key={solid.geometryKey} threshold={20} color={selected ? '#020617' : hovered ? '#64748b' : '#18212c'}
+    <Edges key={solid.geometryKey} threshold={20} color={selected ? '#171B19' : hovered ? '#7C8580' : '#343A3F'}
       lineWidth={selected ? 2.5 : hovered ? 1.5 : 0.75} />
     {selected && marker && <Html position={marker} center zIndexRange={[20, 10]}>
       {issue ? <button type="button" className={styles.spatialIssue} aria-label={`Resolve verification issue: ${issue.message}`}

@@ -270,7 +270,7 @@ export function ConcreteConditionAuthoring({
       id: row.condition_version_id,
       label: row.name,
       status: Number(row.open_hold_count) ? `${row.open_hold_count} hold${Number(row.open_hold_count) === 1 ? '' : 's'}` : 'Ready',
-      color: row.archetype_code === 'slab_on_grade' ? '#60a5fa' : row.archetype_code === 'pad_column_footing' ? '#f59e0b' : '#34d399',
+      color: row.archetype_code === 'slab_on_grade' ? '#426F93' : row.archetype_code === 'pad_column_footing' ? '#8A610B' : '#347A46',
     });
     return [
       { id: 'condition-group-footings', label: 'Footings', children: footing.map(child) },

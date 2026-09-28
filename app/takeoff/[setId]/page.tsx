@@ -1,4 +1,5 @@
 import { redirect, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { TakeoffConditionWorkflowShell } from '@/components/takeoff/TakeoffConditionWorkflowShell';
@@ -24,7 +25,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     { data: estimate }, { data: presentation }, { data: document }, { data: sheets }, { data: scaleRegions }, { data: measurements },
     { data: assemblies }, { data: versions }, { data: variables }, { data: sections }, { data: riskClasses }, { data: methodProfiles },
   ] = await Promise.all([
-    supabase.from('estimates').select('id,estimate_number,name,version,status').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
+    supabase.from('estimates').select('id,estimate_number,name,version,status,lead_id').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
     supabase.from('proposal_presentations').select('id,proposal_number,status').eq('estimate_id', set.estimate_id).eq('company_id', companyId).limit(1).maybeSingle(),
     set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('takeoff_sheets').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('page_number'),
@@ -37,6 +38,9 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
     supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at,profile_kind,variant_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
   ]);
+  const { data: opportunity } = estimate?.lead_id
+    ? await supabase.from('leads').select('id,opportunity_number').eq('id', estimate.lead_id).eq('company_id', companyId).maybeSingle()
+    : { data: null };
 
   const measurementIds = (measurements || []).map((m: any) => m.id);
   let summaries: any[] = [];
@@ -176,11 +180,11 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       <header className={pageStyles.identityStrip}>
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
-            <h1 className={pageStyles.title}>Active Plan Blueprints &amp; Digitization Canvas</h1>
-            <p>Open digital plan blueprints, measure structural physical dimensions, and execute drawing takeoffs to automatically build labor, material aggregate, and formwork assemblies.</p>
+            <h1 className={pageStyles.title}>Takeoff</h1>
+            {opportunity && <p><Link href={`/leads/${opportunity.id}`}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
-            <span className={pageStyles.estimate}>{set.name} · {estimateLabel}</span>
+            <span className={pageStyles.estimate}>{set.name} · {estimate ? <Link href={`/estimates/${estimate.id}`}>{estimateLabel}</Link> : estimateLabel}</span>
             {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
           </div>
         </div>
@@ -189,7 +193,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Carez opens the professional takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
+      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
       <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}

@@ -2,15 +2,13 @@
 
 import {Eye,EyeOff,LockKeyhole,Mail} from 'lucide-react';
 import {FormEvent,useState} from 'react';
-import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
-import {createClient} from '@/lib/supabase/client';
+import {signInToWorkspace} from '@/app/login/actions';
 
 export function LoginForm(){
-  const router=useRouter();
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
   const [showPassword,setShowPassword]=useState(false);
@@ -19,22 +17,32 @@ export function LoginForm(){
 
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setBusy(true);setMessage('');
-    const supabase=createClient();
-    const {data,error}=await supabase.auth.signInWithPassword({email,password});
-    if(error){setMessage('Sign in failed. Check your email and password.');setBusy(false);return;}
-    const userId=data.user?.id;
-    if(userId){
-      const {data:profile}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
-      router.push(profile?.role==='employee'?'/employee':'/');
-    }else router.push('/');
-    router.refresh();
+    try{
+      const result=await signInToWorkspace(email,password);
+      if(result.error){
+        setMessage(result.error==='company'?'Your account signed in, but it is not linked to a company workspace. Ask a workspace administrator to check your profile.':result.error==='profile'?'Your account signed in, but the workspace profile could not be checked. Please try again.':`The configured authentication service rejected sign-in: ${result.authMessage||'Unknown reason'} (${result.authCode||'unknown'}).`);
+        setBusy(false);
+        return;
+      }
+      const readiness=await fetch('/api/auth/workspace-readiness',{cache:'no-store',credentials:'same-origin'});
+      if(!readiness.ok){
+        const state=await readiness.json() as {reason?:string};
+        setMessage(state.reason==='company'?'Your account is not linked to a company workspace. Ask a workspace administrator to check your profile.':state.reason==='profile_error'?'Your account is signed in, but the workspace profile could not be checked. Please try again.':'Your account is signed in, but the server session is missing. Please report this message so we can inspect the local auth cookie handoff.');
+        setBusy(false);
+        return;
+      }
+      window.location.assign(result.destination||'/');
+    }catch{
+      setMessage('Your account signed in, but the workspace check could not complete. Please try again.');
+      setBusy(false);
+    }
   }
 
   return <Card className="w-full max-w-md border-0 bg-transparent shadow-none">
     <CardHeader className="space-y-4 px-0">
       <div className="font-mono text-[10px] font-semibold uppercase tracking-[.16em] text-muted-foreground">Secure workspace access</div>
       <div>
-        <CardTitle className="text-3xl font-semibold tracking-tight">Sign in to Carez</CardTitle>
+        <CardTitle className="text-3xl font-semibold tracking-tight">Sign in to Pourtrace</CardTitle>
         <CardDescription className="mt-2 max-w-sm text-sm leading-6">Use the account associated with your organization to continue to your workspace.</CardDescription>
       </div>
     </CardHeader>

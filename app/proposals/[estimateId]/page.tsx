@@ -34,7 +34,7 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
     supabase.from('proposal_settings').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('proposal_clarifications').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
     supabase.from('bid_value_options').select('id,estimate_id,name,customer_description,sell_price_change,schedule_days_change,status,function_quality_note,approval_required').eq('estimate_id',estimateId).eq('company_id',companyId).order('created_at'),
-    supabase.from('leads').select('id,customer_id,customer_name,contact_name,email,phone,project_name,address,city,state,postal_code,scope,follow_up,status').eq('id',(await supabase.from('estimates').select('lead_id').eq('id',estimateId).single()).data?.lead_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
+    supabase.from('leads').select('id,opportunity_number,customer_id,customer_name,contact_name,email,phone,project_name,address,city,state,postal_code,scope,follow_up,status').eq('id',(await supabase.from('estimates').select('lead_id').eq('id',estimateId).single()).data?.lead_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
     supabase.from('projects').select('id,job_number,name,address,city,state').eq('id',(await supabase.from('estimates').select('project_id').eq('id',estimateId).single()).data?.project_id||'00000000-0000-0000-0000-000000000000').eq('company_id',companyId).maybeSingle(),
     supabase.from('estimate_items').select('id,section_id,description,quantity,unit,item_type').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
     qPromise(supabase,companyId,estimateId),
@@ -94,12 +94,12 @@ export default async function ProposalDetail({params}:{params:Promise<{estimateI
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{contactName?` · ${contactName}`:""}{contactEmail?` · ${contactEmail}`:""}</p></div>
+      <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{lead&&<><Link className="text-primary underline-offset-4 hover:underline" href={`/leads/${lead.id}`}>Opportunity {lead.opportunity_number}</Link><span aria-hidden="true"> · </span></>}{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer}</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">{job}{contactName?` · ${contactName}`:""}{contactEmail?` · ${contactEmail}`:""}</p></div>
       <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals"><ArrowLeft/>Proposals</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/estimates/${e.id}`}><FileText/>Estimate</Link></div>
     </header>
 
-    <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
-      {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} className={index===3?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
+    <nav className="grid w-full grid-cols-2 overflow-hidden rounded-lg border bg-card text-xs sm:flex sm:w-fit" aria-label="Estimate workflow">
+      {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} aria-current={index===3?'step':undefined} className={`${index===3?'bg-accent font-medium text-primary shadow-[inset_0_-2px_var(--primary)]':'text-muted-foreground'} flex min-h-9 items-center gap-2 px-3 ${index%2===0?'border-r':''} ${index<2?'border-b sm:border-b-0':''} sm:border-r sm:last:border-r-0`}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="hidden size-3 opacity-50 sm:block"/>:null}</div>)}
     </nav>
 
     <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">

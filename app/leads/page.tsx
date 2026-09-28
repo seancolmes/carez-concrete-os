@@ -50,6 +50,8 @@ export default async function LeadsPage(){
   const pipeline=open.reduce((sum:number,l:any)=>sum+Number(l.estimated_value||0),0);
   const due=open.filter((l:any)=>l.follow_up&&l.follow_up<=today());
   const bidsDue=open.filter((l:any)=>l.bid_due&&l.bid_due<=today());
+  const priority=(lead:any)=>['won','lost'].includes(lead.status)?3:lead.follow_up&&lead.follow_up<=today()?0:lead.bid_due&&lead.bid_due<=today()?1:2;
+  const orderedLeads=[...(leads||[])].sort((a:any,b:any)=>priority(a)-priority(b));
   const activityMap=new Map<string,any[]>();
   const estimateMap=new Map<string,any>();
   for(const a of activities||[]){const rows=activityMap.get(a.lead_id)||[];rows.push(a);activityMap.set(a.lead_id,rows);}
@@ -59,15 +61,15 @@ export default async function LeadsPage(){
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Leads</h1></div>
+        <div><h1 className="text-2xl font-semibold tracking-tight">Opportunities</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Find the next bid, follow-up, or estimate and continue from its source record.</p></div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Lead inbox{pendingInbox?` (${pendingInbox})`:''}</Link>
+          <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Intake{pendingInbox?` (${pendingInbox})`:''}</Link>
           <Dialog>
-            <DialogTrigger render={<Button size="sm"/>}><Plus/>Add lead</DialogTrigger>
+            <DialogTrigger render={<Button size="sm"/>}><Plus/>New opportunity</DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-              <DialogHeader><DialogTitle>Add lead</DialogTitle><DialogDescription>Carez assigns the permanent opportunity number automatically.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>New opportunity</DialogTitle><DialogDescription>PourTrace assigns the opportunity number when this record is created.</DialogDescription></DialogHeader>
               <form action={createLead} className="grid gap-4">
-                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground"><strong className="text-foreground">Do not invent a lead or job number.</strong> The digital thread starts here and carries forward automatically.</div>
+                <p className="text-sm text-muted-foreground">The opportunity number will carry forward to the estimate and proposal.</p>
                 <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="lead-customer">Customer / GC</Label><Input id="lead-customer" name="customer_name" required placeholder="Smith Homes / John Smith"/></div><div className="grid gap-2"><Label htmlFor="lead-contact">Contact name</Label><Input id="lead-contact" name="contact_name" placeholder="John Smith"/></div></div>
                 <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="lead-email">Email</Label><Input id="lead-email" type="email" name="email"/></div><div className="grid gap-2"><Label htmlFor="lead-phone">Phone</Label><Input id="lead-phone" type="tel" name="phone"/></div></div>
                 <div className="grid gap-2"><Label htmlFor="lead-address">Project address</Label><Input id="lead-address" name="address" placeholder="123 Main St"/></div>
@@ -76,34 +78,29 @@ export default async function LeadsPage(){
                 <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="lead-value">Rough value</Label><Input id="lead-value" name="estimated_value" inputMode="decimal"/></div><div className="grid gap-2"><Label htmlFor="lead-source">Lead source</Label><select id="lead-source" name="source" defaultValue="manual" className={fieldSelect}><option value="manual">Entered manually</option><option value="phone">Phone</option><option value="website">Website</option><option value="referral">Referral</option><option value="gc_invitation">GC invitation</option><option value="repeat_customer">Repeat customer</option><option value="other">Other</option></select></div></div>
                 <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="lead-bid-due">Bid due</Label><Input id="lead-bid-due" type="date" name="bid_due"/></div><div className="grid gap-2"><Label htmlFor="lead-follow">Follow up</Label><Input id="lead-follow" type="date" name="follow_up"/></div></div>
                 <div className="grid gap-2"><Label htmlFor="lead-notes">Notes</Label><Textarea id="lead-notes" name="notes" rows={2}/></div>
-                <div className="flex justify-end"><Button type="submit">Create numbered lead</Button></div>
+                <div className="flex justify-end"><Button type="submit">Create opportunity</Button></div>
               </form>
             </DialogContent>
           </Dialog>
         </div>
       </header>
 
-      <section aria-label="Opportunity pipeline ledger" className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
-        <Metric label="Open pipeline" value={String(open.length)} help="Leads and bids that could become work."/>
-        <Metric label="Pipeline value" value={money(pipeline)} help="Current rough value of open opportunities."/>
-        <Metric label="Follow ups due" value={String(due.length)} help="Open opportunities at or past their follow-up date." tone={due.length?'danger':'success'}/>
-        <Metric label="Bid deadlines due" value={String(bidsDue.length)} help="Open opportunities at or past their bid due date." tone={bidsDue.length?'warning':'success'}/>
-      </section>
-
       <section className="space-y-4">
-        <div className="border-b border-border pb-3"><p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground">Sales pipeline</p><h2 className="mt-1 text-lg font-semibold">Opportunities</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">L-26-### becomes E-26-###-R0, then P-26-###-R0, then Job 26-### when accepted.</p></div>
-        {(leads||[]).length===0?<Empty className="min-h-64 border-y bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>No leads yet</EmptyTitle><EmptyDescription>Add a lead manually or connect Outlook and review the Lead Inbox.</EmptyDescription></EmptyHeader><EmptyContent><Link href="/leads/inbox" className={buttonVariants({variant:'outline'})}><Inbox/>Open lead inbox</Link></EmptyContent></Empty>:
-          <div className="grid divide-y divide-border border-y border-border xl:grid-cols-2 xl:divide-x xl:divide-y-0">{(leads||[]).map((lead:any)=>{
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3"><h2 className="text-lg font-semibold">Opportunity list</h2><span className="text-sm text-muted-foreground">{open.length} open · {due.length+bidsDue.length} date flags</span></div>
+        {(leads||[]).length===0?<Empty className="min-h-64 border-y bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>No opportunities yet</EmptyTitle><EmptyDescription>Create an opportunity or review incoming work in Intake.</EmptyDescription></EmptyHeader><EmptyContent><Link href="/leads/inbox" className={buttonVariants({variant:'outline'})}><Inbox/>Review intake</Link></EmptyContent></Empty>:
+          <div className="divide-y divide-border border-y border-border">{orderedLeads.map((lead:any)=>{
             const history=activityMap.get(lead.id)||[];
             const followDue=Boolean(lead.follow_up&&lead.follow_up<=today()&&!['won','lost'].includes(lead.status));
             const estimate=estimateMap.get(lead.id);
-            return <article className={cn('border-l-2 border-transparent',followDue&&'border-warning')} key={lead.id}>
-              <header className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border px-4 py-3">
-                <div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><Badge variant="outline" className="font-mono text-[10px]">L-{lead.opportunity_number||'UNNUMBERED'}</Badge><span className="text-xs text-muted-foreground">{sourceLabel(lead.source)}</span></div><h3 className="truncate font-semibold">{lead.project_name}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{lead.customer_name}{lead.city?` · ${lead.city}, ${lead.state||'WA'}`:''} · {money(lead.estimated_value)}</p></div>
-                <LeadStatus status={lead.status} followDue={followDue}/>
-              </header>
+            return <details className="group" key={lead.id}>
+              <summary className="grid min-h-20 cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-3 outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[110px_minmax(0,1fr)_140px_145px] sm:px-4">
+                <span className="font-mono text-xs font-semibold text-muted-foreground">L-{lead.opportunity_number||'UNNUMBERED'}</span>
+                <span className="min-w-0"><strong className="block truncate text-sm">{lead.project_name}</strong><span className="mt-1 block truncate text-xs text-muted-foreground">{lead.customer_name}{lead.city?` · ${lead.city}, ${lead.state||'WA'}`:''}</span></span>
+                <span className="hidden text-xs text-muted-foreground sm:block">{followDue?'Follow-up due':lead.bid_due?`Bid due ${lead.bid_due}`:sourceLabel(lead.source)}</span>
+                <span className="justify-self-end"><LeadStatus status={lead.status} followDue={followDue}/></span>
+              </summary>
 
-              <div className="space-y-4 p-4">
+              <div className="space-y-4 border-t border-border bg-muted/10 p-4">
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[
                   ['Contact',lead.contact_name||lead.customer_name,lead.email||lead.phone||'No contact details'],
                   ['Jobsite',lead.address||lead.city||'Not entered',lead.city&&lead.address?`${lead.city}, ${lead.state||'WA'}`:''],
@@ -128,13 +125,24 @@ export default async function LeadsPage(){
               </div>
 
               <footer className="flex flex-wrap gap-2 border-t border-border p-3">
-                {estimate?<Link className={buttonVariants({size:'sm'})} href="/estimates"><FileText/>Open {estimate.estimate_number}-R{estimate.version}</Link>:!['won','lost'].includes(lead.status)?<form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={lead.id}/><Button type="submit" size="sm">Start estimate<ArrowRight/></Button></form>:null}
-                <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Email / lead inbox</Link>
+                <Link className={buttonVariants({variant:'outline',size:'sm'})} href={`/leads/${lead.id}`}>Open opportunity</Link>
+                {estimate?<Link className={buttonVariants({size:'sm'})} href={`/estimates/${estimate.id}`}><FileText/>Open {estimate.estimate_number}-R{estimate.version}</Link>:!['won','lost'].includes(lead.status)?<form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={lead.id}/><Button type="submit" size="sm">Start estimate<ArrowRight/></Button></form>:null}
+                <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads/inbox"><Inbox/>Review intake</Link>
                 {followDue?<span className="ml-auto flex items-center gap-1.5 self-center text-xs font-medium text-warning"><Clock3 className="size-3.5"/>Follow up is due</span>:null}
               </footer>
-            </article>;
+            </details>;
           })}</div>}
       </section>
+
+      <details className="border-y border-border py-3">
+        <summary className="min-h-10 cursor-pointer text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring">Pipeline summary</summary>
+        <div aria-label="Opportunity pipeline summary" className="grid divide-y divide-border border-t border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+          <Metric label="Open opportunities" value={String(open.length)} help="Potential work not yet closed."/>
+          <Metric label="Rough pipeline value" value={money(pipeline)} help="Entered rough values for open opportunities."/>
+          <Metric label="Follow-ups due" value={String(due.length)} help="Open opportunities at or past their follow-up date." tone={due.length?'danger':'default'}/>
+          <Metric label="Bid deadlines due" value={String(bidsDue.length)} help="Open opportunities at or past their bid due date." tone={bidsDue.length?'warning':'default'}/>
+        </div>
+      </details>
     </div>
   </AppShell>;
 }

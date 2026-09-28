@@ -105,7 +105,7 @@ export function TakeoffVertexEditor({ geometry, pageWidth, pageHeight, color, on
     return <g key={key} transform={`translate(${point.x * pageWidth} ${point.y * pageHeight})`}>
       <circle
         r={isActive ? 8 : 6.5}
-        fill={isActive ? '#ffffff' : '#0b121b'}
+        fill={isActive ? '#ffffff' : '#171B19'}
         stroke={color}
         strokeWidth={isActive ? 3 : 2.2}
         vectorEffect="non-scaling-stroke"

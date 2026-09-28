@@ -6,10 +6,11 @@ import {
   selectEstimateSupplierQuoteLine,
 } from '@/app/estimates/actions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatTakeoffMeasurement } from '@/lib/takeoff/lengthFormat';
+import { PricingExceptionGrid, type PricingExceptionRow } from '@/components/estimates/PricingExceptionGrid';
 import {
   getPricingCoverageSummary,
   isPricingQuoteExpired,
@@ -17,6 +18,7 @@ import {
 
 type Measurement = {
   id: string;
+  takeoff_set_id?: string | null;
   name: string;
   location?: string | null;
   drawing_reference?: string | null;
@@ -85,54 +87,39 @@ function CoverageMetric({
   label,
   value,
   detail,
-  tone = 'default',
+  tone = 'neutral',
+  progress,
 }: {
   label: string;
   value: string;
-  detail?: string;
-  tone?: 'default' | 'warning' | 'success' | 'primary';
+  detail: string;
+  tone?: 'neutral' | 'brand' | 'warning';
+  progress?: number;
 }) {
-  const toneClass = tone === 'warning'
-    ? 'border-warning/50 bg-warning/5'
-    : tone === 'success'
-      ? 'border-success/50 bg-success/5'
-      : tone === 'primary'
-        ? 'border-primary/50 bg-primary/5'
-        : 'border-border';
-  const valueClass = tone === 'warning'
-    ? 'text-warning'
-    : tone === 'success'
-      ? 'text-success'
-      : tone === 'primary'
-        ? 'text-primary'
-        : 'text-foreground';
-  return <div className={`min-w-0 border-x px-3 py-2.5 first:border-l-0 last:border-r-0 ${toneClass}`}>
-    <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-    <div className={`mt-1 font-mono text-base font-semibold tabular-nums ${valueClass}`}>{value}</div>
-    {detail ? <div className="mt-0.5 text-[11px] text-muted-foreground">{detail}</div> : null}
+  return <div className="pricing-metric-card min-w-0" data-tone={tone} data-zero={value === '0' || value === '0.0%' ? 'true' : undefined} data-primary={label === 'Priced' || label === 'Missing price' ? 'true' : undefined}>
+    <div className="pricing-metric-label">{label}</div>
+    <div className="pricing-metric-value font-mono tabular-nums">{value}</div>
+    <div className="pricing-metric-detail">{detail}</div>
+    {progress !== undefined ? <div className="pricing-metric-track" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div> : null}
   </div>;
 }
 
-function QuoteSourceLabel({
+function PricingStatusBadge({
   output,
-  line,
-  quote,
   expired,
 }: {
   output: TakeoffOutput;
-  line?: SupplierQuoteLine;
-  quote?: SupplierQuote;
   expired: boolean;
 }) {
-  if (output.pricing_status === 'missing_labor_rate') return <span className="font-medium text-warning">Missing labor rate</span>;
-  if (output.pricing_status === 'missing_price') return <span className="font-medium text-warning">Missing price</span>;
-  if (output.pricing_status === 'missing_input') return <span className="font-medium text-warning">Input required</span>;
-  if (expired) return <span className="font-medium text-warning">Expired quote selection</span>;
-  if (output.price_source_kind === 'manual_override') return <span className="font-medium text-primary">Manual override</span>;
-  if (output.price_source_kind === 'supplier_quote') {
-    return <span className="font-medium text-success">{quote?.supplier_name || output.price_source_label || 'Supplier quote'}{line ? ` · ${money(line.quoted_unit_cost)}/${line.quoted_unit}` : ''}</span>;
-  }
-  return <span className="font-medium text-foreground">{output.price_source_label || output.cost_source || 'Priced'}</span>;
+  const status=String(output.pricing_status||'').toLowerCase();
+  const kind=String(output.price_source_kind||'').toLowerCase();
+  const warning=expired||status==='missing_price'||status==='missing_labor_rate';
+  const missing=status==='missing_input';
+  const complete=status==='priced'||status==='manual_override';
+  const label=expired?'Expired quote':missing?'No input':status==='missing_price'?'Missing price':status==='missing_labor_rate'?'Missing labor rate':kind==='manual_override'?'Manual override':kind==='supplier_quote'?'Supplier quote':complete?'Complete':'Review status';
+  const tone=missing?'text-destructive':warning?'text-warning':complete?'text-success':'text-muted-foreground';
+  const Icon=missing?FileQuestion:warning?AlertTriangle:complete?CheckCircle2:CircleDollarSign;
+  return <span data-pricing-status={missing?'danger':warning?'warning':complete?'complete':'neutral'} className={`inline-flex min-h-6 w-fit items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold leading-none ${tone}`}><Icon className="size-3" aria-hidden="true"/>{label}</span>;
 }
 
 export function PricingCoverage({
@@ -186,94 +173,97 @@ export function PricingCoverage({
     return rank(a) - rank(b) || String(a.label || '').localeCompare(String(b.label || ''));
   });
 
+  const exceptionRows: PricingExceptionRow[] = pricingRows.map(output => {
+    const measurement = measurementById.get(output.measurement_id);
+    const selectedLine = output.price_source_id ? lineById.get(output.price_source_id) : undefined;
+    const selectedQuote = selectedLine ? quoteById.get(selectedLine.quote_id) : undefined;
+    const selectedExpired = Boolean(selectedQuote?.expires_at && isPricingQuoteExpired(selectedQuote.expires_at, today));
+    const candidates = quoteLines.filter(line => line.source_takeoff_output_id === output.id);
+    const measurementLabel = [measurement?.name || 'Takeoff measurement', measurement?.location, measurement?.drawing_reference].filter(Boolean).join(' · ');
+    const sourceLabel = selectedQuote?.supplier_name || output.price_source_label || output.cost_source;
+    const source = <div className="space-y-1 text-sm">
+      <div>{sourceLabel || 'No pricing source recorded.'}{selectedLine ? ` · ${money(selectedLine.quoted_unit_cost)}/${selectedLine.quoted_unit}` : ''}</div>
+      {output.price_source_reference ? <div className="text-xs text-muted-foreground">Reference: {output.price_source_reference}</div> : null}
+      {output.price_effective_date ? <div className="text-xs text-muted-foreground">Effective {output.price_effective_date}</div> : null}
+    </div>;
+    const quoteCandidates = output.estimate_item_type === 'labor' ? <span className="text-xs text-muted-foreground">Labor pricing is handled in the Labor step.</span> :
+      candidates.length === 0 ? <span className="text-xs text-muted-foreground">No supplier quote lines recorded.</span> :
+        <div className="grid gap-2">{candidates.map(line => {
+          const quote = quoteById.get(line.quote_id);
+          const expired = Boolean(quote?.expires_at && isPricingQuoteExpired(quote.expires_at, today));
+          const unitMatch = String(line.quoted_unit).trim().toUpperCase() === String(output.production_unit || '').trim().toUpperCase();
+          const selected = output.price_source_kind === 'supplier_quote' && output.price_source_id === line.id;
+          const unavailable = expired || quote?.status === 'declined' || !unitMatch;
+          return <div key={line.id} className="flex items-center justify-between gap-3 rounded-md border bg-background px-2.5 py-2">
+            <div className="min-w-0">
+              <div className="truncate text-xs font-medium">{quote?.supplier_name || 'Supplier'}{quote?.supplier_quote_number ? ` · ${quote.supplier_quote_number}` : ''}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{money(line.quoted_unit_cost)} / {line.quoted_unit}{quote?.expires_at ? ` · expires ${quote.expires_at}` : ''}{!unitMatch ? ` · unit mismatch with ${output.production_unit}` : ''}</div>
+            </div>
+            {selected ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-success"><CheckCircle2 className="size-3.5"/>Selected</span> :
+              <form action={selectEstimateSupplierQuoteLine}>
+                <input type="hidden" name="estimate_id" value={estimateId}/>
+                <input type="hidden" name="quote_line_id" value={line.id}/>
+                <Button type="submit" variant="outline" size="sm" disabled={locked || unavailable}>Select quote</Button>
+              </form>}
+          </div>;
+        })}</div>;
+    return {
+      id: output.id,
+      conditionId: output.measurement_id,
+      conditionName: measurement?.name || 'Unassigned condition',
+      name: output.label || 'Generated resource',
+      measurement: measurementLabel,
+      production: formatTakeoffMeasurement(output.production_quantity, output.production_unit),
+      productionValue: Number(output.production_quantity || 0),
+      statusKey: selectedExpired ? 'expired' : output.pricing_status || 'unknown',
+      searchText: [output.label, measurementLabel, sourceLabel, output.price_source_reference].filter(Boolean).join(' '),
+      sourceHref: output.pricing_status === 'missing_input' && measurement?.takeoff_set_id
+        ? `/takeoff/${encodeURIComponent(measurement.takeoff_set_id)}?measurement=${encodeURIComponent(output.measurement_id)}`
+        : output.pricing_status === 'missing_labor_rate' ? `/estimates/${encodeURIComponent(estimateId)}#labor-review` : undefined,
+      sourceAction: output.pricing_status === 'missing_input' ? 'Open Condition' : output.pricing_status === 'missing_labor_rate' ? 'Labor review' : undefined,
+      costHref: output.pricing_status === 'missing_price' && output.generated_estimate_item_id ? `/estimates/${encodeURIComponent(estimateId)}?costOutput=${encodeURIComponent(output.id)}#estimate-lines` : undefined,
+      badge: <PricingStatusBadge output={output} expired={selectedExpired} />,
+      source,
+      quoteCandidates,
+    };
+  });
+  const attentionRows = exceptionRows.filter(row => ['missing_input', 'missing_price', 'missing_labor_rate', 'expired'].includes(row.statusKey));
+  const missingInputCount = outputs.filter(output => output.pricing_status === 'missing_input').length;
+  const otherStatusCount = Math.max(0, summary.total - summary.priced - summary.missingPrice - summary.missingLaborRate - missingInputCount);
+  const statusLabel: Record<string, string> = { missing_input: 'No input', missing_price: 'Missing price', missing_labor_rate: 'Missing labor rate', expired: 'Expired quote' };
+
   return <section className="space-y-4" aria-labelledby="pricing-coverage-title">
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pricing</p>
-      <h2 id="pricing-coverage-title" className="mt-1 text-lg font-semibold">Pricing coverage</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Resolve supplier evidence and price exceptions against authoritative Takeoff outputs. Quote activity never changes Production Quantity.</p>
+    <div className="carez-page-heading"><h2 id="pricing-coverage-title">Pricing coverage</h2></div>
+
+    <div className="pricing-metric-grid grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4" aria-label="Pricing coverage summary">
+      <CoverageMetric label="Priced" value={`${summary.pricedPercent.toFixed(1)}%`} detail={`${summary.priced} of ${summary.total} outputs`} tone={summary.priced ? 'brand' : 'neutral'} progress={summary.pricedPercent} />
+      <CoverageMetric label="Missing price" value={String(summary.missingPrice)} detail={`${summary.missingPrice} of ${summary.total} outputs`} tone={summary.missingPrice ? 'warning' : 'neutral'} progress={summary.total ? summary.missingPrice / summary.total * 100 : 0} />
+      <CoverageMetric label="Generated outputs" value={String(summary.total)} detail="Current estimate" />
+      <CoverageMetric label="Missing labor" value={String(summary.missingLaborRate)} detail={`${summary.missingLaborRate} of ${summary.total} outputs`} tone={summary.missingLaborRate ? 'warning' : 'neutral'} progress={summary.total ? summary.missingLaborRate / summary.total * 100 : 0} />
+      <CoverageMetric label="Supplier quote" value={String(summary.supplierQuote)} detail={`${summary.supplierQuote} selected outputs`} progress={summary.total ? summary.supplierQuote / summary.total * 100 : 0} />
+      <CoverageMetric label="Expired" value={String(summary.expiredSupplierQuote)} detail={`${summary.expiredSupplierQuote} selected quotes`} tone={summary.expiredSupplierQuote ? 'warning' : 'neutral'} progress={summary.supplierQuote ? summary.expiredSupplierQuote / summary.supplierQuote * 100 : 0} />
+      <CoverageMetric label="Unselected quotes" value={String(summary.availableUnselectedQuoteLines)} detail="Available quote lines" />
+      <CoverageMetric label="Manual overrides" value={String(summary.manualOverride)} detail={`${summary.manualOverride} of ${summary.total} outputs`} progress={summary.total ? summary.manualOverride / summary.total * 100 : 0} />
     </div>
 
-    <div className="carez-summary-ledger grid grid-cols-2 gap-px sm:grid-cols-4 xl:grid-cols-8">
-      <CoverageMetric label="Generated outputs" value={String(summary.total)} />
-      <CoverageMetric label="Priced" value={`${summary.pricedPercent.toFixed(1)}%`} detail={`${summary.priced} of ${summary.total}`} tone={summary.priced === summary.total && summary.total > 0 ? 'success' : 'primary'} />
-      <CoverageMetric label="Missing price" value={String(summary.missingPrice)} tone={summary.missingPrice ? 'warning' : 'success'} />
-      <CoverageMetric label="Missing labor" value={String(summary.missingLaborRate)} tone={summary.missingLaborRate ? 'warning' : 'success'} />
-      <CoverageMetric label="Supplier quote" value={String(summary.supplierQuote)} tone="primary" />
-      <CoverageMetric label="Expired" value={String(summary.expiredSupplierQuote)} tone={summary.expiredSupplierQuote ? 'warning' : 'success'} />
-      <CoverageMetric label="Unselected quotes" value={String(summary.availableUnselectedQuoteLines)} />
-      <CoverageMetric label="Manual overrides" value={String(summary.manualOverride)} />
-    </div>
+    {attentionRows.length ? <section className="pricing-attention" aria-labelledby="pricing-attention-title">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-3 py-2"><h3 id="pricing-attention-title" className="text-sm font-semibold">{attentionRows.length} output{attentionRows.length === 1 ? '' : 's'} need attention</h3><p className="text-[11px] text-muted-foreground">{summary.priced} priced · {summary.missingPrice} missing price · {summary.missingLaborRate} missing labor · {missingInputCount} no input{otherStatusCount ? ` · ${otherStatusCount} other` : ''}</p></div>
+      <ul className="divide-y divide-border">{attentionRows.slice(0, 5).map(row => <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs"><div className="min-w-0"><span className="font-semibold">{row.conditionName}</span><span className="mx-1.5 text-muted-foreground">/</span><span>{row.name}</span><span className="ml-2 font-medium text-warning">{statusLabel[row.statusKey] || row.statusKey}</span></div><div className="flex shrink-0 items-center gap-3">{row.sourceHref || row.costHref ? <a className="font-semibold text-primary underline-offset-2 hover:underline" href={row.sourceHref || row.costHref}>{row.sourceAction || 'Edit unit cost'}</a> : null}<a className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" href={`/estimates/${encodeURIComponent(estimateId)}?pricingOutput=${encodeURIComponent(row.id)}#pricing-coverage`}>Review output</a></div></li>)}</ul>
+      {attentionRows.length > 5 ? <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">{attentionRows.length - 5} more outputs need attention. Use the grid’s “Needs attention” filter to see all.</p> : null}
+    </section> : summary.total ? <p className="border-y border-border px-3 py-2 text-xs text-muted-foreground">No pricing holds in the current outputs.{otherStatusCount ? ` ${otherStatusCount} output${otherStatusCount === 1 ? ' has' : 's have'} another status to review.` : ''}</p> : null}
 
-    <Card className="rounded-none border-x-0 bg-transparent shadow-none">
-      <CardHeader className="gap-1">
-        <CardTitle>Pricing exceptions</CardTitle>
-        <CardDescription>Exception-first review of current source, quantity, quote candidates and unresolved holds.</CardDescription>
+    <Card className="pricing-output-region rounded-none border-x-0 bg-transparent shadow-none">
+      <CardHeader className="gap-1 pb-2">
+        <CardTitle>Pricing outputs</CardTitle>
       </CardHeader>
       <CardContent>
-        {pricingRows.length === 0 ? <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">No generated Takeoff outputs are available for pricing yet.</div> :
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[1050px] border-collapse text-sm">
-              <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Condition / output</th>
-                  <th className="px-3 py-2 text-right font-semibold">Production</th>
-                  <th className="px-3 py-2 text-left font-semibold">Current source</th>
-                  <th className="px-3 py-2 text-left font-semibold">Quote candidates</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {pricingRows.map(output => {
-                  const measurement = measurementById.get(output.measurement_id);
-                  const selectedLine = output.price_source_id ? lineById.get(output.price_source_id) : undefined;
-                  const selectedQuote = selectedLine ? quoteById.get(selectedLine.quote_id) : undefined;
-                  const selectedExpired = Boolean(selectedQuote?.expires_at && isPricingQuoteExpired(selectedQuote.expires_at, today));
-                  const candidates = quoteLines.filter(line => line.source_takeoff_output_id === output.id);
-                  return <tr key={output.id} className={selectedExpired || output.pricing_status?.startsWith('missing') ? 'bg-warning/5 align-top' : 'align-top'}>
-                    <td className="px-3 py-3">
-                      <div className="font-medium">{output.label || 'Generated resource'}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{measurement?.name || 'Takeoff measurement'}{measurement?.location ? ` · ${measurement.location}` : ''}{measurement?.drawing_reference ? ` · ${measurement.drawing_reference}` : ''}</div>
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs font-semibold tabular-nums">{formatTakeoffMeasurement(output.production_quantity, output.production_unit)}</td>
-                    <td className="px-3 py-3">
-                      <QuoteSourceLabel output={output} line={selectedLine} quote={selectedQuote} expired={selectedExpired} />
-                      <div className="mt-1 text-xs text-muted-foreground">{output.price_source_reference || ''}{output.price_effective_date ? `${output.price_source_reference ? ' · ' : ''}effective ${output.price_effective_date}` : ''}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      {output.estimate_item_type === 'labor' ? <span className="text-xs text-muted-foreground">Labor pricing is handled in the Labor step.</span> :
-                        candidates.length === 0 ? <span className="text-xs text-muted-foreground">No supplier quote lines recorded.</span> :
-                          <div className="grid gap-2">{candidates.map(line => {
-                            const quote = quoteById.get(line.quote_id);
-                            const expired = Boolean(quote?.expires_at && isPricingQuoteExpired(quote.expires_at, today));
-                            const unitMatch = String(line.quoted_unit).trim().toUpperCase() === String(output.production_unit || '').trim().toUpperCase();
-                            const selected = output.price_source_kind === 'supplier_quote' && output.price_source_id === line.id;
-                            const unavailable = expired || quote?.status === 'declined' || !unitMatch;
-                            return <div key={line.id} className="flex items-center justify-between gap-3 rounded-md border bg-background px-2.5 py-2">
-                              <div className="min-w-0">
-                                <div className="truncate text-xs font-medium">{quote?.supplier_name || 'Supplier'}{quote?.supplier_quote_number ? ` · ${quote.supplier_quote_number}` : ''}</div>
-                                <div className="mt-0.5 text-[11px] text-muted-foreground">{money(line.quoted_unit_cost)} / {line.quoted_unit}{quote?.expires_at ? ` · expires ${quote.expires_at}` : ''}{!unitMatch ? ` · unit mismatch with ${output.production_unit}` : ''}</div>
-                              </div>
-                              {selected ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-success"><CheckCircle2 className="size-3.5"/>Selected</span> :
-                                <form action={selectEstimateSupplierQuoteLine}>
-                                  <input type="hidden" name="estimate_id" value={estimateId}/>
-                                  <input type="hidden" name="quote_line_id" value={line.id}/>
-                                  <Button type="submit" variant="outline" size="sm" disabled={locked || unavailable}>Select quote</Button>
-                                </form>}
-                            </div>;
-                          })}</div>}
-                    </td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
-          </div>}
+        {exceptionRows.length === 0 ? <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">No generated Takeoff outputs are available for pricing yet.</div> : <PricingExceptionGrid rows={exceptionRows} />}
       </CardContent>
     </Card>
 
-    <Card className="shadow-none">
-      <CardHeader className="gap-1">
-        <CardTitle className="flex items-center gap-2"><Quote className="size-4"/>Supplier quote sets</CardTitle>
-        <CardDescription>Estimate-scoped supplier responses and unit prices. These records remain commercial evidence separate from downstream procurement.</CardDescription>
-      </CardHeader>
+    <details className="pricing-supplier-section" open={quoteSetsSorted.length>0}>
+      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm font-semibold"><Quote className="size-4"/>Supplier quote sets · {quoteSetsSorted.length}<span className="ml-auto text-xs font-normal text-muted-foreground">{quoteSetsSorted.length?'View supplier pricing':'Open when vendor pricing is needed'}</span></summary>
+    <Card className="rounded-none border-x-0 shadow-none">
       <CardContent className="space-y-3">
         {!locked ? <details className="rounded-lg border">
           <summary className="cursor-pointer list-none px-3 py-3 text-sm font-medium">Create quote set</summary>
@@ -351,10 +341,6 @@ export function PricingCoverage({
           })}
       </CardContent>
     </Card>
-
-    {summary.expiredSupplierQuote || summary.missingPrice || summary.missingLaborRate ? <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm">
-      <FileQuestion className="mt-0.5 size-4 shrink-0 text-warning"/>
-      <div><strong>Pricing review remains open.</strong> <span className="text-muted-foreground">Resolve missing prices, missing labor rates, and expired supplier selections before Estimate Review / Recap.</span></div>
-    </div> : null}
+    </details>
   </section>;
 }

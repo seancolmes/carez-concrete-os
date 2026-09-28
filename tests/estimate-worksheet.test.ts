@@ -9,6 +9,8 @@ import {
 
 test('generated output pricing states stay explicit', () => {
   const generated = { source_takeoff_output_id: 'output-1' };
+  assert.equal(getWorksheetPricingState(generated, { pricing_status: 'missing_input' }), 'no_input');
+  assert.equal(getWorksheetPricingLabel('no_input'), 'NO INPUT');
   assert.equal(getWorksheetPricingState(generated, { pricing_status: 'missing_price' }), 'price_required');
   assert.equal(getWorksheetPricingState(generated, { pricing_status: 'missing_labor_rate' }), 'price_required');
   assert.equal(getWorksheetPricingState(generated, { pricing_status: 'manual_override' }), 'manual_override');

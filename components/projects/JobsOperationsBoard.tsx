@@ -1,25 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import {useMemo,useState,type ReactNode} from 'react';
+import {Fragment,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {FilterX,MoreHorizontal,Search,SlidersHorizontal,CheckCheck,ShieldAlert,HardHat,Wallet,BriefcaseBusiness,ArrowUpRight,MapPin,Activity,FileText} from 'lucide-react';
+import {ChevronDown,FilterX,MoreHorizontal,Search,SlidersHorizontal,CheckCheck,ShieldAlert,HardHat,Wallet,BriefcaseBusiness,ArrowUpRight,MapPin,FileText} from 'lucide-react';
 import {
   CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,
   CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,
-  CarezInspector,CarezInspectorBody,CarezInspectorFooter,
-  CarezInspectorHeader,CarezInspectorSection,CarezStatus,
+  CarezStatus,
 } from '@/components/carez';
-import {CarezSectionHeading,CarezOperationalPulse,CarezExperienceEmpty} from '@/components/carez/experience';
-import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {Badge} from '@/components/ui/badge';
+import {CarezExperienceEmpty} from '@/components/carez/experience';
+import {MetricBentoTile} from './MetricBentoTile';
 import {Button,buttonVariants} from '@/components/ui/button';
 import {
   DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator,DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {Input} from '@/components/ui/input';
 import {Progress} from '@/components/ui/progress';
-import {Sheet,SheetContent} from '@/components/ui/sheet';
+import {CSICostCodeStrip} from '@/components/ui/CSICostCodeStrip';
+import {PourWeatherBadge} from '@/components/ui/PourWeatherBadge';
+import {TakeoffThumbnail} from '@/components/ui/TakeoffThumbnail';
 import {resolveOperationalState,resolvePriority} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
 
@@ -34,6 +34,7 @@ export type JobsBoardRow={
   nextStep:string;
   scheduleDate:string|null;
   contractValue:number;
+  billedAmount:number;
   budgetUsed:number;
   laborRemaining:number;
   budgetAvailable:boolean;
@@ -63,7 +64,7 @@ function priorityKindFor(row:JobsBoardRow){
   return 'normal' as const;
 }
 
-const filterSelect='h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none transition-shadow focus:border-ring focus:ring-2 focus:ring-ring/20';
+const filterSelect='h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus:ring-0 focus:ring-offset-0 focus:border-[#007A52] dark:focus:border-[#009966]';
 
 export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:JobsBoardMetrics}){
   const router=useRouter();
@@ -72,7 +73,7 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
   const [stage,setStage]=useState('all');
   const [attention,setAttention]=useState('all');
   const [sort,setSort]=useState('priority');
-  const [selectedId,setSelectedId]=useState<string|null>(null);
+  const [expandedRowId,setExpandedRowId]=useState<string|null>(null);
   const stages=useMemo(()=>Array.from(new Set(rows.map(row=>row.projectStatus).filter(Boolean))).sort(),[rows]);
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
@@ -96,27 +97,33 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
     return result;
   },[rows,query,status,stage,attention,sort]);
 
-  const selected=selectedId?rows.find(row=>row.id===selectedId)||null:null;
   const clearFilters=()=>{setQuery('');setStatus('active');setStage('all');setAttention('all');setSort('priority');};
-  const navigate=(href:string)=>router.push(href);
+  const toggleRow=(id:string)=>setExpandedRowId(current=>current===id?null:id);
 
-  const toolbar=<div className="flex w-full flex-wrap items-center gap-2">
-    <div className="relative min-w-56 flex-1 lg:max-w-sm">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
-      <Input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search jobs, customers, locations" placeholder="Search jobs, customers, locations..." className="h-8 pl-8 text-xs"/>
-    </div>
-    <select className={filterSelect} value={stage} onChange={e=>setStage(e.target.value)} aria-label="Project stage"><option value="all">All stages</option>{stages.map(item=><option key={item} value={item}>{titleCase(item)}</option>)}</select>
-    <select className={filterSelect} value={attention} onChange={e=>setAttention(e.target.value)} aria-label="Attention filter"><option value="all">All attention</option><option value="attention">Needs attention</option><option value="clear">Clear</option></select>
-    <div className="ml-auto flex shrink-0 items-center gap-1.5">
-      <span className="hidden items-center gap-1.5 text-xs text-muted-foreground md:flex"><SlidersHorizontal className="size-3.5"/>Sort</span>
-      <select className={filterSelect} value={sort} onChange={e=>setSort(e.target.value)} aria-label="Sort jobs"><option value="priority">Priority</option><option value="schedule">Schedule</option><option value="budget">Budget used</option><option value="owed">Customers owe</option><option value="name">Job name</option></select>
-      <Button variant="ghost" size="icon-sm" onClick={clearFilters} title="Reset filters" aria-label="Reset filters"><FilterX/></Button>
+  const toolbar=<div className="w-full overflow-x-auto">
+    <div className="flex min-w-max items-center justify-between gap-3 text-xs">
+      <div className="flex items-center gap-2">
+        <div className="relative w-56 shrink-0">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
+          <Input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search jobs, customers, locations" placeholder="Search jobs, customers, locations..." className="h-8 pl-8 text-xs"/>
+        </div>
+        <div role="tablist" aria-label="Project operating state" className="flex h-8 w-max items-center gap-0.5 border border-border bg-muted p-0.5">
+        {([['active','Current work'],['ready','Ready'],['hold','Hold'],['planning','In progress'],['setup','Waiting'],['completed','Complete'],['all','All jobs']] as const).map(([value,label])=><button key={value} type="button" role="tab" aria-selected={status===value} tabIndex={status===value?0:-1} onClick={()=>setStatus(value)} onKeyDown={event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')||[]),index=tabs.indexOf(event.currentTarget),next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next]?.focus();tabs[next]?.click();}} className={cn('flex h-7 shrink-0 items-center gap-1 px-2 text-xs font-medium text-muted-foreground hover:bg-card hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring',status===value&&'border-b-2 border-primary bg-card text-foreground')}>{value==='ready'?<CheckCheck className="size-3"/>:value==='hold'?<ShieldAlert className="size-3"/>:null}{label}</button>)}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <select className={filterSelect} value={stage} onChange={e=>setStage(e.target.value)} aria-label="Project stage"><option value="all">All stages</option>{stages.map(item=><option key={item} value={item}>{titleCase(item)}</option>)}</select>
+        <select className={filterSelect} value={attention} onChange={e=>setAttention(e.target.value)} aria-label="Attention filter"><option value="all">All attention</option><option value="attention">Needs attention</option><option value="clear">Clear</option></select>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><SlidersHorizontal className="size-3.5"/>Sort</span>
+        <select className={filterSelect} value={sort} onChange={e=>setSort(e.target.value)} aria-label="Sort jobs"><option value="priority">Priority</option><option value="schedule">Schedule</option><option value="budget">Budget used</option><option value="owed">Customers owe</option><option value="name">Job name</option></select>
+        <Button variant="ghost" size="icon-sm" className="h-8 w-8" onClick={clearFilters} title="Reset filters" aria-label="Reset filters"><FilterX/></Button>
+      </div>
     </div>
   </div>;
 
   const grid=<CarezDataGrid
+    className="carez-projects-grid"
     toolbar={toolbar}
-    status={<><div className="flex items-center gap-2"><span className="font-medium text-foreground">Jobs</span><Badge variant="secondary">{filtered.length}</Badge></div><span className="hidden sm:block">Select to preview · Enter to open project</span></>}
     isEmpty={filtered.length===0}
     empty={rows.length===0?<CarezExperienceEmpty icon={<BriefcaseBusiness/>} title="Your next job starts here." description="An eligible issued Proposal can be Awarded internally to create or link its Project on the same Job Spine. Customer acceptance alone does not create a Project." actions={<Link href="/proposals" className={buttonVariants({variant:'outline',size:'sm'})}><FileText/>View proposals<ArrowUpRight/></Link>}/>:<CarezExperienceEmpty icon={<Search/>} title="No jobs match this view" description="Try another state, search, or stage to find the work you need." actions={<Button type="button" variant="outline" size="sm" onClick={clearFilters}>Reset filters</Button>}/> }
   >
@@ -128,49 +135,51 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
           <CarezDataGridHeaderCell>Next step</CarezDataGridHeaderCell>
           <CarezDataGridHeaderCell>Next date</CarezDataGridHeaderCell>
           <CarezDataGridHeaderCell>Field</CarezDataGridHeaderCell>
-          <CarezDataGridHeaderCell numeric className="min-w-40">Budget</CarezDataGridHeaderCell>
-          <CarezDataGridHeaderCell numeric>Customers owe</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric className="min-w-40 text-right">Budget</CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell numeric className="text-right">Customers owe</CarezDataGridHeaderCell>
           <CarezDataGridHeaderCell>Priority</CarezDataGridHeaderCell>
-          <CarezDataGridHeaderCell className="w-10"><span className="sr-only">Actions</span></CarezDataGridHeaderCell>
+          <CarezDataGridHeaderCell className="w-20"><span className="sr-only">Actions</span></CarezDataGridHeaderCell>
         </CarezDataGridRow>
       </CarezDataGridHead>
       <CarezDataGridBody>{filtered.map(row=>{
         const state=resolveOperationalState(row.state);
         const priority=resolvePriority(priorityKindFor(row));
-        const selectedRow=selectedId===row.id;
-        return <CarezDataGridRow
-          key={row.id}
+        const selectedRow=expandedRowId===row.id;
+        return <Fragment key={row.id}><CarezDataGridRow
           selected={selectedRow}
-          className="carez-job-row cursor-pointer"
+          aria-expanded={selectedRow}
+          className="carez-job-row cursor-pointer hover:bg-[#EFF2F0] dark:hover:bg-[#1E2123]"
           data-state={row.state}
           data-field-active={row.activeShifts>0||undefined}
-          onClick={()=>setSelectedId(row.id)}
+          onClick={()=>toggleRow(row.id)}
           onDoubleClick={()=>router.push(`/projects/${row.id}`)}
           tabIndex={0}
           onKeyDown={event=>{
             if(event.currentTarget!==event.target)return;
-            if(event.key===' '){event.preventDefault();setSelectedId(row.id);return;}
+            if(event.key===' '){event.preventDefault();toggleRow(row.id);return;}
             if(event.key==='Enter')router.push(`/projects/${row.id}`);
           }}
         >
           <CarezDataGridCell className="min-w-60">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 rounded-md bg-accent px-1.5 py-1 font-mono text-[10px] font-semibold text-primary">{row.jobNumber||'—'}</span>
-              <div className="min-w-0"><div className="truncate text-sm font-bold">{row.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{row.customer}</div><div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin aria-hidden="true" className="size-3 shrink-0"/><span className="truncate">{row.location}</span></div></div>
+              <span className="mt-0.5 rounded-md bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground">{row.jobNumber||'—'}</span>
+              <div className="min-w-0"><div className="truncate text-xs font-bold">{row.name}</div><div className="truncate text-xs text-muted-foreground">{row.customer}</div><div className="flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin aria-hidden="true" className="size-3 shrink-0"/><span className="truncate">{row.location}</span></div></div>
             </div>
           </CarezDataGridCell>
           <CarezDataGridCell>{state?<CarezStatus tone={state.tone} label={state.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
-          <CarezDataGridCell className="min-w-64"><div className="max-w-72 whitespace-normal font-semibold">{row.nextStep}</div>{row.reasons[0]&&row.attention?<div className="mt-0.5 max-w-72 whitespace-normal text-xs text-muted-foreground">{row.reasons[0]}</div>:null}</CarezDataGridCell>
+          <CarezDataGridCell className="min-w-64"><div className="max-w-72 whitespace-normal font-semibold">{row.nextStep}</div>{row.reasons[0]&&row.attention&&row.reasons[0].trim()!==row.nextStep.trim()?<div className="mt-0.5 max-w-72 whitespace-normal text-xs text-muted-foreground">{row.reasons[0]}</div>:null}</CarezDataGridCell>
           <CarezDataGridCell numeric><div className="font-medium">{shortDate(row.scheduleDate)}</div><div className="mt-0.5 font-sans text-xs text-muted-foreground">{row.scheduleDate?'Next field date':'Not scheduled'}</div></CarezDataGridCell>
-          <CarezDataGridCell><div className={cn('flex items-center gap-1.5 font-semibold',row.activeShifts>0&&'text-primary')}><HardHat aria-hidden="true" className="size-3.5"/>{row.activeShifts?`${row.activeShifts} active`:'—'}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.pendingTimecards?`${row.pendingTimecards} timecard review`:row.gpsExceptions?`${row.gpsExceptions} GPS review`:row.activeShifts?'In the field':'No active shift'}</div></CarezDataGridCell>
-          <CarezDataGridCell numeric>
+          <CarezDataGridCell><div className="inline-flex items-center gap-1 font-semibold"><HardHat aria-hidden="true" className="size-3.5 shrink-0"/><span>{row.activeShifts?`${row.activeShifts} active`:'—'}</span></div><div className="text-xs text-muted-foreground">{row.pendingTimecards?`${row.pendingTimecards} timecard review`:row.gpsExceptions?`${row.gpsExceptions} GPS review`:row.activeShifts?'In the field':'No active shift'}</div></CarezDataGridCell>
+          <CarezDataGridCell numeric className="text-right">
             {row.budgetAvailable?<div className="min-w-36"><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className={cn('font-medium',row.budgetUsed>=100&&'text-destructive')}>{row.budgetUsed.toFixed(0)}%</span><span className={cn('text-muted-foreground',row.laborRemaining<0&&'text-destructive')}>{row.laborRemaining.toFixed(1)} MH left</span></div><Progress value={Math.max(0,Math.min(100,row.budgetUsed))}/></div>:<span className="text-xs font-sans text-muted-foreground">No authoritative budget snapshot</span>}
           </CarezDataGridCell>
-          <CarezDataGridCell numeric>
+          <CarezDataGridCell numeric className="text-right">
             {row.billingAvailable?<><div className={cn('font-medium',row.overdue>0&&'text-destructive')}>{money(row.customerOwed)}</div><div className="mt-0.5 font-sans text-xs text-muted-foreground">{row.overdue>0?`${money(row.overdue)} late`:'Outstanding A/R'}</div></>:<span className="font-sans text-xs text-muted-foreground">Billing summary unavailable</span>}
           </CarezDataGridCell>
           <CarezDataGridCell>{priority?<CarezStatus tone={priority.tone} label={priority.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}</CarezDataGridCell>
-          <CarezDataGridCell onClick={event=>event.stopPropagation()}>
+          <CarezDataGridCell className="whitespace-nowrap">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`${selectedRow?'Collapse':'Expand'} ${row.name}`} aria-expanded={selectedRow} className="mr-1 size-7" onClick={event=>{event.stopPropagation();toggleRow(row.id);}}><ChevronDown aria-hidden="true" className={cn('size-3.5 transition-transform duration-150',selectedRow&&'rotate-180')}/></Button>
+            <span onClick={event=>event.stopPropagation()} className="inline-flex">
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${row.name}`}/> }><MoreHorizontal/></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
@@ -181,122 +190,106 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
                 {row.billingAvailable&&row.customerOwed>0?<><DropdownMenuSeparator/><DropdownMenuItem onClick={()=>router.push('/billing')}>Billing</DropdownMenuItem></>:null}
               </DropdownMenuContent>
             </DropdownMenu>
+            </span>
           </CarezDataGridCell>
-        </CarezDataGridRow>;
+        </CarezDataGridRow>{selectedRow?<tr><td colSpan={9} className="p-0"><InlineProjectWorkspace row={row}/></td></tr>:null}</Fragment>;
       })}</CarezDataGridBody>
     </CarezDataGridTable>
   </CarezDataGrid>;
 
-  return <div className="carez-operations-board space-y-5">
-    <CarezOperationalPulse label="Job operations metrics" items={[
-      {label:'Current jobs',value:rows.filter(row=>row.state!=='completed').length,detail:'Open jobs across the operation.',icon:<BriefcaseBusiness/>,tone:'primary'},
-      {label:'Ready to move',value:metrics.ready,detail:'Physical operations ready to start.',icon:<CheckCheck/>,tone:'success'},
-      {label:'Hard holds',value:metrics.holds,detail:metrics.attention+' jobs need attention.',icon:<ShieldAlert/>,tone:metrics.holds?'danger':'neutral'},
-      {label:'Field active',value:metrics.fieldJobs,detail:`${metrics.activeShifts} active field shifts right now.`,icon:<HardHat/>,tone:'primary'},
-      {label:'Customers owe',value:money(metrics.customersOwe),detail:metrics.overdue?`${money(metrics.overdue)} is past due.`:'No overdue customer balance.',icon:<Wallet/>,tone:metrics.overdue?'warning':'neutral',href:'/billing'},
-    ]}/>
-    <CarezSectionHeading icon={<Activity/>} title="Current work" description="Find the constraint. Line up the next operation." action={<span className="text-xs text-muted-foreground">{metrics.attention} need attention</span>}/>
-    <Tabs value={status} onValueChange={value=>setStatus(String(value))}>
-      <div className="carez-tab-viewport">
-        <TabsList variant="experience" aria-label="Project operating state">
-          <TabsTrigger value="active">Current work</TabsTrigger>
-          <TabsTrigger value="ready"><CheckCheck/>Ready</TabsTrigger>
-          <TabsTrigger value="hold"><ShieldAlert/>Hold</TabsTrigger>
-          <TabsTrigger value="planning">In progress</TabsTrigger>
-          <TabsTrigger value="setup">Waiting</TabsTrigger>
-          <TabsTrigger value="completed">Complete</TabsTrigger>
-          <TabsTrigger value="all">All jobs</TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value={status} className="min-w-0">{grid}</TabsContent>
-    </Tabs>
-    <Sheet open={Boolean(selected)} onOpenChange={open=>{if(!open)setSelectedId(null)}}>
-      {selected?<SheetContent aria-label={'Job preview: '+selected.name} className="w-[94vw] overflow-hidden p-0 sm:max-w-lg"><JobInspector row={selected} onNavigate={navigate} sheet/></SheetContent>:null}
-    </Sheet>
+  return <div className="carez-operations-board">
+    <div aria-label="Job operations metrics" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+      <MetricBentoTile title="Current jobs" value={rows.filter(row=>row.state!=='completed').length} icon={<BriefcaseBusiness/>} description="Open jobs across the operation."/>
+      <MetricBentoTile title="Ready to move" value={metrics.ready} icon={<CheckCheck/>} tone={metrics.ready>0?'success':'neutral'} description="Physical operations ready to start."/>
+      <MetricBentoTile title="Hard holds" value={metrics.holds} icon={<ShieldAlert/>} tone={metrics.holds>0?'danger':'neutral'} description={`${metrics.attention} need attention`}/>
+      <MetricBentoTile title="Field active" value={metrics.fieldJobs} icon={<HardHat/>} description={`${metrics.activeShifts} shifts`}/>
+      <Link href="/billing" className="block min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        <MetricBentoTile title="Customers owe" value={metrics.customersOwe} prefix="$" icon={<Wallet/>} tone={metrics.customersOwe>0?'warning':'neutral'} description={metrics.overdue?`${money(metrics.overdue)} overdue`:'No overdue customer balance.'}/>
+      </Link>
+    </div>
+    {grid}
   </div>;
 }
 
-function JobInspector({row,onNavigate,sheet=false}:{row:JobsBoardRow;onNavigate:(href:string)=>void;sheet?:boolean}){
+function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
+  const router=useRouter();
   const state=resolveOperationalState(row.state);
   const priority=resolvePriority(priorityKindFor(row));
-  const contextualAction=row.state==='hold'
-    ?{label:'Clear hold',href:'/readiness'}
-    :row.pendingTimecards>0
-      ?{label:'Review time',href:'/field/review'}
-      :null;
+  const budgetProgress=row.budgetAvailable?Math.max(0,Math.min(100,row.budgetUsed)):null;
 
-  return <CarezInspector className={cn('h-full',sheet&&'rounded-none border-0')}>
-    <CarezInspectorHeader
-      title={row.name}
-      description={(row.jobNumber||'No job number')+' · '+row.customer}
-      status={<div className="flex flex-wrap gap-2">
-        {state?<CarezStatus tone={state.tone} label={state.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}
-        {priority?<CarezStatus tone={priority.tone} label={priority.label}/>:null}
-      </div>}
-    />
-    <CarezInspectorBody>
-      <CarezInspectorSection title="Next operation">
-        <div className="text-sm font-medium">{row.nextStep}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{row.scheduleDate?shortDate(row.scheduleDate):'Not scheduled'}</div>
-      </CarezInspectorSection>
+  return <section aria-label={`${row.name} project workspace`} className="w-[calc(100vw-2rem)] border-y border-[#D4DBD7] bg-[#F5F7F6] p-6 text-[#171B19] shadow-inner dark:border-[#343A3F] dark:bg-[#121212] dark:text-[#F4F6F5] lg:w-auto">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F]">
+      <div className="min-w-0">
+        <div className="font-mono text-[10px] text-[#7B8580] dark:text-[#7C8580]">{row.jobNumber||'No job number'}</div>
+        <h2 className="mt-1 text-lg font-bold">{row.name}</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {state?<CarezStatus tone={state.tone} label={state.label}/>:<CarezStatus tone="neutral" label="Unknown"/>}
+          {priority?<CarezStatus tone={priority.tone} label={priority.label}/>:null}
+          <span className="text-xs text-[#525C57] dark:text-[#B6BEBA]">{row.customer}</span>
+        </div>
+      </div>
+      <PourWeatherBadge/>
+    </div>
 
-      {row.reasons.length?<CarezInspectorSection title="Current constraints">
-        <div className="space-y-2">{row.reasons.map((reason,index)=><p key={index} className="text-xs leading-5 text-muted-foreground">{reason}</p>)}</div>
-      </CarezInspectorSection>:null}
+    <div className="grid grid-cols-1 gap-6 pt-4 lg:grid-cols-3">
+      <div className="min-w-0 space-y-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#525C57] dark:text-[#B6BEBA]">Plans</h3>
+        <TakeoffThumbnail/>
+        <p className="text-xs text-[#525C57] dark:text-[#B6BEBA]">Next operation: {row.nextStep}</p>
+      </div>
 
-      <CarezInspectorSection title="Readiness">
-        <dl className="grid grid-cols-2 gap-3 text-xs">
-          <InspectorMetric label="Ready ops" value={row.readyOperations}/>
-          <InspectorMetric label="On hold" value={row.blockedOperations}/>
-          <InspectorMetric label="Open ops" value={row.openOperations}/>
-          <InspectorMetric label="Timecards" value={row.pendingTimecards}/>
+      <div className="min-w-0 space-y-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#525C57] dark:text-[#B6BEBA]">Financial pulse</h3>
+        <div>
+          <div className="mb-1 flex justify-between gap-2 text-xs"><span>Budget consumed</span><span className="font-mono tabular-nums">{row.budgetAvailable?`${row.budgetUsed.toFixed(1)}%`:'Not available'}</span></div>
+          <Progress aria-label="Budget consumed" value={budgetProgress}/>
+        </div>
+        <div>
+          <div className="mb-1 flex justify-between gap-2 text-xs"><span>Labor remaining</span><span className="font-mono tabular-nums">{row.budgetAvailable?`${row.laborRemaining.toFixed(1)} MH`:'Not available'}</span></div>
+          <Progress aria-label="Labor remaining; percentage unavailable" value={null}/>
+          <p className="mt-1 text-[10px] text-[#7B8580] dark:text-[#7C8580]">No percentage without a labor baseline.</p>
+        </div>
+        <dl className="divide-y divide-[#D4DBD7] border-t border-[#D4DBD7] text-xs dark:divide-[#343A3F] dark:border-[#343A3F]">
+          <FinancialLine label="Contract amount" value={money(row.contractValue)}/>
+          <FinancialLine label="Billed" value={row.billingAvailable?money(row.billedAmount):'Not available'}/>
+          <FinancialLine label="Customer balance" value={row.billingAvailable?money(row.customerOwed):'Not available'} tone={row.overdue>0?'warning':undefined}/>
+          {row.overdue>0?<FinancialLine label="Past due" value={money(row.overdue)} tone="warning"/>:null}
         </dl>
-      </CarezInspectorSection>
+      </div>
 
-      <CarezInspectorSection title="Field">
-        <dl className="divide-y divide-border">
-          <InspectorRow label="Active shifts">{String(row.activeShifts)}</InspectorRow>
-          <InspectorRow label="GPS exceptions">{String(row.gpsExceptions)}</InspectorRow>
-          <InspectorRow label="Time review">{String(row.pendingTimecards)}</InspectorRow>
-        </dl>
-      </CarezInspectorSection>
+      <div className="min-w-0">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#525C57] dark:text-[#B6BEBA]">Cost codes <span className="font-normal normal-case tracking-normal">· sample layout</span></h3>
+        <p className="mt-1 text-[10px] text-[#7B8580] dark:text-[#7C8580]">Illustrative quantities and variances; no cost-code records are loaded here.</p>
+        <div className="max-h-64 overflow-y-auto">
+          <CSICostCodeStrip/>
+          <CSICostCodeStrip code="03 20 00" name="Reinforcing" completed={260} total={400} unit="LF" variance={-120}/>
+          <CSICostCodeStrip code="03 10 00" name="Concrete Forming" completed={175} total={220} unit="SF" variance={180}/>
+          <CSICostCodeStrip code="03 35 00" name="Concrete Finishing" completed={85} total={140} unit="SF" variance={-75}/>
+        </div>
+      </div>
+    </div>
 
-      <CarezInspectorSection title="Financial position">
-        <dl className="divide-y divide-border">
-          <InspectorRow label="Contract amount">{money(row.contractValue)}</InspectorRow>
-          <InspectorRow label="Budget used">{row.budgetAvailable?row.budgetUsed.toFixed(1)+'%':'Not available'}</InspectorRow>
-          <InspectorRow label="Labor remaining">{row.budgetAvailable?row.laborRemaining.toFixed(1)+' MH':'Not available'}</InspectorRow>
-          <InspectorRow label="Customer balance">{row.billingAvailable?money(row.customerOwed):'Not available'}</InspectorRow>
-          <InspectorRow label="Past due">{row.billingAvailable?money(row.overdue):'Not available'}</InspectorRow>
-        </dl>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">Approved change orders, committed cost and actual cost are not exposed by the current Jobs summary query, and are not available in this summary.</p>
-      </CarezInspectorSection>
-    </CarezInspectorBody>
-
-    <CarezInspectorFooter>
-      <Link href={`/projects/${row.id}`} className={buttonVariants({size:'sm'})}>Open Project</Link>
-      {contextualAction?<Link href={contextualAction.href} className={buttonVariants({variant:'outline',size:'sm'})}>{contextualAction.label}</Link>:null}
+    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#D4DBD7] pt-3 dark:border-[#343A3F]">
+      <Link href={`/projects/${row.id}`} className={buttonVariants({size:'sm'})}>Open Project Workspace</Link>
+      {row.state==='hold'?<Link href="/readiness" className={buttonVariants({variant:'outline',size:'sm'})}>Clear hold</Link>:null}
+      {row.pendingTimecards>0?<Link href="/field/review" className={buttonVariants({variant:'outline',size:'sm'})}>Review time</Link>:null}
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="sm"/>}>More</DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={()=>onNavigate('/schedule')}>Schedule</DropdownMenuItem>
-          <DropdownMenuItem onClick={()=>onNavigate('/field')}>Field</DropdownMenuItem>
-          <DropdownMenuItem onClick={()=>onNavigate('/billing')}>Billing</DropdownMenuItem>
-          <DropdownMenuItem onClick={()=>onNavigate('/cashflow')}>Cashflow</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/schedule')}>Schedule</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/field')}>Field</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/billing')}>Billing</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/cashflow')}>Cashflow</DropdownMenuItem>
           <DropdownMenuSeparator/>
-          <DropdownMenuItem onClick={()=>onNavigate('/takeoff')}>Takeoff</DropdownMenuItem>
-          <DropdownMenuItem onClick={()=>onNavigate('/estimates')}>Estimates</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/takeoff')}>Takeoff</DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>router.push('/estimates')}>Estimates</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </CarezInspectorFooter>
-  </CarezInspector>;
+    </div>
+  </section>;
 }
 
-function InspectorMetric({label,value}:{label:string;value:number}){
-  return <div className="rounded-md border border-border bg-muted/15 p-2.5"><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums">{value}</dd></div>;
-}
-
-function InspectorRow({label,children}:{label:string;children:ReactNode}){
-  return <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-3 py-2.5"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="min-w-0 text-right text-xs font-medium">{children}</dd></div>;
+function FinancialLine({label,value,tone}:{label:string;value:string;tone?:'warning'}){
+  return <div className="flex items-center justify-between gap-3 py-2"><dt className="text-[#525C57] dark:text-[#B6BEBA]">{label}</dt><dd className={cn('font-mono tabular-nums',tone==='warning'&&'text-[#8A610B] dark:text-[#D5A94A]')}>{value}</dd></div>;
 }
 

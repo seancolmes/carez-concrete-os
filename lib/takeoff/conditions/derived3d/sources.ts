@@ -15,7 +15,7 @@ export function sourceFromCondition(summary: any, version: any, template: any, a
     planFacts: record(version.plan_facts), methods: record(version.method_inputs), production: record(version.production_inputs), commercial: record(version.commercial_inputs), drawing: record(version.drawing_inputs),
   }, projectProvenance: record(version.input_provenance) });
   const concrete = modules.find(m => m.module_key === 'concrete' && m.instance_key === 'default');
-  const fallbackColor = summary.archetype_code === 'slab_on_grade' ? '#60a5fa' : summary.archetype_code === 'pad_column_footing' ? '#f59e0b' : '#34d399';
+  const fallbackColor = summary.archetype_code === 'slab_on_grade' ? '#426F93' : summary.archetype_code === 'pad_column_footing' ? '#8A610B' : '#347A46';
   return {
     conditionId: summary.condition_id, conditionVersionId: version.id, code: summary.code, name: summary.name,
     archetypeKey: summary.archetype_code, contractVersion: Number(archetype?.version_no || 0), engineKey: String(archetype?.engine_key || ''),

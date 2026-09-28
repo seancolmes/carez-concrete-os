@@ -1,22 +1,35 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import { Fira_Sans, Roboto_Slab, Source_Code_Pro } from 'next/font/google';
 import { CarezAppearanceProvider } from '@/components/carez/appearance-provider';
+import { PourtraceAntProvider } from '@/components/PourtraceAntProvider';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import './globals.css';
 import './takeoff-v3.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const ibmPlexMono = IBM_Plex_Mono({
+const firaSans = Fira_Sans({
   subsets: ['latin'],
-  variable: '--font-ibm-plex-mono',
+  variable: '--font-fira-sans',
   weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+const robotoSlab = Roboto_Slab({
+  subsets: ['latin'],
+  variable: '--font-roboto-slab',
+  weight: ['400', '700'],
+  display: 'swap',
+});
+const sourceCodePro = Source_Code_Pro({
+  subsets: ['latin'],
+  variable: '--font-source-code-pro',
+  weight: ['400', '600', '700'],
   display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'Carez Concrete OS',
-  description: 'Private operating system for Carez Concrete',
+  title: 'Pourtrace',
+  description: 'Concrete estimating and operations workspace',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,13 +39,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
+  return <html lang="en" suppressHydrationWarning className={`${firaSans.variable} ${robotoSlab.variable} ${sourceCodePro.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
     </head>
-    <body className={inter.className}>
+    <body className={firaSans.className}>
       <CarezAppearanceProvider>
-        <TooltipProvider>{children}</TooltipProvider>
+        <AntdRegistry><PourtraceAntProvider><TooltipProvider>{children}</TooltipProvider></PourtraceAntProvider></AntdRegistry>
       </CarezAppearanceProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}

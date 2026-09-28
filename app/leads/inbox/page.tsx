@@ -44,8 +44,8 @@ export default async function LeadInboxPage(){
   return <AppShell userName={p.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Lead inbox</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Connected Outlook can bring concrete opportunities here. Clear leads may be created automatically; uncertain messages wait for review.</p></div>
-        <div className="flex flex-wrap items-center gap-2">{connected?<form action={syncOutlookNow}><Button type="submit" size="sm" disabled={!providerEnabled}><RefreshCw/>Check Outlook now</Button></form>:providerEnabled?<a className={buttonVariants({size:'sm'})} href="/api/outlook/connect"><Mail/>Connect Outlook</a>:<Button type="button" size="sm" disabled><Mail/>Connect Outlook</Button>}<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads"><Users/>Job pipeline</Link></div>
+        <div><h1 className="text-2xl font-semibold tracking-tight">Intake</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Connected Outlook can bring concrete opportunities here. Clear leads may be created automatically; uncertain messages wait for review.</p></div>
+        <div className="flex flex-wrap items-center gap-2">{connected?<form action={syncOutlookNow}><Button type="submit" size="sm" disabled={!providerEnabled}><RefreshCw/>Check Outlook now</Button></form>:providerEnabled?<a className={buttonVariants({size:'sm'})} href="/api/outlook/connect"><Mail/>Connect Outlook</a>:<Button type="button" size="sm" disabled><Mail/>Connect Outlook</Button>}<Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads"><Users/>Opportunities</Link></div>
       </header>
 
       {!providerEnabled&&<p role="status" className="text-sm text-muted-foreground">Outlook connection and sync are disabled in this environment.</p>}

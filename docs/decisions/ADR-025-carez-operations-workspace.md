@@ -5,6 +5,8 @@ Date: 2026-09-21
 Authority: Issue #76 and Nik's explicit complete UI/UX rewrite authorization  
 Accepted reference merge: `457be2068a2b42f7883286a4f467f819e7fc049a`
 
+Color amendment (2026-09-28): ADR-027 supersedes the color values and theme preference claims in the historical visual language section below. ADR-025 continues to govern compatible workspace structure, density, and interaction.
+
 ## Context
 
 Nik rejected incremental Precision Slate restyling as the end state and authorized a complete custom Carez UI/UX rewrite.

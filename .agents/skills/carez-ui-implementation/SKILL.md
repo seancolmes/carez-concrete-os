@@ -1,6 +1,6 @@
 ---
 name: carez-ui-implementation
-description: Implement an already-decided Carez Concrete OS UI/UX change. Use only when the request states an approved/accepted direction or gives a concrete implementation target and behavior to preserve. Covers bounded Carez route, shell, navigation, workspace, component, theme, responsive, accessibility, or interaction implementation. Preserve domain behavior, Indigo Harbor, shared ownership, and light/dark/system behavior. Do not select this skill for open-ended "redesign", "make it better", or brainstorming requests that still need a design decision.
+description: Implement an already-decided Carez Concrete OS UI/UX change. Use only when the request states an approved/accepted direction or gives a concrete implementation target and behavior to preserve. Covers bounded Carez route, shell, navigation, workspace, component, theme, responsive, accessibility, or interaction implementation. Preserve domain behavior, the approved PourTrace palette, shared ownership, and light/dark/system behavior. Do not select this skill for open-ended "redesign", "make it better", or brainstorming requests that still need a design decision.
 ---
 
 # Carez UI Implementation
@@ -10,7 +10,7 @@ Apply an approved Carez UI direction as a bounded code change.
 ## Workflow
 
 1. Start with the named route/component and required direct dependencies only. Project instructions are already loaded; do not reread `AGENTS.md` or `CODEX.md`.
-2. Read the relevant ADR-025 section only when the task changes presentation language, shell/navigation structure, shared workspace primitives, or when hierarchy/ownership is genuinely ambiguous. Do not reopen ADR-025 for a small approved local styling edit.
+2. Read the relevant ADR-025 section only when the task changes shell/navigation structure, shared workspace primitives, or when hierarchy/ownership is genuinely ambiguous. ADR-027 owns the active color palette. Do not reopen full ADRs for a small approved local styling edit.
 3. Read only the relevant section of `docs/design-system/CAREZ_COMPONENT_PACK.md` when shared Carez primitives are actually involved.
 4. For Takeoff UI, also use `carez-takeoff-change`; presentation work must not override Takeoff authority.
 5. Implement the smallest coherent change. Preserve data sources, permissions, actions, links, calculations, and workflow semantics unless the task explicitly changes them.
@@ -18,7 +18,7 @@ Apply an approved Carez UI direction as a bounded code change.
 
 ## UI constraints
 
-- Use Indigo Harbor semantic tokens; do not introduce a competing palette or local design system.
+- Use the approved PourTrace semantic tokens in `app/globals.css`; do not introduce a competing palette or local design system.
 - Preserve the accepted Command Deck / Spatial Blueprint balance appropriate to the surface.
 - Prefer thin hierarchy, purposeful separators, compact controls, and open workspace over nested cards and permanent panels.
 - Use motion only to communicate state, focus, continuity, or change; respect reduced motion.

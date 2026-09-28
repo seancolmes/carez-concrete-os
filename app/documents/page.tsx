@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
-import {FileCheck2,FileText,FolderOpen,ReceiptText,Camera,Truck,ArrowRight,ScanLine,CheckCheck,UploadCloud} from 'lucide-react';
+import {FileCheck2,FileText,FolderOpen,ReceiptText,Camera,Truck,ArrowRight,ScanLine,CheckCheck} from 'lucide-react';
 import {CarezSectionHeading,CarezExperienceEmpty} from '@/components/carez/experience';
 import {AppShell} from '@/components/AppShell';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
+import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle,SheetTrigger} from '@/components/ui/sheet';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
@@ -65,25 +66,8 @@ export default async function DocumentsPage(){
   const outgoing=(bankTx||[]).map((t:any)=>({...t,amount:Math.abs(num(t.cash_amount))}));
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-evidence-hub mx-auto flex w-full max-w-screen-2xl flex-col gap-7">
-      <header className="carez-evidence-heading">
-        <div><p className="carez-page-context">Field evidence</p><h1>Documents</h1><p>From the field to the record. Capture it once. Keep the proof.</p></div>
-        <a href="#review-queue" className={buttonVariants({variant:'outline',size:'sm'})}><ScanLine/>{queue.length} to review<ArrowRight/></a>
-      </header>
-
-      <section className="carez-capture-surface" aria-labelledby="capture-heading">
-        <CarezSectionHeading id="capture-heading" icon={<UploadCloud/>} title="Capture the evidence" description="A receipt, a concrete delivery, a site photo. Keep it with the work."/>
-        <DocumentUpload companyId={companyId} projects={projectOpts} vendors={vendorOpts}/>
-      </section>
-
-      <nav className="carez-evidence-workflow" aria-label="Evidence workflow">
-        <span><UploadCloud aria-hidden="true"/>Captured</span><ArrowRight aria-hidden="true"/>
-        <span><ScanLine aria-hidden="true"/>Identify</span><ArrowRight aria-hidden="true"/>
-        <span><FolderOpen aria-hidden="true"/>Assign job</span><ArrowRight aria-hidden="true"/>
-        <span><FileCheck2 aria-hidden="true"/>Match</span><ArrowRight aria-hidden="true"/>
-        <span><CheckCheck aria-hidden="true"/>Filed</span>
-        <p>Identify and assign as applicable; match to the source transaction or file the evidence.</p>
-      </nav>
+    <div className="carez-evidence-hub mx-auto flex w-full max-w-screen-2xl flex-col gap-3">
+      <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Documents</h1><div className="flex flex-wrap gap-2"><a href="#review-queue" className={buttonVariants({variant:'outline',size:'sm'})}>{queue.length} to review</a><Dialog><DialogTrigger render={<Button size="sm"/>}>Capture document</DialogTrigger><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"><DialogHeader><DialogTitle>Capture document</DialogTitle><DialogDescription>Add field evidence and connect it to the right job or vendor.</DialogDescription></DialogHeader><DocumentUpload companyId={companyId} projects={projectOpts} vendors={vendorOpts}/></DialogContent></Dialog></div></header>
 
       <div className="carez-evidence-summary" aria-label="Document summary">
         <a href="#review-queue"><ScanLine aria-hidden="true"/><strong>{queue.length}</strong> need review</a>
@@ -95,17 +79,12 @@ export default async function DocumentsPage(){
       <section id="review-queue" className="carez-review-queue space-y-4" aria-labelledby="review-heading">
         <CarezSectionHeading id="review-heading" icon={<ScanLine/>} title="Review queue" description="Identify the document, assign the work, and connect the proof." action={<Badge variant="outline">{queue.length} to review</Badge>}/>
         {queue.length===0?<CarezExperienceEmpty icon={<CheckCheck/>} tone="success" title="Your review queue is clear." description="New captures will arrive here, ready to identify, assign, and match."/>:
-          <div className="grid gap-4">{queue.map((d:any)=>{
+          <div className="divide-y border border-border">{queue.map((d:any)=>{
             const probableBank=outgoing.filter((t:any)=>d.amount==null||Math.abs(t.amount-num(d.amount))<0.011).slice(0,20);
             const ticketLines=lines.filter((l:any)=>l.po&&(!d.project_id||l.po.project_id===d.project_id)&&(!d.vendor_id||l.po.vendor_id===d.vendor_id)&&l.po.status==='issued');
             const billOpts=(bills||[]).filter((b:any)=>(!d.project_id||b.project_id===d.project_id)&&(!d.vendor_id||b.vendor_id===d.vendor_id));
             const DocIcon=documentIcon(d.document_type);
-            return <Card key={d.id} className="carez-evidence-review gap-0 py-0 shadow-none">
-              <CardHeader className="grid gap-3 border-b py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-                <div className="flex min-w-0 items-start gap-3"><span className="carez-document-icon"><DocIcon aria-hidden="true"/></span><div className="min-w-0"><CardTitle className="break-words">{d.title}</CardTitle><CardDescription className="mt-1">{d.document_date||'No date'} · {label(d.document_type)}{d.reference_number?` · #${d.reference_number}`:''}</CardDescription><p className="mt-2 text-xs font-medium text-warning">{!d.project_id?'Next: identify and assign, or file as company evidence':'Next: match to a source or file the document'}</p></div></div>
-                <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">Needs review</Badge>
-              </CardHeader>
-              <CardContent className="space-y-4 py-4">
+            return <Sheet key={d.id}><div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2"><div className="flex min-w-0 items-center gap-3"><span className="carez-document-icon"><DocIcon aria-hidden="true"/></span><div className="min-w-0"><strong className="block truncate text-sm">{d.title}</strong><span className="block truncate text-xs text-muted-foreground">{d.document_date||'No date'} · {label(d.document_type)} · {d.projects?.job_number||'Company'}</span></div></div><div className="flex items-center gap-2"><strong className="font-mono text-xs tabular-nums">{money(d.amount)}</strong><Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">Needs review</Badge><SheetTrigger render={<Button variant="outline" size="sm"/>}>View / Edit</SheetTrigger></div></div><SheetContent className="w-full overflow-hidden sm:max-w-3xl"><SheetHeader><SheetTitle>{d.title}</SheetTitle><SheetDescription>{label(d.document_type)} · {d.document_date||'No date'}</SheetDescription></SheetHeader><div className="grid min-h-0 gap-4 overflow-y-auto px-4 pb-6">
                 <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0"><div className="text-sm font-medium">{d.projects?`${d.projects.job_number} — ${d.projects.name}`:'No job assigned'}</div><div className="mt-1 text-xs text-muted-foreground">{d.vendors?.name||'No vendor'} · {money(d.amount)}</div>{d.notes&&<div className="mt-1 text-xs text-muted-foreground">{d.notes}</div>}</div>
                   {d.url&&<a className={buttonVariants({variant:'outline',size:'sm'})} href={d.url} target="_blank" rel="noreferrer">Open File</a>}
@@ -124,14 +103,13 @@ export default async function DocumentsPage(){
 
                   <details className={detailsClass}><summary className={summaryClass}>Ignore / Delete</summary><div className="flex flex-wrap gap-2 border-t border-border p-3"><form action={updateDocumentReview}><input type="hidden" name="id" value={d.id}/><input type="hidden" name="project_id" value={d.project_id||''}/><input type="hidden" name="vendor_id" value={d.vendor_id||''}/><input type="hidden" name="document_date" value={d.document_date||''}/><input type="hidden" name="amount" value={d.amount??''}/><input type="hidden" name="reference_number" value={d.reference_number||''}/><input type="hidden" name="notes" value={d.notes||''}/><input type="hidden" name="review_status" value="ignored"/><Button type="submit" variant="outline" size="sm">Ignore</Button></form><form action={deleteDocument}><input type="hidden" name="id" value={d.id}/><Button type="submit" variant="destructive" size="sm">Delete File</Button></form></div></details>
                 </div>
-              </CardContent>
-            </Card>;
+              </div></SheetContent></Sheet>;
           })}</div>}
       </section>
 
       <section id="filed-evidence" className="carez-filed-evidence space-y-4" aria-labelledby="filed-heading">
         <CarezSectionHeading id="filed-heading" icon={<FolderOpen/>} title="Filed & matched" description="The evidence behind the job and source transaction, including ignored records." action={<Badge variant="outline">{archived.length} records</Badge>}/>
-        {archived.length===0?<CarezExperienceEmpty icon={<FolderOpen/>} title="A place for every piece of proof." description="File or match a document from the review queue to build your evidence record." actions={<a href="#capture-heading" className={buttonVariants({variant:'outline',size:'sm'})}><UploadCloud/>Capture a document</a>}/>:
+        {archived.length===0?<CarezExperienceEmpty icon={<FolderOpen/>} title="A place for every piece of proof." description="File or match a document from the review queue to build your evidence record." />:
           <div className="carez-evidence-browser">
             <div className="carez-evidence-browser-head" aria-hidden="true"><span>Document / source</span><span>Job / date</span><span>Amount</span><span>State / action</span></div>
             {archived.slice(0,120).map((d:any)=>{const DocIcon=documentIcon(d.document_type);return <article key={d.id} className="carez-evidence-row">

@@ -88,8 +88,8 @@ export function StructuralDraftingCanvas() {
     const colors = () => {
       const computed = window.getComputedStyle(canvas);
       return {
-        line: computed.getPropertyValue('--carez-draft-line').trim() || 'rgba(8, 145, 178, 0.2)',
-        label: computed.getPropertyValue('--carez-draft-label').trim() || 'rgba(103, 232, 249, 0.38)',
+        line: computed.getPropertyValue('--carez-draft-line').trim() || 'rgba(66,111,147, 0.2)',
+        label: computed.getPropertyValue('--carez-draft-label').trim() || 'rgba(111,159,198, 0.38)',
       };
     };
 

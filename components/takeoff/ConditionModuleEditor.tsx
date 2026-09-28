@@ -33,6 +33,7 @@ type Props={
   modules:ConditionModuleConfiguration[];
   onChange:(modules:ConditionModuleConfiguration[])=>void;
   disabled?:boolean;
+  enableLabel?:string;
 };
 
 const titleCase=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -87,7 +88,7 @@ function instanceSummary(moduleKey:ConditionModuleKey,values:Record<string,Condi
   return '';
 }
 
-export function ConditionModuleEditor({definition,moduleKey,modules,onChange,disabled=false}:Props){
+export function ConditionModuleEditor({definition,moduleKey,modules,onChange,disabled=false,enableLabel}:Props){
   const usesPhysicalFormBoards=moduleKey==='forms'&&modules.some(module=>
     module.moduleKey==='forms'&&module.inputValues?.form_resource_model===STRIP_FOOTING_V5_RESOURCE_MODEL
   );
@@ -153,7 +154,7 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
       const values=module.inputValues||{};
       const visible=schema.inputs.filter(field=>conditionModuleFieldVisible(moduleKey,field,values));
       const label=module.label||schema.label;
-      const switchLabel=schema.repeatable?label:'Include in Condition';
+      const switchLabel=schema.repeatable?label:(enableLabel||'Include in Condition');
       const summary=schema.repeatable?instanceSummary(moduleKey,values):'';
       const moduleSwitchId=switchId(moduleKey,module.instanceKey||'default','enabled');
       return <section key={`${moduleKey}:${module.instanceKey||'default'}`} className="overflow-hidden rounded-md border border-border bg-card/35">
@@ -164,7 +165,7 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
             disabled={disabled}
             onCheckedChange={checked=>update(index,{enabled:checked})}
             label={switchLabel}
-            description={summary||(module.enabled?'Included in this Condition':'Excluded from this Condition')}
+            description={summary||(enableLabel?(module.enabled?'Yes':'No'):(module.enabled?'Included in this Condition':'Excluded from this Condition'))}
             className="min-h-0 flex-1 border-0 bg-transparent p-0 data-[checked=true]:border-0 data-[checked=true]:bg-transparent"
           />
           {schema.repeatable&&module.instanceKey!=='default'?<Button type="button" size="icon-sm" variant="ghost" onClick={()=>remove(index)} disabled={disabled} aria-label={`Remove ${label}`}><Trash2/></Button>:null}

@@ -31,6 +31,8 @@
   color:var(--foreground);
 }
 .workspaceCopy p{max-width:min(58vw,780px);margin:0;overflow:hidden;color:var(--muted-foreground);font-size:10px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+.workspaceCopy a{color:var(--primary);font-weight:650;text-decoration:none}
+.workspaceCopy a:hover,.workspaceCopy a:focus-visible{text-decoration:underline}
 .meta{
   min-width:0;
   display:flex;
@@ -43,13 +45,15 @@
 }
 .estimate{
   flex:none;
-  font-family:var(--font-ibm-plex-mono),ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-family:var(--font-source-code-pro),ui-monospace,SFMono-Regular,Consolas,monospace;
   font-size:11px;
   line-height:1.2;
   font-weight:650;
   font-variant-numeric:tabular-nums;
   color:var(--muted-foreground);
 }
+.estimate a{color:var(--primary);text-decoration:none}
+.estimate a:hover,.estimate a:focus-visible{text-decoration:underline}
 .separator{
   flex:none;
   color:var(--muted-foreground);

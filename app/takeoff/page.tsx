@@ -1,6 +1,6 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {AlertTriangle,ArrowRight,Calculator,LibraryBig,Plus,Ruler,Upload} from 'lucide-react';
+import {AlertTriangle,Calculator,LibraryBig,Plus,Ruler,Upload} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {Badge} from '@/components/ui/badge';
 import {Button,buttonVariants} from '@/components/ui/button';
@@ -70,15 +70,11 @@ export default async function TakeoffPage(){
   const totalDirect=(summaries||[]).reduce((sum:number,row:any)=>sum+Number(row.takeoff_direct_cost||0),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Concrete takeoff</h1></div>
+        <div><h1>Concrete takeoff</h1></div>
         <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assembly history</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
       </header>
-
-      <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Carez estimating workflow">
-        {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} className={index===0?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
-      </nav>
 
       <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
         <Metric label="Working bids" value={String(activeSets.filter((set:any)=>!issued.has(set.estimate_id)).length)} help="Active takeoff revisions."/>
@@ -88,15 +84,15 @@ export default async function TakeoffPage(){
       </section>
 
       {startableEstimates.length>0?<section className="border-y border-border py-4">
-        <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Start a bid</p><CardTitle className="mt-1">Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate. Carez creates the takeoff set and opens the drawing workspace without inserting an unnecessary setup screen.</CardDescription></div>
+        <CardHeader className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end"><div><CardTitle>Open a new plan takeoff</CardTitle><CardDescription className="mt-1 max-w-2xl">Choose an estimate to open its drawing workspace.</CardDescription></div>
           <form action={createTakeoffSet} className="flex flex-col gap-2 sm:flex-row"><input type="hidden" name="name" value="Concrete Takeoff"/><select name="estimate_id" required defaultValue="" className="h-8 min-w-72 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20"><option value="" disabled>Choose estimate…</option>{startableEstimates.map((e:any)=><option key={e.id} value={e.id}>{e.estimate_number}-R{e.version} — {e.name}</option>)}</select><Button type="submit" size="sm"><Plus/>Start takeoff</Button></form>
         </CardHeader>
       </section>:null}
 
-      <section className="space-y-4">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your bids</p><h2 className="mt-1 text-lg font-semibold">Takeoff workbench</h2><p className="mt-1 max-w-4xl text-sm text-muted-foreground">The plans stay primary. Pricing holds and manual field quantities stay attached to the bid without competing with measurement work.</p></div>
+      <section className="space-y-3">
+        <div className="carez-section-heading"><Ruler className="size-4 text-muted-foreground"/><h2>Plan sets</h2></div>
         {activeSets.length===0?<Empty className="min-h-64 border bg-muted/20"><EmptyHeader><EmptyMedia variant="icon"><Ruler/></EmptyMedia><EmptyTitle>No takeoff started yet</EmptyTitle><EmptyDescription>Create an estimate first, then start its plan takeoff here.</EmptyDescription></EmptyHeader><EmptyContent><Link className={buttonVariants()} href="/estimates">Open estimates</Link></EmptyContent></Empty>:
-          <div className="grid gap-4">{activeSets.map((set:any)=>{
+          <div className="grid gap-3">{activeSets.map((set:any)=>{
             const estimate:any=estimateMap.get(set.estimate_id);
             const locked=!estimate||issued.has(set.estimate_id)||['accepted','approved','superseded'].includes(estimate.status);
             const ms=measurementsBySet.get(set.id)||[];
@@ -110,7 +106,7 @@ export default async function TakeoffPage(){
             const tone=locked?'muted':!set.source_document_id||unscaled>0||holds.length?'warning':'success';
             return <article key={set.id} className="border-y border-border bg-transparent">
               <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
-                <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-4"/></span>
+                <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Ruler className="size-4"/></span>
                 <div className="min-w-0"><CardTitle className="truncate">{estimate?.name||set.name}</CardTitle><CardDescription className="mt-1 truncate">{estimate?`${estimate.estimate_number}-R${estimate.version}`:'Estimate'} · {set.revision_label}{set.source_filename?` · ${set.source_filename}`:''}</CardDescription></div>
                 <Badge variant={tone==='warning'?'secondary':tone==='success'?'secondary':'outline'} className={cn(tone==='warning'&&'bg-warning/10 text-warning',tone==='success'&&'bg-success/10 text-success',tone==='muted'&&'text-muted-foreground')}>{status}</Badge>
               </CardHeader>
@@ -127,7 +123,7 @@ export default async function TakeoffPage(){
 
                 {!locked?<details>
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium hover:bg-muted/40"><span>Manual quantity / field measurement</span><span className="text-[11px] font-normal text-muted-foreground">Fallback</span></summary>
-                  <div className="border-t p-4"><div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-5 text-muted-foreground">Use this only when the quantity comes from a field dimension, sketch, owner quantity, or another verified source instead of the PDF.</div><ManualTakeoffEntry takeoffSetId={set.id} assemblies={assemblies||[]} versions={versions||[]} variables={variables||[]} sections={sectionsByEstimate.get(set.estimate_id)||[]} riskClasses={riskClasses||[]}/></div>
+                  <div className="border-t p-4"><div className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-5 text-muted-foreground">Use this only when the quantity comes from a field dimension, sketch, owner quantity, or another verified source instead of the PDF.</div><ManualTakeoffEntry takeoffSetId={set.id} assemblies={assemblies||[]} versions={versions||[]} variables={variables||[]} sections={sectionsByEstimate.get(set.estimate_id)||[]} riskClasses={riskClasses||[]}/></div>
                 </details>:null}
               </CardContent>
 
@@ -140,7 +136,6 @@ export default async function TakeoffPage(){
           })}</div>}
       </section>
 
-      <section className="grid gap-4 border-y border-border py-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estimating system</p><CardTitle className="mt-1">Legacy assembly compatibility history</CardTitle><CardDescription className="mt-1 max-w-3xl">{(assemblies||[]).length} published compatibility assemblies remain available for historical Takeoff and estimate lineage. This is read-only compatibility history; new scope is authored through Concrete Conditions.</CardDescription></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies">Assembly history</Link></section>
     </div>
   </AppShell>;
 }

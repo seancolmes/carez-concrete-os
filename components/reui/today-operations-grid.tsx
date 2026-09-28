@@ -14,7 +14,7 @@ export function TodayOperationsGrid({operations}:{operations:TodayOperation[]}){
   const [order,setOrder]=useState<Column[]>([...columns]);
   const [dragged,setDragged]=useState<Column|null>(null);
   const move=(over:Column)=>{if(!dragged||dragged===over)return;setOrder(current=>{const next=[...current];next.splice(next.indexOf(over),0,next.splice(next.indexOf(dragged),1)[0]);return next;});setDragged(null);};
-  if(!operations.length)return <div className="flex min-h-24 items-center gap-3 rounded-md border border-border bg-muted/35 px-4 py-4 text-sm"><span className="grid size-8 shrink-0 place-items-center rounded-sm bg-background text-primary"><GripVertical aria-hidden="true" className="size-4"/></span><span><span className="block font-semibold">No active operations</span><span className="mt-0.5 block text-xs text-muted-foreground">Today&apos;s schedule is clear.</span></span></div>;
+  if(!operations.length)return <div className="flex min-h-24 items-center gap-3 rounded-md border border-border bg-muted/35 px-4 py-4 text-sm"><span className="grid size-8 shrink-0 place-items-center rounded-sm bg-background text-primary"><GripVertical aria-hidden="true" className="size-4"/></span><span><span className="block font-semibold">No scheduled operations</span><span className="mt-0.5 block text-xs text-muted-foreground">Schedule work from a project when it is ready.</span></span></div>;
   const cell=(row:TodayOperation,column:Column)=>{
     if(column==='project')return <Link href={row.href} className="font-semibold hover:text-primary">{row.project}</Link>;
     if(column==='operation')return <span className="text-muted-foreground">{row.operation}</span>;

@@ -271,3 +271,31 @@ export async function getConcreteConditionReconciliation(conditionVersionId: str
   if (error) throw new Error(error.message);
   return data || [];
 }
+
+/** Save an unmeasured draft. The database rejects linked or calculated versions. */
+export async function saveUnmeasuredConcreteConditionDraft(input: {
+  conditionVersionId: string;
+  inputs: PersistConcreteConditionPilotInput['inputs'];
+  inputProvenance: PersistConcreteConditionPilotInput['inputProvenance'];
+  modules: NonNullable<PersistConcreteConditionPilotInput['modules']>;
+}) {
+  const { supabase, companyId } = await conditionContext();
+  const { data: version, error: versionError } = await supabase.from('project_concrete_condition_versions')
+    .select('id,condition_id')
+    .eq('id', input.conditionVersionId).eq('company_id', companyId).eq('status', 'draft').maybeSingle();
+  if (versionError) throw new Error(versionError.message);
+  if (!version) throw new Error('Editable Condition draft not found.');
+  const { data: condition, error: conditionError } = await supabase.from('project_concrete_conditions')
+    .select('takeoff_set_id').eq('id', version.condition_id).eq('company_id', companyId).maybeSingle();
+  if (conditionError) throw new Error(conditionError.message);
+  if (!condition) throw new Error('Condition not found.');
+  await editableTakeoffSet(supabase, companyId, condition.takeoff_set_id);
+  const { error } = await supabase.rpc('carez_save_unmeasured_condition_draft', {
+    p_condition_version_id: input.conditionVersionId,
+    p_inputs: input.inputs || {},
+    p_input_provenance: input.inputProvenance || {},
+    p_modules: input.modules,
+  });
+  if (error) throw new Error(error.message);
+  refreshConditionSurfaces(condition.takeoff_set_id);
+}

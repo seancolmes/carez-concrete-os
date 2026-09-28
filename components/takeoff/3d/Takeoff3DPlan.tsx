@@ -56,8 +56,8 @@ export function Takeoff3DPlan({ pdfUrl, pageNumber, plane, viewportSize }: {
       ) : (
         <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} depthWrite={false} depthTest={false} transparent={false} toneMapped={false} />
       )}
-      <Edges color="#b5bac2" renderOrder={-19} depthWrite={false} depthTest={false} />
+      <Edges color="#B9C3BE" renderOrder={-19} depthWrite={false} depthTest={false} />
     </mesh>
-    {!texture && <Html center position={frame.center}><span role="status" style={{ color: '#111827', whiteSpace: 'nowrap' }}>Loading plan…</span></Html>}
+    {!texture && <Html center position={frame.center}><span role="status" style={{ color: '#171B19', whiteSpace: 'nowrap' }}>Loading plan…</span></Html>}
   </>;
 }

@@ -2,29 +2,20 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { loginLandingContent } from '../app/login/loginLandingContent.ts';
 import {
   MAX_ACTIVE_DRAFTS,
   buildStructuralDrafts,
   sampleDraftFrame,
 } from '../app/login/structuralDraftingScene.ts';
 
-test('commercial landing content sends concrete contractors to the requested destinations', () => {
-  assert.equal(loginLandingContent.headline, 'The Operating System for Concrete Contractors.');
-  assert.equal(
-    loginLandingContent.subheadline,
-    'Automate PDF takeoffs, calculate multi-phase estimates, track live mud delivery yield, and digitize field pour logs on one unified platform.',
-  );
-  assert.deepEqual(loginLandingContent.ctas, [
-    { label: 'Book a Concrete Demo', href: '/demo', emphasis: 'primary' },
-    { label: 'Explore Yield Estimator', href: '/estimating-sandbox', emphasis: 'secondary' },
-  ]);
-  assert.deepEqual(loginLandingContent.categories, [
-    'PDF Takeoffs',
-    'Mix Estimating',
-    'Pour Logs',
-    'Yield Analytics',
-  ]);
+test('public landing page connects product story to working sign-in', () => {
+  const page = readFileSync('app/login/page.tsx', 'utf8');
+  assert.match(page, /From the drawing to the/);
+  assert.match(page, /id="workflow"/);
+  assert.match(page, /id="capabilities"/);
+  assert.match(page, /id="workspace-access"/);
+  assert.match(page, /href="#workspace-access"/);
+  assert.doesNotMatch(page, /href="\/(demo|estimating-sandbox)"/);
 });
 
 test('structural drafting scene includes the specified concrete plan language', () => {
@@ -49,21 +40,22 @@ test('structural drafting animation keeps a bounded number of visible drafts', (
   }
 });
 
-test('login uses the Steam authentication shell and preserves real Supabase sign-in', () => {
+test('login preserves real Supabase sign-in on the new landing page', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
   const loginForm = readFileSync('components/auth/LoginForm.tsx', 'utf8');
-  const globalStyles = readFileSync('app/globals.css', 'utf8');
-
-  assert.match(page, /className="carez-auth-shell"/);
-  assert.match(page, /className="carez-auth-titlebar"/);
-  assert.ok(page.indexOf('aria-label="Platform capabilities"') < page.indexOf('aria-label="Sign in"'));
-  assert.match(globalStyles, /\.carez-auth-shell[^\n]*var\(--steam-bg-0\)/);
-  assert.match(loginForm, /supabase\.auth\.signInWithPassword\(\{email,password\}\)/);
-  assert.match(loginForm, /router\.push\(profile\?\.role==='employee'\?'\/employee':'\/'\)/);
+  const loginAction = readFileSync('app/login/actions.ts', 'utf8');
+  assert.match(page, /className=\{styles\.page\}/);
+  assert.match(page, /<LoginForm\s*\/>/);
+  assert.match(loginAction, /supabase\.auth\.signInWithPassword\(\{email,password\}\)/);
+  assert.match(loginForm, /signInToWorkspace\(email,password\)/);
+  assert.match(loginForm, /if\(result\.error\)/);
+  assert.match(loginForm, /fetch\('\/api\/auth\/workspace-readiness'/);
+  assert.match(loginForm, /window\.location\.assign\(result\.destination\|\|'\/'\)/);
+  assert.match(page, /if\(!active\|\|!response\.ok\)return/);
   assert.doesNotMatch(page, /authSuccess|setTimeout|mousemove|coords|SECURE_GATEWAY_ACTIVE|SYS \/\/ METALLIC_ENGINE/);
 });
 
-test('Steam login contains no demo-only auth claims or inline remote font imports', () => {
+test('Pourtrace login contains no demo-only auth claims or inline remote font imports', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
   const globalStyles = readFileSync('app/globals.css', 'utf8');
 

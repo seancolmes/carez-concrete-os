@@ -137,10 +137,10 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
         <div className="ml-auto hidden text-xs text-muted-foreground xl:block">{selectedIds.size} selected · ↑↓ move · Space select · Enter open</div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground"><span>{visibleRows.length} visible of {rows.length}</span><span>{selectedIds.size} selected</span></div>
+      <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground"><span>{visibleRows.length} visible of {rows.length}</span><span className="hidden md:inline">{selectedIds.size} selected</span></div>
 
       {visibleRows.length===0?<Empty className="min-h-64 border-0"><EmptyHeader><EmptyMedia variant="icon"><Search/></EmptyMedia><EmptyTitle>No estimates match this view</EmptyTitle><EmptyDescription>Change the search or stage filter to see other estimate revisions.</EmptyDescription></EmptyHeader></Empty>:
-        <Table>
+        <><div className="hidden overflow-x-auto md:block"><Table>
           <TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30">
             <TableHead className="w-10"><Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisible} aria-label={allVisibleSelected?'Clear visible estimate selection':'Select all visible estimates'}/></TableHead>
             <TableHead>Estimate</TableHead>
@@ -172,12 +172,12 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
               <TableCell onClick={event=>event.stopPropagation()}><div className="flex items-center gap-1.5"><Link className={buttonVariants({size:'sm'})} href={row.estimateHref}>Open<ExternalLink/></Link>{row.secondaryHref&&row.secondaryLabel?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={row.secondaryHref}>{row.secondaryLabel}</Link>:null}</div></TableCell>
             </TableRow>;
           })}</TableBody>
-        </Table>}
+        </Table></div><div className="divide-y md:hidden">{visibleRows.map(row=><div key={row.id} className="grid gap-2 px-3 py-2"><div className="flex items-center justify-between gap-2"><strong className="font-mono text-xs">{row.displayNumber}</strong><StageBadge stage={row.stage} label={row.stageLabel}/></div><div className="min-w-0"><strong className="block truncate text-sm">{row.name}</strong><span className="block truncate text-xs text-muted-foreground">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</span></div><div className="flex items-center justify-between gap-3 text-xs"><span className="font-mono tabular-nums">{money(row.quote)} quote · {row.projectedMargin.toFixed(1)}% margin</span><span className={row.priceHolds?'text-warning':'text-muted-foreground'}>{row.priceHolds} holds</span></div><div className="flex gap-2"><Link className={buttonVariants({size:'sm'})} href={row.estimateHref}>Open estimate</Link><button type="button" className={buttonVariants({variant:'outline',size:'sm'})} onClick={()=>setInspectedId(row.id)}>View details</button></div></div>)}</div></>}
     </CarezDataGrid>
 
     <Sheet open={Boolean(inspected)} onOpenChange={open=>{if(!open)setInspectedId(null)}}>
-      {inspected?<SheetContent className="w-[92vw] overflow-y-auto sm:max-w-md">
-        <SheetHeader className="border-b pr-12"><div className="carez-kicker">Estimate revision</div><SheetTitle>{inspected.displayNumber}</SheetTitle><SheetDescription>{inspected.name}</SheetDescription></SheetHeader>
+      {inspected?<SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        <SheetHeader className="border-b pr-12"><SheetTitle>{inspected.displayNumber}</SheetTitle><SheetDescription>{inspected.name}</SheetDescription></SheetHeader>
         <div className="space-y-5 px-4 pb-6">
           <section className="space-y-2"><div className="text-xs font-semibold text-muted-foreground">Pricing summary</div><dl className="divide-y rounded-lg border">
             <InspectorRow label="Stage"><StageBadge stage={inspected.stage} label={inspected.stageLabel}/></InspectorRow>

@@ -48,8 +48,8 @@ function applyDensity(preference: CarezDensityPreference) {
 
 export function CarezAppearanceProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [themePreference, setThemePreference] = useState<CarezThemePreference>('dark');
-  const [resolvedTheme, setResolvedTheme] = useState<CarezResolvedTheme>('dark');
+  const [themePreference, setThemePreference] = useState<CarezThemePreference>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<CarezResolvedTheme>('light');
   const [densityPreference, setDensityPreference] = useState<CarezDensityPreference>('default');
 
   useEffect(() => {

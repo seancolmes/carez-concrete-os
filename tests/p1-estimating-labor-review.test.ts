@@ -159,7 +159,7 @@ test('Estimate Labor workspace exposes production assumption and rate provenance
   const actions = requireFile(actionsPath, 'Estimate actions must exist');
 
   for (const phrase of [
-    'Labor review',
+    'Production labor',
     'Baseline MH / unit',
     'Job MH / unit',
     'Estimated MH',

@@ -14,6 +14,7 @@ export type WorksheetOutput = {
 } | null | undefined;
 
 export type WorksheetPricingState =
+  | 'no_input'
   | 'price_required'
   | 'manual_override'
   | 'priced'
@@ -30,6 +31,7 @@ export function getWorksheetPricingState(
 ): WorksheetPricingState {
   if (!line.source_takeoff_output_id || !output) return 'manual';
   const status = String(output.pricing_status || '').toLowerCase();
+  if (status === 'missing_input') return 'no_input';
   if (status === 'missing_price' || status === 'missing_labor_rate') {
     return 'price_required';
   }
@@ -38,6 +40,7 @@ export function getWorksheetPricingState(
 }
 
 export function getWorksheetPricingLabel(state: WorksheetPricingState) {
+  if (state === 'no_input') return 'NO INPUT';
   if (state === 'price_required') return 'PRICE REQUIRED';
   if (state === 'manual_override') return 'MANUAL OVERRIDE';
   if (state === 'priced') return 'PRICED';

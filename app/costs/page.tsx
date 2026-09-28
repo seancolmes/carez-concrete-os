@@ -1,7 +1,8 @@
 import {redirect} from 'next/navigation';
+import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
 import {Button} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
 import {Empty,EmptyDescription,EmptyHeader,EmptyTitle} from '@/components/ui/empty';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -15,7 +16,7 @@ const units=['CY','LF','SF','LB','EA','HR','DAY','TON','GAL','LS'];
 const selectClass='h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help}:{label:string;value:string;help?:string}){
- return <Card className="shadow-none"><CardHeader className="gap-1 pb-2"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className="text-xl font-semibold tabular-nums">{value}</CardTitle></CardHeader>{help?<CardContent className="pt-0 text-xs text-muted-foreground">{help}</CardContent>:null}</Card>;
+ return <div className="min-w-0 border border-border bg-card px-3 py-2" title={help}><div className="truncate text-xs text-muted-foreground">{label}</div><strong className="font-mono text-lg tabular-nums">{value}</strong></div>;
 }
 
 export default async function CostsPage(){
@@ -39,21 +40,9 @@ export default async function CostsPage(){
  for(const c of costs||[])byType.set(c.cost_codes?.cost_type||'other',(byType.get(c.cost_codes?.cost_type||'other')||0)+num(c.total_cost));
  const jobMap=new Map((budget||[]).map((x:any)=>[x.project_id,x]));
 
- return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-  <header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Job costs</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">What Each Job Actually Cost</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Employee labor comes from approved time. Vendor bills come from Purchasing. Use this screen for direct job costs that do not already enter Carez somewhere else.</p></header>
+ return <AppShell userName={p.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3">
+  <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Job costs</h1><div className="flex flex-wrap gap-2"><Link className="inline-flex h-8 items-center border border-border px-3 text-xs font-medium hover:bg-accent" href="/costs/catalog">Cost catalog</Link><Dialog><DialogTrigger render={<Button size="sm"/>}>Add direct cost</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Add direct job cost</DialogTitle><DialogDescription>Use for costs that are not already captured through time or vendor bills.</DialogDescription></DialogHeader><form action={createProjectCost} className="grid gap-4">
 
-  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-   <Metric label="Direct Labor" value={money(labor)} help="From approved employee/owner field time."/>
-   <Metric label="Materials Entered Here" value={money(byType.get('material')||0)}/>
-   <Metric label="Equipment Entered Here" value={money(byType.get('equipment')||0)}/>
-   <Metric label="Subs + Other Entered Here" value={money((byType.get('subcontractor')||0)+(byType.get('other')||0))}/>
-   <Metric label="Manual Direct Costs" value={money(manual)}/>
-  </div>
-
-  <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"><strong>Avoid double entry:</strong> if a supplier invoice is already posted through Purchasing → Vendor Bills, do not enter it again here. This screen is for direct costs that have no other Carez workflow.</div>
-
-  <div className="grid gap-4 xl:grid-cols-2">
-   <Card className="shadow-none"><CardHeader><CardTitle>Add Direct Job Cost</CardTitle><CardDescription>Examples: cash purchase, one-off rental, permit/job-specific fee, direct subcontract cost.</CardDescription></CardHeader><CardContent><form action={createProjectCost} className="grid gap-4">
     <div className="grid gap-2"><Label htmlFor="cost-project">Job</Label><select id="cost-project" className={selectClass} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((x:any)=><option key={x.id} value={x.id}>{x.job_number} — {x.name}</option>)}</select></div>
     <div className="grid gap-2"><Label htmlFor="cost-change-order">Change Order if Applicable</Label><select id="cost-change-order" className={selectClass} name="change_order_id" defaultValue=""><option value="">Original contract work</option>{(cos||[]).map((c:any)=><option key={c.id} value={c.id}>{c.projects?.job_number} — {c.co_number} — {c.title}</option>)}</select></div>
     <div className="grid gap-2"><Label htmlFor="cost-budget-area">Budget Area</Label><select id="cost-budget-area" className={selectClass} name="budget_section_id" defaultValue=""><option value="">Unassigned</option>{(sections||[]).map((s:any)=><option key={s.id} value={s.id}>{s.project_budgets?.projects?.job_number} — {s.name}</option>)}</select></div>
@@ -66,12 +55,21 @@ export default async function CostsPage(){
     <div className="grid gap-2"><Label htmlFor="cost-reference">Receipt / Invoice #</Label><Input id="cost-reference" name="reference_number"/></div>
     <input type="hidden" name="source_type" value="manual"/>
     <Button type="submit" className="w-fit">Save Job Cost</Button>
-   </form></CardContent></Card>
+   </form></DialogContent></Dialog></div></header>
 
-   <Card className="shadow-none"><CardHeader><CardTitle>Job Budget Check</CardTitle><CardDescription>Actual company cost against the frozen estimate/budget.</CardDescription></CardHeader><CardContent>{(projects||[]).length===0?<Empty><EmptyHeader><EmptyTitle>No active jobs</EmptyTitle><EmptyDescription>Active and on-hold projects will appear here.</EmptyDescription></EmptyHeader></Empty>:<div className="divide-y rounded-lg border border-border">{(projects||[]).map((x:any)=>{const b:any=jobMap.get(x.id)||{};return <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between" key={x.id}><div><div className="font-medium">{x.job_number} — {x.name}</div><div className="mt-1 text-xs text-muted-foreground">{b.project_id?`${num(b.budget_cost_used_percent).toFixed(1)}% of budget used · ${num(b.actual_labor_hours).toFixed(1)} labor hr`:'No frozen budget yet'}</div></div><strong className="tabular-nums">{b.project_id?money(b.actual_total_company_cost):'—'}</strong></div>})}</div>}</CardContent></Card>
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+   <Metric label="Direct Labor" value={money(labor)} help="From approved employee/owner field time."/>
+   <Metric label="Materials Entered Here" value={money(byType.get('material')||0)}/>
+   <Metric label="Equipment Entered Here" value={money(byType.get('equipment')||0)}/>
+   <Metric label="Subs + Other Entered Here" value={money((byType.get('subcontractor')||0)+(byType.get('other')||0))}/>
+   <Metric label="Manual Direct Costs" value={money(manual)}/>
   </div>
 
-  <section className="space-y-4" aria-labelledby="recent-costs"><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Manual direct costs</div><h2 id="recent-costs" className="mt-1 text-lg font-semibold">Recent Direct Costs Entered Here</h2><p className="mt-1 text-sm text-muted-foreground">Labor and posted vendor bills are intentionally not repeated in this list.</p></div>
+  <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"><strong>Avoid double entry:</strong> if a supplier invoice is already posted through Purchasing → Vendor Bills, do not enter it again here.</div>
+
+  <section className="space-y-2"><div className="carez-section-heading"><h2>Job budget check</h2></div>{(projects||[]).length===0?<Empty className="border border-border"><EmptyHeader><EmptyTitle>No active jobs</EmptyTitle><EmptyDescription>Active and on-hold projects will appear here.</EmptyDescription></EmptyHeader></Empty>:<div className="divide-y rounded-lg border border-border">{(projects||[]).map((x:any)=>{const b:any=jobMap.get(x.id)||{};return <div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between" key={x.id}><div><div className="font-medium">{x.job_number} — {x.name}</div><div className="text-xs text-muted-foreground">{b.project_id?`${num(b.budget_cost_used_percent).toFixed(1)}% of budget used · ${num(b.actual_labor_hours).toFixed(1)} labor hr`:'No frozen budget yet'}</div></div><strong className="tabular-nums">{b.project_id?money(b.actual_total_company_cost):'—'}</strong></div>})}</div>}</section>
+
+  <section className="space-y-2" aria-labelledby="recent-costs"><div className="carez-section-heading"><h2 id="recent-costs">Manual direct costs</h2></div>
    {(costs||[]).length===0?<Empty className="border border-border"><EmptyHeader><EmptyTitle>No manual direct job costs entered</EmptyTitle><EmptyDescription>Direct costs entered through this workflow will appear here.</EmptyDescription></EmptyHeader></Empty>:<div className="divide-y rounded-lg border border-border">{(costs||[]).map((c:any)=><div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between" key={c.id}><div><div className="font-medium">{c.description}</div><div className="mt-1 text-xs text-muted-foreground">{c.cost_date} · {c.projects?.job_number} · {c.cost_codes?.name}{c.vendor_name?` · ${c.vendor_name}`:''}</div></div><div className="flex items-center gap-3"><strong className="tabular-nums">{money(c.total_cost)}</strong><form action={deleteProjectCost}><input type="hidden" name="id" value={c.id}/><Button type="submit" variant="outline" size="sm">Delete</Button></form></div></div>)}</div>}
   </section>
  </div></AppShell>;

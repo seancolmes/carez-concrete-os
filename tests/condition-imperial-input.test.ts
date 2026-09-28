@@ -31,5 +31,5 @@ test('Condition Properties applies architectural entry only to governed plan dim
   assert.match(workspace, /input\.unit==='FT'\|\|input\.unit==='IN'/);
   assert.match(workspace, /<CarezFeetInchesField/);
   assert.match(workspace, /canonicalUnit=\{input\.unit\}/);
-  assert.match(workspace, /Feet \+ inches/);
+  assert.match(workspace, /feet and inches/);
 });

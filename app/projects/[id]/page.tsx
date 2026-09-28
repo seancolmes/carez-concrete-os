@@ -87,19 +87,31 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
     status={projectStatus?<CarezStatus tone={projectStatus.tone} label={projectStatus.label}/>:<CarezStatus tone="neutral" label={String(p.status||'Unknown')}/>}
     actions={<>
      <Link className={buttonVariants({size:'sm'})} href="/field/review">Review Crew Time</Link>
-     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Plan Pour</Link>
+     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production">Production</Link>
      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Order Materials</Link>
     </>}
    />
 
-   {p.job_spine_id&&<section className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Commercial handoff lineage">
+   {p.job_spine_id&&<details className="rounded-lg border border-border bg-card" aria-label="Commercial handoff lineage"><summary className="cursor-pointer px-4 py-3 text-sm font-medium">Awarded scope and baseline</summary><div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2 xl:grid-cols-4">
     <div><p className="text-xs text-muted-foreground">Job Spine</p><p className="mt-1 break-all font-mono text-xs">{p.job_spine_id}</p></div>
     <div><p className="text-xs text-muted-foreground">Awarded Proposal</p><p className="mt-1 text-sm font-medium">{sourceProposal.data?.proposal_number||'No Award Decision'}</p>{awardR.data?.proposal_revision_id&&<Link className="text-xs text-primary underline" href={`/proposals/${awardR.data.estimate_id}`}>Open exact revision</Link>}</div>
     <div><p className="text-xs text-muted-foreground">Accepted Scope Snapshot</p><p className="mt-1 break-all font-mono text-xs">{baselineR.data?.accepted_scope_snapshot_id||'Not recorded'}</p></div>
     <div><p className="text-xs text-muted-foreground">Frozen Commercial Baseline</p><p className="mt-1 text-sm font-medium">{baselineR.data?`Direct Cost ${money(baselineR.data.total_direct_cost)} · Sell ${money(baselineR.data.total_sell)}`:'Not recorded'}</p></div>
-   </section>}
+   </div></details>}
 
    <div className="flex flex-col gap-6">
+    <section className="space-y-3" aria-labelledby="project-next-action-heading">
+     <div className="border-l-2 border-primary bg-card px-4 py-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next project action</div>
+      <h2 id="project-next-action-heading" className="mt-2 text-lg font-semibold tracking-tight">{p.next_action||'No next action entered yet.'}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">The next physical or management action recorded for this project.</p>
+     </div>
+     <div className="flex flex-wrap gap-2" aria-label="Related project work">
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/schedule">Schedule</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production/work-packages">Work plan</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/documents">Documents</Link>
+     </div>
+    </section>
     <section className="order-1 space-y-3" aria-labelledby="project-attention-heading">
      <div className="flex items-end justify-between gap-4">
       <div><h2 id="project-attention-heading" className="text-lg font-semibold tracking-tight">What Needs Your Attention</h2><p className="mt-1 text-sm text-muted-foreground">Payroll, GPS, budget, collections and change-order exceptions for this job.</p></div>
@@ -166,9 +178,9 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
       </div>
 
       <div className="rounded-md border border-border bg-background p-3">
-       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Next Pour</h3><p className="mt-0.5 text-xs text-muted-foreground">Upcoming concrete placement.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Pour Control</Link></div>
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Upcoming placement</h3><p className="mt-0.5 text-xs text-muted-foreground">Existing placement plan and production evidence.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/documents">Documents</Link></div>
        <div className="mt-4">
-        {pourR.error?<CarezFeedback tone="error" title="Pour plan unavailable">Current pour-plan data could not be loaded.</CarezFeedback>:!nextPour?<CarezEmptyState title="No pour is currently planned" description="Open Pour Control when the next concrete placement is ready to schedule."/>:<div className="space-y-2">
+        {pourR.error?<CarezFeedback tone="error" title="Placement plan unavailable">Current placement-plan data could not be loaded.</CarezFeedback>:!nextPour?<CarezEmptyState title="No placement plan recorded" description="Review the project schedule and production work for the next operation."/>:<div className="space-y-2">
          <div className="text-sm font-medium">{nextPour.name}</div>
          <div className="font-mono text-xl font-semibold tracking-tight tabular-nums">{nextPour.scheduled_date||'Date not set'}</div>
          <div className="text-sm text-muted-foreground">{num(nextPour.expected_concrete_yards).toFixed(1)} CY</div>
@@ -237,21 +249,6 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
      </div>
     </section>
 
-    <section className="order-3 space-y-3 lg:order-6" aria-labelledby="project-next-action-heading">
-     <div className="rounded-md border border-border bg-muted/15 px-4 py-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next Job Action</div>
-      <h2 id="project-next-action-heading" className="mt-2 text-lg font-semibold tracking-tight">{p.next_action||'No next action entered yet.'}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">The next physical or management action currently recorded for this project.</p>
-     </div>
-     <div className="flex flex-wrap gap-2" aria-label="Related workflows">
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field/review">Review Crew Time</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Procurement</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/change-orders">Change Orders</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/forecast">Forecast</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/billing">Billing</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/pour-control">Pour Control</Link>
-     </div>
-    </section>
    </div>
 
    {!financialAvailable?<p className="sr-only">Project financial summary unavailable; project contract data remains the fallback for the record header.</p>:null}

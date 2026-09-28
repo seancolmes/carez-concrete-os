@@ -9,12 +9,12 @@ User QA target: stable `staging` Vercel alias
 
 ### FINAL-2026-09-26 local completion program — local and staging acceptance complete
 
-The current instruction records local implementation and manual authenticated staging acceptance on `staging`; production remains unauthorized. Local V1 engineering and Steam Sleek V28 are complete, and the final acceptance is **PASS** for Login, Today, Takeoff / Conditions, Estimate / Pricing / Labor / Review, Proposal / Award, Project, Change Orders, Field / Production, and Finance.
+The prior staging acceptance covered local V1 engineering and the historical Steam Sleek presentation. ADR-027 now governs the local PourTrace palette; its full route-by-route visual acceptance is still open. Production remains unauthorized.
 
 - Approved Change Order reference RPC correction committed locally (`a4824f01`), with the original recovery migration preserved.
 - Stale legacy assembly creation RPC retired; profile authority columns protected from caller updates; nine definer search paths hardened (`71744385`).
 - The release gate replays the current source chain and reports **0 active missing source contracts** after scanning 1,149 references. Runtime SQL fixtures, schema security, schema lint, tests, typecheck, production build, whitespace, source-integrity checks, and the trigger/helper ACL regression pass.
-- The earlier light translation (`ffbcd08e`) was explicitly rejected. The accepted presentation uses Steam Sleek V28 dark tokens and layered chrome, labelled primary navigation, shared controls, Change Orders proof composition, and public proposal styling. All saved appearance preferences normalize to dark while preserving density. Manual authenticated staging acceptance is complete.
+- The earlier light translation (`ffbcd08e`) was rejected at the time. ADR-027 now accepts distinct light and dark palettes, and appearance preferences retain light, dark, and system. The prior manual staging acceptance predates this palette change.
 - QA is canonical through **66 migrations** on Supabase project `tkcirsdfvvahwrcratkn`; trigger/helper ACL hardening is applied and verified, with the targeted security findings resolved. No further QA diagnostic crawling is required after completed acceptance; egress is conserved for production-authorized work.
 - V1 Condition edge-family parity, derived-3D verification, Issue #28 acceptance-resolution vocabulary, project execution, production, finance, billing/retainage, cash/commitment, scope/resource, and pour-control contracts are complete with regression coverage. Local/staging V1 acceptance is complete.
 - Estimating intelligence is V1-scoped through attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains an intentional POST-V1 P7 capability and is not a V1 blocker.
@@ -69,7 +69,7 @@ The accepted design direction is:
 - selective spatial/3D treatment where it improves technical or customer-facing experiences;
 - Inter-led hierarchy with IBM Plex Mono reserved for technical alignment;
 - stronger shared tabs, meaningful domain icons, three depth levels, and no competing component system.
-- current ADR-025 palette authority: **CAREZ STEAM SLEEK V28**, explicitly directed on 2026-09-26, superseding the Indigo Harbor palette accepted on 2026-09-21. Dark layered surfaces, steel separators, and cyan interactions preserve the Command Deck / Spatial Blueprint workflow philosophy. Visual acceptance of the new implementation remains outstanding.
+- current palette authority: **ADR-027 revised PourTrace palette**, approved on 2026-09-28, superseding the historical Steam Sleek and Indigo Harbor color directions. The local source now uses its light/dark semantic tokens; authenticated browser smoke checks covered Projects, Opportunities, Billing, and Takeoff. Full route-by-route visual acceptance remains outstanding.
 
 ### Accepted reference implementation
 
@@ -176,7 +176,7 @@ Issue #39 is closed. `main` remains untouched.
 
 One cross-cutting UI acceptance item remains open:
 
-1. **Issue #76 / ADR-025 — Steam Sleek V28 route acceptance.** Source integration covers the representative application routes and shared shell; authenticated responsive, keyboard, and visual browser acceptance remains outstanding.
+1. **Issue #76 / ADR-025 + ADR-027 — PourTrace route acceptance.** Source integration covers the representative application routes and shared shell; full authenticated responsive, keyboard, and visual browser acceptance remains outstanding.
 
 The P0.5 Concrete Condition foundation, Issue #39 P0.5E legacy migration, P1 estimating source slices, and V1 commercial handoff contracts are implemented on `staging`; authenticated representative workflow acceptance remains the outstanding release step.
 

@@ -40,12 +40,11 @@ test('R3F foundation uses an orthographic Canvas and a direct PDF reference', ()
   assert.doesNotMatch(r3fScene, /buildTakeoffMeshGeometry/);
 });
 
-test('Condition issues stay below permanent tabs and are compact/collapsible', () => {
-  const tabsIndex = workstation.indexOf('<Tabs value={propertyTab}');
-  const issuesIndex = workstation.indexOf('<Collapsible open={issuesOpen}');
-  assert.ok(tabsIndex >= 0 && issuesIndex > tabsIndex);
-  assert.match(workstation, /aria-controls="condition-issues"/);
-  assert.match(direction, /\.holdsDock\{[^}]*max-height:min\(180px,30vh\);overflow:auto/);
+test('Condition issues stay in the scrollable review section', () => {
+  const reviewIndex = workstation.indexOf('<strong>Review</strong>');
+  const issuesIndex = workstation.indexOf('selectedIssues.map(issue=>',reviewIndex);
+  assert.ok(reviewIndex >= 0 && issuesIndex > reviewIndex);
+  assert.match(workstation, /className=\{direction\.holdsDock\}/);
 });
 
 test('pricing issues route to Review when available or the linked Estimate otherwise', () => {

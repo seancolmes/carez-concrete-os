@@ -26,7 +26,7 @@ Preserve:
 
 ## UI authority
 
-- ADR-025 and the accepted Carez implementation define the active presentation language.
+- ADR-025 defines workspace structure; ADR-027 and the accepted PourTrace palette define active color and theme authority.
 - ADR-020 owns Takeoff quantity/domain invariants unless explicitly superseded.
 - Preserve the accepted Command Rail / Domain Deck / contextual Command Bar / large-workspace approach.
 - Use Impeccable for design-relevant work when requested or when design direction is unresolved; do not append automatic critique/polish loops after an approved brief.
@@ -49,10 +49,25 @@ deploy Vercel, mutate remote Supabase, or perform remote GitHub actions unless t
 
 ## Context routing
 
+### Command Center activation
+
+Before non-trivial Carez work, classify the task against the available Carez skills. A clear match is mandatory, not optional:
+- database, RLS, PostgreSQL/Supabase functions, migration chains, persisted compatibility -> `carez-db-migration`
+- Takeoff, Concrete Conditions, geometry, calibration, measurement roles, 2D/3D, Takeoff lineage -> `carez-takeoff-change`
+- approved UI implementation -> `carez-ui-implementation`
+- browser/runtime failure investigation -> `carez-browser-debug`
+- explicit staging release-readiness work -> `carez-release-gate`
+
+On first activation in a task, read the matching `SKILL.md` and say which skill is active.
+
+For continuation work or tasks involving architecture, migrations, release, auth, production reconciliation, data preservation, or prior decisions, use one bounded project-scoped `ai-memory` query before proposing or implementing when the MCP is available. In Codex, pass `workspace="carez"` and `project="carez-concrete-os"` explicitly on project-scoped ai-memory calls unless the tool confirms the session identity bridge is active. Treat recalled material as historical evidence only and verify implementation-sensitive facts against current source. Do not use global recall unless project-scoped recall is insufficient.
+
+Use `codebase-memory` only when structural ownership, call paths, dependencies, or impact are genuinely unclear. Do not query it merely to rediscover already-named files.
+
 Load only what the task requires:
 - local execution/validation -> already-loaded `CODEX.md`; do not reread it from skills
 - cross-cutting architecture -> `docs/ARCHITECTURE.md` only when the task actually crosses module boundaries
-- approved bounded UI edit -> target + direct dependencies first; read the relevant ADR-025/design-system section only when presentation hierarchy, shell/shared ownership, or design authority is ambiguous
+- approved bounded UI edit -> target + direct dependencies first; read the relevant ADR-025/ADR-027/design-system section only when presentation hierarchy, shell/shared ownership, color, or design authority is ambiguous
 - Takeoff -> target + direct dependencies first; read relevant ADR-020/current Takeoff contracts only when quantity/geometry/role/2D-3D authority or cross-module lineage is involved
 - durable workflow -> the relevant `docs/workflow/` document only when workflow behavior is the task
 - GitHub/Supabase/Vercel external state -> `docs/workflow/EXTERNAL_STATE_BOUNDARY.md` only when current remote truth/action is materially required

@@ -3,8 +3,8 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {
-  Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,PanelLeftClose,
-  PanelLeftOpen,PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
+  Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,
+  PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
 } from 'lucide-react';
 import {
   createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
@@ -52,7 +52,7 @@ type RenderBox={width:number;height:number;pdfWidth:number;pdfHeight:number};
 type ResolvedPoint={point:NormalizedPoint;snapped:boolean};
 type ZoomAnchor={x:number;y:number;clientX:number;clientY:number};
 
-const palette=['#6f95ee','#5fc79a','#e4b15d','#dd7f99','#9a87eb','#59c3cf','#e27c68','#9dbd62'];
+const palette=['#426F93','#009966','#8A610B','#B84558','#6F9FC6','#525C57','#E06B74','#6DBB77'];
 const MIN_ZOOM=.2;
 const MAX_ZOOM=20;
 const MAX_RENDER_PIXELS=28_000_000;
@@ -77,7 +77,7 @@ function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|
 function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,value));}
 
 export function TakeoffDrawingWorkspace(props:Props){
-  const {takeoffSet,pdfUrl,sourceTitle,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,methodProfiles,locked}=props;
+  const {takeoffSet,pdfUrl,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,methodProfiles,locked}=props;
   const mobileReview=Boolean(props.mobileReview);
   const conditionMeasurementIdSet=useMemo(()=>new Set(props.conditionMeasurementIds||[]),[props.conditionMeasurementIds]);
   const router=useRouter();
@@ -128,11 +128,9 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [spaceHeld,setSpaceHeld]=useState(false);
   const [snapEnabled,setSnapEnabled]=useState(true);
   const [orthoEnabled,setOrthoEnabled]=useState(false);
-  const [sheetsOpen,setSheetsOpen]=useState(true);
-  const [inspectorOpen,setInspectorOpen]=useState(true);
+  const [inspectorOpen,setInspectorOpen]=useState(false);
   useEffect(()=>{
     if(mobileReview){
-      setSheetsOpen(true);
       setInspectorOpen(false);
       setTool('pan');
       setDraftPoints([]);
@@ -202,7 +200,7 @@ export function TakeoffDrawingWorkspace(props:Props){
         setDraftScaleRegionId(null);
         setHoverPoint(null);
         setTool('draw');
-        setInspectorOpen(true);
+        setInspectorOpen(false);
         setInspectorTab('properties');
         setMessage(`Draw ${request.roleLabel} on the plan. Double-click to finish LF; click the first point to close SF.`);
         conditionDrawRef.current=null;
@@ -237,7 +235,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       setEditGeometry(null);
       editOriginalRef.current=null;
       setTool('draw');
-      setInspectorOpen(true);
+      setInspectorOpen(false);
       setInspectorTab('properties');
       setMessage(`Draw ${pendingConditionDraw.roleLabel} on the plan. Double-click to finish LF; click the first point to close SF.`);
       conditionDrawRef.current=null;
@@ -271,7 +269,7 @@ export function TakeoffDrawingWorkspace(props:Props){
     const el=viewportRef.current;if(!el)return;
     const update=()=>setFitWidth(Math.max(320,el.clientWidth-34));update();
     const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect();
-  },[sheetsOpen,inspectorOpen]);
+  },[inspectorOpen]);
 
   useEffect(()=>{
     if(!pdfReady||!pdfRef.current||!canvasRef.current)return;
@@ -520,11 +518,7 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
   return <div className={styles.workstation} data-mobile-review={mobileReview?'true':'false'}>
-  <div className={`${styles.workspace} ${!sheetsOpen?styles.noSheets:''} ${!inspectorOpen?styles.noInspector:''}`}>
-    {sheetsOpen&&<aside className={styles.sidebar}>
-      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Sheets</div><div className={styles.panelMeta}>{sourceTitle} · {pdfPageCount||'…'} pages</div></div>{!mobileReview&&<button type="button" className={styles.iconButton} title="Hide sheets" onClick={()=>setSheetsOpen(false)}><PanelLeftClose size={16}/></button>}</div>
-      <div className={styles.sheetList}>{pageEntries.map((sheet:any)=>{const objects=initialMeasurements.filter((m:any)=>m.sheet_id===sheet.id).length;const regionCount=scaleRegions.filter((region:any)=>region.sheet_id===sheet.id).length;const ready=regionCount>0||sheet.scale_status==='calibrated';return <button key={sheet.page_number} type="button" className={`${styles.sheetButton} ${pageNumber===sheet.page_number?styles.sheetButtonActive:''}`} onClick={()=>changePage(sheet.page_number)}><span className={styles.pageBadge}>{sheet.page_number}</span><span className={styles.sheetCopy}><span className={styles.sheetName}>{sheetDisplayLabel(sheet)}</span><span className={`${styles.sheetStatus} ${ready?styles.sheetStatusReady:styles.sheetStatusHold}`}>{ready?(regionCount>1?`${regionCount} SCALE REGIONS`:'SCALE SET'):'SET SCALE'} · {objects} takeoff{objects===1?'':'s'}</span></span></button>;})}</div>
-    </aside>}
+  <div className={`${styles.workspace} ${styles.noSheets} ${!inspectorOpen?styles.noInspector:''}`}>
 
     <section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
       <div className={styles.toolbar}>
@@ -532,11 +526,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
         </div>
         <div className={styles.toolbarSpacer}/>
-        <div className={styles.mobilePageGroup} aria-label="Sheet navigation">
-          <button type="button" className={styles.iconTool} title="Previous sheet" disabled={pageNumber<=1} onClick={()=>changePage(Math.max(1,pageNumber-1))}><ChevronLeft size={15}/></button>
-          <span className={styles.mobilePageLabel}>{pageNumber}/{pdfPageCount||'…'}</span>
-          <button type="button" className={styles.iconTool} title="Next sheet" disabled={pageNumber>=(pdfPageCount||pageNumber)} onClick={()=>changePage(Math.min(pdfPageCount||pageNumber,pageNumber+1))}><ChevronRight size={15}/></button>
-        </div>
+        <label className={styles.pageSelect}><span>Select Pages</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
         <div className={styles.zoomGroup}>
           <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
           <button type="button" className={styles.zoomLabel} title="Reset zoom" onClick={()=>setZoomAt(1)}>{zoomPercent}%</button>
@@ -544,7 +534,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" className={styles.iconTool} title="Fit page" onClick={fitPage}><Maximize size={15}/></button>
         </div></>:<>
         <div className={styles.toolGroup}>
-          {!sheetsOpen&&<button type="button" className={styles.toolButton} title="Show sheets" onClick={()=>setSheetsOpen(true)}><PanelLeftOpen size={16}/></button>}
+          <label className={styles.pageSelect}><span>Select Pages</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
           <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
           <button type="button" title="Pan · H or hold Space" className={`${styles.toolButton} ${tool==='pan'?styles.toolButtonActive:''}`} onClick={()=>setTool('pan')}><Hand size={16}/><span>Pan</span></button>
           <button type="button" disabled={locked} title="Set drawing scale · C" className={`${styles.toolButton} ${tool==='calibrate'?styles.toolButtonActive:''}`} onClick={()=>{setCalibrationPoints([]);setInspectorTab('properties');setTool('calibrate');}}><Ruler size={16}/><span>Scale</span></button>
@@ -612,16 +602,16 @@ export function TakeoffDrawingWorkspace(props:Props){
             {tool==='edit'&&editGeometry&&selectedMeasurement&&<TakeoffVertexEditor geometry={editGeometry} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight} color={selectedColor} onChange={setEditGeometry}/>}
 
             {tool==='draw'&&draftRenderPoints.length>0&&<g pointerEvents="none">
-              {selectedAssembly?.primary_measurement==='SF'&&draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(105,143,237,.13)" stroke="#6f95ee" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
-              {selectedAssembly?.primary_measurement==='LF'&&draftRenderPoints.length>=2&&<><polygon points={physicalFootprint(draftRenderPoints,selectedVersion,variableValues,draftCalibration,renderBox).map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(111,149,238,.22)" stroke="#6f95ee" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><polyline points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="none" stroke="#6f95ee" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/></>}
-              {draftPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="4" fill="#7fa0f3" stroke="#07101a" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
+              {selectedAssembly?.primary_measurement==='SF'&&draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(66,111,147,.13)" stroke="#426F93" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
+              {selectedAssembly?.primary_measurement==='LF'&&draftRenderPoints.length>=2&&<><polygon points={physicalFootprint(draftRenderPoints,selectedVersion,variableValues,draftCalibration,renderBox).map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(66,111,147,.22)" stroke="#426F93" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><polyline points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="none" stroke="#426F93" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/></>}
+              {draftPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="4" fill="#426F93" stroke="#171B19" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
             </g>}
             {tool==='cutout'&&draftRenderPoints.length>0&&<g pointerEvents="none">
-              {draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(228,177,93,.16)" stroke="#e4b15d" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
-              {draftPoints.map((point,index)=><circle key={index} cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r="4" fill="#e4b15d" stroke="#07101a" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
+              {draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(point=>`${point.x*renderBox.pdfWidth},${point.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(138,97,11,.16)" stroke="#8A610B" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
+              {draftPoints.map((point,index)=><circle key={index} cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r="4" fill="#8A610B" stroke="#171B19" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
             </g>}
-            {tool==='calibrate'&&draftRenderPoints.length>0&&<g pointerEvents="none">{draftRenderPoints.length>=2&&<line x1={draftRenderPoints[0].x*renderBox.pdfWidth} y1={draftRenderPoints[0].y*renderBox.pdfHeight} x2={draftRenderPoints[1].x*renderBox.pdfWidth} y2={draftRenderPoints[1].y*renderBox.pdfHeight} stroke="#e5b55e" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}{calibrationPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="5" fill="#e5b55e" stroke="#07101a" strokeWidth="2" vectorEffect="non-scaling-stroke"/>)}</g>}
-            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#69d39a':tool==='cutout'?'#e4b15d':'#91a8e8'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
+            {tool==='calibrate'&&draftRenderPoints.length>0&&<g pointerEvents="none">{draftRenderPoints.length>=2&&<line x1={draftRenderPoints[0].x*renderBox.pdfWidth} y1={draftRenderPoints[0].y*renderBox.pdfHeight} x2={draftRenderPoints[1].x*renderBox.pdfWidth} y2={draftRenderPoints[1].y*renderBox.pdfHeight} stroke="#8A610B" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}{calibrationPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="5" fill="#8A610B" stroke="#171B19" strokeWidth="2" vectorEffect="non-scaling-stroke"/>)}</g>}
+            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
           </svg>}
         </div>
         {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}

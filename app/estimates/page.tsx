@@ -1,10 +1,9 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowRight,FileText,Plus,Ruler,ShieldCheck} from 'lucide-react';
+import {FileText,Plus,Ruler,ShieldCheck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
 import {EstimateGrid,type EstimateGridRow,type EstimateGridStage} from '@/components/estimates/EstimateGrid';
 import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
 import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
 import {Input} from '@/components/ui/input';
@@ -15,8 +14,8 @@ import {createEstimate} from './actions';
 const money=(value:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
 const number=(value:any)=>Number(value||0);
 
-function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'}){
-  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="gap-1 px-0"><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-2xl font-semibold tracking-tight tabular-nums text-success':'font-mono text-2xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="px-0 text-xs leading-5 text-muted-foreground">{help}</CardContent></div>;
+function Metric({label,value,tone='default'}:{label:string;value:string;tone?:'default'|'success'}){
+  return <div className="min-w-0 bg-card px-3 py-2"><span className="text-xs text-muted-foreground">{label}</span><strong className={tone==='success'?'block font-mono text-base tabular-nums text-success sm:text-lg':'block font-mono text-base tabular-nums sm:text-lg'}>{value}</strong></div>;
 }
 
 export default async function EstimatesPage(){
@@ -111,9 +110,9 @@ export default async function EstimatesPage(){
   });
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preconstruction</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Estimates</h1></div>
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4">
+      <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3">
+        <h1>Estimates</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Link className={buttonVariants({size:'sm'})} href="/takeoff"><Ruler/>Takeoff</Link>
           <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates/audit"><ShieldCheck/>Review</Link>
@@ -121,20 +120,16 @@ export default async function EstimatesPage(){
         </div>
       </header>
 
-      <nav className="flex w-fit max-w-full items-stretch overflow-x-auto rounded-lg border bg-card text-xs" aria-label="Estimate workflow">
-        {['Takeoff','Estimate','Review','Proposal'].map((label,index)=><div key={label} className={index===1?'flex min-h-9 items-center gap-2 border-r bg-accent px-3 font-medium text-primary shadow-[inset_0_-2px_var(--primary)] last:border-r-0':'flex min-h-9 items-center gap-2 border-r px-3 text-muted-foreground last:border-r-0'}><span className="font-mono text-[10px]">{index+1}</span><span>{label}</span>{index<3?<ArrowRight className="size-3 opacity-50"/>:null}</div>)}
-      </nav>
-
-      <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">
-        <Metric label="Pricing now" value={String(working.length)} help="Editable bid revisions."/>
-        <Metric label="Ready for review" value={String(ready.length)} help="Price and scope marked ready." tone={ready.length?'success':'default'}/>
-        <Metric label="Issued / awarded" value={`${issued.length} / ${awarded.length}`} help="Customer-facing and won revisions."/>
-        <Metric label="Pricing pipeline" value={money(pipeline)} help="Recommended value still being priced."/>
+      <section className="grid grid-cols-2 gap-px border border-border bg-border lg:grid-cols-4" aria-label="Estimate summary">
+        <Metric label="Pricing now" value={String(working.length)}/>
+        <Metric label="Ready for review" value={String(ready.length)} tone={ready.length?'success':'default'}/>
+        <Metric label="Issued / awarded" value={`${issued.length} / ${awarded.length}`}/>
+        <Metric label="Pricing pipeline" value={money(pipeline)}/>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">All revisions</p><h2 className="mt-1 text-lg font-semibold">Estimate workbench</h2><p className="mt-1 text-sm text-muted-foreground">Filter, inspect, and open authoritative estimate revisions without leaving the pricing workspace.</p></div>
+      <section className="space-y-2">
+        <div className="carez-page-heading flex flex-wrap items-center justify-between gap-3">
+          <h2>Estimate workbench</h2>
           <Dialog>
             <DialogTrigger render={<Button variant="outline" size="sm"/>}><Plus/>Standalone estimate</DialogTrigger>
             <DialogContent className="sm:max-w-lg">
