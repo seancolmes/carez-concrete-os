@@ -11,7 +11,7 @@ test('mobile Takeoff is a read-only 2D review surface', () => {
   assert.match(integrated, /disabled=\{locked\|\|mobileReview\}/);
   assert.match(integrated, /data-view-mode=\{mobileReview\?'2d':viewMode\}/);
   assert.match(integrated, /!mobileReview&&viewMode!=='2d'/);
-  assert.match(integrated, /<Dialog open=\{conditionOpen\}/);
+  assert.match(integrated, /<Drawer.Root open=\{conditionOpen\}/);
   assert.match(drawing, /mobileReview\?:boolean/);
   assert.match(drawing, /setTool\('pan'\)/);
   assert.match(drawing, /!mobileReview&&<TakeoffQuantityDock/);

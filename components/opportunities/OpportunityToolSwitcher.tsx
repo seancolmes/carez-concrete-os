@@ -11,8 +11,8 @@ const tools:[OpportunityTool,string][]=[
   ['intelligence','Bid intelligence'],
 ];
 
-const inactiveClass='border border-[#D4DBD7] bg-white text-muted-foreground hover:bg-[#EFF2F0] hover:text-foreground transition-all dark:bg-[#181A1B] dark:border-[#343A3F] dark:hover:bg-[#1C1F23] dark:hover:text-white';
-const activeClass='border border-[#007A52] bg-[#007A52]/10 text-[#007A52] font-semibold shadow-[0_0_15px_rgba(0,153,102,0.15)] dark:bg-[#009966]/20 dark:border-[#009966] dark:text-[#009966]';
+const inactiveClass='bg-[#181A1B] border border-[#343A3F] text-[#8B949E] text-xs font-medium px-4 py-2 rounded-xl hover:text-white hover:border-[#525B62] transition-all';
+const activeClass='bg-[#007A52]/20 border border-[#007A52] text-[#009966] text-xs font-semibold px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(0,153,102,0.15)]';
 
 export function OpportunityToolSwitcher({initialView,panel}:{initialView:OpportunityTool|null;panel:ReactNode}){
   const router=useRouter();
@@ -30,9 +30,10 @@ export function OpportunityToolSwitcher({initialView,panel}:{initialView:Opportu
   };
 
   return <>
-    <nav aria-label="Opportunity tools" className="mb-4 flex flex-wrap gap-2">
-      {tools.map(([view,label])=><button key={view} type="button" aria-expanded={active===view} aria-controls="opportunity-tool-panel" onClick={()=>toggle(view)} className={`rounded-xl px-3 py-2 text-xs ${active===view?activeClass:inactiveClass}`}>{label}</button>)}
+    <nav aria-label="Opportunity tools" className="mb-2 flex flex-wrap gap-2">
+      {tools.map(([view,label])=><button key={view} type="button" aria-expanded={active===view} aria-controls="opportunity-tool-panel" onClick={()=>toggle(view)} className={active===view?activeClass:inactiveClass}>{label}</button>)}
     </nav>
-    {active&&active===initialView&&panel?<section id="opportunity-tool-panel" aria-label="Opportunity tool" className={`animate-in slide-in-from-top-2 fade-in duration-200 ease-out mb-4 ${active==='intelligence'?'':'rounded-xl border border-[#D4DBD7] bg-white p-4 dark:border-[#343A3F] dark:bg-[#181A1B]'}`}>{panel}</section>:null}
+    <div aria-hidden="true" className="horizon-divider mb-4"/>
+    {active&&active===initialView&&panel?<section id="opportunity-tool-panel" aria-label="Opportunity tool" className={`animate-in slide-in-from-top-2 fade-in duration-200 ease-out mb-4 ${active==='intelligence'?'':'surface-card rounded-xl p-4'}`}>{panel}</section>:null}
   </>;
 }

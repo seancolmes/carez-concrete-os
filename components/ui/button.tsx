@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "carez-button-primary border-primary bg-primary text-primary-foreground hover:bg-[color-mix(in_srgb,var(--primary),black_12%)] active:bg-[color-mix(in_srgb,var(--primary),black_20%)]",
+        default: "carez-button-primary border border-[#009966]/30 bg-[#007A52] text-white shadow-[0_2px_8px_rgba(0,122,82,0.15)] transition-all hover:bg-[#005c3e] active:bg-[#004d34]",
         outline:
           "carez-button-neutral border-input bg-secondary text-secondary-foreground hover:bg-accent hover:border-ring aria-expanded:bg-accent aria-expanded:text-foreground",
         secondary:

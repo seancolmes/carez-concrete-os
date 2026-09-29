@@ -1,6 +1,6 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {AlertTriangle,CalendarDays,Users} from 'lucide-react';
+import {AlertTriangle} from 'lucide-react';
 import {ScheduleGrid,type AssignedCrew,type ScheduleCrewMember,type ScheduleGridDay,type ScheduleGridItem} from '@/components/schedule/ScheduleGrid';
 import {ScheduleHeaderActions} from '@/components/schedule/ScheduleHeaderActions';
 import {buttonVariants} from '@/components/ui/button';
@@ -8,21 +8,12 @@ import {Input} from '@/components/ui/input';
 import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
 import {Textarea} from '@/components/ui/textarea';
 import {createClient} from '@/lib/supabase/server';
-import {cn} from '@/lib/utils';
 import {createScheduleItem} from '@/app/schedule/actions';
 
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const addDays=(date:string,days:number)=>{const value=new Date(`${date}T12:00:00`);value.setDate(value.getDate()+days);return value.toISOString().slice(0,10);};
 const formatDay=(value:string)=>new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date(`${value}T12:00:00`));
 const joined=<T,>(value:T|T[]|null|undefined):T|null=>Array.isArray(value)?value[0]||null:value||null;
-
-function ScheduleMetric({label,value,help,tone='neutral',Icon}:{label:string;value:string;help:string;tone?:'neutral'|'danger';Icon:any}){
-  return <div className="grid min-w-0 grid-cols-[1fr_auto] gap-x-3 gap-y-2 px-4 py-3 first:pl-0 last:pr-0">
-    <div className="min-w-0"><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className={cn('mt-1 font-mono text-xl font-semibold tracking-tight tabular-nums text-foreground',tone==='danger'&&'animate-pulse text-destructive motion-reduce:animate-none')}>{value}</div></div>
-    <Icon className={cn('mt-0.5 size-3.5 text-muted-foreground',tone==='danger'&&'text-destructive')}/>
-    <p className="col-span-2 text-[11px] leading-4 text-muted-foreground">{help}</p>
-  </div>;
-}
 
 function FormField({label,help,children}:{label:string;help?:string;children:React.ReactNode}){
   return <label className="grid min-w-0 gap-1.5"><span className="text-xs font-medium text-foreground">{label}</span>{children}{help?<span className="text-[11px] leading-4 text-muted-foreground">{help}</span>:null}</label>;
@@ -38,8 +29,8 @@ export default async function SchedulePage(){
   if(profile.role==='employee')redirect('/employee');
 
   const start=today();
-  const end=addDays(start,13);
-  const [{data:items},{data:assignments},{data:projects},{data:crew},{data:tasks},{data:pours},{data:jobReadiness},{data:operations},{data:operationReadiness}]=await Promise.all([
+  const end=addDays(start,89);
+  const [{data:items,error:itemsError},{data:assignments},{data:projects},{data:crew},{data:tasks},{data:pours},{data:jobReadiness},{data:operations},{data:operationReadiness},{data:equipmentRequirements,error:equipmentRequirementsError}]=await Promise.all([
     supabase.from('work_schedule_items').select('*,projects(job_number,name,address,city),production_tasks(name,production_unit),pour_plans(name,expected_concrete_yards),work_package_operations(planned_quantity,unit,status,field_label,work_packages(name,location))').eq('company_id',profile.company_id).gte('schedule_date',start).lte('schedule_date',end).neq('status','cancelled').order('schedule_date').order('start_time'),
     supabase.from('work_schedule_assignments').select('schedule_item_id,crew_member_id,crew_members(name)').eq('company_id',profile.company_id),
     supabase.from('projects').select('id,job_number,name').eq('company_id',profile.company_id).in('status',['active','on_hold']).order('job_number'),
@@ -49,6 +40,7 @@ export default async function SchedulePage(){
     supabase.from('project_job_readiness_summary').select('project_id,award_setup_applies,job_ready,readiness_reason').eq('company_id',profile.company_id),
     supabase.from('work_package_operation_progress').select('*').eq('company_id',profile.company_id).in('operation_status',['planned','in_progress','on_hold']).order('job_number').order('package_name').order('sequence'),
     supabase.from('work_package_start_readiness').select('operation_id,ready_to_start_all,start_readiness_status,start_next_action,all_blocking_reasons,all_warning_reasons,blocking_resource_count,resource_warning_count').eq('company_id',profile.company_id),
+    supabase.from('work_package_resource_requirements').select('work_package_operation_id,label,equipment_asset_id').eq('company_id',profile.company_id).eq('resource_type','equipment').is('waived_at',null),
   ]);
 
   const projectReadinessMap=new Map((jobReadiness||[]).map((row:any)=>[row.project_id,row]));
@@ -64,7 +56,16 @@ export default async function SchedulePage(){
     assignmentMap.set(assignment.schedule_item_id,current);
   }
 
-  const dayRows:ScheduleGridDay[]=Array.from({length:14},(_,index)=>{
+  const pumpMap=new Map<string,{ids:string[];unidentified:number}>();
+  for(const requirement of equipmentRequirements||[]){
+    if(!/pump/i.test(requirement.label))continue;
+    const current=pumpMap.get(requirement.work_package_operation_id)||{ids:[],unidentified:0};
+    if(requirement.equipment_asset_id)current.ids.push(requirement.equipment_asset_id);
+    else current.unidentified+=1;
+    pumpMap.set(requirement.work_package_operation_id,current);
+  }
+
+  const dayRows:ScheduleGridDay[]=Array.from({length:90},(_,index)=>{
     const date=addDays(start,index);
     return {date,label:formatDay(date),shortLabel:formatDay(date).split(',')[0],isToday:date===start};
   });
@@ -107,7 +108,10 @@ export default async function SchedulePage(){
       unit:operation?.unit||null,
       employeeTask:operation?.field_label||task?.name||null,
       pourName:pour?.name||null,
+      pourPlanId:item.pour_plan_id||null,
       pourYards:pour?Number(pour.expected_concrete_yards||0):null,
+      pumpAssetIds:pumpMap.get(item.work_package_operation_id||'')?.ids||[],
+      unidentifiedPumps:pumpMap.get(item.work_package_operation_id||'')?.unidentified||0,
       status:item.status,
       operationStatus:operation?.status||null,
       inspectionId:item.inspection_id||null,
@@ -126,11 +130,10 @@ export default async function SchedulePage(){
 
   const weekEnd=addDays(start,6);
   const weekItems=scheduleItems.filter(item=>item.scheduleDate<=weekEnd);
-  const unassigned=weekItems.filter(item=>item.crewShort>0).length;
   const blockedWeek=weekItems.filter(item=>item.blocked);
   const crewMembers:ScheduleCrewMember[]=(crew||[]).map((member:any)=>({id:member.id,name:member.name,role:member.role||'Crew'}));
 
-  const addWorkForm=<form action={createScheduleItem} className="grid gap-4">
+  const addWorkForm=<form action={createScheduleItem} className="grid gap-3 text-[12px]">
     <div className="grid gap-3 md:grid-cols-2">
       <FormField label="Job"><NativeSelect name="project_id" required defaultValue=""><NativeSelectOption value="" disabled>Choose job</NativeSelectOption>{(projects||[]).map((project:any)=>{const readiness:any=projectReadinessMap.get(project.id),held=Boolean(readiness?.award_setup_applies&&!readiness?.job_ready);return <NativeSelectOption key={project.id} value={project.id} disabled={held}>{project.job_number} — {project.name}{held?` — HOLD: ${readiness.readiness_reason}`:''}</NativeSelectOption>;})}</NativeSelect></FormField>
       <FormField label="Date"><Input type="date" name="schedule_date" defaultValue={start} required className="h-8"/></FormField>
@@ -148,29 +151,22 @@ export default async function SchedulePage(){
       <FormField label="Unplanned work"><NativeSelect name="production_task_id" defaultValue=""><NativeSelectOption value="">None</NativeSelectOption>{(tasks||[]).map((task:any)=><NativeSelectOption key={task.id} value={task.id}>{task.name} ({task.production_unit})</NativeSelectOption>)}</NativeSelect></FormField>
       <FormField label="Pour plan"><NativeSelect name="pour_plan_id" defaultValue=""><NativeSelectOption value="">None</NativeSelectOption>{(pours||[]).map((pour:any)=><NativeSelectOption key={pour.id} value={pour.id}>{pour.name} · {pour.scheduled_date||'date not set'} · {Number(pour.expected_concrete_yards||0).toFixed(1)} CY</NativeSelectOption>)}</NativeSelect></FormField>
     </div>
+    <FormField label="Mix design / specification" help="Optional reference kept with the schedule notes."><Input name="mix_design" placeholder="e.g. 4000 PSI · 3/4 in aggregate" className="h-8"/></FormField>
     <FormField label="Workers needed"><Input type="number" name="crew_needed" min="0" step="1" defaultValue="0" className="h-8"/></FormField>
-    <fieldset className="grid gap-2"><legend className="text-xs font-medium text-foreground">Assign crew</legend><div className="grid gap-2 sm:grid-cols-2">{crewMembers.map(member=><label key={member.id} className="flex items-center gap-2 rounded-md border border-border bg-muted/15 px-3 py-2 text-sm"><input type="checkbox" name="crew_member_ids" value={member.id} className="size-4 rounded border border-input accent-current"/><span className="min-w-0"><span className="block truncate text-xs font-medium">{member.name}</span><span className="block truncate text-[11px] text-muted-foreground">{member.role}</span></span></label>)}</div></fieldset>
+    <fieldset className="grid gap-2"><legend className="text-xs font-medium text-foreground">Assign crew</legend><div className="grid max-h-32 gap-1 overflow-y-auto sm:grid-cols-2">{crewMembers.map(member=><label key={member.id} className="flex items-center gap-2 border border-[#343A3F] px-2 py-1 text-xs"><input type="checkbox" name="crew_member_ids" value={member.id} className="size-4 accent-[#009966]"/><span className="min-w-0"><span className="block truncate font-medium">{member.name}</span><span className="block truncate text-[11px] text-[#8B949E]">{member.role}</span></span></label>)}</div></fieldset>
     <FormField label="Notes"><Textarea name="notes" rows={3} placeholder="Inspector details, delivery instructions, or field coordination notes"/></FormField>
     <div className="flex justify-end border-t border-border pt-3"><button type="submit" className={buttonVariants({size:'sm'})}>Add to schedule</button></div>
   </form>;
 
-  return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5">
-    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><div className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Jobs & field</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Schedule</h1></div>
+  return <div className="flex min-w-0 flex-col gap-3">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#343A3F] pb-3">
+      <div><div className="font-mono text-[10px] uppercase tracking-wide text-[#8B949E]">FIELD / SCHEDULE</div><h2 className="text-base font-semibold tracking-tight text-[#E1E7E3]">Chrono-Matrix</h2></div>
       <ScheduleHeaderActions>{addWorkForm}</ScheduleHeaderActions>
     </header>
-
-    <div className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
-      <ScheduleMetric label="Scheduled Pours" value={String(scheduleItems.filter(item=>item.itemType==='pour').length)} help="Pour windows in the current schedule authority." Icon={CalendarDays}/>
-      <ScheduleMetric label="Total Field Man-Hours" value="—" help="No authoritative field-time contract is available." Icon={Users}/>
-      <ScheduleMetric label="Labor Deficit / Shortage" value={String(unassigned)} help="Scheduled work lines with an existing crew shortfall." tone={unassigned?'danger':'neutral'} Icon={Users}/>
-      <ScheduleMetric label="Unbacked Mud & Pump Financial Holds" value="—" help="No authoritative mud or pump financial-hold contract is available." Icon={AlertTriangle}/>
-    </div>
-    <p className="border-b border-border pb-3 font-mono text-[11px] text-muted-foreground">Monitored pour windows, bulk mud deliveries, and engineering inspections.</p>
 
     {setupHolds>0?<div className="flex flex-wrap items-center justify-between gap-3 border-y border-warning/35 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong>{setupHolds} awarded job{setupHolds===1?' is':'s are'} on setup hold.</strong><div className="text-xs text-muted-foreground">Agreement, billing setup, and required pre-start payment must clear before scheduling.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/job-setup">Open job setup</Link></div>:null}
     {blockedWeek.length>0?<div className="flex flex-wrap items-center justify-between gap-3 border-y border-destructive/40 px-3 py-2.5 text-sm"><div className="flex min-w-0 items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive"/><div><strong className="font-mono text-destructive">{blockedWeek.length} scheduled work item{blockedWeek.length===1?' is':'s are'} not ready to start.</strong><div className="text-xs text-muted-foreground">The schedule stays visible, but confirmation and employee start remain blocked until the constraint clears.</div></div></div><Link className={buttonVariants({variant:'outline',size:'xs'})} href="/readiness">Clear work holds</Link></div>:null}
 
-    <ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers}/>
-  </div></>;
+    {itemsError?<div role="alert" className="border border-amber-500/50 px-3 py-2 text-[12px] text-amber-200">Schedule records are unavailable. Try again when the schedule source is connected.</div>:<ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers} pumpDataAvailable={!equipmentRequirementsError}/>}
+  </div>;
 }

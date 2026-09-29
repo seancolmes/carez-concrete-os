@@ -45,7 +45,7 @@ export function MetricBentoTile({title,icon,value,prefix='',suffix='',precision=
 
   const formatter=new Intl.NumberFormat('en-US',{minimumFractionDigits:precision,maximumFractionDigits:precision});
   const formatted=value===null?'—':formatter.format(displayValue);
-  return <div className={cn('min-w-0 rounded-xl border p-4 shadow-md transition-colors hover:border-[#B9C3BE] hover:bg-[#F5F7F6] dark:hover:border-[#525B62] dark:hover:bg-[#1C1F23] motion-reduce:transition-none',tones[tone])}>
+  return <div className={cn('min-w-0 rounded-xl border p-4 transition-colors hover:border-[#B9C3BE] dark:hover:border-[#525B62] motion-reduce:transition-none',tone==='neutral'&&'surface-card',tones[tone])}>
     <div className="flex items-start justify-between gap-2">
       <div className="text-sm font-medium text-muted-foreground">{title}</div>
       <div aria-hidden="true" className="shrink-0 [&_svg]:size-4">{icon}</div>

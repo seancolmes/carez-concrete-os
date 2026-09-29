@@ -49,7 +49,7 @@ export function Takeoff3DScene({ plane, pdfUrl, pageNumber, memory, actions, onR
   const far = Math.max(10000, Math.hypot(frame.width, frame.height) * 6);
   if (graphicsAvailable === null) return null;
   if (!graphicsAvailable) return <Takeoff3DUnavailable onRetry={onRetry} />;
-  return <Canvas orthographic dpr={[1, 2]} gl={{ antialias: true, alpha: true }}
+  return <Canvas className="z-0" orthographic dpr={[1, 2]} gl={{ antialias: true, alpha: true }}
     camera={{ near: 0.1, far }} fallback={<Takeoff3DUnavailable onRetry={onRetry} />}>
     <hemisphereLight intensity={0.9}  />
     <directionalLight position={[40, 80, -30]} intensity={1.15} />

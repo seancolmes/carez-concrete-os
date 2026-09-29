@@ -1,10 +1,10 @@
 'use client';
 
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {
   Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,
-  PanelRightClose,PanelRightOpen,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
+  Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
 } from 'lucide-react';
 import {
   createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
@@ -26,6 +26,7 @@ import styles from './TakeoffDrawingWorkspace.module.css';
 
 type Tool='select'|'pan'|'calibrate'|'scaleRegion'|'draw'|'cutout'|'edit';
 type Props={
+  sidebar?:ReactNode;
   takeoffSet:any;
   estimate:any;
   pdfUrl:string;
@@ -529,11 +530,13 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedAssemblyRecord:any=selectedVersionRecord?assemblyMap.get(selectedVersionRecord.assembly_id):null;
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
-  return <div className={styles.workstation} data-mobile-review={mobileReview?'true':'false'}>
-  <div className={`${styles.workspace} ${styles.noSheets} ${!inspectorOpen?styles.noInspector:''}`}>
+  return <div className={`${styles.workstation} h-full min-h-0 flex-1 w-full flex overflow-hidden`} data-mobile-review={mobileReview?'true':'false'}>
+  <div className={styles.commandWorkspace}>
+    {props.sidebar}
+    <div className="flex-1 h-full min-w-0 relative bg-[#090A0B] overflow-hidden cursor-crosshair">
 
-    <section className={styles.center} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
-      <div className={styles.toolbar}>
+    <section className={`${styles.center} ${styles.commandCanvas} z-0`} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
+      <div className={styles.toolbar} onKeyDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()}>
         {mobileReview?<><div className={styles.mobileReviewTools}>
           <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
         </div>
@@ -575,7 +578,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus size={15}/></button>
           <button type="button" className={styles.iconTool} title="Fit width · 0" onClick={()=>setZoomAt(1)}><RotateCcw size={15}/></button>
           <button type="button" className={styles.iconTool} title="Fit page · 1" onClick={fitPage}><Maximize size={15}/></button>
-          {!inspectorOpen&&<button type="button" className={styles.iconTool} title="Show drawing details" onClick={()=>setInspectorOpen(true)}><PanelRightOpen size={16}/></button>}
+
         </div>
         </>}
       </div>
@@ -633,10 +636,13 @@ export function TakeoffDrawingWorkspace(props:Props){
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
     </section>
 
-    {inspectorOpen&&<aside className={styles.inspector}>
-      <div className={styles.panelHeader}><div><div className={styles.panelTitle}>Drawing details</div><div className={styles.panelMeta}>{currentSheet?`${sheetDisplayLabel(currentSheet)} · ${currentMeasurements.length} takeoff${currentMeasurements.length===1?'':'s'}`:'Preparing sheet'}</div></div><button type="button" className={styles.iconButton} title="Hide drawing details" onClick={()=>setInspectorOpen(false)}><PanelRightClose size={16}/></button></div>
-      <div className={styles.inspectorBody}>
-        <>
+    {!mobileReview&&<div className={`${styles.canvasHud} absolute bottom-6 right-6 z-40 backdrop-blur-md bg-[#121212]/80 border border-[#343A3F] px-4 py-2 rounded-lg text-[11px] text-[#A1A1AA] cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
+      <button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left font-mono" title="Scale, calibration and selected takeoff controls">
+        <Ruler size={12}/><span className="max-w-32 truncate">{currentScaleRegions.find(region=>region.is_default)?.scale_label||(currentScale?'Regional scale':'Set scale')}</span>
+        {selectedMeasurement?<output className="border-l border-[#343A3F] pl-2 text-[12px] font-semibold text-white" title={selectedMeasurement.name}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</output>:null}
+      </button>
+      {inspectorOpen&&<div id="takeoff-canvas-controls" className={styles.hudControls}>
+        <div className="mb-2 flex items-center justify-between border-b border-[#343A3F] pb-1 text-[10px] uppercase tracking-wider"><span>Canvas controls</span><button type="button" aria-label="Close canvas controls" onClick={()=>setInspectorOpen(false)}><X size={12}/></button></div>
           <TakeoffScalePanel
             regions={currentScaleRegions}
             candidates={visibleScaleCandidates}
@@ -672,10 +678,8 @@ export function TakeoffDrawingWorkspace(props:Props){
           </div>:<div className={styles.group}><div className={styles.groupTitle}>New Takeoff</div><div className={styles.groupHelp}>New measured scope starts from a Concrete Condition so geometry, modules, outputs, and estimate lineage stay together.</div>{!locked&&<button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair size={16}/> Open Concrete Conditions</button>}</div>}
 
           <details className={styles.shortcuts}><summary>Keyboard & mouse shortcuts</summary><div className={styles.shortcutGrid}><kbd>Wheel</kbd><span>Zoom at cursor</span><kbd>Space</kbd><span>Temporary pan</span><kbd>M</kbd><span>Open Conditions</span><kbd>E</kbd><span>Edit selected shape</span><kbd>K</kbd><span>Add area cutout</span><kbd>Arrows</kbd><span>Nudge selected · Shift × 10</span><kbd>Ctrl Z</kbd><span>Undo committed geometry</span><kbd>Ctrl ⇧ Z</kbd><span>Redo committed geometry</span><kbd>PgUp/Dn</kbd><span>Previous / next sheet</span><kbd>S / O</kbd><span>Snap / ortho</span><kbd>Enter</kbd><span>Finish or save</span><kbd>Esc</kbd><span>Cancel tool</span></div></details>
-        </>
-      </div>
-    </aside>}
-  </div>
+      </div>}
+    </div>}
   {!mobileReview&&<TakeoffQuantityDock
     measurements={initialMeasurements}
     outputs={measurementSummaries}
@@ -691,5 +695,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       setSelectedMeasurementId(measurement.id);setTool('select');setInspectorOpen(true);
     }}
   />}
+    </div>
+  </div>
   </div>;
 }

@@ -1,7 +1,8 @@
 'use client';
 
+import editorFields from './ConditionEditorFields.module.css';
 import {Plus,Trash2} from 'lucide-react';
-import {CarezNumberField} from '@/components/carez/fields';
+import {InspectorRow,InspectorNumberInput,InspectorImperialInput,InspectorInput,InspectorBoolean,inspectorSelectClass} from './ConditionInspectorControls';
 import {Button} from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,9 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {Field,FieldLabel} from '@/components/ui/field';
-import {Input} from '@/components/ui/input';
-import {LabeledSwitch} from '@/components/ui/labeled-switch';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {
   conditionModuleDefinition,
@@ -149,7 +147,7 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
   const usesV3Rebar=moduleKey==='reinforcing'&&schema.inputs.some(field=>field.key==='bar_count');
   const presets=moduleKey==='reinforcing'?(usesV3Rebar?V3_REBAR_PRESETS:LEGACY_REBAR_PRESETS):(BASE_PRESETS[moduleKey]||[]);
 
-  return <div className="space-y-2">
+  return <div className={`${editorFields.surface} space-y-1`}>
     {indexes.map(({module,index})=>{
       const values=module.inputValues||{};
       const visible=schema.inputs.filter(field=>conditionModuleFieldVisible(moduleKey,field,values));
@@ -157,48 +155,48 @@ export function ConditionModuleEditor({definition,moduleKey,modules,onChange,dis
       const switchLabel=schema.repeatable?label:(enableLabel||'Include in Condition');
       const summary=schema.repeatable?instanceSummary(moduleKey,values):'';
       const moduleSwitchId=switchId(moduleKey,module.instanceKey||'default','enabled');
-      return <section key={`${moduleKey}:${module.instanceKey||'default'}`} className="overflow-hidden rounded-md border border-border bg-card/35">
-        <header className="flex min-h-11 items-center gap-2 border-b border-border bg-muted/20 px-2.5 py-1.5">
-          <LabeledSwitch
+      return <section key={`${moduleKey}:${module.instanceKey||'default'}`} className="min-w-0">
+        <header className="flex items-center gap-1">
+          <InspectorBoolean
             id={moduleSwitchId}
             checked={module.enabled}
             disabled={disabled}
             onCheckedChange={checked=>update(index,{enabled:checked})}
             label={switchLabel}
             description={summary||(enableLabel?(module.enabled?'Yes':'No'):(module.enabled?'Included in this Condition':'Excluded from this Condition'))}
-            className="min-h-0 flex-1 border-0 bg-transparent p-0 data-[checked=true]:border-0 data-[checked=true]:bg-transparent"
+            className="min-w-0 flex-1"
           />
           {schema.repeatable&&module.instanceKey!=='default'?<Button type="button" size="icon-sm" variant="ghost" onClick={()=>remove(index)} disabled={disabled} aria-label={`Remove ${label}`}><Trash2/></Button>:null}
         </header>
-        {module.enabled?<div className="grid grid-cols-2 gap-2 p-2.5 max-[1180px]:grid-cols-1">
+        {module.enabled?<div className="flex flex-col gap-0">
           {visible.map(field=>field.valueType==='boolean'
-            ?<LabeledSwitch
+            ?<InspectorBoolean
               key={`${module.instanceKey}-${field.key}`}
               id={switchId(moduleKey,module.instanceKey||'default',field.key)}
               checked={Boolean(values[field.key])}
               disabled={disabled}
               onCheckedChange={checked=>updateValue(index,field.key,checked)}
               label={field.label}
-              className="min-h-9"
+              includeLabel="Yes" excludeLabel="No"
             />
-            :<Field key={`${module.instanceKey}-${field.key}`} className="min-w-0 gap-1">
-              <FieldLabel className="text-[11px] font-semibold text-muted-foreground">{field.label}</FieldLabel>
+            :<InspectorRow key={`${module.instanceKey}-${field.key}`} label={field.label}>
               {field.valueType==='select'
                 ?<Select value={String(values[field.key]??'')} onValueChange={value=>updateValue(index,field.key,String(value??''))} disabled={disabled}>
-                  <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="Select…"/></SelectTrigger>
+                  <SelectTrigger aria-label={field.label} className={inspectorSelectClass}><SelectValue placeholder="Select…"/></SelectTrigger>
                   <SelectContent align="start">{(field.options||[]).map(option=><SelectItem key={option} value={option}>{titleCase(option)}</SelectItem>)}</SelectContent>
                 </Select>
                 :field.valueType==='text'
-                  ?<Input className="h-8 text-xs" value={String(values[field.key]??'')} disabled={disabled} onChange={event=>updateValue(index,field.key,event.target.value)}/>
-                  :<CarezNumberField value={String(values[field.key]??'')} onChange={event=>updateValue(index,field.key,event.target.value===''?'':Number(event.target.value))} unit={field.unit} min={field.minimum} max={field.maximum} step={field.valueType==='integer'?1:'any'} disabled={disabled}/>} 
-            </Field>)}
+                  ?<InspectorInput aria-label={field.label} value={String(values[field.key]??'')} disabled={disabled} onChange={event=>updateValue(index,field.key,event.target.value)}/>
+                  :(field.unit==='FT'||field.unit==='IN')?<InspectorImperialInput ariaLabel={field.label} value={String(values[field.key]??'')} canonicalUnit={field.unit} onValueChange={value=>updateValue(index,field.key,value===''?'':Number(value))} disabled={disabled}/>
+                  :<InspectorNumberInput aria-label={field.label} value={String(values[field.key]??'')} onChange={event=>updateValue(index,field.key,event.target.value===''?'':Number(event.target.value))} unit={field.unit} min={field.minimum} max={field.maximum} step={field.valueType==='integer'?1:'any'} disabled={disabled}/>}
+            </InspectorRow>)}
         </div>:null}
       </section>;
     })}
 
     {schema.repeatable?<div className="flex justify-end">
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" disabled={disabled}/>}> 
+        <DropdownMenuTrigger render={<Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" disabled={disabled}/>}>
           <Plus/>Add {moduleKey==='reinforcing'?'reinforcing':schema.label.toLowerCase()}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">

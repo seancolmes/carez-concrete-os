@@ -11,6 +11,7 @@ import {buttonVariants} from '@/components/ui/button';
 import {createClient} from '@/lib/supabase/server';
 import {resolveProjectRecordStatus} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
+import {DeleteProjectButton} from '@/components/projects/DeleteProjectButton';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const num=(n:any)=>Number(n||0);
@@ -80,6 +81,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+   {['owner','office'].includes(profile.role)&&<details className="rounded-md border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Project settings</summary><div className="pt-3"><DeleteProjectButton projectId={id} projectName={p.name}/></div></details>}
    <CarezRecordHeader
     eyebrow={<span className="font-mono text-xs font-semibold text-muted-foreground">{p.job_number}</span>}
     title={p.name}

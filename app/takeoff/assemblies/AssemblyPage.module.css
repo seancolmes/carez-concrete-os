@@ -60,8 +60,8 @@
   font-weight:600;
 }
 .action:hover{border-color:var(--pt-brand-hover);background:var(--pt-brand-muted)}
-.actionPrimary{border-color:var(--b2-action);background:var(--pt-brand);color:#fff}
-.actionPrimary:hover{background:var(--pt-brand-hover);color:#121212}
+.actionPrimary{border-color:rgb(0 153 102 / .30);background:#007A52;color:#fff;box-shadow:0 2px 8px rgb(0 122 82 / .15);transition:all 150ms ease}
+.actionPrimary:hover{background:#005c3e;color:#fff}
 
 .metrics{
   display:grid;
@@ -147,7 +147,8 @@
   padding:0 9px;
   font-size:12px;
 }
-.saveButton{height:34px;border:1px solid var(--b2-action);border-radius:2px;background:var(--pt-brand);color:#fff;padding:0 13px;font-size:12px;font-weight:650;cursor:pointer}
+.saveButton{height:34px;border:1px solid rgb(0 153 102 / .30);border-radius:2px;background:#007A52;color:#fff;padding:0 13px;font-size:12px;font-weight:650;box-shadow:0 2px 8px rgb(0 122 82 / .15);transition:all 150ms ease;cursor:pointer}
+.saveButton:hover{background:#005c3e}
 
 .library{margin-top:18px}
 .sectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px}

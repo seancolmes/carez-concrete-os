@@ -60,7 +60,7 @@ export type NavigationRouteGroup = {
   destinationIds: readonly string[];
 };
 
-export type WorkspaceSurfaceId = 'today'|'preconstruction'|'projects'|'finance'|'system';
+export type WorkspaceSurfaceId = 'today'|'preconstruction'|'projects'|'field'|'finance'|'system';
 export type WorkspaceDestinationClassification = 'primary-surface'|'internal-view'|'contextual-tool'|'compatibility-entry';
 export type WorkspacePresentationDestination = {
   id: string;
@@ -113,7 +113,7 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
   {id:'forecast',href:'/forecast',label:'Forecast',hint:'Where each job is headed',domain:'projects',icon:'trending'},
   {id:'field',href:'/field',label:'Field operations',hint:'Dispatch, schedule, production, crew and equipment',domain:'field',icon:'hammer'},
   {id:'production',href:'/production',label:'Production',hint:'Earned quantities and actual production rates',domain:'field',icon:'gauge'},
-  {id:'pour-control',href:'/pour-control',label:'Pour control',hint:'Concrete placement readiness',domain:'field',icon:'shield'},
+  {id:'pour-control',href:'/pour-control',label:'Pour funding',hint:'Cash review and authorization for planned pours',domain:'finance',icon:'shield'},
   {id:'crew',href:'/crew',label:'Crew',hint:'Workers, rates and labor setup',domain:'field',icon:'hard-hat'},
   {id:'employee-access',href:'/crew/access',label:'Employee access',hint:'Employee clock logins and access',domain:'field',icon:'key'},
   {id:'equipment',href:'/equipment',label:'Equipment & inventory',hint:'Tools, forms and equipment',domain:'field',icon:'wrench'},
@@ -136,8 +136,8 @@ export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
   {id:'preconstruction',label:'Preconstruction',destinationIds:['leads','lead-inbox','bid-intelligence']},
   {id:'estimating',label:'Estimating',destinationIds:['takeoff','estimates','proposals','estimate-audit','assemblies','production-intelligence']},
   {id:'projects',label:'Projects',destinationIds:['projects','job-setup','schedule','look-ahead','readiness','resources','work-packages','scope-drift','change-orders','forecast']},
-  {id:'field',label:'Field',destinationIds:['field','production','pour-control','crew','employee-access','equipment']},
-  {id:'finance',label:'Finance',destinationIds:['billing','cashflow','payables','banking','reconcile','bank-rules','payroll','costs','overhead','procurement']},
+  {id:'field',label:'Field',destinationIds:['field','production','crew','employee-access','equipment']},
+  {id:'finance',label:'Finance',destinationIds:['pour-control','billing','cashflow','payables','banking','reconcile','bank-rules','payroll','costs','overhead','procurement']},
   {id:'documents',label:'Documents',destinationIds:['documents']},
   {id:'system',label:'System',destinationIds:['settings']},
 ] as const;
@@ -152,10 +152,13 @@ export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurf
   {id:'projects',label:'Projects',href:'/projects',sections:[
     {id:'project-control',label:'Project Control',destinations:[{id:'projects',classification:'primary-surface'},{id:'job-setup',classification:'internal-view'},{id:'documents',classification:'internal-view'}]},
     {id:'planning',label:'Planning',destinations:[{id:'schedule',classification:'internal-view'},{id:'look-ahead',classification:'contextual-tool'},{id:'readiness',classification:'contextual-tool'},{id:'resources',classification:'contextual-tool'},{id:'work-packages',classification:'contextual-tool'}]},
-    {id:'delivery',label:'Delivery',destinations:[{id:'field',classification:'internal-view'},{id:'production',classification:'internal-view'},{id:'pour-control',classification:'compatibility-entry'},{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'internal-view'},{id:'equipment',classification:'internal-view'},{id:'scope-drift',classification:'contextual-tool'},{id:'change-orders',classification:'internal-view'},{id:'forecast',classification:'internal-view'}]},
+    {id:'delivery',label:'Delivery',destinations:[{id:'scope-drift',classification:'contextual-tool'},{id:'change-orders',classification:'internal-view'},{id:'forecast',classification:'internal-view'}]},
+  ]},
+  {id:'field',label:'Field',href:'/field',sections:[
+    {id:'dispatch',label:'Dispatch',destinations:[{id:'field',classification:'primary-surface'},{id:'production',classification:'internal-view'},{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'internal-view'},{id:'equipment',classification:'internal-view'}]},
   ]},
   {id:'finance',label:'Financials',href:'/financials',sections:[
-    {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'internal-view'}]},
+    {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'internal-view'},{id:'pour-control',classification:'compatibility-entry'}]},
     {id:'billing-payables',label:'Billing & Payables',destinations:[{id:'billing',classification:'primary-surface'},{id:'payables',classification:'internal-view'}]},
     {id:'procurement',label:'Procurement',destinations:[{id:'procurement',classification:'internal-view'}]},
     {id:'banking',label:'Banking',destinations:[{id:'banking',classification:'internal-view'},{id:'reconcile',classification:'internal-view'},{id:'bank-rules',classification:'internal-view'}]},
@@ -194,7 +197,7 @@ const ROLE_DEFAULTS = {
   ownerAdmin: ['today','projects','reports','billing','documents'],
   estimator: ['today','takeoff','estimates','proposals','projects'],
   projectManager: ['today','projects','schedule','readiness','forecast'],
-  fieldLeader: ['today','field','production','pour-control','documents'],
+  fieldLeader: ['today','field','production','equipment','documents'],
   accountingFinance: ['today','billing','cashflow','payables','costs'],
   fallback: ['today','projects','documents'],
 } as const;

@@ -29,7 +29,7 @@ test('Condition Properties applies architectural entry only to governed plan dim
   const workspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
   assert.match(workspace, /input\.group==='planFacts'/);
   assert.match(workspace, /input\.unit==='FT'\|\|input\.unit==='IN'/);
-  assert.match(workspace, /<CarezFeetInchesField/);
+  assert.match(workspace, /<InspectorImperialInput/);
   assert.match(workspace, /canonicalUnit=\{input\.unit\}/);
   assert.match(workspace, /feet and inches/);
 });

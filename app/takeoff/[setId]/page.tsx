@@ -116,7 +116,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       { data: conditionReconciliation },
     ] = await Promise.all([
       supabase.from('project_concrete_condition_versions')
-        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at')
+        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at,output_overrides')
         .eq('company_id', companyId)
         .in('id', conditionVersionIds),
       supabase.from('company_condition_template_versions')
@@ -134,7 +134,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         .in('condition_version_id', conditionVersionIds)
         .order('sort_order'),
       supabase.from('project_condition_outputs')
-        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id')
+        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id,calculation_trace')
         .eq('company_id', companyId)
         .in('condition_version_id', conditionVersionIds)
         .order('output_key'),

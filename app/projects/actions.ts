@@ -12,6 +12,23 @@ async function company(){
 }
 const numberValue=(value:FormDataEntryValue|null)=>{const cleaned=String(value||'').replace(/[$,% ,]/g,'');const n=Number(cleaned);return Number.isFinite(n)?n:0;};
 
+export async function deleteProject(projectId:string){
+  const supabase=await createClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)throw new Error('Not signed in');
+  const {data:profile,error:profileError}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();
+  if(profileError||!profile?.company_id||!['owner','office'].includes(profile.role))throw new Error('Owner or office access required');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId))throw new Error('Invalid project ID');
+  const {data,error}=await supabase.from('projects').delete().eq('id',projectId).eq('company_id',profile.company_id).select('id').maybeSingle();
+  if(error){
+    if(error.code==='23503')throw new Error('This project has protected linked records and cannot be deleted.');
+    throw new Error('Project could not be deleted.');
+  }
+  if(!data)throw new Error('Project not found or deletion is not permitted');
+  revalidatePath('/projects');
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function createProject(formData:FormData){
   const {supabase,companyId}=await company();
   let job_number=String(formData.get('job_number')||'').trim();if(!job_number){const {data:n,error}=await supabase.rpc('next_opportunity_number');if(error||!n)throw new Error(error?.message||'Could not create job number');job_number=n;}

@@ -1,3 +1,4 @@
+import {DeleteTakeoffButton} from '@/components/takeoff/DeleteTakeoffButton';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
@@ -115,7 +116,7 @@ export async function TakeoffView({ setId }: { setId: string }) {
       { data: conditionReconciliation },
     ] = await Promise.all([
       supabase.from('project_concrete_condition_versions')
-        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at')
+        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at,output_overrides')
         .eq('company_id', companyId)
         .in('id', conditionVersionIds),
       supabase.from('company_condition_template_versions')
@@ -133,7 +134,7 @@ export async function TakeoffView({ setId }: { setId: string }) {
         .in('condition_version_id', conditionVersionIds)
         .order('sort_order'),
       supabase.from('project_condition_outputs')
-        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id')
+        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id,calculation_trace')
         .eq('company_id', companyId)
         .in('condition_version_id', conditionVersionIds)
         .order('output_key'),
@@ -175,24 +176,25 @@ export async function TakeoffView({ setId }: { setId: string }) {
   conditionData.derived3DSnapshot = resolveDerived3DSnapshot(companyId, setId, conditionData, measurements || [], sheets || [], scaleRegions || []);
 
   return <>
-    <div className={`${viewStyles.takeoff} takeoff-app-page`}>
-      <header className={pageStyles.identityStrip}>
+    <div className={`${viewStyles.takeoff} takeoff-app-page flex flex-col flex-1 min-h-0 overflow-hidden bg-[#090A0B]`}>
+      <header className="sr-only">
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
-            <h1 className={pageStyles.title}>Takeoff</h1>
-            {opportunity && <p><Link href={`/leads/${opportunity.id}`}>Opportunity {opportunity.opportunity_number}</Link></p>}
+            <h1 className={`${pageStyles.title} text-base font-semibold tracking-tight text-[#171B19] dark:text-white`}>Takeoff</h1>
+            {opportunity && <p><Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={`/leads/${opportunity.id}`}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
-            <span className={pageStyles.estimate}>{set.name} · {estimate ? <Link href={`/estimates/${estimate.id}`}>{estimateLabel}</Link> : estimateLabel}</span>
-            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
+            <span className={`${pageStyles.estimate} text-sm font-medium text-[#171B19] dark:text-[#E1E7E3]`}>{set.name} · {estimate ? <Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={`/estimates/${estimate.id}`}>{estimateLabel}</Link> : estimateLabel}</span>
+            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={`${pageStyles.revision} text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]`}>{set.revision_label}</span></>}
           </div>
         </div>
         {locked&&<span className={pageStyles.lock}>Read only</span>}
       </header>
 
+      {['owner','office','estimator'].includes(profile.role)&&<details className="shrink-0 border-b border-[#343A3F] px-3 py-1.5"><summary className="cursor-pointer text-[11px] text-muted-foreground">Takeoff Settings · {set.name}</summary><div className="py-2"><DeleteTakeoffButton setId={setId}/></div></details>}
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
+      {!document || !pdfUrl ? <div className="takeoff-upload-state flex-1 min-h-0 border-2 border-dashed border-[#343A3F] flex items-center justify-center"><div className="takeoff-upload-card"><p className="text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]">Source drawings</p><h1 className="text-base font-semibold tracking-tight text-[#171B19] dark:text-white">Attach the PDF plan set</h1><p className="text-sm leading-relaxed text-[#525C57] dark:text-[#8B949E]">This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-3 py-3 text-sm font-medium text-[#171B19] dark:border-[#343A3F] dark:bg-[#181A1B] dark:text-[#E1E7E3]">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
       <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}

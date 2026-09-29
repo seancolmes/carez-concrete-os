@@ -6,26 +6,27 @@ test('Condition editing opens on demand without reserving plan width', () => {
   const workspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
   const css = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
 
-  assert.match(workspace, /<Dialog open=\{conditionOpen\}/);
-  assert.match(workspace, /Edit condition/);
-  assert.match(css, /\.conditionDialog\{/);
+  assert.match(workspace, /<Drawer.Root open=\{conditionOpen\}/);
+  assert.match(workspace, /Edit Conditions/);
+  assert.match(css, /\.commandDrawer\{/);
   assert.match(css, /grid-template-columns:minmax\(0,1fr\)!important/);
 });
 
-test('Condition Properties uses one ordered scroll with inline numeric validation', () => {
+test('Condition Properties separates physical and commercial inputs with inline numeric validation', () => {
   const workspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
   const css = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.module.css', 'utf8');
   const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
 
-  const sections=['Dimensions','Reinforcement','Forms','Labor','Pour method'];
+  const sections=['Dimensions','Reinforcement','Forms','Pour method','Labor'];
   const positions=sections.map(section=>workspace.indexOf(`<strong>${section}</strong>`));
   assert.ok(positions.every(position=>position>=0));
   assert.ok(positions.every((position,index)=>index===0||position>positions[index-1]));
   assert.doesNotMatch(workspace, /<strong>Scope<\/strong>|<strong>Drawing<\/strong>|<strong>More<\/strong>/);
-  assert.match(workspace, /ref=\{propertyScrollRef\} className=\{styles\.propertiesScroll\}/);
+  assert.match(workspace, /ref=\{propertyScrollRef\} className=\{`[^`]*overflow-y-auto/);
   assert.match(workspace, /ariaInvalid=\{invalidNumber\}/);
-  assert.match(workspace, /defaultOpen=\{false\}/);
-  assert.match(workspace, /className=\{direction\.inlineValidation\}/);
+  assert.match(workspace, /aria-labelledby="physical-variables"/);
+  assert.match(workspace, /aria-labelledby="commercial-variables"/);
+  assert.match(workspace, /error=\{validationText\}/);
   assert.match(css, /\.propertySection\{margin:0;overflow:visible;border:0/);
   assert.match(direction, /\.inlineValidation\{/);
 });

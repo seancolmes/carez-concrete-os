@@ -1,10 +1,10 @@
 'use client';
 
 import type {ReactNode} from 'react';
-import {CalendarRange,ListChecks,PackageCheck,Plus,ShieldCheck} from 'lucide-react';
+import {CalendarRange,ListChecks,PackageCheck,ShieldCheck} from 'lucide-react';
 import {CarezRelatedToolsMenu} from '@/components/carez/related-tools-menu';
 import {Button} from '@/components/ui/button';
-import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
+import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle,SheetTrigger} from '@/components/ui/sheet';
 
 const tools=[
   {href:'/look-ahead',label:'21-day look-ahead',Icon:CalendarRange},
@@ -14,19 +14,19 @@ const tools=[
 ];
 
 export function ScheduleHeaderActions({children}:{children:ReactNode}){
-  return <div className="flex shrink-0 items-center gap-2 border-l border-border pl-3">
+  return <div className="flex shrink-0 items-center gap-2">
     <CarezRelatedToolsMenu items={tools}/>
-    <Dialog>
-      <DialogTrigger render={<Button type="button" size="sm"/>}>
-        <Plus className="size-3.5"/> Schedule Work
-      </DialogTrigger>
-      <DialogContent className="max-h-[88svh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Add work to the schedule</DialogTitle>
-          <DialogDescription>Schedule work, pours, inspections, deliveries, equipment, or coordination without bypassing readiness controls.</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+    <Sheet>
+      <SheetTrigger render={<Button type="button" size="sm"/>}>
+        + Schedule Work
+      </SheetTrigger>
+      <SheetContent className="obsidian-wash w-full max-w-none overflow-y-auto border-[#343A3F] p-0 sm:max-w-[540px]">
+        <SheetHeader className="border-b border-[#343A3F] px-5 py-4">
+          <SheetTitle>Schedule work</SheetTitle>
+          <SheetDescription>Commit a work package, pour, inspection, delivery, or equipment window.</SheetDescription>
+        </SheetHeader>
+        <div className="px-5 pb-5">{children}</div>
+      </SheetContent>
+    </Sheet>
   </div>;
 }

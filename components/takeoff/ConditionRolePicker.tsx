@@ -33,12 +33,12 @@ export function ConditionRolePicker({value,choices,placeholder,emptyLabel,disabl
 
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger
-      render={<Button type="button" variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="h-8 w-full min-w-0 justify-between px-2 text-left text-[11px] font-normal"/>}
+      render={<Button type="button" variant="outline" role="combobox" aria-label={placeholder} aria-expanded={open} disabled={disabled} className="h-6 w-full min-w-0 justify-between bg-[#121212] border border-[#25292C] hover:border-[#343A3F] text-white text-[11px] rounded-[3px] px-2 text-left font-normal focus-visible:border-[#009966] focus-visible:ring-1 focus-visible:ring-[#009966]"/>}
     >
-      <span className="min-w-0 flex-1 truncate">{selected?<><span className="font-medium text-foreground">{selected.label}</span><span className="ml-1 text-muted-foreground">· {selected.meta}</span></>:placeholder}</span>
+      <span className="min-w-0 flex-1 truncate">{selected?<><span className="font-medium text-white">{selected.label}</span><span className="ml-1 text-muted-foreground">· {selected.meta}</span></>:placeholder}</span>
       <ChevronsUpDown className="ml-1 size-3.5 shrink-0 text-muted-foreground"/>
     </PopoverTrigger>
-    <PopoverContent align="start" sideOffset={4} className="w-(--anchor-width) min-w-72 p-0">
+    <PopoverContent align="start" sideOffset={4} className="w-(--anchor-width) min-w-72 p-0 bg-[#121212] border border-[#343A3F] text-white">
       <Command>
         <CommandInput placeholder="Find takeoff…"/>
         <CommandList>

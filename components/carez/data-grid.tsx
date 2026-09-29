@@ -16,7 +16,7 @@ export const CarezDataGrid=React.forwardRef<HTMLDivElement,React.ComponentProps<
   errorTitle?:string;
 }>(({className,toolbar,status,footer,loading=false,empty,isEmpty=false,error,errorTitle='Unable to load data',children,...props},ref)=>{
   return <div ref={ref} data-slot="carez-data-grid" aria-busy={loading||undefined} className={cn('min-w-0 overflow-hidden rounded-none border-y border-border bg-card shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring/30',className)} {...props}>
-    {toolbar?<div data-slot="carez-data-grid-toolbar" className="flex min-h-[var(--density-control-height)] flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-1.5">{toolbar}</div>:null}
+    {toolbar?<div data-slot="carez-data-grid-toolbar" className="frosted-hud flex min-h-[var(--density-control-height)] flex-wrap items-center gap-2 px-3 py-1.5">{toolbar}</div>:null}
     {status?<div data-slot="carez-data-grid-status" className="flex min-h-8 items-center justify-between gap-3 border-b border-border bg-muted/35 px-3 py-1.5 text-xs text-secondary-foreground">{status}</div>:null}
     <div data-slot="carez-data-grid-viewport" className="min-h-0 min-w-0 overflow-auto">
       {error?<CarezEmptyState tone="error" title={errorTitle} description={error}/>:loading?<CarezLoadingSkeleton rows={6} className="p-3"/>:isEmpty?(empty??<CarezEmptyState title="No rows" description="No records match the current view."/>):children}
@@ -31,7 +31,7 @@ export function CarezDataGridTable({className,...props}:React.ComponentProps<'ta
 }
 
 export function CarezDataGridHead({className,...props}:React.ComponentProps<'thead'>){
-  return <thead data-slot="carez-data-grid-head" className={cn('sticky top-0 z-10 bg-secondary text-secondary-foreground [&_tr]:border-b',className)} {...props}/>;
+  return <thead data-slot="carez-data-grid-head" className={cn('industrial-header sticky top-0 z-10 text-secondary-foreground [&_tr]:border-b',className)} {...props}/>;
 }
 
 export function CarezDataGridBody({className,...props}:React.ComponentProps<'tbody'>){
@@ -39,7 +39,7 @@ export function CarezDataGridBody({className,...props}:React.ComponentProps<'tbo
 }
 
 export function CarezDataGridRow({className,selected=false,...props}:React.ComponentProps<'tr'>&{selected?:boolean}){
-  return <tr {...props} data-slot="carez-data-grid-row" aria-selected={selected||undefined} className={cn('border-b border-border/80 transition-colors duration-150 hover:bg-accent/35 aria-selected:bg-accent aria-selected:shadow-[inset_3px_0_var(--primary)] motion-reduce:transition-none',className)}/>;
+  return <tr {...props} data-slot="carez-data-grid-row" aria-selected={selected||undefined} className={cn('tabular-row transition-colors duration-150 aria-selected:bg-accent aria-selected:shadow-[inset_3px_0_var(--primary)] motion-reduce:transition-none',className)}/>;
 }
 
 export function CarezDataGridHeaderCell({className,numeric=false,resizable=false,sortable=false,sort,...props}:React.ComponentProps<'th'>&{numeric?:boolean;resizable?:boolean;sortable?:boolean;sort?:React.AriaAttributes['aria-sort']}){

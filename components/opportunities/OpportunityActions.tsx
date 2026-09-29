@@ -10,7 +10,7 @@ import {Textarea} from '@/components/ui/textarea';
 export function OpportunityActions({projects}:{projects:{id:string;job_number:string|null;name:string}[]}){
   return <div className="flex flex-wrap items-center gap-2">
     <Dialog>
-      <DialogTrigger render={<Button size="sm" className="bg-[#007A52] text-white shadow-[0_0_15px_rgba(0,153,102,0.2)] hover:bg-[#007A52]/90 dark:bg-[#009966] dark:hover:bg-[#009966]/90"/>}><Plus/>New opportunity</DialogTrigger>
+      <DialogTrigger render={<Button size="sm"/>}><Plus/>New opportunity</DialogTrigger>
       <DialogContent overlayClassName="bg-black/60 backdrop-blur-md" className="max-h-[90vh] overflow-y-auto border border-[#D4DBD7] bg-white/95 shadow-2xl backdrop-blur-md sm:max-w-2xl dark:border-[#343A3F] dark:bg-[#181A1B]/95">
         <DialogHeader><DialogTitle>New opportunity</DialogTitle><DialogDescription>The opportunity number follows this work through estimating and proposal.</DialogDescription></DialogHeader>
         <form action={createLead} className="grid gap-3">
@@ -22,7 +22,7 @@ export function OpportunityActions({projects}:{projects:{id:string;job_number:st
           <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-1"><Label htmlFor="op-value">Rough value</Label><Input id="op-value" name="estimated_value" inputMode="decimal"/></div><div className="grid gap-1"><Label htmlFor="op-source">Lead source</Label><select id="op-source" name="source" defaultValue="manual" className="h-9 rounded-sm border border-input bg-background px-2 text-sm"><option value="manual">Entered manually</option><option value="phone">Phone</option><option value="website">Website</option><option value="referral">Referral</option><option value="gc_invitation">GC invitation</option><option value="repeat_customer">Repeat customer</option><option value="other">Other</option></select></div></div>
           <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-1"><Label htmlFor="op-bid-due">Bid due</Label><Input id="op-bid-due" name="bid_due" type="date"/></div><div className="grid gap-1"><Label htmlFor="op-follow">Follow up</Label><Input id="op-follow" name="follow_up" type="date"/></div></div>
           <div className="grid gap-1"><Label htmlFor="op-notes">Notes</Label><Textarea id="op-notes" name="notes" rows={2}/></div>
-          <div className="flex justify-end"><Button type="submit" className="bg-[#007A52] text-white shadow-[0_0_15px_rgba(0,153,102,0.2)] hover:bg-[#007A52]/90 dark:bg-[#009966] dark:hover:bg-[#009966]/90">Create opportunity</Button></div>
+          <div className="flex justify-end"><Button type="submit">Create opportunity</Button></div>
         </form>
       </DialogContent>
     </Dialog>

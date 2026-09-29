@@ -14,3 +14,8 @@
 .dataRow.selected{background:var(--accent);box-shadow:inset 3px 0 var(--primary)}
 .dataRow:focus-visible,.collapse:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
 @media(prefers-reduced-motion:reduce){.dock{transition:none}}
+
+.floatingWorksheet{position:absolute;left:50%;bottom:calc(100% + 12px);width:min(1000px,calc(100vw - 440px));max-height:calc(100vh - 220px);transform:translateX(-50%);border:1px solid #343A3F;border-radius:12px;background:#121212d9;backdrop-filter:blur(16px);box-shadow:0 10px 40px #0008;--background:#121212;--foreground:#fff;--muted:#1C1F23;--muted-foreground:#A1A1AA;--border:#343A3F;--input:#343A3F}
+.floatingWorksheet[hidden]{display:none}
+.floatingWorksheet .header{overflow-x:auto;white-space:nowrap}
+@media(max-width:860px){.floatingWorksheet{width:calc(100vw - 32px)}}

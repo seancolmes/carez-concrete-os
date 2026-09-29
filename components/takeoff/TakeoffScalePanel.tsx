@@ -49,7 +49,7 @@ export function TakeoffScalePanel({
   const nts = candidates.some(candidate => !candidate.usable && candidate.scaleKind === 'nts');
   const pendingLabel = pendingCandidate?.label || pendingManualLabel;
 
-  return <div className={`${styles.group} ${styles.scaleGate}`}>
+  return <div className={`${styles.group} ${styles.scaleGate}`} onClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>
     <div className={styles.groupHead}><div><div className={styles.groupTitle}>Drawing Scale</div><div className={styles.groupHelp}>Carez reads vector PDF scale labels. Confirm the proposal before it controls quantities.</div></div><ScanSearch size={17}/></div>
 
     {regions.length > 0 && <div className={styles.objectList}>{regions.map(region => <div key={region.id} className={styles.scaleReady}>
@@ -86,7 +86,7 @@ export function TakeoffScalePanel({
     <details className={styles.advanced}>
       <summary><Ruler size={14}/> Manual calibration fallback</summary>
       <div className={styles.advancedBody}>
-        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><input value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
+        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><input disabled={locked || busy} value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
         <div className={styles.buttonRow}>
           <button type="button" className={styles.secondary} disabled={locked || busy} onClick={onPickManual}>Pick 2 points</button>
           <button type="button" className={styles.primary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onUseManualSheet}>Use whole sheet</button>

@@ -72,7 +72,7 @@ export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
           </div>
         </div>
         {message&&<div role="alert" className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{message}</div>}
-        <Button type="submit" className="mt-1 h-11 w-full rounded-lg bg-[#007A52] text-white hover:bg-[#009966] dark:bg-[#009966] dark:hover:bg-[#00AD73]" disabled={busy}>{busy?'Signing in...':'Sign in'}</Button>
+        <Button type="submit" className="mt-1 h-11 w-full rounded-lg" disabled={busy}>{busy?'Signing in...':'Sign in'}</Button>
         <p className="mt-4 text-center text-sm text-muted-foreground">Don't have a workspace? <Link href="/signup" className="font-medium text-[#007A52] underline-offset-4 hover:underline focus-visible:underline dark:text-[#009966]">Sign up here</Link></p>
         <p className="text-center text-[11px] leading-5 text-muted-foreground">Your organization controls access to this workspace.</p>
       </form></motion.div>}</AnimatePresence>

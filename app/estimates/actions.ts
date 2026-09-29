@@ -245,3 +245,21 @@ export async function acknowledgeEstimateReview(fd:FormData){
   revalidatePath(`/estimates/${estimateId}`);
   revalidatePath(`/proposals/${estimateId}`);
 }
+
+export async function deleteEstimate(estimateId:string){
+  const supabase=await createClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)throw new Error('Not signed in');
+  const {data:profile,error:profileError}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();
+  if(profileError||!profile?.company_id||!['owner','office','estimator'].includes(profile.role))throw new Error('Owner, office or estimator access required');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(estimateId))throw new Error('Invalid estimate ID');
+  const {data,error}=await supabase.from('estimates').delete().eq('id',estimateId).eq('company_id',profile.company_id).select('id').maybeSingle();
+  if(error){
+    if(error.code==='23503')throw new Error('This estimate has protected linked records and cannot be deleted.');
+    throw new Error('Estimate could not be deleted.');
+  }
+  if(!data)throw new Error('Estimate not found or deletion is not permitted');
+  revalidatePath('/opportunities');
+  revalidatePath('/estimates');
+  revalidatePath('/takeoff');
+}

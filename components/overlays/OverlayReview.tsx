@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ChevronDown, CircleHelp, Copy, SlidersHorizontal
 import { PourtraceDialog, PourtraceDrawer, PourtraceMenu, PourtracePopover } from './PourtraceOverlays';
 
 const button = 'inline-flex min-h-9 items-center justify-center gap-2 rounded-[5px] border border-border bg-secondary px-3 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-const greenButton = 'inline-flex min-h-9 items-center justify-center gap-2 rounded-[5px] border border-primary bg-primary px-3 text-[13px] font-bold text-primary-foreground transition-transform hover:brightness-110 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const greenButton = 'carez-button-primary inline-flex min-h-9 items-center justify-center gap-2 rounded-[5px] border border-[#009966]/30 bg-[#007A52] px-3 text-[13px] font-bold text-white shadow-[0_2px_8px_rgba(0,122,82,0.15)] transition-all hover:bg-[#005c3e] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const input = 'h-9 w-full rounded-[4px] border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none';
 
 function DemoCard({ number, name, use, motion, children }: { number: string; name: string; use: string; motion: string; children: React.ReactNode }) {

@@ -6,3 +6,13 @@
 .takeoff-app-notice{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:34px;padding:6px 14px;border-bottom:1px solid color-mix(in srgb,var(--warning) 24%,transparent);background:color-mix(in srgb,var(--warning) 12%,var(--card));color:var(--warning);font-size:11px}.takeoff-app-notice strong{color:var(--warning)}.takeoff-app-notice a{color:var(--foreground);font-weight:700;text-decoration:underline;text-underline-offset:2px}.takeoff-app-notice a:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
 .takeoff-upload-state{flex:1;display:grid;place-items:center;padding:24px;overflow:auto}.takeoff-upload-card{width:min(100%,660px);padding:24px;border:1px solid var(--border);border-radius:6px;background:var(--secondary)}.takeoff-upload-card h1{margin:5px 0 7px;font-size:26px;letter-spacing:-.035em}.takeoff-upload-card>p{margin:0 0 18px;color:var(--muted-foreground);font-size:11px;line-height:1.5}
 @media(max-width:700px){.takeoff-app-header{height:54px;padding:0 8px}.takeoff-app-back span,.takeoff-app-link{font-size:0}.takeoff-app-back,.takeoff-app-link{width:34px;padding:0;justify-content:center}.takeoff-app-title span{max-width:50vw}.takeoff-app-lock{display:none}.takeoff-app-divider{display:none}}
+
+/* Takeoff owns the viewport; dashboard gutters must not shrink the drawing plane. */
+main:has(.takeoff-app-page){padding:0!important;max-width:none!important;overflow:hidden}
+/* Base UI portals escape the drawer DOM, so their positioners share its stacking boundary. */
+body:has([data-condition-drawer]) [data-base-ui-portal]>div:has(>[data-slot="select-content"]),
+body:has([data-condition-drawer]) [data-base-ui-portal]>div:has(>[data-slot="popover-content"]),
+body:has([data-condition-drawer]) [data-base-ui-portal]>div:has(>[data-slot="dropdown-menu-content"]){z-index:101}
+
+.takeoff-upload-state{min-height:0;display:flex;align-items:center;justify-content:center;border:2px dashed #343A3F;margin:12px;padding:16px}
+.takeoff-upload-card{width:min(100%,540px);padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}

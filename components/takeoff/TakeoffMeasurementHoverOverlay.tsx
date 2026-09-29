@@ -98,19 +98,21 @@ export function TakeoffMeasurementHoverOverlay({
     if (tool !== 'select' || panning || spaceHeld) setHover(null);
   }, [tool, panning, spaceHeld]);
 
+  useEffect(()=>{
+    const viewport=viewportRef.current;
+    const clear=()=>setHover(null);
+    viewport?.addEventListener('scroll',clear);
+    clear();
+    return()=>viewport?.removeEventListener('scroll',clear);
+  },[measurements,viewportRef]);
+
   const show = (event: React.PointerEvent<SVGGElement>, measurement: any) => {
     if (tool !== 'select' || panning || spaceHeld) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
     const rect = viewport.getBoundingClientRect();
-    const cardWidth = 232;
-    const cardHeight = 92;
-    let left = event.clientX + 12;
-    let top = event.clientY + 12;
-    if (left + cardWidth > rect.right - 8) left = event.clientX - cardWidth - 12;
-    if (top + cardHeight > rect.bottom - 8) top = event.clientY - cardHeight - 12;
-    left = Math.max(rect.left + 8, Math.min(left, rect.right - cardWidth - 8));
-    top = Math.max(rect.top + 8, Math.min(top, rect.bottom - cardHeight - 8));
+    const left=Math.max(124,Math.min(event.clientX-rect.left,rect.width-124))+viewport.scrollLeft;
+    const top=Math.max(118,event.clientY-rect.top)+viewport.scrollTop;
     setHover({ measurement, left, top });
   };
 
@@ -132,6 +134,7 @@ export function TakeoffMeasurementHoverOverlay({
         const geometry = drawingGeometry(measurement.geometry);
         if (!geometry) return null;
         const pointerHandlers = {
+          onPointerMove: (event: React.PointerEvent<SVGGElement>) => show(event, measurement),
           onPointerEnter: (event: React.PointerEvent<SVGGElement>) => show(event, measurement),
           onPointerLeave: () => setHover(current => current?.measurement.id === measurement.id ? null : current),
           onClick: (event: React.MouseEvent<SVGGElement>) => {
@@ -179,15 +182,15 @@ export function TakeoffMeasurementHoverOverlay({
       })}
     </g>
 
-    {hover && typeof document !== 'undefined' && createPortal(<div
-      className={styles.card}
+    {hover && viewportRef.current && createPortal(<div
+      className="absolute z-50 pointer-events-none flex flex-col gap-1 bg-[#1C1F23]/95 backdrop-blur-md border border-[#525B62] rounded-lg p-3 shadow-xl transform -translate-x-1/2 -translate-y-[120%] w-60 text-white"
       style={{ left: hover.left, top: hover.top }}
       role="tooltip"
       aria-label={`${hover.measurement.name} takeoff details`}
     >
       <div className={styles.topline}>
         <strong>{hover.measurement.name}</strong>
-        <b>{formatTakeoffMeasurement(hover.measurement.raw_quantity, hover.measurement.raw_unit)}</b>
+        <b className="font-mono">{formatTakeoffMeasurement(hover.measurement.raw_quantity, hover.measurement.raw_unit)}</b>
       </div>
       <div className={styles.context}>{context}</div>
       <div className={`${styles.status} ${statusKind === 'ready' ? styles.statusReady : statusKind === 'warning' ? styles.statusWarning : styles.statusHold}`}>
@@ -195,6 +198,6 @@ export function TakeoffMeasurementHoverOverlay({
         <strong>{status}</strong>
         <small>Click for details</small>
       </div>
-    </div>, document.body)}
+    </div>, viewportRef.current)}
   </>;
 }

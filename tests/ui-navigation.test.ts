@@ -34,9 +34,9 @@ test('Estimate review keeps the compatibility route with Review product language
   assert.equal(destination?.hint,'Commercial recap and release review');
 });
 
-test('five-surface presentation classifies every destination once with canonical surface routes',()=>{
-  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Overview','Opportunities','Projects','Financials','Administration']);
-  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/overview','/opportunities','/projects','/financials','/settings']);
+test('primary presentation classifies every destination once with canonical surface routes',()=>{
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Overview','Opportunities','Projects','Field','Financials','Administration']);
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/overview','/opportunities','/projects','/field','/financials','/settings']);
   const destinationIds=WORKSPACE_PRESENTATION_SURFACES.flatMap(surface=>surface.sections.flatMap(section=>section.destinations.map(destination=>destination.id)));
   assert.equal(new Set(destinationIds).size,destinationIds.length);
   assert.deepEqual([...destinationIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());

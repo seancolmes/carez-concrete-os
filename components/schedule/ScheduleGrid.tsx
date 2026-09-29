@@ -25,6 +25,7 @@ import {Input} from '@/components/ui/input';
 import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
 import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {cn} from '@/lib/utils';
+import {ScheduleMatrix} from './ScheduleMatrix';
 
 export type ScheduleGridDay={date:string;label:string;shortLabel:string;isToday:boolean};
 export type ScheduleCrewMember={id:string;name:string;role:string};
@@ -46,7 +47,10 @@ export type ScheduleGridItem={
   unit:string|null;
   employeeTask:string|null;
   pourName:string|null;
+  pourPlanId:string|null;
   pourYards:number|null;
+  pumpAssetIds:string[];
+  unidentifiedPumps:number;
   status:string;
   operationStatus:string|null;
   inspectionId:string|null;
@@ -142,7 +146,7 @@ function CellStack({primary,secondary,className}:{primary:React.ReactNode;second
   return <div className={cn('min-w-0 leading-tight',className)}><div className="truncate text-xs font-medium text-foreground">{primary}</div>{secondary?<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{secondary}</div>:null}</div>;
 }
 
-export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[]}){
+function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[]}){
   const router=useRouter();
   const shellRef=useRef<HTMLDivElement|null>(null);
   const [view,setView]=useState<ViewMode>('work');
@@ -360,7 +364,7 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
         {types.map(type=><NativeSelectOption key={type} value={type}>{titleCase(type)}</NativeSelectOption>)}
       </NativeSelect>
       <NativeSelect size="sm" className="w-40" value={rangePreset} onChange={event=>applyRangePreset(event.target.value)} aria-label="Date range">
-        <NativeSelectOption value="all">Range: Next 14 days</NativeSelectOption>
+        <NativeSelectOption value="all">Range: 90-day horizon</NativeSelectOption>
         <NativeSelectOption value="today">Today</NativeSelectOption>
         <NativeSelectOption value="7">Next 7 days</NativeSelectOption>
         {rangePreset==='custom'?<NativeSelectOption value="custom">Custom range</NativeSelectOption>:null}
@@ -405,7 +409,7 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
     isEmpty={view==='work'&&displayItems.length===0}
     empty={<Empty className="min-h-64 rounded-none border-0">
       <EmptyHeader><EmptyMedia variant="icon"><CalendarOff/></EmptyMedia><EmptyTitle>Nothing scheduled in this view</EmptyTitle><EmptyDescription>Adjust the active filters or open the look-ahead to review upcoming operations.</EmptyDescription></EmptyHeader>
-      <EmptyContent><div className="flex flex-wrap items-center justify-center gap-2"><Button type="button" variant="outline" size="sm" onClick={resetFilters}>Show all 14 days</Button><Link href="/look-ahead" className={buttonVariants({variant:'outline',size:'sm'})}>View 21-day look-ahead</Link></div></EmptyContent>
+      <EmptyContent><div className="flex flex-wrap items-center justify-center gap-2"><Button type="button" variant="outline" size="sm" onClick={resetFilters}>Show full horizon</Button><Link href="/look-ahead" className={buttonVariants({variant:'outline',size:'sm'})}>View 21-day look-ahead</Link></div></EmptyContent>
     </Empty>}
   >
     {view==='work'?<CarezDataGridTable className="table-fixed" style={{minWidth:totalWidth,width:totalWidth}}>
@@ -459,4 +463,15 @@ export function ScheduleGrid({days,items,crewMembers}:{days:ScheduleGridDay[];it
       <CarezDataGridBody>{matrixRows.map(row=><CarezDataGridRow key={row.id} className="group hover:!bg-transparent"><CarezDataGridCell className="sticky left-0 z-20 w-[170px] bg-background"><CellStack primary={row.name}/></CarezDataGridCell><CarezDataGridCell className="sticky left-[170px] z-20 w-20 bg-background text-[11px] text-muted-foreground">{row.role}</CarezDataGridCell>{visibleDays.map(day=>{const cellItems=matrixItems(row,day.date);return <CarezDataGridCell key={day.date} className="h-auto min-h-14 border-l border-border/60 align-top"><div className="space-y-1 py-1">{cellItems.length?cellItems.map(item=>{const tone=readinessBucket(item);return <button type="button" key={item.id} onClick={()=>toggleRow(item.id)} onDoubleClick={()=>router.push(item.openHref)} className={cn('block w-full border-l border-border px-2 py-1.5 text-left outline-none transition-all duration-150 hover:border-primary/70 focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',tone==='blocked'&&'border-destructive text-destructive',tone==='at_risk'&&'border-warning text-warning',tone==='ready'&&'border-success')}><div className="truncate font-mono text-[10px] text-muted-foreground">{time(item.startTime)} · {item.jobNumber}</div><div className="mt-0.5 truncate text-[11px] font-medium text-foreground">{item.title}</div></button>}):<span className="text-muted-foreground/50">—</span>}</div></CarezDataGridCell>;})}</CarezDataGridRow>)}</CarezDataGridBody>
     </CarezDataGridTable>}
   </CarezDataGrid>;
+}
+
+export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];pumpDataAvailable?:boolean}){
+  const [registerOpen,setRegisterOpen]=useState(false);
+  return <div className="min-w-0 space-y-3">
+    <ScheduleMatrix days={days} items={items} pumpDataAvailable={pumpDataAvailable}/>
+    <details className="border-t border-[#343A3F] pt-2" onToggle={event=>setRegisterOpen(event.currentTarget.open)}>
+      <summary className="w-fit cursor-pointer text-[11px] font-medium text-[#8B949E] hover:text-white">Open schedule register and crew detail</summary>
+      {registerOpen?<div className="pt-3"><ScheduleRegister days={days} items={items} crewMembers={crewMembers}/></div>:null}
+    </details>
+  </div>;
 }

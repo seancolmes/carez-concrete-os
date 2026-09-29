@@ -1,5 +1,7 @@
 'use client';
 
+import editorFields from './ConditionEditorFields.module.css';
+
 import {
   useEffect,
   useMemo,
@@ -487,7 +489,7 @@ export function ConcreteConditionAuthoring({
   return <section
     ref={windowRef}
     data-testid="condition-window"
-    className={`${styles.window} ${floating ? styles.floating : styles.docked}`}
+    className={`${editorFields.surface} ${styles.window} ${floating ? styles.floating : styles.docked}`}
     style={windowStyle}
     aria-label="Concrete Condition Properties"
   >
@@ -584,7 +586,7 @@ export function ConcreteConditionAuthoring({
                 {(Object.keys(GROUP_LABELS) as EditorTab[]).map(group => <TabsContent key={group} value={group} className={styles.tabContent}>
                   <div className={styles.fieldGrid}>
                     {definition.inputs.filter(input => input.group === group).map(input => <label key={`${group}-${input.key}`} className={styles.field}>
-                      <span>{input.label}</span>
+                      <span className="block text-xs font-medium text-[#A1A1AA] mb-1.5">{input.label}</span>
                       {input.valueType === 'select' ? <select value={String(draft[group]?.[input.key] ?? '')} onChange={event => updateInput(input, event.target.value)} disabled={locked || isPending}>
                         <option value="">Select…</option>
                         <option value="top">Top</option>
@@ -599,6 +601,7 @@ export function ConcreteConditionAuthoring({
                         step={input.valueType === 'integer' ? 1 : 'any'}
                         disabled={locked || isPending}
                       />}
+                      <small className="text-xs text-[#A1A1AA]">{input.unit?`Unit: ${input.unit}`:`${input.label} for this condition.`}</small>
                     </label>)}
                   </div>
                   {!definition.inputs.some(input => input.group === group) && <div className={styles.emptyGroup}>No inputs for this Condition family.</div>}

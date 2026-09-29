@@ -80,7 +80,7 @@ export default async function ProjectsPage(){
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="carez-projects-page mx-auto flex w-full max-w-screen-2xl flex-col">
-      <header className="mb-6 flex flex-col justify-between border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F] md:flex-row md:items-start">
+      <header className="industrial-header mb-6 flex flex-col justify-between px-4 py-3 md:flex-row md:items-start">
         <div className="space-y-1">
           <nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/">Dashboard</Link><span className="mx-1 opacity-50">/</span>Projects</nav>
           <h1 className="text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Projects</h1>
@@ -89,7 +89,7 @@ export default async function ProjectsPage(){
         <div className="mt-4 flex items-center gap-2 md:mt-0">
           <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
           <Dialog>
-            <DialogTrigger render={<Button size="sm" className="bg-[#007A52] text-white hover:bg-[#007A52]/90 dark:bg-[#009966] dark:text-[#121212] dark:hover:bg-[#009966]/90"/>}><Plus/>New direct job</DialogTrigger>
+            <DialogTrigger render={<Button size="sm"/>}><Plus/>New direct job</DialogTrigger>
             <DialogContent className="sm:max-w-xl">
               <DialogHeader><DialogTitle>Create direct job</DialogTitle><DialogDescription>Direct-job exception only. Accepted proposals create jobs automatically.</DialogDescription></DialogHeader>
               <form action={createProject} className="grid gap-4">

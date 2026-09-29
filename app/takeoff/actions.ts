@@ -162,3 +162,21 @@ export async function updateEstimatingLaborProfile(fd: FormData) {
   revalidatePath('/takeoff/plans');
   revalidatePath('/estimates');revalidatePath('/opportunities');
 }
+
+export async function deleteTakeoffSet(setId:string){
+  const supabase=await createClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)throw new Error('Not signed in');
+  const {data:profile,error:profileError}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();
+  if(profileError||!profile?.company_id||!['owner','office','estimator'].includes(profile.role))throw new Error('Owner, office or estimator access required');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(setId))throw new Error('Invalid takeoff set ID');
+  const {data,error}=await supabase.from('takeoff_sets').delete().eq('id',setId).eq('company_id',profile.company_id).select('id').maybeSingle();
+  if(error){
+    if(error.code==='23503')throw new Error('This takeoff set has protected linked records and cannot be deleted.');
+    throw new Error('Takeoff set could not be deleted.');
+  }
+  if(!data)throw new Error('Takeoff set not found or deletion is not permitted');
+  revalidatePath('/opportunities');
+  revalidatePath('/takeoff');
+  revalidatePath('/estimates');
+}

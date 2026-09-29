@@ -1,0 +1,16 @@
+.surface{--foreground:#C9D1D9;--muted-foreground:#8B949E;--background:#090A0C;--card:#141618;--border:#25292C;--input:#25292C;--muted:#25292C;--primary:#009966;--ring:#009966;color:#C9D1D9;color-scheme:dark}
+.surface :is(input:not([data-imperial-part]):not([type="checkbox"]),select,textarea,[data-slot="select-trigger"]){width:100%;height:24px;min-height:24px;border:1px solid #25292C;border-radius:3px;background:#121212;padding:0 8px;color:#fff;font-size:11px;transition:border-color 150ms;outline:none;box-shadow:inset 0 1px 2px #0003}
+.surface [data-slot="select-trigger"]{display:flex;align-items:center;justify-content:space-between}
+.surface :is(input,select,textarea,[data-slot="select-trigger"]):hover{border-color:#343A3F}
+.surface :is(input,select,textarea,[data-slot="select-trigger"]):focus-visible{border-color:#009966;box-shadow:0 0 0 1px #009966}
+.surface input[type="number"]{font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.025em;appearance:textfield}
+.surface input[type="number"]::-webkit-inner-spin-button{appearance:none}
+.surface div:has(>[data-inspector-unit])>input[type="number"]{padding-right:24px}
+.surface :is(input,select,textarea,button):disabled{cursor:not-allowed;opacity:.6}
+.surface [data-imperial-part]{height:22px;border:0;box-shadow:none!important;padding:0 4px}
+.surface [data-inspector-imperial][aria-invalid="true"],.surface input[aria-invalid="true"]{border-color:var(--destructive)}
+.surface :is([data-slot="field-label"],label>span:first-child){color:#8B949E;font-size:11px;font-weight:500}
+.surface [data-slot="carez-number-field"]{position:relative;height:24px;min-height:24px;border:0;background:transparent;box-shadow:none}
+.surface [data-slot="carez-number-field"]>input{padding-right:24px}
+.surface [data-slot="carez-number-field"]>span:last-child{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:0;color:#525B62;font:10px ui-monospace,monospace;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.surface *{transition-duration:0ms!important;animation-duration:0ms!important}}

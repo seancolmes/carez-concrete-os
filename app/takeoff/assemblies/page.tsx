@@ -1,22 +1,12 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowLeft,Boxes,Gauge,Hammer,Layers3,Package,Ruler,Shapes} from 'lucide-react';
+import {ArrowLeft,Gauge} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
-import {Badge} from '@/components/ui/badge';
+import {LegacyAssemblyAuditTable,type LegacyAssemblyAuditRow} from '@/components/takeoff/LegacyAssemblyAuditTable';
 import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
-import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
 import {createClient} from '@/lib/supabase/server';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
-
-function Metric({label,value,Icon}:{label:string;value:string|number;Icon:any}){
-  return <div className="min-w-0 border-x border-border px-4 py-3 first:border-l-0 last:border-r-0"><CardHeader className="grid grid-cols-[1fr_auto] items-start gap-3 px-0"><div><CardDescription className="text-xs font-medium uppercase tracking-wide">{label}</CardDescription><CardTitle className="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums">{value}</CardTitle></div><span className="flex size-9 items-center justify-center bg-primary/5 text-primary"><Icon className="size-4"/></span></CardHeader></div>;
-}
-
-function Identity({label,value}:{label:string;value:string}){
-  return <div className="min-w-0"><div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 truncate font-mono text-[11px] text-foreground" title={value}>{value}</div></div>;
-}
 
 export default async function AssemblyLibraryPage(){
   const supabase=await createClient();
@@ -57,14 +47,23 @@ export default async function AssemblyLibraryPage(){
     compsByVersion.set(component.assembly_version_id,rows);
   }
   const laborOperations=publishedComponents.filter((component:any)=>component.estimate_item_type==='labor').length;
+  const auditRows:LegacyAssemblyAuditRow[]=publishedAssemblies.map((assembly:any)=>({
+    id:String(assembly.id),code:String(assembly.code||'—'),name:String(assembly.name||'Untitled assembly'),
+    description:assembly.description||null,category:String(assembly.category||'Concrete'),measurement:String(assembly.primary_measurement||'—'),
+    versions:(versionsByAssembly.get(assembly.id)||[]).map((version:any)=>({
+      id:String(version.id),number:Number(version.version_no||0),source:String(version.source_label||'Carez published assembly'),reference:version.source_reference||null,
+      inputs:(varsByVersion.get(version.id)||[]).map((variable:any)=>({label:String(variable.label||variable.variable_key),key:String(variable.variable_key),unit:String(variable.unit||variable.value_type||'—')})),
+      outputs:(compsByVersion.get(version.id)||[]).map((component:any)=>({label:String(component.label||component.component_key),key:String(component.component_key),unit:String(component.output_unit||'—'),type:String(component.estimate_item_type||'—'),behavior:String(component.resource_behavior||'legacy resource')})),
+    })),
+  }));
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4">
+      <header className="carez-page-heading flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Compatibility history</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Compatibility history</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Legacy assembly audit</h1>
-          <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Read-only published recipe and assembly records retained for historical Takeoff, estimate, proposal, and Concrete Condition compatibility. New scope is authored through Concrete Conditions.</p>
+          <p className="mt-1 max-w-4xl text-xs text-muted-foreground">Read-only published records retained for Takeoff, estimate, proposal and Concrete Condition compatibility.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff"><ArrowLeft/>Takeoff</Link>
@@ -72,98 +71,25 @@ export default async function AssemblyLibraryPage(){
         </div>
       </header>
 
-      <section className="carez-summary-ledger grid grid-cols-2 gap-px xl:grid-cols-4" aria-label="Compatibility history summary">
-        <Metric label="Published assemblies" value={publishedAssemblies.length} Icon={Layers3}/>
-        <Metric label="Published versions" value={(versions||[]).length} Icon={Shapes}/>
-        <Metric label="Resource outputs" value={publishedComponents.length} Icon={Package}/>
-        <Metric label="Labor operations" value={laborOperations} Icon={Hammer}/>
+      <section aria-label="Compatibility history summary" className="grid grid-cols-2 border-y border-[#25292C] bg-[#181A1B] text-[11px] sm:grid-cols-4">
+        <div className="flex h-8 items-center justify-between gap-2 border-r border-[#25292C] px-2 text-[#8B949E]"><span>Assemblies</span><strong className="font-mono text-[#E1E7E3]">{publishedAssemblies.length}</strong></div>
+        <div className="flex h-8 items-center justify-between gap-2 border-r border-[#25292C] px-2 text-[#8B949E]"><span>Versions</span><strong className="font-mono text-[#E1E7E3]">{(versions||[]).length}</strong></div>
+        <div className="flex h-8 items-center justify-between gap-2 border-r border-[#25292C] px-2 text-[#8B949E]"><span>Outputs</span><strong className="font-mono text-[#E1E7E3]">{publishedComponents.length}</strong></div>
+        <div className="flex h-8 items-center justify-between gap-2 px-2 text-[#8B949E]"><span>Labor operations</span><strong className="font-mono text-[#E1E7E3]">{laborOperations}</strong></div>
       </section>
 
-      <Card className="rounded-none border-x-0 bg-transparent shadow-none">
-        <CardHeader className="grid gap-4 md:grid-cols-[44px_minmax(0,1fr)] md:items-center">
-          <span className="flex size-11 items-center justify-center rounded-lg bg-accent text-primary"><Hammer className="size-5"/></span>
-          <div>
-            <CardDescription className="text-xs font-medium">Historical estimating labor reference</CardDescription>
-            <CardTitle className="mt-1 flex items-baseline gap-1 font-mono text-2xl font-semibold tabular-nums">{laborProfile?money(laborProfile.burdened_hourly_rate):'Not configured'}{laborProfile?<span className="font-sans text-xs font-normal text-muted-foreground">/ MH</span>:null}</CardTitle>
-            <CardDescription className="mt-1">{laborProfile?.source_label||'No current default labor reference is configured.'} This surface is audit-only.</CardDescription>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#25292C] pb-2 text-[11px] text-[#8B949E]">
+        <span>Historical labor reference</span>
+        <strong className="font-mono text-[#525B62]">{laborProfile?money(laborProfile.burdened_hourly_rate):'Not configured'}{laborProfile?'/ MH':''}</strong>
+        <span className="truncate">{laborProfile?.source_label||'No current default labor reference is configured.'}</span>
+      </div>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Published compatibility records</p>
-          <h2 className="mt-1 text-lg font-semibold">Assembly and recipe history</h2>
-          <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Published versions remain inspectable because historical measurements, estimates, accepted commercial records, and Condition compatibility mappings can still reference them. These records are not editable from this route.</p>
+      <section aria-labelledby="published-records-title">
+        <div className="mb-2">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Published compatibility records</p>
+          <h2 id="published-records-title" className="text-sm font-semibold">Assembly and recipe history</h2>
         </div>
-
-        {publishedAssemblies.length===0?
-          <Empty className="min-h-56 border bg-muted/20">
-            <EmptyHeader>
-              <EmptyMedia variant="icon"><Boxes/></EmptyMedia>
-              <EmptyTitle>No published compatibility history</EmptyTitle>
-              <EmptyDescription>No published legacy assembly records are available for audit.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-          :
-          <div className="grid gap-3 lg:grid-cols-2">{publishedAssemblies.map((assembly:any)=>{
-            const assemblyVersions=versionsByAssembly.get(assembly.id)||[];
-            const latest=assemblyVersions[0];
-            return <article className="border-y border-border bg-transparent" key={assembly.id}>
-              <CardHeader className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 border-b py-3">
-                <span className="flex size-10 flex-col items-center justify-center rounded-lg bg-accent text-primary"><Ruler className="size-3.5"/><span className="mt-0.5 font-mono text-[9px] font-semibold">{assembly.primary_measurement}</span></span>
-                <div className="min-w-0">
-                  <div className="mb-1 flex flex-wrap items-center gap-1.5"><Badge variant="outline" className="font-mono text-[10px]">{assembly.code}</Badge><Badge variant="secondary">{assembly.category||'Concrete'}</Badge></div>
-                  <CardTitle className="truncate">{assembly.name}</CardTitle>
-                  {assembly.description?<CardDescription className="mt-1 line-clamp-2">{assembly.description}</CardDescription>:null}
-                </div>
-                <Badge variant="secondary" className="bg-success/10 text-success">{assemblyVersions.length} published version{assemblyVersions.length===1?'':'s'}</Badge>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="grid gap-3 border-b bg-muted/20 p-3 sm:grid-cols-2">
-                  <Identity label="Assembly ID" value={String(assembly.id)}/>
-                  <Identity label="Latest published version" value={latest?['V',latest.version_no,' · ',latest.id].join(''):'None'}/>
-                </div>
-                <div className="divide-y">
-                  {assemblyVersions.map((version:any)=>{
-                    const versionVariables=varsByVersion.get(version.id)||[];
-                    const versionComponents=compsByVersion.get(version.id)||[];
-                    return <details key={version.id}>
-                      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs font-medium hover:bg-muted/40">
-                        <Layers3 className="size-3.5 text-primary"/>
-                        <span>Version {version.version_no} · Published</span>
-                        <span className="ml-auto text-[11px] font-normal text-muted-foreground">{versionComponents.length} outputs · {versionVariables.length} inputs</span>
-                      </summary>
-                      <div className="space-y-4 border-t p-3">
-                        <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
-                          <Identity label="Version ID" value={String(version.id)}/>
-                          <Identity label="Assembly ID" value={String(assembly.id)}/>
-                          <div className="sm:col-span-2">
-                            <div className="text-xs font-medium">{version.source_label||'Carez published assembly'}</div>
-                            {version.source_reference?<div className="mt-1 break-all text-xs text-muted-foreground">{version.source_reference}</div>:null}
-                          </div>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <div className="mb-2 text-xs font-semibold text-muted-foreground">Inputs</div>
-                            <div className="divide-y rounded-lg border">
-                              {versionVariables.length?versionVariables.map((variable:any)=><div className="grid gap-1 px-3 py-2 text-xs" key={variable.id}><div className="flex items-center justify-between gap-3"><span className="font-medium">{variable.label}</span><span className="text-muted-foreground">{variable.unit||variable.value_type}</span></div><span className="font-mono text-[10px] text-muted-foreground">{variable.variable_key}</span></div>):<div className="px-3 py-2 text-xs text-muted-foreground">No published inputs</div>}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="mb-2 text-xs font-semibold text-muted-foreground">Outputs</div>
-                            <div className="divide-y rounded-lg border">
-                              {versionComponents.length?versionComponents.map((component:any)=><div className="grid gap-1 px-3 py-2 text-xs" key={component.id}><div className="flex items-center justify-between gap-3"><span className="font-medium">{component.label}</span><span className="text-muted-foreground">{component.output_unit}</span></div><div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground"><span className="font-mono">{component.component_key}</span><span>{component.estimate_item_type}</span><span>{component.resource_behavior||'legacy resource'}</span></div></div>):<div className="px-3 py-2 text-xs text-muted-foreground">No published outputs</div>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </details>;
-                  })}
-                </div>
-              </CardContent>
-            </article>;
-          })}</div>}
+        <LegacyAssemblyAuditTable rows={auditRows}/>
       </section>
     </div>
   </AppShell>;

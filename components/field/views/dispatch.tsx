@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,11 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/server';
-import { createPourPlan,updatePourPlan,addPourCostItem,addPourLaborItem,deletePourCostItem,recordPourAuthorization,closePourPlan } from '@/app/pour-control/actions';
+import { updatePourPlan,addPourCostItem,addPourLaborItem,deletePourCostItem,recordPourAuthorization,closePourPlan } from '@/app/pour-control/actions';
 
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const num=(v:any)=>Number(v||0);
-const today=()=>new Date().toISOString().slice(0,10);
 const year=new Date().getFullYear();
 const units=['LS','EA','CY','LF','SF','HR','DAY','TON','GAL'];
 const selectClass='h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
@@ -26,24 +26,17 @@ export default async function PourControlPage(){
   if(!profile?.company_id)redirect('/login');
   const companyId=profile.company_id;
 
-  const [{data:projects},{data:funding},{data:plans},{data:items},{data:reviews},{data:sections},{data:budgets},{data:changeOrders},{data:crew},{data:risks},{data:costCodes},{data:catalog}]=await Promise.all([
-    supabase.from('projects').select('id,job_number,name,status').in('status',['active','on_hold']).order('job_number'),
+  const [{data:funding},{data:plans},{data:items},{data:reviews},{data:crew},{data:risks},{data:costCodes},{data:catalog}]=await Promise.all([
     supabase.from('project_cash_funding_summary').select('*').in('status',['active','on_hold']).order('job_number'),
     supabase.from('pour_plan_financial_summary').select('*').order('scheduled_date',{ascending:true,nullsFirst:false}).order('name'),
     supabase.from('pour_cost_items').select('*').order('sort_order'),
     supabase.from('pour_authorization_snapshots').select('*').order('reviewed_at',{ascending:false}),
-    supabase.from('project_budget_sections').select('id,budget_id,name,scope_type').order('sort_order'),
-    supabase.from('project_budgets').select('id,project_id,status,budget_type,label').eq('status','active'),
-    supabase.rpc('carez_list_approved_change_order_references',{p_project_id:null}),
     supabase.from('crew_members').select('id,name,hourly_rate,internal_field_rate,is_owner,active').eq('active',true).order('name'),
     supabase.from('li_risk_classes').select('code,name').eq('company_id',companyId).eq('tax_year',year).eq('active',true).order('code'),
     supabase.from('cost_codes').select('id,code,name,cost_type,default_unit').eq('company_id',companyId).eq('active',true).order('sort_order'),
     supabase.from('cost_catalog_items').select('id,cost_code_id,name,default_unit,default_unit_cost,vendor_name').eq('company_id',companyId).eq('active',true).order('name')
   ]);
 
-  const projectMap=new Map((projects||[]).map((p:any)=>[p.id,p]));
-  const budgetProject=new Map((budgets||[]).map((b:any)=>[b.id,b.project_id]));
-  const sectionOptions=(sections||[]).filter((s:any)=>budgetProject.has(s.budget_id)).map((s:any)=>({...s,project_id:budgetProject.get(s.budget_id)}));
   const itemsByPlan=new Map<string,any[]>();for(const i of items||[]){if(!itemsByPlan.has(i.pour_plan_id))itemsByPlan.set(i.pour_plan_id,[]);itemsByPlan.get(i.pour_plan_id)!.push(i);}
   const reviewsByPlan=new Map<string,any[]>();for(const r of reviews||[]){if(!reviewsByPlan.has(r.pour_plan_id))reviewsByPlan.set(r.pour_plan_id,[]);reviewsByPlan.get(r.pour_plan_id)!.push(r);}
   const latestReview=new Map<string,any>();for(const r of reviews||[]){if(!latestReview.has(r.pour_plan_id))latestReview.set(r.pour_plan_id,r);}
@@ -53,7 +46,7 @@ export default async function PourControlPage(){
   const openExposure=(plans||[]).filter((p:any)=>p.status!=='completed'&&p.status!=='cancelled').reduce((s:number,p:any)=>s+num(p.total_exposure_with_contingency),0);
 
   return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <header><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Field finance</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Pour Control</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Cash exposure, protected project funding and authorization before Carez commits to concrete, pumps, payroll and other pour costs.</p></header>
+    <header className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Financial controls</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Pour Funding</h1><p className="mt-1 max-w-4xl text-sm text-muted-foreground">Cash exposure, protected project funding and authorization before Carez commits to concrete, pumps, payroll and other pour costs.</p></div><Link href="/field" className={buttonVariants({variant:'outline',size:'sm'})}>Open Dispatch Board</Link></header>
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Metric label="Protected Project Funding" value={money(totalProtected)} detail="Collected customer cash after sales-tax reserve, fees and incurred direct cost." tone="success"/>
@@ -68,17 +61,8 @@ export default async function PourControlPage(){
       <div className="space-y-3">{(funding||[]).map((f:any)=>{const balance=num(f.project_funding_balance),risk=num(f.carez_cash_at_risk_to_date);return <Card key={f.project_id}><header className="carez-page-heading flex flex-col gap-3 border-b border-border px-4 pb-4 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="font-semibold">{f.job_number} — {f.name}</h3><p className="mt-1 text-sm text-muted-foreground">Only collected customer cash is counted.</p></div><Badge variant="outline" className={balance>=0?'border-success/30 bg-success/10 text-success':'border-destructive/30 bg-destructive/10 text-destructive'}>{balance>=0?'Funded to date':'Carez funded'}</Badge></header><CardContent className="space-y-3"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Gross Customer Cash" value={money(num(f.gross_customer_cash))} tone="success"/><Metric label="Sales Tax Reserved" value={money(num(f.sales_tax_cash_reserved))} detail="Not treated as spendable project funding"/><Metric label="Incurred Direct Cost" value={money(num(f.incurred_direct_cost))} detail={`Labor ${money(num(f.incurred_labor_cost))} · Other ${money(num(f.incurred_nonlabor_cost))}`}/><Metric label="Protected Funding Balance" value={money(balance)} detail={`Carez cash at risk ${money(risk)}`} tone={balance>=0?'success':'danger'}/></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Processing Fees Paid" value={money(num(f.processing_fees_paid))}/><Metric label="Outstanding A/R — Not Counted" value={money(num(f.outstanding_ar_not_counted))}/><Metric label="Unbilled Contract — Not Counted" value={money(num(f.unbilled_contract_not_counted))}/><Metric label="Retainage Held — Not Counted" value={money(num(f.retainage_held_not_counted))}/></div></CardContent></Card>;})}</div>
     </section>
 
-    <details className="rounded-lg border border-border bg-card"><summary className="cursor-pointer list-none px-4 py-3 font-medium">Create Pour Plan</summary><div className="border-t border-border p-4"><form action={createPourPlan} className="grid gap-4">
-      <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="new-pour-project">Project</Label><select id="new-pour-project" className={selectClass} name="project_id" required defaultValue=""><option value="" disabled>Select project</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div><div className="grid gap-2"><Label htmlFor="new-pour-name">Pour Name / Location</Label><Input id="new-pour-name" name="name" required placeholder="Basement stem walls — Pour 2"/></div></div>
-      <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="new-pour-date">Scheduled Pour Date</Label><Input id="new-pour-date" type="date" name="scheduled_date" defaultValue={today()}/></div><div className="grid gap-2"><Label htmlFor="new-pour-cy">Expected Concrete (CY)</Label><Input id="new-pour-cy" type="number" min="0" step="0.01" name="expected_concrete_yards" defaultValue="0"/></div></div>
-      <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="new-pour-budget">Budget Scope (optional)</Label><select id="new-pour-budget" className={selectClass} name="budget_section_id" defaultValue=""><option value="">Unassigned</option>{sectionOptions.map((s:any)=>{const p:any=projectMap.get(s.project_id)||{};return <option key={s.id} value={s.id}>{p.job_number||'Job'} — {s.name}</option>;})}</select></div><div className="grid gap-2"><Label htmlFor="new-pour-co">Approved Change Order (optional)</Label><select id="new-pour-co" className={selectClass} name="change_order_id" defaultValue=""><option value="">Original contract work</option>{(changeOrders||[]).map((co:any)=>{const p:any=projectMap.get(co.project_id)||{};return <option key={co.id} value={co.id}>{p.job_number||'Job'} — {co.co_number} · {co.title}</option>;})}</select></div></div>
-      <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="new-pour-contingency">Contingency %</Label><Input id="new-pour-contingency" type="number" min="0" max="100" step="0.1" name="contingency_percent" defaultValue="10"/><p className="text-xs text-muted-foreground">Planning safeguard; editable per pour.</p></div><div className="grid gap-2"><Label htmlFor="new-pour-buffer">Minimum Cash Buffer After Pour</Label><Input id="new-pour-buffer" type="number" min="0" step="0.01" name="minimum_cash_buffer" defaultValue="0"/></div></div>
-      <div className="grid gap-2"><Label htmlFor="new-pour-support">Company Cash Support Committed</Label><Input id="new-pour-support" type="number" min="0" step="0.01" name="company_cash_support" defaultValue="0"/><p className="text-xs text-muted-foreground">Only enter money Carez is actually willing/able to contribute beyond protected project cash.</p></div>
-      <div className="grid gap-2"><Label htmlFor="new-pour-notes">Notes</Label><Textarea id="new-pour-notes" rows={2} name="notes"/></div><Button type="submit" className="w-fit">Create Pour Plan</Button>
-    </form></div></details>
-
     <section className="space-y-4" aria-labelledby="plans-title"><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Authorization</div><h2 id="plans-title" className="mt-1 text-lg font-semibold">Pour Plans</h2><p className="mt-1 text-sm text-muted-foreground">Any change to planned cost or funding resets the plan to Planning and requires a fresh authorization review.</p></div>
-      {(plans||[]).length===0?<Card><CardContent><div className="font-medium">No pour plans yet</div><p className="mt-1 text-sm text-muted-foreground">Create the next planned pour above.</p></CardContent></Card>:<div className="space-y-4">{(plans||[]).map((p:any)=>{
+      {(plans||[]).length===0?<Card><CardContent><div className="font-medium">No pour plans yet</div><p className="mt-1 text-sm text-muted-foreground">Create the next planned pour from the Field Dispatch Board.</p></CardContent></Card>:<div className="space-y-4">{(plans||[]).map((p:any)=>{
         const planItems=itemsByPlan.get(p.pour_plan_id)||[];const planReviews=reviewsByPlan.get(p.pour_plan_id)||[];const last=latestReview.get(p.pour_plan_id);const gap=num(p.required_additional_cash),clear=p.system_recommendation==='clear';const liveChanged=p.status==='authorized'&&!clear;
         return <Card key={p.pour_plan_id}><header className="flex flex-col gap-3 border-b border-border px-4 pb-4 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="font-semibold">{p.job_number} — {p.name}</h3><p className="mt-1 text-sm text-muted-foreground">{p.scheduled_date?`Scheduled ${p.scheduled_date}`:'Date not set'} · {num(p.expected_concrete_yards).toFixed(2)} CY planned</p></div><Badge variant="outline" className={p.status==='authorized'||p.status==='completed'?'border-success/30 bg-success/10 text-success':p.status==='hold'?'border-destructive/30 bg-destructive/10 text-destructive':'text-muted-foreground'}>{String(p.status).replace('_',' ')}</Badge></header>
 
