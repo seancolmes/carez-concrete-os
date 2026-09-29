@@ -65,7 +65,31 @@ test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff select
   assert.match(workstation, /requestConditionSelection\(role\.condition_version_id,false,measurementId\)/);
   assert.match(workstation, /selectDerivedSolid=\(solid:Derived3DSolid\)=>requestConditionSelection\(solid\.conditionVersionId,false,solid\.measurementId\)/);
   assert.match(workstation, /conditionSelectedMeasurementId=\{selectedMeasurementId\} onConditionMeasurementSelect=\{requestMeasurementSelection\}/);
-  assert.match(workstation, /focusMeasurement\(primaryMeasurementForVersion\(versionId\)\)/);
+  assert.match(workstation, /const primaryMeasurementId=primaryMeasurementForVersion\(versionId\)/);
+  assert.match(workstation, /focusMeasurement\(primaryMeasurementId\)/);
+});
+
+test('unmeasured Condition selection arms the primary drawing role without bypassing locks or unsaved changes', () => {
+  const drawing = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
+  assert.match(workstation, /requestConditionSelection\(row\.condition_version_id,true,undefined,undefined,undefined,true\)/);
+  assert.match(workstation, /startPrimaryDraw&&!editorLocked&&!primaryMeasurementId/);
+  assert.match(workstation, /setPendingSwitch\(\{versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode,startPrimaryDraw\}\)/);
+  assert.match(workstation, /requestedVersionId!==selectedVersionId\|\|requestedVersionId!==loadedVersionId/);
+  assert.match(workstation, /if\(primaryRole\)startTakeoff\(primaryRole\)/);
+  assert.match(drawing, /setConditionDrawActive\(true\)/);
+  assert.match(drawing, /if\(tool==='draw'\)\{if\(!conditionDrawActive\)/);
+});
+
+test('drawing controls use the bottom dock and empty-sheet guidance expires', () => {
+  const drawing = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
+  const dock = readFileSync('components/takeoff/TakeoffDock.tsx', 'utf8');
+  assert.match(drawing, /!mobileReview&&!props\.drawingViewHidden&&<TakeoffDock>/);
+  assert.match(drawing, /active=\{tool==='draw'\}/);
+  assert.doesNotMatch(drawing, /emptyTelemetry/);
+  assert.match(drawing, /window\.setTimeout\(\(\)=>setShowEmptyToast\(false\),4000\)/);
+  assert.match(dock, /fixed bottom-8 left-1\/2/);
+  assert.match(dock, /createPortal\(<nav/);
+  assert.match(dock, /useReducedMotion\(\)/);
 });
 
 test('R3F exposes Focus, filters and active-sheet partial-model holds without hiding siblings', () => {

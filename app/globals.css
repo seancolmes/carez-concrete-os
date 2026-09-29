@@ -248,9 +248,9 @@
 .dark {
   color-scheme: dark;
   --ring: var(--pt-logo);
-  --pt-bg: #121212;
+  --pt-bg: #0F172A;
   --pt-shell:#181A1B;
-  --pt-surface-1:#1E2123;
+  --pt-surface-1:#181A1B;
   --pt-surface-2:#25292C;
   --pt-surface-3:#2D3236;
   --pt-surface-hover:#32383C;
@@ -645,6 +645,30 @@ body { background: var(--background); font-size: 13px; }
 [data-slot="input"]:focus, [data-slot="textarea"]:focus, select:focus { border-color: var(--pourtrace-focus); box-shadow: 0 0 0 2px color-mix(in srgb,var(--pourtrace-focus) 25%,transparent); }
 [data-slot="button"] { background: var(--pourtrace-control-surface); border-color: var(--pourtrace-border-strong); box-shadow: inset 0 1px #ffffff09; border-radius: 4px; }
 [data-slot="button"]:hover { background: var(--pourtrace-control-hover); border-color: var(--pourtrace-border-strong); }
+[data-slot="button"].carez-button-metal,
+[data-slot="button"].carez-button-texture {
+  border-color:#111;
+  background:linear-gradient(to bottom,#2A2D32,#1A1D20);
+  color:#F4F6F5;
+  box-shadow:inset 0 1px rgb(255 255 255 / .1),0 2px 4px rgb(0 0 0 / .4);
+}
+[data-slot="button"].carez-button-metal:hover,
+[data-slot="button"].carez-button-texture:hover {
+  border-color:#111;
+  background:linear-gradient(to bottom,#34383e,#202428);
+}
+.carez-button-texture::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:.12;
+  mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23grain)' fill='%23fff'/%3E%3C/svg%3E");
+}
+[data-slot="button"].carez-button-texture > * { position:relative; z-index:1; }
 [data-slot="button"].bg-primary, .carez-create-change { background: var(--pourtrace-signal); color: var(--primary-foreground); border-color: var(--pourtrace-signal); }
 [data-slot="button"].bg-primary:hover, .carez-create-change:hover { background: var(--pourtrace-signal-hover); color:#121212; }
 [data-slot="button"]:active { box-shadow: inset 0 2px 4px #0008; }
@@ -872,9 +896,9 @@ body { background: var(--background); font-size: 13px; }
 
 @layer utilities {
   /* 01: Vertical Canvas Vignette */
-  .bg-vignette-dark { background: linear-gradient(180deg, #0B0C0E 0%, #08090A 50%, #050607 100%); }
+  .bg-vignette-dark { background: #0F172A; }
   .bg-vignette-light { background: linear-gradient(180deg, #F4F6F5 0%, #ECEEEB 50%, #E2E6E3 100%); }
-  .dark .bg-vignette-light { background: linear-gradient(180deg, #0B0C0E 0%, #08090A 50%, #050607 100%); }
+  .dark .bg-vignette-light { background: transparent; }
 
   /* 02: Card Micro-Elevation */
   .surface-card {

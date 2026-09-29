@@ -2,9 +2,10 @@
 
 import {useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
+import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
 import {
   Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,
-  Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
+  PenLine,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
 } from 'lucide-react';
 import {
   createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
@@ -21,6 +22,7 @@ import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
 import {TakeoffScalePanel} from './TakeoffScalePanel';
 import {TakeoffVertexEditor} from './TakeoffVertexEditor';
+import {TakeoffDock,TakeoffDockButton} from './TakeoffDock';
 import {usePdfScaleDetection} from './usePdfScaleDetection';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
@@ -130,6 +132,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [snapEnabled,setSnapEnabled]=useState(true);
   const [orthoEnabled,setOrthoEnabled]=useState(false);
   const [inspectorOpen,setInspectorOpen]=useState(false);
+  const [showEmptyToast,setShowEmptyToast]=useState(false);
+  const reducedMotion=useReducedMotion();
   useEffect(()=>{
     if(mobileReview){
       setInspectorOpen(false);
@@ -151,6 +155,12 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedVariables=useMemo(()=>selectedVersion?variables.filter((v:any)=>v.assembly_version_id===selectedVersion.id):[],[selectedVersion,variables]);
   const currentSheet=useMemo(()=>initialSheets.find((s:any)=>Number(s.page_number)===pageNumber)||null,[initialSheets,pageNumber]);
   const currentMeasurements=useMemo(()=>initialMeasurements.filter((m:any)=>m.sheet_id===currentSheet?.id),[initialMeasurements,currentSheet]);
+  useEffect(()=>{
+    if(!pdfReady||!currentSheet||currentMeasurements.length>0){setShowEmptyToast(false);return;}
+    setShowEmptyToast(true);
+    const timeout=window.setTimeout(()=>setShowEmptyToast(false),4000);
+    return()=>window.clearTimeout(timeout);
+  },[pdfReady,currentSheet?.id,currentMeasurements.length]);
   const currentScaleRegions=useMemo(()=>scaleRegions.filter((region:any)=>region.sheet_id===currentSheet?.id) as TakeoffScaleRegion[],[scaleRegions,currentSheet?.id]);
   const scaleRegionMap=useMemo(()=>new Map((scaleRegions as TakeoffScaleRegion[]).map(region=>[region.id,region])),[scaleRegions]);
   const currentScale=currentScaleRegions.length>0||currentSheet?.scale_status==='calibrated';
@@ -191,6 +201,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       };
       conditionDrawRef.current=request;
       setConditionDrawActive(true);
+      setShowEmptyToast(false);
       if(version.assembly_id===selectedAssemblyId){
         setSelectedMeasurementId(null);
         setEditGeometry(null);
@@ -536,8 +547,8 @@ export function TakeoffDrawingWorkspace(props:Props){
     <div className="flex-1 h-full min-w-0 relative bg-[#090A0B] overflow-hidden cursor-crosshair">
 
     <section className={`${styles.center} ${styles.commandCanvas} z-0`} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
-      <div className={styles.toolbar} onKeyDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()}>
-        {mobileReview?<><div className={styles.mobileReviewTools}>
+      {mobileReview&&<div className={styles.toolbar} onKeyDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()}>
+        <div className={styles.mobileReviewTools}>
           <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
         </div>
         <div className={styles.toolbarSpacer}/>
@@ -547,41 +558,41 @@ export function TakeoffDrawingWorkspace(props:Props){
           <button type="button" className={styles.zoomLabel} title="Reset zoom" onClick={()=>setZoomAt(1)}>{zoomPercent}%</button>
           <button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus size={15}/></button>
           <button type="button" className={styles.iconTool} title="Fit page" onClick={fitPage}><Maximize size={15}/></button>
-        </div></>:<>
-        <div className={styles.toolGroup}>
-          <label className={styles.pageSelect}><span>Select Pages</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
-          <button type="button" title="Select · V" className={`${styles.toolButton} ${tool==='select'?styles.toolButtonActive:''}`} onClick={()=>setTool('select')}><MousePointer2 size={16}/><span>Select</span></button>
-          <button type="button" title="Pan · H or hold Space" className={`${styles.toolButton} ${tool==='pan'?styles.toolButtonActive:''}`} onClick={()=>setTool('pan')}><Hand size={16}/><span>Pan</span></button>
-          <button type="button" disabled={locked} title="Set drawing scale · C" className={`${styles.toolButton} ${tool==='calibrate'?styles.toolButtonActive:''}`} onClick={()=>{setCalibrationPoints([]);setInspectorOpen(true);setTool('calibrate');}}><Ruler size={16}/><span>Scale</span></button>
-          <button type="button" title={locked?'Review Concrete Conditions in this issued revision':'Concrete Conditions · M'} className={`${styles.toolButton} ${styles.measureButton}`} onClick={openConditions}><Crosshair size={16}/><span>Conditions</span></button>
-          <button type="button" disabled={locked||!selectedGeometry} title="Edit selected shape · E" className={`${styles.toolButton} ${tool==='edit'?styles.toolButtonActive:''}`} onClick={beginEdit}><Pencil size={15}/><span>Edit</span></button>
-          <button type="button" disabled={locked||selectedGeometry?.type!=='polygon'} title="Add area cutout · K" className={`${styles.toolButton} ${tool==='cutout'?styles.toolButtonActive:''}`} onClick={beginCutout}><Scissors size={15}/><span>Cutout</span></button>
         </div>
-
-        <div className={styles.toolGroup}>
-          <button type="button" className={`${styles.toolButton} ${snapEnabled?styles.toggleActive:''}`} title="Snap to existing takeoff vertices · S" onClick={()=>setSnapEnabled(v=>!v)}><Magnet size={15}/><span>Snap</span></button>
-          <button type="button" className={`${styles.toolButton} ${orthoEnabled?styles.toggleActive:''}`} title="Constrain horizontal/vertical · O" onClick={()=>setOrthoEnabled(v=>!v)}><MoveHorizontal size={15}/><span>Ortho</span></button>
-          <button type="button" disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} className={styles.toolButton} title="Undo point or committed geometry · Ctrl/Cmd+Z" onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}><Undo2 size={15}/></button>
-          <button type="button" disabled={busy||!historySnapshot.canRedo} className={styles.toolButton} title="Redo committed geometry · Ctrl/Cmd+Shift+Z" onClick={()=>void redoCommitted()}><Redo2 size={15}/></button>
-          {tool==='scaleRegion'&&<button type="button" disabled={busy||scaleRegionPoints.length!==2} className={`${styles.toolButton} ${styles.finishButton}`} title="Save scale region · Enter" onClick={()=>void savePendingScaleRegion()}><Check size={15}/><span>Save Region</span></button>}
-          {tool==='draw'&&<button type="button" disabled={busy||!draftPoints.length} className={`${styles.toolButton} ${styles.finishButton}`} title="Finish measurement · Enter or right-click" onClick={()=>void finishDraft()}><Check size={15}/><span>Finish</span></button>}
-          {tool==='cutout'&&<button type="button" disabled={busy||draftPoints.length<3} className={`${styles.toolButton} ${styles.finishButton}`} title="Save cutout · Enter or right-click" onClick={()=>void finishCutout()}><Check size={15}/><span>Subtract</span></button>}
-          {tool==='edit'&&<button type="button" disabled={busy||!editGeometry} className={`${styles.toolButton} ${styles.finishButton}`} title="Save shape · Enter" onClick={()=>void saveEdit()}><Check size={15}/><span>Save</span></button>}
-          {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<button type="button" className={styles.toolButton} title="Cancel active tool · Escape" onClick={cancelTool}><X size={15}/></button>}
+      </div>}
+      {!mobileReview&&!props.drawingViewHidden&&<TakeoffDock>
+        <label className={`${styles.pageSelect} shrink-0`}><span>Sheet</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
+        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <div className="flex shrink-0 items-center gap-1">
+          <TakeoffDockButton label="Select · V" icon={<MousePointer2 size={16}/>} active={tool==='select'} pressed={tool==='select'} onClick={()=>setTool('select')}/>
+          <TakeoffDockButton label="Pan · H or hold Space" icon={<Hand size={16}/>} active={tool==='pan'} pressed={tool==='pan'} onClick={()=>setTool('pan')}/>
+          <TakeoffDockButton label={tool==='draw'?'Drawing Condition':'Draw Condition'} icon={<PenLine size={16}/>} active={tool==='draw'} pressed={tool==='draw'} disabled={locked} onClick={()=>conditionDrawActive?setTool('draw'):openConditions()}/>
+          <TakeoffDockButton label="Set drawing scale · C" icon={<Ruler size={16}/>} active={tool==='calibrate'} pressed={tool==='calibrate'} disabled={locked} onClick={()=>{setCalibrationPoints([]);setInspectorOpen(true);setTool('calibrate');}}/>
+          <TakeoffDockButton label={locked?'Review Concrete Conditions':'Concrete Conditions · M'} icon={<Crosshair size={16}/>} onClick={openConditions} showLabel/>
+          <TakeoffDockButton label="Edit selected shape · E" icon={<Pencil size={15}/>} active={tool==='edit'} pressed={tool==='edit'} disabled={locked||!selectedGeometry} onClick={beginEdit}/>
+          <TakeoffDockButton label="Add area cutout · K" icon={<Scissors size={15}/>} active={tool==='cutout'} pressed={tool==='cutout'} disabled={locked||selectedGeometry?.type!=='polygon'} onClick={beginCutout}/>
         </div>
-
-        <div className={styles.toolbarSpacer}/>
-        <output className={styles.scaleTelemetry}>SCALE CALIBRATION // CANONICAL AUTHORITY: {currentScaleLabel}</output>
-        <div className={styles.zoomGroup}>
-          <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
-          <button type="button" className={styles.zoomLabel} title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i>HQ</i>}</button>
-          <button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus size={15}/></button>
-          <button type="button" className={styles.iconTool} title="Fit width · 0" onClick={()=>setZoomAt(1)}><RotateCcw size={15}/></button>
-          <button type="button" className={styles.iconTool} title="Fit page · 1" onClick={fitPage}><Maximize size={15}/></button>
-
+        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <div className="flex shrink-0 items-center gap-1">
+          <TakeoffDockButton label="Snap to existing vertices · S" icon={<Magnet size={15}/>} active={snapEnabled} pressed={snapEnabled} onClick={()=>setSnapEnabled(value=>!value)}/>
+          <TakeoffDockButton label="Constrain horizontal or vertical · O" icon={<MoveHorizontal size={15}/>} active={orthoEnabled} pressed={orthoEnabled} onClick={()=>setOrthoEnabled(value=>!value)}/>
+          <TakeoffDockButton label="Undo point or geometry · Ctrl/Cmd+Z" icon={<Undo2 size={15}/>} disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}/>
+          <TakeoffDockButton label="Redo geometry · Ctrl/Cmd+Shift+Z" icon={<Redo2 size={15}/>} disabled={busy||!historySnapshot.canRedo} onClick={()=>void redoCommitted()}/>
+          {tool==='scaleRegion'&&<TakeoffDockButton label="Save scale region · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||scaleRegionPoints.length!==2} onClick={()=>void savePendingScaleRegion()}/>}
+          {tool==='draw'&&<TakeoffDockButton label="Finish measurement · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||!draftPoints.length} onClick={()=>void finishDraft()}/>}
+          {tool==='cutout'&&<TakeoffDockButton label="Save cutout · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}/>}
+          {tool==='edit'&&<TakeoffDockButton label="Save shape · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||!editGeometry} onClick={()=>void saveEdit()}/>}
+          {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<TakeoffDockButton label="Cancel active tool · Escape" icon={<X size={15}/>} onClick={cancelTool}/>}
         </div>
-        </>}
-      </div>
+        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <div className="flex shrink-0 items-center gap-1">
+          <TakeoffDockButton label="Zoom out" icon={<Minus size={15}/>} onClick={()=>setZoomAt(zoom/1.2)}/>
+          <button type="button" className="min-w-12 text-xs font-mono tabular-nums text-[#171B19] dark:text-[#F4F6F5]" title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Reset zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i> HQ</i>}</button>
+          <TakeoffDockButton label="Zoom in" icon={<Plus size={15}/>} onClick={()=>setZoomAt(zoom*1.2)}/>
+          <TakeoffDockButton label="Fit width · 0" icon={<RotateCcw size={15}/>} onClick={()=>setZoomAt(1)}/>
+          <TakeoffDockButton label="Fit page · 1" icon={<Maximize size={15}/>} onClick={fitPage}/>
+        </div>
+      </TakeoffDock>}
 
       <div ref={viewportRef} className={styles.canvasViewport} onPointerDownCapture={startViewportPan} onPointerMoveCapture={moveViewportPan} onPointerUpCapture={stopViewportPan} onPointerCancelCapture={stopViewportPan} onClickCapture={event=>{if(mobileReview||tool==='pan'||spaceHeld)event.stopPropagation();}}>
         {!renderBox&&<div className={styles.loading}>{message}</div>}
@@ -630,13 +641,25 @@ export function TakeoffDrawingWorkspace(props:Props){
           </svg>}
         </div>
         {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}
-        {currentSheet&&currentMeasurements.length===0&&<div className={styles.emptyTelemetry}>0 structural takeoffs traced on this sheet. Select a Condition blueprint module above to begin tracing geometries.</div>}
       </div>
+
+      <AnimatePresence>
+        {!mobileReview&&showEmptyToast&&<motion.div
+          key={currentSheet?.id||'empty-sheet'}
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-44 right-6 z-[46] max-w-72 rounded-lg border border-[#D4DBD7] bg-white/95 px-4 py-3 text-xs text-[#525C57] shadow-lg backdrop-blur-xl dark:border-[#343A3F] dark:bg-[#181A1B]/95 dark:text-[#B6BEBA]"
+          initial={reducedMotion?false:{opacity:0,y:18}}
+          animate={{opacity:1,y:0}}
+          exit={reducedMotion?{opacity:0}:{opacity:0,y:18}}
+          transition={{duration:reducedMotion?0:.22}}
+        >No takeoffs on this sheet yet. Select a Condition in the roster to start tracing.</motion.div>}
+      </AnimatePresence>
 
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
     </section>
 
-    {!mobileReview&&<div className={`${styles.canvasHud} absolute bottom-6 right-6 z-40 backdrop-blur-md bg-[#121212]/80 border border-[#343A3F] px-4 py-2 rounded-lg text-[11px] text-[#A1A1AA] cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
+    {!mobileReview&&<div className={`${styles.canvasHud} absolute bottom-28 right-6 z-40 backdrop-blur-md bg-[#121212]/80 border border-[#343A3F] px-4 py-2 rounded-lg text-[11px] text-[#A1A1AA] cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
       <button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left font-mono" title="Scale, calibration and selected takeoff controls">
         <Ruler size={12}/><span className="max-w-32 truncate">{currentScaleRegions.find(region=>region.is_default)?.scale_label||(currentScale?'Regional scale':'Set scale')}</span>
         {selectedMeasurement?<output className="border-l border-[#343A3F] pl-2 text-[12px] font-semibold text-white" title={selectedMeasurement.name}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</output>:null}

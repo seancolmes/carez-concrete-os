@@ -121,7 +121,7 @@ type ConditionData={
 type Props={setId:string;workspaceProps:any;conditionData:ConditionData;mobileReview?:boolean};
 type PropertyTab='general'|'concrete'|'rebar'|'forms'|'embeds'|'excavation'|'placement'|'finish'|'labor'|'review'|'drawing'|'more';
 type ViewMode='2d'|'3d'|'split';
-type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode};
+type PendingSwitch={versionId:string;focusPlan:boolean;measurementId?:string|null;propertyTab?:PropertyTab;viewMode?:ViewMode;startPrimaryDraw?:boolean};
 type PendingRoleDraw={conditionVersionId:string;roleKey:string;existingMeasurementIds:Set<string>};
 
 const MODULE_LABELS:Record<ConditionModuleKey,string>={
@@ -185,6 +185,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const drawerRef=useRef<HTMLDivElement|null>(null);
   const propertyScrollRef=useRef<HTMLDivElement|null>(null);
   const pendingRoleDrawRef=useRef<PendingRoleDraw|null>(null);
+  const pendingPrimaryDrawRef=useRef<string|null>(null);
   const sourceMeasurementAppliedRef=useRef(false);
   const [conditionQuery,setConditionQuery]=useState('');
   const [focusedRateKey,setFocusedRateKey]=useState<string|null>(null);
@@ -192,6 +193,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [selectedVersionId,setSelectedVersionId]=useState<string|null>(null);
   const [loadedVersionId,setLoadedVersionId]=useState<string|null>(null);
   const [pendingSwitch,setPendingSwitch]=useState<PendingSwitch|null>(null);
+  const [drawRequestSequence,setDrawRequestSequence]=useState(0);
   const [propertyTab,setPropertyTab]=useState<PropertyTab>('general');
   const [viewMode,setViewMode]=useState<ViewMode>('2d');
   const [derivedViewState,setDerivedViewState]=useState<Derived3DViewState>(DEFAULT_DERIVED_3D_VIEW_STATE);
@@ -416,16 +418,22 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const focusMeasurement=(measurementId:string|null)=>{setSelectedMeasurementId(measurementId);const measurement=measurementId?measurements.find((row:any)=>row.id===measurementId):null;if(measurement?.sheet_id)setActiveSheetId(measurement.sheet_id);};
   const primaryMeasurementForVersion=(versionId:string)=>{const contract=contractForVersion(versionId).definition;if(!contract)return null;const primary=contract.roles.find(role=>role.primary);if(!primary)return null;const working=versionId===selectedVersionId?roleSelections[primary.key]||'':'';return working||conditionData.roles.find(role=>role.condition_version_id===versionId&&role.role_key===primary.key)?.measurement_id||null;};
   const changeViewMode=(mode:ViewMode)=>{setViewMode(mode);};
-  const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
+  const applyConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode,startPrimaryDraw=false)=>{
+    pendingPrimaryDrawRef.current=null;
     setSelectedVersionId(versionId);setCreating(false);
     if(nextTab){setPropertyTab(nextTab);setConditionOpen(true);}if(nextMode)setViewMode(nextMode);
     if(measurementId!==undefined){focusMeasurement(measurementId);return;}
     if(!focusPlan)return;
-    focusMeasurement(primaryMeasurementForVersion(versionId));
+    const primaryMeasurementId=primaryMeasurementForVersion(versionId);
+    focusMeasurement(primaryMeasurementId);
+    if(startPrimaryDraw&&!editorLocked&&!primaryMeasurementId){
+      pendingPrimaryDrawRef.current=versionId;
+      setDrawRequestSequence(value=>value+1);
+    }
   };
-  const requestConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode)=>{
-    if(versionId!==selectedVersionId&&dirty){setPendingSwitch({versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode});return;}
-    applyConditionSelection(versionId,focusPlan,measurementId,nextTab,nextMode);
+  const requestConditionSelection=(versionId:string,focusPlan=true,measurementId?:string|null,nextTab?:PropertyTab,nextMode?:ViewMode,startPrimaryDraw=false)=>{
+    if(versionId!==selectedVersionId&&dirty){setPendingSwitch({versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode,startPrimaryDraw});return;}
+    applyConditionSelection(versionId,focusPlan,measurementId,nextTab,nextMode,startPrimaryDraw);
   };
   const requestMeasurementSelection=(measurementId:string|null)=>{
     const role=conditionData.roles.find(role=>role.measurement_id===measurementId&&conditions.some(row=>row.condition_version_id===role.condition_version_id));
@@ -497,6 +505,13 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     if(dirty&&!Object.values(roleSelections).some(Boolean)){saveCondition(begin);return;}
     begin();
   };
+  useEffect(()=>{
+    const requestedVersionId=pendingPrimaryDrawRef.current;
+    if(!requestedVersionId||requestedVersionId!==selectedVersionId||requestedVersionId!==loadedVersionId)return;
+    pendingPrimaryDrawRef.current=null;
+    const primaryRole=definition?.roles.find(role=>role.primary);
+    if(primaryRole)startTakeoff(primaryRole);
+  },[drawRequestSequence,selectedVersionId,loadedVersionId]); // eslint-disable-line react-hooks/exhaustive-deps
   const chooseFamily=(key:ConditionArchetypeKey)=>{const next=CONDITION_ARCHETYPES[key];setFamily(key);setCreateName(next.name);setCreateCode(conditionCodeFromName(next.name));setCodeTouched(false);};
   const createCondition=()=>{setMessage('Creating condition…');startTransition(async()=>{try{const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});setSelectedVersionId(result.condition_version_id);setCreating(false);setConditionOpen(true);setMessage('Condition created. Add dimensions and link a takeoff when ready.');router.refresh();}catch(error:any){setMessage(error?.message||'Could not create condition.');}});};
   const saveCondition=(afterSave?:()=>void)=>{
@@ -634,7 +649,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
               <div id={`assembly-${group.key}`} hidden={!expanded}>
                 {group.conditions.map(row=><div key={row.condition_version_id} className={`group relative ml-4 flex h-[32px] items-center border-b border-[#1C1F23] px-3 hover:bg-[#141618] ${selectedVersionId===row.condition_version_id?'bg-[#009966]/10':''}`}>
                   <span aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-[2px]" style={{backgroundColor:conditionData.derived3DSnapshot?.conditions.find(source=>source.conditionVersionId===row.condition_version_id)?.color||conditionColor(row.archetype_code)}}/>
-                  <button type="button" aria-pressed={selectedVersionId===row.condition_version_id} onClick={()=>requestConditionSelection(row.condition_version_id)} className="flex h-full min-w-0 flex-1 items-center gap-2 text-left" title={`${row.name} · ${row.code} · R${row.revision_no}`}>
+                  <button type="button" aria-pressed={selectedVersionId===row.condition_version_id} onClick={()=>requestConditionSelection(row.condition_version_id,true,undefined,undefined,undefined,true)} className="flex h-full min-w-0 flex-1 items-center gap-2 text-left" title={`${row.name} · ${row.code} · R${row.revision_no}`}>
                     <span className="min-w-0 flex-1 truncate text-[11px] text-[#E1E7E3]">{row.name}</span>
                     <span className="shrink-0 text-[10px] text-[#8B949E]">{row.measurement_count} takeoffs · {row.output_count} outputs{row.open_hold_count?` · ${row.open_hold_count} holds`:''}</span>
                   </button><button type="button" className="ml-1 shrink-0 p-1 text-[#A1A1AA] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity hover:text-white [@media(hover:none)]:opacity-100" aria-label={`${derivedViewState.hidden.includes(row.condition_version_id)?'Show':'Hide'} ${row.name}`} aria-pressed={!derivedViewState.hidden.includes(row.condition_version_id)} onClick={()=>setDerivedViewState(current=>({...current,hidden:current.hidden.includes(row.condition_version_id)?current.hidden.filter(id=>id!==row.condition_version_id):[...current.hidden,row.condition_version_id]}))}>{derivedViewState.hidden.includes(row.condition_version_id)?<EyeOff size={12}/>:<Eye size={12}/>}</button>
@@ -709,7 +724,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       </Drawer.Portal>
     </Drawer.Root>
 
-    {!mobileReview&&<Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent className="z-[120]" overlayClassName="z-[110]" showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>}
+    {!mobileReview&&<Dialog open={Boolean(pendingSwitch)} onOpenChange={open=>{if(!open)setPendingSwitch(null);}}><DialogContent className="z-[120]" overlayClassName="z-[110]" showCloseButton={false}><DialogHeader><DialogTitle>Unsaved Condition changes</DialogTitle><DialogDescription>Save this Condition before switching, or discard the current edits.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setPendingSwitch(null)} disabled={isPending}>Cancel</Button><Button variant="outline" onClick={()=>{const next=pendingSwitch;setPendingSwitch(null);if(next)applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode,next.startPrimaryDraw);}} disabled={isPending}>Discard</Button><Button onClick={()=>{const next=pendingSwitch;if(next)saveCondition(()=>{setPendingSwitch(null);applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode,next.startPrimaryDraw);});}} disabled={isPending}>Save & switch</Button></DialogFooter></DialogContent></Dialog>}
     {!mobileReview&&<Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}><DialogContent className="z-[120]" overlayClassName="z-[110]" showCloseButton={!isPending}><DialogHeader><DialogTitle>Upgrade to Contract v{latestContractVersion}?</DialogTitle><DialogDescription>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated outputs are cleared for review. Verified Condition history is never changed.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</Button><Button onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'}>{isPending?<RefreshCw className={styles.spin}/>:null}Upgrade & review</Button></DialogFooter></DialogContent></Dialog>}
   </div>;
 }

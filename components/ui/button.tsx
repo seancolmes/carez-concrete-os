@@ -18,6 +18,10 @@ const buttonVariants = cva(
         destructive:
           "carez-button-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "carez-button-link text-primary underline-offset-4 hover:underline",
+        metal:
+          "carez-button-metal border border-[#111] bg-gradient-to-b from-[#2A2D32] to-[#1A1D20] text-[#F4F6F5] shadow-[inset_0px_1px_0px_rgba(255,255,255,0.1),_0px_2px_4px_rgba(0,0,0,0.4)] transition-transform hover:scale-[0.98] motion-reduce:transform-none",
+        texture:
+          "carez-button-texture relative isolate overflow-hidden border border-[#111] bg-gradient-to-b from-[#2A2D32] to-[#1A1D20] text-[#F4F6F5] shadow-[inset_0px_1px_0px_rgba(255,255,255,0.1),_0px_2px_4px_rgba(0,0,0,0.4)] transition-transform hover:scale-[0.98] motion-reduce:transform-none",
       },
       size: {
         default:

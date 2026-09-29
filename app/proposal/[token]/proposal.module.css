@@ -19,9 +19,25 @@
 }
 .document {
   max-width: 56rem;
+  min-height: 70rem;
   margin: 0 auto;
   overflow: hidden;
+  color-scheme: light;
+  --pt-surface-1: #fffefa;
+  --pt-surface-2: #f3f3ef;
+  --pt-surface-hover: #ebeee9;
+  --pt-text: #1b211d;
+  --pt-text-secondary: #47534c;
+  --pt-text-muted: #637169;
+  --pt-line: #cbd3cc;
+  --pt-line-soft: #e0e5df;
+  --pt-line-strong: #aebbb1;
+  --pt-brand: #007a52;
+  --pt-logo: #009966;
+  --pt-success: #347a46;
   background: var(--pt-surface-1);
+  color: var(--pt-text);
+  box-shadow: 0 22px 55px rgb(0 0 0 / .2), 0 2px 8px rgb(0 0 0 / .1);
 }
 .header {
   display: flex;
@@ -72,7 +88,7 @@
   text-transform: uppercase;
 }
 .preparedFor strong { color: var(--pt-text); font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.2; }
-.hero h1 { max-width: 48rem; margin: .6rem 0 .5rem; font-family: var(--pourtrace-ui-font); font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.12; letter-spacing: -.035em; }
+.hero h1 { max-width: 48rem; margin: .6rem 0 .5rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.12; letter-spacing: -.035em; }
 .hero > p { margin: 0; color: var(--pt-text-secondary); font-size: .95rem; line-height: 1.7; }
 .customerMessage, .prose, .leadText { max-width: 48rem; white-space: pre-wrap; color: var(--pt-text-secondary); line-height: 1.75; }
 .prose { margin: 0; }
@@ -93,25 +109,26 @@
 .trustPoints li { color: var(--pt-text-secondary); font: 600 .65rem var(--pourtrace-code-font); letter-spacing: .045em; text-transform: uppercase; }
 .trustPoints li + li::before { content: '•'; margin-right: 1rem; color: var(--pt-logo); }
 .section, .actionSection { padding: clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 5vw, 3.5rem); border-bottom: 1px solid color-mix(in srgb, var(--pt-line) 40%, transparent); }
-.section h2, .actionSection h2, .accepted h2, .declined h2 { margin: .5rem 0 1.4rem; font-family: var(--pourtrace-ui-font); font-size: clamp(1.4rem, 2.5vw, 1.9rem); line-height: 1.2; letter-spacing: -.03em; }
+.section h2, .actionSection h2, .accepted h2, .declined h2 { margin: .5rem 0 1.4rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.4rem, 2.5vw, 1.9rem); line-height: 1.2; letter-spacing: -.03em; }
 .scopeStack { display: grid; gap: 0; margin-top: 1.5rem; }
 .scopeCard { padding: 1.5rem 0; border-bottom: 1px solid color-mix(in srgb, var(--pt-line) 40%, transparent); }
 .scopeCard:first-child { padding-top: 0; }
 .scopeCard:last-child { padding-bottom: 0; border-bottom: 0; }
 .scopeHeading { margin-bottom: .75rem; }
-.scopeHeading h3 { margin: 0 0 .2rem; font-family: var(--pourtrace-ui-font); font-size: 1.05rem; letter-spacing: -.015em; }
+.scopeHeading h3 { margin: 0 0 .2rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -.015em; }
 .scopeHeading span { color: var(--pt-text-muted); font-size: .72rem; text-transform: capitalize; }
-.scopeItems { display: grid; gap: .75rem; }
-.scopeItem { display: flex; align-items: flex-start; gap: .75rem; }
-.scopeItem > div { display: grid; gap: .2rem; }
-.scopeItem strong { font-size: .9rem; font-weight: 600; line-height: 1.6; }
-.scopeItem small { color: var(--pt-text-secondary); font: .75rem var(--pourtrace-code-font); }
-.check { display: inline-grid; place-items: center; flex: 0 0 1.15rem; height: 1.15rem; border: 1px solid var(--pt-brand); border-radius: 50%; color: var(--pt-brand); font-size: .72rem; font-weight: 800; }
+.tableScroll { max-width: 100%; overflow-x: auto; }
+.lineItemTable { width: 100%; border-collapse: collapse; color: var(--pt-text); font: .78rem/1.4 var(--pourtrace-code-font); }
+.lineItemTable :is(th, td) { padding: .52rem .7rem; border: 0; border-bottom: 1px solid var(--pt-line-soft); vertical-align: top; }
+.lineItemTable th { color: var(--pt-text-muted); font-size: .64rem; font-weight: 600; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.lineItemTable th:last-child, .lineItemTable td:last-child { width: 11rem; text-align: right; white-space: nowrap; }
+.lineItemTable tbody tr:nth-child(even) { background: #f4f5f1; }
+.lineItemTable tbody tr:last-child td { border-bottom: 0; }
 .muted { padding: .85rem 0; color: var(--pt-text-secondary); font-size: .84rem; }
 .clarificationGrid, .infoGrid, .optionGrid, .valueGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; margin-top: 1.5rem; }
 .infoGrid { grid-template-columns: 1fr; gap: 1.5rem; }
 .clarificationCard, .infoGrid > div, .optionCard, .valueGrid > div { padding: 0 0 1.5rem; border-bottom: 1px solid color-mix(in srgb, var(--pt-line) 40%, transparent); }
-.clarificationCard h3, .optionCard h3 { margin: 0 0 .7rem; font-family: var(--pourtrace-ui-font); font-size: 1.05rem; letter-spacing: -.015em; }
+.clarificationCard h3, .optionCard h3 { margin: 0 0 .7rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -.015em; }
 .clarificationCard ul { margin: 0; padding-left: 1.25rem; color: var(--pt-text-secondary); line-height: 1.75; }
 .infoGrid span { display: block; color: var(--pt-text-muted); font: 600 .68rem var(--pourtrace-code-font); text-transform: uppercase; }
 .infoGrid p { margin: .6rem 0 0; white-space: pre-wrap; color: var(--pt-text-secondary); line-height: 1.75; }
@@ -135,14 +152,16 @@
 .noticeNeutral { background: var(--pt-surface-2); }
 .noticeSuccess span { color: var(--pt-text-secondary); font-size: .8rem; }
 .actionSection > p { max-width: 48rem; color: var(--pt-text-secondary); line-height: 1.75; }
-.intentPanel { display: grid; gap: 1.25rem; margin-top: 1.5rem; padding: 1.5rem; border-left: 3px solid var(--pt-logo); background: var(--pt-surface-2); }
-.intentPanel h3 { margin: 0; font-size: 1.1rem; letter-spacing: -.02em; }
-.intentPanel p { margin: .35rem 0; color: var(--pt-text-secondary); line-height: 1.5; }
-.intentPanel small { color: var(--pt-text-muted); line-height: 1.5; }
-.intentForm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
-.intentForm label { display: grid; gap: .35rem; min-width: 0; }
-.intentForm label span { color: var(--pt-text-secondary); font-size: .78rem; font-weight: 600; }
-.intentForm .primaryButton { grid-column: 1 / -1; }
+.decisionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; margin-top: 2rem; }
+.decisionOption { min-width: 0; padding-top: 1.25rem; border-top: 2px solid var(--pt-line); }
+.decisionOption:first-child { border-top-color: var(--pt-logo); }
+.decisionOption h3 { margin: 0; font: 600 1.15rem Georgia, "Times New Roman", serif; }
+.decisionOption p { margin: .5rem 0; color: var(--pt-text-secondary); font-size: .84rem; line-height: 1.55; }
+.decisionOption small { color: var(--pt-text-muted); line-height: 1.5; }
+.intentForm, .revisionForm { display: grid; gap: .75rem; margin-top: 1.25rem; }
+.intentForm label, .revisionForm label { display: grid; gap: .35rem; min-width: 0; }
+.intentForm label span, .revisionForm label span { color: var(--pt-text-secondary); font-size: .78rem; font-weight: 600; }
+.decisionButton { min-height: 2.5rem; width: 100%; }
 .intentRecorded { color: var(--pt-text); font-size: .85rem; }
 .actionGrid { margin-top: 1.25rem; }
 .responseBox { padding: .5rem 0; }
@@ -155,7 +174,7 @@
 .form { display: grid; gap: .8rem; padding: .5rem 0 1rem; }
 .form label { display: grid; gap: .35rem; }
 .form label > span { color: var(--pt-text-secondary); font-size: .78rem; font-weight: 600; }
-.form input, .form textarea, .form select, .intentForm input {
+.form input, .form textarea, .form select, .intentForm input, .revisionForm input, .revisionForm textarea {
   width: 100%;
   box-sizing: border-box;
   padding: .7rem .8rem;
@@ -165,12 +184,9 @@
   color: var(--pt-text);
   font: inherit;
 }
-.form textarea { resize: vertical; }
-.form :is(input, textarea, select):focus-visible, .intentForm input:focus-visible, :is(.primaryButton, .secondaryButton, .textButton):focus-visible { outline: 2px solid var(--pt-brand); outline-offset: 2px; }
-.primaryButton, .secondaryButton, .textButton { width: fit-content; max-width: 100%; padding: .7rem 1rem; border-radius: .35rem; font: 600 .85rem var(--pourtrace-ui-font); cursor: pointer; transition: background-color .18s, box-shadow .18s, transform .18s; }
-.primaryButton { border: 1px solid #007A52; background: #007A52; color: #fff; }
-.primaryButton:hover { box-shadow: 0 0 0 3px rgb(0 122 82 / 18%); transform: translateY(-1px); }
-.primaryButton:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; transform: none; }
+.form textarea, .revisionForm textarea { resize: vertical; }
+.form :is(input, textarea, select):focus-visible, .intentForm input:focus-visible, .revisionForm :is(input, textarea):focus-visible, :is(.decisionButton, .secondaryButton, .textButton):focus-visible { outline: 2px solid var(--pt-brand); outline-offset: 2px; }
+.secondaryButton, .textButton { width: fit-content; max-width: 100%; padding: .7rem 1rem; border-radius: .35rem; font: 600 .85rem var(--pourtrace-ui-font); cursor: pointer; transition: background-color .18s, box-shadow .18s, transform .18s; }
 .secondaryButton { border: 1px solid var(--pt-line-strong); background: var(--pt-surface-1); color: var(--pt-text); }
 .secondaryButton:hover { background: var(--pt-surface-hover); transform: translateY(-1px); }
 .textButton { border: 1px solid var(--pt-line); background: transparent; color: var(--pt-text-secondary); }
@@ -189,7 +205,7 @@
   .proposalMeta { justify-items: start; text-align: left; }
   .proposalMeta strong { font-size: .8rem; }
   .proposalMeta small { font-size: .6rem; }
-  .intentForm { grid-template-columns: 1fr; }
+  .decisionGrid { grid-template-columns: 1fr; gap: 1.5rem; }
   .trustPoints { display: grid; gap: .45rem; }
   .trustPoints li + li::before { display: none; }
   .clarificationGrid, .infoGrid, .optionGrid, .valueGrid, .contractorGrid { grid-template-columns: 1fr; }
@@ -198,6 +214,9 @@
 }
 @media print {
   .page { padding: 0; background: #fff; }
+  .document { min-height: 0; box-shadow: none; }
   .pricePanel { print-color-adjust: exact; }
+  .lineItemTable tbody tr:nth-child(even) { print-color-adjust: exact; }
   .actionSection { display: none; }
 }
+@page { size: A4; margin: 12mm; }

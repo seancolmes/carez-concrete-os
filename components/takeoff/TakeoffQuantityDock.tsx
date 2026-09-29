@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   projectConditionWorksheet,
   type ConditionWorksheetAuthority,
@@ -289,13 +290,13 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     return result;
   },{cy:0,sf:0,lf:0,hasConcrete:false,pending:false,conditions:new Set<string>()});
 
-  return <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 backdrop-blur-xl bg-[#121212]/85 border border-[#343A3F] shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-full px-4 py-2 max-w-[calc(100%-2rem)] text-white cursor-default" aria-label="Takeoff quantity dock" onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setCollapsed(true);event.stopPropagation();}}>
+  return <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 backdrop-blur-xl bg-[#121212]/85 border border-[#343A3F] shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-full px-4 py-2 max-w-[calc(100%-2rem)] text-white cursor-default" aria-label="Takeoff quantity dock" onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setCollapsed(true);event.stopPropagation();}}>
     <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">CY · installed</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{rollups.hasConcrete?quantity(rollups.cy):'—'}{rollups.pending?' *':''}</output></div>
     <span className="h-5 w-px shrink-0 bg-[#343A3F]" aria-hidden="true"/>
     <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">SF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.sf)}</output></div>
     <span className="h-5 w-px shrink-0 bg-[#343A3F]" aria-hidden="true"/>
     <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">LF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.lf)}</output></div>
-    <button type="button" className="rounded-lg p-1 text-[11px] text-[#A1A1AA] hover:bg-[#2A2E33] hover:text-white" aria-expanded={!collapsed} aria-controls="takeoff-quantity-worksheet" onClick={()=>setCollapsed(value=>!value)}><Table2 size={14}/><span className="sr-only">Quantity worksheet</span></button>
+    <Button type="button" variant="texture" size="icon-sm" aria-label="Quantity Worksheet" aria-expanded={!collapsed} aria-controls="takeoff-quantity-worksheet" onClick={()=>setCollapsed(value=>!value)}><Table2 size={14}/></Button>
     {rollups.pending?<span className="absolute -top-4 left-2 whitespace-nowrap text-[9px] text-[#A1A1AA]">* Partial · calculation pending or held</span>:null}
     <section id="takeoff-quantity-worksheet" hidden={collapsed} className={`${styles.dock} ${styles.floatingWorksheet}`} style={{height}} aria-label="Takeoff quantity worksheet" data-resizing={resizing} data-current-sheet-id={currentSheetId || ''}>
 
