@@ -62,12 +62,12 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
  const activeCO=cos.filter(c=>c.status!=='approved').length;const approvedCO=cos.filter(c=>c.status==='approved').length;
  const nextPour=pours.find(x=>x.scheduled_date&&new Date(`${x.scheduled_date}T23:59:59`).getTime()>=Date.now())||pours[0];
  const warnings:ProjectWarning[]=[];
- if(waiting.length)warnings.push({tone:'watch',title:`${waiting.length} timecard${waiting.length===1?'':'s'} waiting for approval`,copy:'Review employee GPS, hours and tasks before payroll/job cost.',href:'/field/review',action:'Review Time'});
- if(gpsFlags)warnings.push({tone:'bad',title:`${gpsFlags} open/submitted shift${gpsFlags===1?'':'s'} need GPS review`,copy:'At least one clock-in or clock-out is outside the jobsite radius.',href:'/field/review',action:'Check GPS'});
+ if(waiting.length)warnings.push({tone:'watch',title:`${waiting.length} timecard${waiting.length===1?'':'s'} waiting for approval`,copy:'Review employee GPS, hours and tasks before payroll/job cost.',href:'/field?view=time-review',action:'Review Time'});
+ if(gpsFlags)warnings.push({tone:'bad',title:`${gpsFlags} open/submitted shift${gpsFlags===1?'':'s'} need GPS review`,copy:'At least one clock-in or clock-out is outside the jobsite radius.',href:'/field?view=time-review',action:'Check GPS'});
  if(num(b.labor_hours_remaining)<0)warnings.push({tone:'bad',title:`Labor is ${Math.abs(num(b.labor_hours_remaining)).toFixed(1)} hours over budget`,copy:'Remaining work needs a production plan before more labor is burned.',href:'/forecast',action:'Review Forecast'});
  if(budgetUsed>=85&&budgetUsed<100)warnings.push({tone:'watch',title:`Job has used ${budgetUsed.toFixed(1)}% of its cost budget`,copy:'Check remaining scope, material commitments and labor before proceeding.',href:'/forecast',action:'Review Job'});
  if(budgetUsed>=100)warnings.push({tone:'bad',title:'Job cost is over the frozen budget',copy:`Current true company cost exceeds the approved baseline by ${money(Math.abs(num(b.total_cost_remaining)))}.`,href:'/forecast',action:'Review Overrun'});
- if(num(bill.overdue_ar)>0)warnings.push({tone:'bad',title:`Customer has ${money(bill.overdue_ar)} past due`,copy:'Collections need attention before more cash is committed.',href:'/billing',action:'Review Billing'});
+ if(num(bill.overdue_ar)>0)warnings.push({tone:'bad',title:`Customer has ${money(bill.overdue_ar)} past due`,copy:'Collections need attention before more cash is committed.',href:'/financials?tab=billing&view=billing',action:'Review Billing'});
  if(activeCO)warnings.push({tone:'watch',title:`${activeCO} change order${activeCO===1?' is':'s are'} not approved`,copy:'Track extra work carefully so unapproved scope does not become free work.',href:'/change-orders',action:'Review COs'});
 
  const projectStatus=resolveProjectRecordStatus(p.status);
@@ -88,15 +88,15 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
     description={<>{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?' · '+p.customers.name:''}</>}
     status={projectStatus?<CarezStatus tone={projectStatus.tone} label={projectStatus.label}/>:<CarezStatus tone="neutral" label={String(p.status||'Unknown')}/>}
     actions={<>
-     <Link className={buttonVariants({size:'sm'})} href="/field/review">Review Crew Time</Link>
-     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production">Production</Link>
-     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/procurement">Order Materials</Link>
+     <Link className={buttonVariants({size:'sm'})} href="/field?view=time-review">Review Crew Time</Link>
+     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field?view=production">Production</Link>
+     <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/financials?tab=procurement&view=procurement">Order Materials</Link>
     </>}
    />
 
    {p.job_spine_id&&<details className="rounded-lg border border-border bg-card" aria-label="Commercial handoff lineage"><summary className="cursor-pointer px-4 py-3 text-sm font-medium">Awarded scope and baseline</summary><div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2 xl:grid-cols-4">
     <div><p className="text-xs text-muted-foreground">Job Spine</p><p className="mt-1 break-all font-mono text-xs">{p.job_spine_id}</p></div>
-    <div><p className="text-xs text-muted-foreground">Awarded Proposal</p><p className="mt-1 text-sm font-medium">{sourceProposal.data?.proposal_number||'No Award Decision'}</p>{awardR.data?.proposal_revision_id&&<Link className="text-xs text-primary underline" href={`/proposals/${awardR.data.estimate_id}`}>Open exact revision</Link>}</div>
+    <div><p className="text-xs text-muted-foreground">Awarded Proposal</p><p className="mt-1 text-sm font-medium">{sourceProposal.data?.proposal_number||'No Award Decision'}</p>{awardR.data?.proposal_revision_id&&<Link className="text-xs text-primary underline" href={`/opportunities?estimate=${awardR.data.estimate_id}&tab=proposal`}>Open exact revision</Link>}</div>
     <div><p className="text-xs text-muted-foreground">Accepted Scope Snapshot</p><p className="mt-1 break-all font-mono text-xs">{baselineR.data?.accepted_scope_snapshot_id||'Not recorded'}</p></div>
     <div><p className="text-xs text-muted-foreground">Frozen Commercial Baseline</p><p className="mt-1 text-sm font-medium">{baselineR.data?`Direct Cost ${money(baselineR.data.total_direct_cost)} · Sell ${money(baselineR.data.total_sell)}`:'Not recorded'}</p></div>
    </div></details>}
@@ -109,8 +109,8 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
       <p className="mt-1 text-sm text-muted-foreground">The next physical or management action recorded for this project.</p>
      </div>
      <div className="flex flex-wrap gap-2" aria-label="Related project work">
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/schedule">Schedule</Link>
-      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/production/work-packages">Work plan</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field?view=schedule">Schedule</Link>
+      <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field?view=work-packages">Work plan</Link>
       <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/documents">Documents</Link>
      </div>
     </section>
@@ -148,7 +148,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
        <CarezOperatingMetric label="GPS Flags" value={String(gpsFlags)} tone={gpsFlags?'warning':'neutral'}/>
        <CarezOperatingMetric label="Actual Labor Hours" value={budgetAvailable?hrs(b.actual_labor_hours):'Unavailable'} help={budgetAvailable?undefined:'No authoritative budget snapshot.'}/>
       </CarezOperatingMetricStrip>
-      <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review">Review Employee Time</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field">Field Logs</Link></div>
+      <div className="flex flex-wrap gap-2"><Link className={buttonVariants({size:'sm'})} href="/field?view=time-review">Review Employee Time</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/field">Field Logs</Link></div>
      </>}
 
      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -228,7 +228,7 @@ export default async function ProjectCommandPage({params}:{params:Promise<{id:st
      <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Commercial</p><h2 id="project-commercial-heading" className="mt-1 text-lg font-semibold tracking-tight">Commercial & Billing</h2><p className="mt-1 text-sm text-muted-foreground">What is authorized, billed, collected, owed, and still commercially exposed.</p></div>
      <div className="grid gap-4 xl:grid-cols-2">
       <div className="rounded-md border border-border bg-background p-3">
-       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Billing / Collections</h3><p className="mt-0.5 text-xs text-muted-foreground">Customer billing and collection position.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/billing">Billing</Link></div>
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Billing / Collections</h3><p className="mt-0.5 text-xs text-muted-foreground">Customer billing and collection position.</p></div><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/financials?tab=billing&view=billing">Billing</Link></div>
        <div className="mt-3">{!billingAvailable?<CarezEmptyState title="Billing summary unavailable" description="No authoritative billing summary is available for this project."/>:<KeyValueRows rows={[
         ['Authorized Work',money(bill.authorized_contract)],
         ['Billed',money(bill.billed_contract)],

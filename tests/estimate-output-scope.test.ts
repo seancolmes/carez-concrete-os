@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const pagePath = 'app/estimates/[estimateId]/page.tsx';
+const pagePath = 'components/opportunities/views/WorksheetView.tsx';
 
 test('Estimate workspace scopes Takeoff outputs to the current Estimate measurements before rendering review surfaces', () => {
   const page = readFileSync(pagePath, 'utf8');

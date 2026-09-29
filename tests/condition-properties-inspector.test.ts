@@ -39,6 +39,7 @@ test('sign in uses Pourtrace identity and does not render the legacy Carez Concr
   assert.equal(form.includes("from 'next/image'"), false);
   assert.match(form, /Sign in to Pourtrace/);
   assert.match(form, /Show password/);
-  assert.match(page, /POURTRACE \/\/ CONCRETE CONTRACTOR OS/);
+  assert.match(page, /<AnimatedLogo\/>/);
+  assert.match(page, /aria-label="Pourtrace home"/);
   assert.equal(page.includes('CAREZ / CONCRETE OPERATIONS'), false);
 });

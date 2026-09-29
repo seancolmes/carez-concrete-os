@@ -47,7 +47,7 @@ test('approved operational references use an authenticated tenant-scoped RPC ins
   assert.match(sql,/grant execute on function public\.carez_list_approved_change_order_references\(uuid\) to authenticated/i);
   assert.doesNotMatch(sql,/create (?:or replace )?view public\.approved_change_order_references/i);
 
-  for(const file of ['app/field/actions.ts','app/pour-control/actions.ts','app/pour-control/page.tsx']) {
+  for(const file of ['app/field/actions.ts','app/pour-control/actions.ts','app/field/page.tsx']) {
     const source=readFileSync(file,'utf8');
     assert.match(source,/\.rpc\('carez_list_approved_change_order_references'/i);
     assert.doesNotMatch(source,/\.from\('approved_change_order_references'\)/i);

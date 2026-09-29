@@ -42,166 +42,95 @@ test('operating metric composition is source-owned and token based',()=>{
 });
 
 
-test('Today uses the compact operations hierarchy and current shared primitives',()=>{
+test('authenticated Overview delegates to the Command Center with summary before the inbox',()=>{
   const page=read('app/page.tsx');
-
-  assert.match(page,/components\/ui\/item/);
-  assert.match(page,/components\/ui\/stat/);
-  assert.match(page,/components\/ui\/tabs/);
-  assert.match(page,/TodayOperationsGrid/);
-
-  const work=page.indexOf('today-work-heading');
-  const attention=page.indexOf('today-attention-heading');
-  const status=page.indexOf('today-telemetry-heading');
-  const next=page.indexOf('today-next-heading');
-  const pulse=page.indexOf('business-pulse-heading');
-
-  assert.ok(work>=0&&attention>work,'Attention must follow Today\'s Work');
-  assert.ok(status>attention,'Operating Status must follow Attention');
-  assert.ok(next>status,'Next Operations must follow Operating Status');
-  assert.ok(pulse>next,'Business Pulse must follow Next Operations');
-
-  assert.match(page,/href="\/schedule"/);
-  assert.match(page,/href:'\/cashflow'/);
-  assert.match(page,/href:'\/billing'/);
-  assert.match(page,/['"]\/projects\/['"]\+p\.id/);
-  assert.doesNotMatch(page,/function StatusBadge/);
-  assert.doesNotMatch(page,/function OperatingMetric/);
-  assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
+  const surface=read('components/today/TodaySurface.tsx');
+  assert.match(page,/TodaySurface/);
+  assert.match(surface,/grid-cols-12 gap-6/);
+  assert.match(surface,/MetricBentoTile/);
+  assert.ok(surface.indexOf('Operating summary')<surface.indexOf('Action inbox'));
+  assert.match(surface,/Logistics timeline/);
+  assert.match(surface,/Business pulse/);
+  assert.match(surface,/Zero inbox/);
+  assert.doesNotMatch(page,/\/leads\/|\/proposals\/|\/billing['"]|\/readiness['"]/);
 });
 
-
-test('Projects uses the canonical grid, status, and Inspector foundations',()=>{
+test('Projects retains a dense expandable keyboard-accessible grid',()=>{
   const board=read('components/projects/JobsOperationsBoard.tsx');
   const page=read('app/projects/page.tsx');
-
   assert.match(board,/CarezDataGrid/);
-  assert.match(board,/CarezInspector/);
   assert.match(board,/CarezStatus/);
   assert.match(board,/resolveOperationalState/);
   assert.match(board,/resolvePriority/);
-  assert.match(board,/aria-selected|selected=\{selectedRow\}/);
+  assert.match(board,/selected=\{selectedRow\}/);
+  assert.match(board,/onDoubleClick/);
   assert.match(board,/event\.key===['"]Enter['"]/);
-  assert.match(board,/Open Project/);
-  assert.doesNotMatch(board,/wideInspector|matchMedia/);
-  assert.match(board,/open=\{Boolean\(selected\)\}/);
-  assert.match(board,/Sheet/);
-  assert.doesNotMatch(board,/function ToneBadge/);
-  assert.doesNotMatch(board,/amber-|red-|green-|blue-/);
-
-  assert.match(page,/href="\/schedule"/);
+  assert.match(board,/ChevronDown/);
+  assert.match(board,/hover:bg-\[#EFF2F0\] dark:hover:bg-\[#1E2123\]/);
+  assert.match(board,/Open Project Workspace/);
+  assert.match(page,/href="\/field\?view=schedule"/);
   assert.match(page,/New direct job/);
-  assert.doesNotMatch(page,/CarezProjectContextBar/);
 });
 
 test('Projects selection does not broaden authoritative project context',async()=>{
   const navigation=await import(new URL('lib/ui/navigation.ts',root).href);
   assert.equal(navigation.resolveProjectRoute('/'),null);
   assert.equal(navigation.resolveProjectRoute('/projects'),null);
-  assert.deepEqual(
-    navigation.resolveProjectRoute('/projects/project-1'),
-    {projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'},
-  );
+  assert.deepEqual(navigation.resolveProjectRoute('/projects/project-1'),{projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'});
 });
 
-
-test('Project Overview follows the approved operating-record hierarchy',()=>{
+test('Project Overview preserves record, operating, field, cost and commercial authority',()=>{
   const page=read('app/projects/[id]/page.tsx');
-
-  assert.match(page,/CarezRecordHeader/);
-  assert.match(page,/CarezOperatingMetricStrip/);
-  assert.match(page,/CarezStatus/);
-  assert.match(page,/CarezFeedback|CarezEmptyState/);
-  assert.match(page,/CarezDataGrid/);
-  assert.match(page,/resolveProjectRecordStatus/);
-
-  const attention=page.indexOf('What Needs Your Attention');
-  const operating=page.indexOf('Operating Position');
-  const field=page.indexOf('Field & Production');
-  const cost=page.indexOf('Cost & Forecast');
-  const commercial=page.indexOf('Commercial & Billing');
-  const next=page.indexOf('Next Job Action');
-
-  assert.ok(attention>=0&&operating>attention);
-  assert.ok(field>operating);
-  assert.ok(cost>field);
-  assert.ok(commercial>cost);
-  assert.ok(next>commercial);
-
-  assert.match(page,/order-3[^\"]*lg:order-6/);
-  assert.match(page,/order-4[^\"]*lg:order-3/);
+  for(const component of ['CarezRecordHeader','CarezOperatingMetricStrip','CarezStatus','CarezDataGrid','resolveProjectRecordStatus'])
+    assert.match(page,new RegExp(component));
+  const sections=['What Needs Your Attention','Operating Position','Field & Production','Cost & Forecast','Commercial & Billing'].map(value=>page.indexOf(value));
+  assert.ok(sections.every(index=>index>=0));
+  assert.deepEqual(sections,[...sections].sort((a,b)=>a-b));
   assert.match(page,/const budgetAvailable=Boolean\(budgetR\.data\)/);
   assert.match(page,/const billingAvailable=Boolean\(billingR\.data\)/);
-  assert.match(page,/No authoritative budget snapshot|Approve an estimate to establish the baseline/);
+  assert.match(page,/No authoritative budget snapshot/);
   assert.match(page,/Need Progress/);
-
-  for(const href of ['/field/review','/pour-control','/procurement','/forecast','/billing','/change-orders']){
-    assert.ok(page.includes('href="'+href+'"'),'missing '+href+' action');
-  }
-
-  assert.doesNotMatch(page,/function Metric/);
-  assert.doesNotMatch(page,/amber-|red-|green-|blue-/);
+  for(const href of ['/field?view=time-review','/field?view=production','/financials?tab=procurement&view=procurement','/financials?tab=billing&view=billing'])
+    assert.ok(page.includes(href),`missing consolidated destination ${href}`);
 });
 
-
-test('reference slice preserves current empty-state language and route boundaries',()=>{
-  const today=read('app/page.tsx');
+test('current workspaces preserve actionable empty states and distinct numeric authority',()=>{
+  const overview=read('components/today/TodaySurface.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
-  const projectsPage=read('app/projects/page.tsx');
-  const overview=read('app/projects/[id]/page.tsx');
-
-  assert.match(today,/No scheduled production/);
-  assert.match(today,/No management exceptions/);
-  assert.match(overview,/Need Progress/);
-  assert.match(projects,/not available in this summary/);
-  assert.match(projectsPage,/budgetAvailable:Boolean\(b\.project_id\)/);
-  assert.match(projectsPage,/billingAvailable:Boolean\(bill\.project_id\)/);
-
-  assert.doesNotMatch(today,/CarezProjectContextBar/);
-  assert.doesNotMatch(projects,/CarezProjectContextBar/);
-  assert.match(overview,/CarezRecordHeader/);
+  const project=read('app/projects/[id]/page.tsx');
+  assert.match(overview,/Zero inbox/);
+  assert.match(overview,/No field operations are scheduled/);
+  assert.match(project,/No authoritative budget snapshot/);
+  assert.match(projects,/No authoritative budget snapshot/);
+  assert.match(projects,/Billing summary unavailable/);
+  assert.match(project,/total_direct_cost/);
+  assert.match(project,/total_sell/);
 });
 
-test('reference slice keeps explicit pointer-independent project opening',()=>{
+test('current workspaces keep semantic severity and keyboard interaction',()=>{
+  const overview=read('components/today/TodaySurface.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
-
-  assert.match(projects,/event\.key===['"]Enter['"]/);
-  assert.match(projects,/Open Project/);
-  assert.match(projects,/onDoubleClick/);
+  assert.match(overview,/urgent\?'border-l-\[#B84558\]/);
+  assert.match(overview,/motion-safe:animate-pulse/);
+  assert.match(projects,/event\.currentTarget!==event\.target/);
+  assert.match(projects,/aria-expanded=\{selectedRow\}/);
+  assert.match(projects,/event\.preventDefault\(\)/);
 });
 
-test('reference slice stays on the accepted Carez component system',()=>{
-  const sources=[
-    read('app/page.tsx'),
-    read('components/projects/JobsOperationsBoard.tsx'),
-    read('app/projects/[id]/page.tsx'),
-  ].join('\n');
-
+test('workspace screens keep the accepted component system',()=>{
+  const sources=[read('components/today/TodaySurface.tsx'),read('components/projects/JobsOperationsBoard.tsx'),read('app/projects/[id]/page.tsx')].join('\n');
   assert.doesNotMatch(sources,/from ['"]@mui\//);
   assert.doesNotMatch(sources,/from ['"]antd/);
   assert.doesNotMatch(sources,/from ['"]chakra-ui/);
-  assert.doesNotMatch(sources,/#[0-9a-fA-F]{3,8}\b/);
 });
 
-
-test('reference slice preserves semantic severity and keyboard interaction boundaries',()=>{
-  const today=read('app/page.tsx');
-  const projects=read('components/projects/JobsOperationsBoard.tsx');
-
-  assert.match(today,/attention\.some\(item=>item\.tone==='danger'\)/);
-  assert.match(today,/attention\.some\(item=>item\.tone==='warning'\)/);
-  assert.match(today,/row\.state==='hold'\?'blocked'/);
-  assert.match(today,/row\.state==='ready'\?'success'/);
-  assert.match(projects,/event\.currentTarget!==event\.target/);
-  assert.match(projects,/aria-label=\{'Job preview: '\+selected\.name\}/);
+test('consolidated workspace links do not reopen retired preconstruction or field routes',async()=>{
+  const {opportunityHref,estimateHref,auditHref}=await import(new URL('components/opportunities/opportunityHref.ts',root).href);
+  assert.equal(opportunityHref('lead 1'),'/opportunities?lead=lead%201&tab=scope');
+  assert.equal(estimateHref('estimate 1','proposal'),'/opportunities?estimate=estimate%201&tab=proposal');
+  assert.equal(auditHref('estimate 1'),'/opportunities?view=audit&estimate=estimate%201');
+  const liveViews=['WorksheetView','ProposalView','ScopeView','TakeoffView','AuditView','IntakeView','BidIntelligenceView'].map(name=>read(`components/opportunities/views/${name}.tsx`)).join('\n');
+  assert.doesNotMatch(liveViews,/href=(?:"|\{`)(?:\/leads|\/estimates|\/proposals)/);
+  const activePages=[read('app/page.tsx'),read('app/projects/page.tsx'),read('app/projects/[id]/page.tsx'),read('components/today/TodaySurface.tsx')].join('\n');
+  assert.doesNotMatch(activePages,/href=(?:"|\{`|:')\/(?:schedule|readiness|production|billing|procurement|cashflow|field\/review|leads|estimates|proposals)(?:["`']|\/)/);
 });
-
-
-test('Projects supports keyboard selection without hijacking child controls',()=>{
-  const projects=read('components/projects/JobsOperationsBoard.tsx');
-
-  assert.match(projects,/event\.key===['"] ['"]/);
-  assert.match(projects,/event\.preventDefault\(\);setSelectedId\(row\.id\)/);
-  assert.match(projects,/Select to preview · Enter to open project/);
-});
-

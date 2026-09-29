@@ -7,7 +7,7 @@ const indexMigrationPath = 'supabase/migrations/20260921211000_estimate_pricing_
 const assemblyEnginePath = 'lib/takeoff/assemblyEngine.server.ts';
 const legacyAdapterPath = 'lib/takeoff/conditions/legacyAdapter.ts';
 const persistencePath = 'lib/takeoff/conditions/persistence.server.ts';
-const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
+const estimatePagePath = 'components/opportunities/views/WorksheetView.tsx';
 const worksheetPath = 'components/estimates/EstimateWorksheet.tsx';
 
 test('P1.1 stores structured price provenance on generated outputs and estimate items', () => {

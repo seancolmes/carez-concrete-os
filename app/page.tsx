@@ -88,45 +88,45 @@ export default async function HomePage(){
     const r:any=opReady.get(item.work_package_operation_id);
     const job:any=joinedProject(item);
     if(r?.ready_to_start_all===false){
-      attention.push({priority:1,tone:'danger',urgent:true,subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,issue:r.start_next_action||`${item.title} is not ready to start`,when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',href:'/readiness',action:'Clear hold'});
+      attention.push({priority:1,tone:'danger',urgent:true,subject:`${job?.job_number||'Job'} · ${job?.name||item.title}`,issue:r.start_next_action||`${item.title} is not ready to start`,when:item.start_time?`Today · ${fmtTime(item.start_time)}`:'Today',href:'/field?view=readiness',action:'Clear hold'});
     }
   }
 
   for(const row of activeProjects){
     if(row.state!=='hold'||todayFieldWork.some((item:any)=>item.project_id===row.project.id))continue;
     const failed=num(row.r.failed_inspection_operations),blocked=num(row.r.blocked_operations);
-    attention.push({priority:2,tone:'danger',urgent:true,subject:`${row.project.job_number} · ${row.project.name}`,issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',href:'/readiness',action:'Open readiness'});
+    attention.push({priority:2,tone:'danger',urgent:true,subject:`${row.project.job_number} · ${row.project.name}`,issue:failed>0?'Failed inspection is blocking the next operation':blocked>0?'Open physical work is blocked':row.project.next_action||'Project is on hold',when:row.next?.schedule_date?`Next field date · ${fmtShortDate(row.next.schedule_date)}`:'Before next operation',href:'/field?view=readiness',action:'Open readiness'});
   }
 
-  if(timeReview)attention.push({priority:3,tone:'warning',subject:'Field time review',issue:`${timeReview} submitted timecard${timeReview===1?' needs':'s need'} approval or correction.`,when:'Before payroll / job cost',href:'/field/review',action:'Review time'});
-  if(overdue>0)attention.push({priority:4,tone:'warning',subject:'Accounts receivable',issue:`${money(overdue)} customer balance is past due.`,when:`${money(ar)} total outstanding`,href:'/billing',action:'Open billing'});
+  if(timeReview)attention.push({priority:3,tone:'warning',subject:'Field time review',issue:`${timeReview} submitted timecard${timeReview===1?' needs':'s need'} approval or correction.`,when:'Before payroll / job cost',href:'/field?view=time-review',action:'Review time'});
+  if(overdue>0)attention.push({priority:4,tone:'warning',subject:'Accounts receivable',issue:`${money(overdue)} customer balance is past due.`,when:`${money(ar)} total outstanding`,href:'/financials?tab=billing&view=billing',action:'Open billing'});
 
   for(const proposal of proposals||[]){
-    if(proposal.conversion_stage==='needs_reply')attention.push({priority:5,tone:'warning',urgent:Boolean(proposal.follow_up_due&&proposal.follow_up_due<start),subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,when:proposal.follow_up_due?`Reply due · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',href:`/proposals/${proposal.estimate_id}`,action:'Reply to customer'});
-    else if(proposal.follow_up_due_now)attention.push({priority:6,tone:'info',subject:`Follow up · ${proposal.proposal_number}`,issue:`${proposal.customer_name||'Customer'} · ${proposal.project_name||'Proposal'}`,when:proposal.follow_up_due?`Due · ${fmtShortDate(proposal.follow_up_due)}`:'Due now',href:`/proposals/${proposal.estimate_id}`,action:'Follow up'});
+    if(proposal.conversion_stage==='needs_reply')attention.push({priority:5,tone:'warning',urgent:Boolean(proposal.follow_up_due&&proposal.follow_up_due<start),subject:`${proposal.proposal_number} · ${proposal.customer_name||'Customer'}`,issue:proposal.next_action||`${proposal.project_name||'Proposal'} needs a response.`,when:proposal.follow_up_due?`Reply due · ${fmtShortDate(proposal.follow_up_due)}`:'Customer response waiting',href:`/opportunities?estimate=${proposal.estimate_id}&tab=proposal`,action:'Reply to customer'});
+    else if(proposal.follow_up_due_now)attention.push({priority:6,tone:'info',subject:`Follow up · ${proposal.proposal_number}`,issue:`${proposal.customer_name||'Customer'} · ${proposal.project_name||'Proposal'}`,when:proposal.follow_up_due?`Due · ${fmtShortDate(proposal.follow_up_due)}`:'Due now',href:`/opportunities?estimate=${proposal.estimate_id}&tab=proposal`,action:'Follow up'});
   }
 
   for(const lead of leads||[]){
-    if(lead.follow_up&&lead.follow_up<=start)attention.push({priority:7,tone:'info',urgent:lead.follow_up<start,subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,issue:lead.project_name||'Open opportunity needs follow-up.',when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/leads/${lead.id}`,action:'Follow up lead'});
+    if(lead.follow_up&&lead.follow_up<=start)attention.push({priority:7,tone:'info',urgent:lead.follow_up<start,subject:`Lead · ${lead.customer_name||lead.opportunity_number}`,issue:lead.project_name||'Open opportunity needs follow-up.',when:`Due · ${fmtShortDate(lead.follow_up)}`,href:`/opportunities?lead=${lead.id}&tab=scope`,action:'Follow up lead'});
   }
 
   for(const event of cash||[]){
-    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',urgent:true,subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/cashflow',action:'Review cashflow'});
+    if(event.urgency==='overdue'||event.urgency==='critical')attention.push({priority:8,tone:'warning',urgent:true,subject:'Cashflow',issue:event.description||'Cash obligation needs attention.',when:`${fmtShortDate(event.event_date)} · ${num(event.cash_out)>0?`${money(event.cash_out)} out`:`${money(event.cash_in)} in`}`,href:'/financials?tab=ledger&view=ledger',action:'Review cashflow'});
   }
   attention.sort((a,b)=>a.priority-b.priority);
   const openProposals=(proposals||[]).filter((row:any)=>['sent','viewed','needs_reply'].includes(row.conversion_stage));
   const openProposalValue=openProposals.reduce((sum:number,row:any)=>sum+num(row.base_sell_price),0);
   const openLeads=(leads||[]).length;
   const followUps=[
-    ...(proposals||[]).filter((row:any)=>row.follow_up_due).map((row:any)=>({date:row.follow_up_due,label:`${row.proposal_number} · ${row.customer_name||row.project_name||'Proposal'}`,href:`/proposals/${row.estimate_id}`})),
-    ...(leads||[]).filter((row:any)=>row.follow_up).map((row:any)=>({date:row.follow_up,label:[row.opportunity_number,row.customer_name||row.project_name||'Lead'].filter(Boolean).join(' · '),href:`/leads/${row.id}`})),
+    ...(proposals||[]).filter((row:any)=>row.follow_up_due).map((row:any)=>({date:row.follow_up_due,label:`${row.proposal_number} · ${row.customer_name||row.project_name||'Proposal'}`,href:`/opportunities?estimate=${row.estimate_id}&tab=proposal`})),
+    ...(leads||[]).filter((row:any)=>row.follow_up).map((row:any)=>({date:row.follow_up,label:[row.opportunity_number,row.customer_name||row.project_name||'Lead'].filter(Boolean).join(' · '),href:`/opportunities?lead=${row.id}&tab=scope`})),
   ].sort((a:any,b:any)=>String(a.date).localeCompare(String(b.date)));
   const nextFollowUp=followUps[0]||null;
 
   const operations=dashboardJobs.filter((row:any)=>row.next).slice(0,8).map((row:any)=>{
     const p=row.project;
     const status=row.state==='hold'?'HOLD':row.state==='ready'?'READY':'PLANNED';
-    return {id:p.id,time:fmtTime(row.next?.start_time)||fmtShortDate(row.next?.schedule_date),project:`${p.job_number} · ${p.name}`,operation:row.next?.title||p.next_action||'Plan next work',quantity:'—',status,tone:row.state==='hold'?'blocked' as const:row.state==='ready'?'success' as const:'neutral' as const,href:row.state==='hold'?'/readiness':'/projects/'+p.id};
+    return {id:p.id,time:fmtTime(row.next?.start_time)||fmtShortDate(row.next?.schedule_date),project:`${p.job_number} · ${p.name}`,operation:row.next?.title||p.next_action||'Plan next work',quantity:'—',status,tone:row.state==='hold'?'blocked' as const:row.state==='ready'?'success' as const:'neutral' as const,href:row.state==='hold'?'/field?view=readiness':'/projects/'+p.id};
   });
   const planningJobs=dashboardJobs.filter((row:any)=>!row.next).slice(0,5);
   const cashStatus=cashError?'Unavailable':openCash.length?money(cashNet):'No events';
@@ -144,10 +144,10 @@ export default async function HomePage(){
       dateISO={start}
       weekEnd={fmtShortDate(weekEnd)}
       attention={attention}
-      fieldWork={todayFieldWork.map((item:any)=>{const project:any=joinedProject(item);return {id:String(item.id),project:`${project?.job_number||'Job'} · ${project?.name||'Project'}`,title:item.title,time:fmtTime(item.start_time)||'Time pending',href:item.project_id?'/projects/'+item.project_id:'/schedule'};})}
+      fieldWork={todayFieldWork.map((item:any)=>{const project:any=joinedProject(item);return {id:String(item.id),project:`${project?.job_number||'Job'} · ${project?.name||'Project'}`,title:item.title,time:fmtTime(item.start_time)||'Time pending',href:item.project_id?'/projects/'+item.project_id:'/field?view=schedule'};})}
       scheduleUnavailable={Boolean(scheduleError)}
       operations={operations}
-      planningJobs={planningJobs.map((row:any)=>({id:String(row.project.id),project:`${row.project.job_number} · ${row.project.name}`,nextAction:row.project.next_action||'Plan next work',held:row.state==='hold',href:row.state==='hold'?'/readiness':'/projects/'+row.project.id}))}
+      planningJobs={planningJobs.map((row:any)=>({id:String(row.project.id),project:`${row.project.job_number} · ${row.project.name}`,nextAction:row.project.next_action||'Plan next work',held:row.state==='hold',href:row.state==='hold'?'/field?view=readiness':'/projects/'+row.project.id}))}
       metrics={statusMetrics}
       openLeads={String(openLeads)}
       openProposals={String(openProposals.length)}

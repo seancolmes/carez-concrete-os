@@ -87,7 +87,7 @@ export default async function ProjectsPage(){
           <p className="text-sm text-[#7B8580] dark:text-[#7C8580]">Current work · Find the constraint. Line up the next operation.</p>
         </div>
         <div className="mt-4 flex items-center gap-2 md:mt-0">
-          <Link href="/schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
+          <Link href="/field?view=schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
           <Dialog>
             <DialogTrigger render={<Button size="sm"/>}><Plus/>New direct job</DialogTrigger>
             <DialogContent className="sm:max-w-xl">

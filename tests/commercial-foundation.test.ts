@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
 const migration=readFileSync('supabase/migrations/20260926010000_job_spine_award_foundation.sql','utf8');
-const proposalPage=readFileSync('app/proposals/[estimateId]/page.tsx','utf8');
+const proposalPage=readFileSync('components/opportunities/views/ProposalView.tsx','utf8');
 const proposalActions=readFileSync('app/proposals/actions.ts','utf8');
 const publicActions=readFileSync('app/proposal/[token]/actions.ts','utf8');
 const projectPage=readFileSync('app/projects/[id]/page.tsx','utf8');

@@ -11,36 +11,35 @@ function luminance(value:string){return value.slice(1).match(/../g)!.map(v=>pars
 function contrast(a:string,b:string){const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
 
 test('PourTrace palettes retain the supplied anchors and light/dark roles',()=>{
-  assert.equal(hex(root,'trace-green-500'),'#13A95A');
-  assert.equal(hex(root,'trace-green-700'),'#08783F');
-  assert.equal(hex(root,'concrete-900'),'#2B3033');
-  assert.equal(hex(root,'concrete-950'),'#191F21');
-  assert.equal(hex(root,'blueprint-700'),'#195570');
-  assert.equal(hex(root,'amber-700'),'#805100');
-  assert.equal(token(root,'pt-bg'),'var(--concrete-50)');
-  assert.equal(token(dark,'pt-bg'),'var(--concrete-950)');
-  assert.equal(token(root,'pt-brand'),'var(--trace-green-700)');
-  assert.equal(token(dark,'pt-brand'),'var(--trace-green-300)');
-  assert.equal(token(root,'pt-link'),'var(--blueprint-700)');
-  assert.equal(token(dark,'pt-link'),'var(--blueprint-300)');
+  assert.equal(hex(root,'pt-logo'),'#009966');
+  assert.equal(hex(root,'pt-brand'),'#007A52');
+  assert.equal(hex(root,'pt-brand-hover'),'#00AD73');
+  assert.equal(hex(root,'pt-bg'),'#F5F7F6');
+  assert.equal(hex(dark,'pt-bg'),'#121212');
+  assert.equal(hex(root,'pt-surface-1'),'#FFFFFF');
+  assert.equal(hex(dark,'pt-surface-1'),'#1E2123');
+  assert.equal(hex(root,'pt-line'),'#D4DBD7');
+  assert.equal(hex(dark,'pt-line'),'#343A3F');
+  assert.equal(hex(root,'pt-link'),'#007A52');
+  assert.equal(hex(dark,'pt-link'),'#6F9FC6');
 });
 
 test('primary controls, ordinary text, and status pairs meet normal text contrast',()=>{
   const pairs:[string,string][]=[
-    ['#FFFFFF',hex(root,'trace-green-700')],
-    [hex(root,'concrete-950'),hex(root,'trace-green-300')],
-    [hex(root,'concrete-900'),'#FFFFFF'],
-    [hex(root,'concrete-600'),'#FFFFFF'],
+    ['#FFFFFF',hex(root,'pt-brand')],
+    [hex(root,'pt-text'),hex(root,'pt-surface-1')],
+    [hex(root,'pt-text-secondary'),hex(root,'pt-surface-1')],
+    [hex(dark,'pt-text'),hex(dark,'pt-bg')],
+    [hex(dark,'pt-text-secondary'),hex(dark,'pt-surface-1')],
     ...(['success','warning','error','info'] as const).map(status=>[hex(root,`status-${status}-fg`),hex(root,`status-${status}-bg`)] as [string,string]),
   ];
   for(const [foreground,background] of pairs)assert.ok(contrast(foreground,background)>=4.5,`${foreground} on ${background} is below 4.5:1`);
 });
 
 test('focus and selection have distinct theme roles',()=>{
-  assert.equal(token(root,'ring'),'var(--trace-green-700)');
-  assert.equal(token(dark,'ring'),'var(--trace-green-300)');
-  assert.equal(token(root,'pt-brand-muted'),'var(--trace-green-50)');
-  assert.equal(token(dark,'pt-brand-muted'),'var(--concrete-900)');
+  assert.equal(token(root,'ring'),'var(--pt-brand)');
+  assert.equal(token(dark,'ring'),'var(--pt-logo)');
+  assert.equal(token(root,'pt-brand-muted'),'rgba(0,153,102,.10)');
   assert.match(css,/\.carez-domain-row\[data-active="true"\]\s*\{[^}]*var\(--pt-brand-muted\)/);
   assert.doesNotMatch(root,/--steam-/);
 });

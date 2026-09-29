@@ -64,7 +64,7 @@ export async function BidIntelligenceView(){
   <div className={`${viewStyles.workspace} flex w-full min-w-0 flex-col gap-6 rounded-lg border border-[#D4DBD7] dark:border-[#343A3F]`}>
    <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Win profitable work</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Bid Intelligence</h1><p className="mt-1 max-w-5xl text-sm text-muted-foreground">Choose better pursuits, defend scope, measure real market feedback and offer controlled alternatives without cutting below a safe price just because someone says another contractor is cheaper.</p></div>
-    <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/leads">Leads</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates">Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/proposals">Proposals</Link></div>
+    <div className="flex flex-wrap gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/opportunities">Leads</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/opportunities?view=audit">Estimates</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/opportunities">Proposals</Link></div>
    </header>
 
    <section className={fieldGridClass} aria-label="Bid intelligence summary">

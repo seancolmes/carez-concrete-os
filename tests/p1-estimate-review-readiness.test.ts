@@ -48,10 +48,10 @@ const billingProfileMigrationPath = 'supabase/migrations/20260923120500_reconcil
 const ackRpcMigrationPath = 'supabase/migrations/20260923122000_estimate_review_acknowledgement_rpc.sql';
 const proposalGuardMigrationPath = 'supabase/migrations/20260923122500_proposal_release_guard.sql';
 const proposalReconciliationMigrationPath = 'supabase/migrations/20260924083000_reconcile_proposal_conversion_schema.sql';
-const reviewPagePath = 'app/estimates/audit/page.tsx';
+const reviewPagePath = 'components/opportunities/views/AuditView.tsx';
 const estimateActionsPath = 'app/estimates/actions.ts';
-const estimatePagePath = 'app/estimates/[estimateId]/page.tsx';
-const proposalPagePath = 'app/proposals/[estimateId]/page.tsx';
+const estimatePagePath = 'components/opportunities/views/WorksheetView.tsx';
+const proposalPagePath = 'components/opportunities/views/ProposalView.tsx';
 const proposalActionsPath = 'app/proposals/actions.ts';
 const estimatingSpecPath = 'docs/modules/estimating.md';
 
@@ -176,14 +176,15 @@ test('Estimate Review consumes authoritative readiness and avoids obsolete audit
   assert.match(page, /Reviewed \/ proceed/);
   assert.match(page, /latest_acknowledgement_id[\s\S]*acknowledgement_valid[\s\S]*stale/i);
   assert.match(page, /readiness\.release_state==='review'&&readiness\.blocker_count===0&&readiness\.warning_count>0/);
-  const sectionOrder = ['Release state', 'Commercial Recap', 'Blockers', 'Warnings', 'Commercial Decisions', 'Scope Recap', 'Pricing Recap', 'Labor Recap', 'Proposal preparation', 'Estimate Trace'].map(section => page.indexOf(section));
+  const sectionOrder = ['aria-label="Release state"', 'title="Commercial recap"', 'title="Blockers"', 'title="Warnings"', 'title="Commercial decisions"', 'title="Scope recap"', 'title="Pricing recap"', 'title="Labor recap"', 'title="Proposal preparation"', '>Estimate trace</summary>'].map(section => page.indexOf(section));
+  assert.ok(sectionOrder.every(index => index >= 0), 'Each review section is present');
   assert.deepEqual(sectionOrder, [...sectionOrder].sort((a, b) => a - b));
   const warningsSection = page.indexOf('<FindingSection title="Warnings"');
   const acknowledgement = page.indexOf('Reviewed / proceed');
-  const commercialDecisions = page.indexOf('Commercial Decisions</h2>');
+  const commercialDecisions = page.indexOf('ReviewHeading title="Commercial decisions"');
   assert.ok(warningsSection < acknowledgement && acknowledgement < commercialDecisions, 'Acknowledgement follows Warnings and precedes Commercial Decisions');
-  for (const destination of ['/estimates/${estimateId}#pricing-coverage', '/estimates/${estimateId}#labor-review', '/estimates/${estimateId}#scope-cost', '/estimates/${estimateId}#price-margin', '/proposals/${estimateId}', "return '/takeoff'"]) {
-    assert.ok(page.includes(destination), `Expected finding destination ${destination}`);
+  for (const destination of ["estimateHref(estimateId,'worksheet','#pricing-coverage')", "estimateHref(estimateId,'worksheet','#labor-review')", "estimateHref(estimateId,'worksheet','#scope-cost')", "estimateHref(estimateId,'worksheet','#price-margin')", "estimateHref(estimateId,'proposal')", "return '/takeoff'"]) {
+    assert.ok(page.includes(destination), `Expected consolidated finding destination ${destination}`);
   }
 });
 
@@ -214,7 +215,7 @@ test('Estimate Review recap scopes active source data and shows connected commer
   }
   assert.match(page, /legacy_takeoff_output_id===output\?\.id\|\|row\.generated_estimate_item_id===item\.id/);
   for (const decision of ['Manual price override', 'Selected supplier quote', 'Expired selected supplier quote', 'Job MH/unit override', 'Explicit labor-rate selection', 'Customer Sell below target']) assert.ok(page.includes(decision));
-  assert.match(page, /Commercial Decisions[\s\S]*commercialDecisions\.map/);
+  assert.match(page, /Commercial decisions[\s\S]*commercialDecisions\.map/);
   assert.match(page, /condition_code_snapshot[\s\S]*revision_no/);
   assert.match(page, /template_code_snapshot[\s\S]*template_name_snapshot[\s\S]*templateVersion\.version_no/);
   assert.match(page, /archetype_code_snapshot[\s\S]*archetype_name_snapshot[\s\S]*archetypeVersion\.version_no/);

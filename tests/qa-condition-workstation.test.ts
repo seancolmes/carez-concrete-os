@@ -49,7 +49,7 @@ test('Condition issues stay in the scrollable review section', () => {
 
 test('pricing issues route to Review when available or the linked Estimate otherwise', () => {
   assert.match(workstation, /issue\.category==='pricing'\|\|issue\.category==='commercial'\?'review'/);
-  assert.match(workstation, /router\.push\(`\/estimates\/\$\{estimateId\}`\)/);
+  assert.match(workstation, /router\.push\(`\/opportunities\?estimate=\$\{encodeURIComponent\(estimateId\)\}&tab=worksheet#pricing-coverage`\)/);
   assert.match(workstation, /return'Estimate'/);
 });
 
@@ -94,7 +94,7 @@ test('3D and Split share the current authoritative drawing viewport', () => {
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
   assert.equal(workspaceStyles.includes(retiredSplitClass), false);
   assert.match(workspaceStyles, /data-view-mode="split"/);
-  assert.match(workspaceStyles, /margin-right:50%/);
+  assert.match(workspaceStyles, /\.splitVerification\{left:calc\(var\(--takeoff-navigator-width,260px\) \+ \(100% - var\(--takeoff-navigator-width,260px\)\)\/2\)\}/);
   assert.match(workstation, /\['2d','split','3d'\]/);
   assert.match(workstation, /drawingViewHidden=\{!mobileReview&&viewMode==='3d'\}/);
   assert.match(workstation, /jumpToDerivedIssue=.*'split'/);
@@ -158,7 +158,7 @@ test('3D elevation reference exposes governed choices required by projection', (
 });
 
 test('Condition contract version is visible and an older editable Strip draft has a governed latest-contract upgrade action', () => {
-  assert.match(workstation, /Contract v\{contractVersion\}/);
+  assert.match(workstation, /`Contract v\$\{contractVersion\}`/);
   assert.match(workstation, /Upgrade to v\{latestContractVersion\}/);
   assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v5/);
   assert.match(conditionActions, /carez_ensure_strip_footing_v5_template/);

@@ -82,11 +82,12 @@ test('project context remains limited to the authoritative Issue #71 route bound
   assert.equal(resolveProjectRoute('/estimates/estimate-1'),null);
 });
 
-test('Project Overview adopts only the shared record header in this slice',()=>{
+test('Project Overview retains the shared record header and actionable workspaces',()=>{
   const page=readMaybe('app/projects/[id]/page.tsx');
   assert.match(page,/CarezRecordHeader/);
   assert.match(page,/Review Crew Time/);
-  assert.match(page,/Plan Pour/);
   assert.match(page,/Order Materials/);
   assert.match(page,/What Needs Your Attention/);
+  assert.match(page,/href="\/field\?view=production"/);
+  assert.match(page,/href="\/financials\?tab=procurement&view=procurement"/);
 });

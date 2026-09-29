@@ -73,7 +73,7 @@ export default async function TakeoffPage(){
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><h1>Concrete takeoff</h1></div>
-        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assembly history</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/estimates"><Calculator/>Estimates</Link></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/takeoff/assemblies"><LibraryBig/>Assembly history</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/opportunities"><Calculator/>Opportunities</Link></div>
       </header>
 
       <section className="carez-summary-ledger grid grid-cols-2 gap-px lg:grid-cols-4">

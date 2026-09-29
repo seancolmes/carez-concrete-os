@@ -1,4 +1,5 @@
 import {headers} from 'next/headers';
+import {estimateHref,opportunityHref} from '../opportunityHref';
 import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,Check,CheckCircle2,Clock3,ExternalLink,FileText,Mail,MessageSquareText,Send} from 'lucide-react';
@@ -105,8 +106,8 @@ export async function ProposalView({estimateId}:{estimateId:string}){
 
   return <div className={`${viewStyles.workspace} flex w-full min-w-0 flex-col gap-6`}>
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><p className="text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]">{lead&&<><Link className={secondaryAction} href={`/leads/${lead.id}`}>Opportunity {lead.opportunity_number}</Link><span aria-hidden="true"> · </span></>}{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-base font-semibold tracking-tight text-[#171B19] dark:text-white">{customer}</h1><p className="mt-1 max-w-4xl text-sm leading-relaxed text-[#525C57] dark:text-[#8B949E]">{job}{contactName?` · ${contactName}`:""}{contactEmail?` · ${contactEmail}`:""}</p></div>
-      <div className="flex flex-wrap gap-2"><Link className={secondaryAction} href="/proposals"><ArrowLeft/>Proposals</Link><Link className={secondaryAction} href={`/estimates/${e.id}`}><FileText/>Estimate</Link></div>
+      <div><p className="text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]">{lead&&<><Link className={secondaryAction} href={opportunityHref(lead.id)}>Opportunity {lead.opportunity_number}</Link><span aria-hidden="true"> · </span></>}{proposalDisplay} · {String(stage).toUpperCase()}</p><h1 className="mt-1 text-base font-semibold tracking-tight text-[#171B19] dark:text-white">{customer}</h1><p className="mt-1 max-w-4xl text-sm leading-relaxed text-[#525C57] dark:text-[#8B949E]">{job}{contactName?` · ${contactName}`:""}{contactEmail?` · ${contactEmail}`:""}</p></div>
+      <div className="flex flex-wrap gap-2"><Link className={secondaryAction} href="/opportunities"><ArrowLeft/>Proposals</Link><Link className={secondaryAction} href={estimateHref(e.id)}><FileText/>Estimate</Link></div>
     </header>
 
     <nav className="mb-6 flex w-full items-center gap-2 overflow-x-auto border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F]" aria-label="Estimate workflow">

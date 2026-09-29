@@ -1,4 +1,5 @@
 import {DeleteTakeoffButton} from '@/components/takeoff/DeleteTakeoffButton';
+import {estimateHref,opportunityHref} from '../opportunityHref';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
@@ -181,10 +182,10 @@ export async function TakeoffView({ setId }: { setId: string }) {
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
             <h1 className={`${pageStyles.title} text-base font-semibold tracking-tight text-[#171B19] dark:text-white`}>Takeoff</h1>
-            {opportunity && <p><Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={`/leads/${opportunity.id}`}>Opportunity {opportunity.opportunity_number}</Link></p>}
+            {opportunity && <p><Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={opportunityHref(opportunity.id)}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
-            <span className={`${pageStyles.estimate} text-sm font-medium text-[#171B19] dark:text-[#E1E7E3]`}>{set.name} · {estimate ? <Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={`/estimates/${estimate.id}`}>{estimateLabel}</Link> : estimateLabel}</span>
+            <span className={`${pageStyles.estimate} text-sm font-medium text-[#171B19] dark:text-[#E1E7E3]`}>{set.name} · {estimate ? <Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={estimateHref(estimate.id)}>{estimateLabel}</Link> : estimateLabel}</span>
             {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={`${pageStyles.revision} text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]`}>{set.revision_label}</span></>}
           </div>
         </div>

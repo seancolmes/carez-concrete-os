@@ -6,7 +6,7 @@ const migrationPath = 'supabase/migrations/20260921231000_estimate_labor_product
 const stickyMigrationPath = 'supabase/migrations/20260921231500_labor_rate_selection_sticky_marker.sql';
 const helperPath = 'lib/estimating/laborReview.ts';
 const componentPath = 'components/estimates/LaborReview.tsx';
-const pagePath = 'app/estimates/[estimateId]/page.tsx';
+const pagePath = 'components/opportunities/views/WorksheetView.tsx';
 const actionsPath = 'app/estimates/actions.ts';
 
 const requireFile = (path: string, message: string) => {

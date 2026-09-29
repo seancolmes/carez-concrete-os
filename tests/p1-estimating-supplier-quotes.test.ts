@@ -7,7 +7,7 @@ const indexMigrationPath = 'supabase/migrations/20260921224500_estimate_supplier
 const coveragePath = 'lib/estimating/pricingCoverage.ts';
 const panelPath = 'components/estimates/PricingCoverage.tsx';
 const gridPath = 'components/estimates/PricingExceptionGrid.tsx';
-const pagePath = 'app/estimates/[estimateId]/page.tsx';
+const pagePath = 'components/opportunities/views/WorksheetView.tsx';
 const actionsPath = 'app/estimates/actions.ts';
 
 const requireFile = (path: string, message: string) => {

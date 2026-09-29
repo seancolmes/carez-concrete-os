@@ -40,14 +40,14 @@ test('density and typography contracts are present', () => {
   assert.match(globals, /--density-workspace-gap:/);
   assert.match(globals, /html\[data-density=['"]compact['"]\]/);
   assert.match(globals, /html\[data-density=['"]comfortable['"]\]/);
-  assert.match(globals, /--font-mono:\s*var\(--font-ibm-plex-mono\)/);
-  assert.match(globals, /html\s*\{[\s\S]*?color-scheme:\s*dark/);
+  assert.match(globals, /--font-mono:\s*var\(--font-source-code-pro\)/);
+  assert.match(globals, /html\s*\{[\s\S]*?color-scheme:\s*light/);
   assert.match(globals, /html\.dark\s*\{[\s\S]*?color-scheme:\s*dark/);
 });
 
 test('layout bootstraps appearance without a forced dark server class', () => {
-  assert.match(layout, /IBM_Plex_Mono/);
-  assert.match(layout, /--font-ibm-plex-mono/);
+  assert.match(layout, /Source_Code_Pro/);
+  assert.match(layout, /--font-source-code-pro/);
   assert.match(layout, /CAREZ_APPEARANCE_BOOT_SCRIPT/);
   assert.match(layout, /CarezAppearanceProvider/);
   assert.match(layout, /suppressHydrationWarning/);
