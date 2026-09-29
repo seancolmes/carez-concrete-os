@@ -37,6 +37,7 @@ export default async function SettingsPage(){
   ]):[{data:null},{data:[]},{data:null},{data:[]},{data:null}];
 
   const name=profile?.full_name||user.email||'Owner',outlookReady=outlookConfigured(),outlookConnected=outlook?.status==='active';
+  const cardSurface='rounded-xl border border-[#D4DBD7] bg-white shadow-none dark:border-[#343A3F] dark:bg-[#181A1B]';
 
   return <AppShell userName={name}>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
@@ -44,28 +45,28 @@ export default async function SettingsPage(){
 
       {profile?.company_id?<section className="space-y-4">
         <SectionHeading kicker="Company" title="Branding" description="Company identity used by the Carez workspace and new commercial documents."/>
-        <CompanyBrandingSettings companyId={profile.company_id} initialLogoPath={branding?.logo_path||null}/>
+        <div className="rounded-xl border border-[#D4DBD7] bg-white p-4 dark:border-[#343A3F] dark:bg-[#181A1B]"><CompanyBrandingSettings companyId={profile.company_id} initialLogoPath={branding?.logo_path||null}/></div>
       </section>:null}
 
       <section className="space-y-4">
-        <SectionHeading kicker="Interface" title="Appearance" description="Theme and baseline workspace density for this device."/>
+        <SectionHeading kicker="Interface" title="Appearance" description="Choose the workspace theme for this device."/>
         <AppearanceSettings />
       </section>
 
       <section className="space-y-4">
         <SectionHeading kicker="Connections" title="Integrations" description="Services that remove office work or provide authoritative external data."/>
         <div className="grid gap-3 lg:grid-cols-3">
-          <Card className="shadow-none">
+          <Card className={cardSurface}>
             <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Mail className="size-4"/></span><div><CardTitle>Microsoft Outlook</CardTitle><CardDescription className="mt-1">Identify concrete opportunities and route uncertain messages into Lead Inbox.</CardDescription></div><IntegrationBadge state={outlookConnected?'connected':outlookReady?'ready':'needed'}/></CardHeader>
-            <CardContent className="space-y-3">{outlookConnected?<dl className="divide-y rounded-lg border"><div className="grid grid-cols-[100px_minmax(0,1fr)] gap-3 px-3 py-2.5 text-xs"><dt className="text-muted-foreground">Mailbox</dt><dd className="truncate text-right font-medium">{outlook.mailbox_email||outlook.mailbox_name||'Connected'}</dd></div><div className="grid grid-cols-[100px_minmax(0,1fr)] gap-3 px-3 py-2.5 text-xs"><dt className="text-muted-foreground">Last scan</dt><dd className="text-right font-medium">{outlook.last_sync_at?new Date(outlook.last_sync_at).toLocaleString():'Not yet'}</dd></div></dl>:<p className="text-sm leading-5 text-muted-foreground">Microsoft app credentials must be configured once, then the mailbox is authorized through Microsoft sign-in.</p>}{outlook?.last_error?<div className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{outlook.last_error}</div>:null}<Link className={buttonVariants({size:'sm'})} href="/leads/inbox">{outlookConnected?'Open lead inbox':'Set up Outlook'}</Link></CardContent>
+            <CardContent className="space-y-3">{outlookConnected?<dl className="divide-y rounded-lg border"><div className="grid grid-cols-[100px_minmax(0,1fr)] gap-3 px-3 py-2.5 text-xs"><dt className="text-muted-foreground">Mailbox</dt><dd className="truncate text-right font-medium">{outlook.mailbox_email||outlook.mailbox_name||'Connected'}</dd></div><div className="grid grid-cols-[100px_minmax(0,1fr)] gap-3 px-3 py-2.5 text-xs"><dt className="text-muted-foreground">Last scan</dt><dd className="text-right font-medium">{outlook.last_sync_at?new Date(outlook.last_sync_at).toLocaleString():'Not yet'}</dd></div></dl>:<p className="text-sm leading-5 text-muted-foreground">Microsoft app credentials must be configured once, then the mailbox is authorized through Microsoft sign-in.</p>}{outlook?.last_error?<div className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{outlook.last_error}</div>:null}<Link className={buttonVariants({size:'sm'})} href="/opportunities?view=intake">{outlookConnected?'Open lead inbox':'Set up Outlook'}</Link></CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card className={cardSurface}>
             <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Landmark className="size-4"/></span><div><CardTitle>Banking / Plaid</CardTitle><CardDescription className="mt-1">Bank balances and transactions used by cash, reconciliation, and bank rules.</CardDescription></div><IntegrationBadge state={(plaid||[]).length?'connected':'needed'}/></CardHeader>
-            <CardContent className="space-y-3"><p className="text-sm leading-5 text-muted-foreground">{(plaid||[]).length?`${(plaid||[]).length} active connection${(plaid||[]).length===1?'':'s'}${plaid?.[0]?.institution_name?` · ${plaid[0].institution_name}`:''}`:'Connect through Banking.'}</p><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/banking">Open banking</Link></CardContent>
+            <CardContent className="space-y-3"><p className="text-sm leading-5 text-muted-foreground">{(plaid||[]).length?`${(plaid||[]).length} active connection${(plaid||[]).length===1?'':'s'}${plaid?.[0]?.institution_name?` · ${plaid[0].institution_name}`:''}`:'Connect through Banking.'}</p><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/financials?tab=ledger&view=banking">Open banking</Link></CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card className={cardSurface}>
             <CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Calculator className="size-4"/></span><div><CardTitle>QuickBooks</CardTitle><CardDescription className="mt-1">Accounting export/integration after the Carez operating workflow is stable.</CardDescription></div><IntegrationBadge state="later"/></CardHeader>
           </Card>
         </div>
@@ -73,14 +74,14 @@ export default async function SettingsPage(){
 
       <div className="grid gap-4 xl:grid-cols-[.8fr_1.2fr]">
         <div className="space-y-4">
-          <Card className="shadow-none"><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Database className="size-4"/></span><div><CardTitle>Database & login</CardTitle><CardDescription className="mt-1">Supabase live company database and private Carez authentication.</CardDescription></div><IntegrationBadge state={!error&&profile?'connected':'needed'}/></CardHeader></Card>
+          <Card className={cardSurface}><CardHeader className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><Database className="size-4"/></span><div><CardTitle>Database & login</CardTitle><CardDescription className="mt-1">Supabase live company database and private Carez authentication.</CardDescription></div><IntegrationBadge state={!error&&profile?'connected':'needed'}/></CardHeader></Card>
 
-          <Card className="shadow-none"><CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="size-4 text-primary"/>Cost to keep Carez running</CardTitle><CardDescription>Owner compensation, capacity, fleet, and recurring company cost.</CardDescription></CardHeader><CardContent><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/overhead">Open overhead</Link></CardContent></Card>
+          <Card className={cardSurface}><CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="size-4 text-primary"/>Cost to keep Carez running</CardTitle><CardDescription>Owner compensation, capacity, fleet, and recurring company cost.</CardDescription></CardHeader><CardContent><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/overhead">Open overhead</Link></CardContent></Card>
 
-          <Card className="shadow-none"><CardHeader><CardTitle className="flex items-center gap-2"><Settings2 className="size-4 text-primary"/>Signed in</CardTitle><CardDescription>{name} · {profile?.role||'owner'}</CardDescription></CardHeader><CardContent><form action={signOut}><Button type="submit" variant="outline"><LogOut/>Log out</Button></form></CardContent></Card>
+          <Card className={cardSurface}><CardHeader><CardTitle className="flex items-center gap-2"><Settings2 className="size-4 text-primary"/>Signed in</CardTitle><CardDescription>{name} · {profile?.role||'owner'}</CardDescription></CardHeader><CardContent><form action={signOut}><Button type="submit" variant="outline"><LogOut/>Log out</Button></form></CardContent></Card>
         </div>
 
-        <Card className="gap-0 py-0 shadow-none">
+        <Card className={`${cardSurface} gap-0 py-0`}>
           <CardHeader className="border-b py-4"><CardTitle>2026 labor engine</CardTitle><CardDescription>Timecards snapshot employer payroll taxes, L&I work-class cost, and sick-leave reserve.</CardDescription></CardHeader>
           <CardContent className="space-y-4 p-4">
             {tax?<div className="grid gap-2 sm:grid-cols-2"><div className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">Employer Social Security</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{(Number(tax.social_security_rate)*100).toFixed(2)}%</div></div><div className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">Employer Medicare</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{(Number(tax.medicare_rate)*100).toFixed(2)}%</div></div><div className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">WA SUI / EAF</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{(Number(tax.wa_sui_rate)*100).toFixed(2)}%</div></div><div className="rounded-lg border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">FUTA while applicable</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{(Number(tax.futa_rate)*100).toFixed(2)}%</div></div><div className="rounded-lg border bg-muted/20 p-3 sm:col-span-2"><div className="text-xs text-muted-foreground">Sick leave reserve</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">1 hr / 40 hr</div></div></div>:<div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">2026 tax settings missing.</div>}

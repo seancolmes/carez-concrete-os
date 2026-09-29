@@ -181,17 +181,17 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
             <h1 className={pageStyles.title}>Takeoff</h1>
-            {opportunity && <p><Link href={`/leads/${opportunity.id}`}>Opportunity {opportunity.opportunity_number}</Link></p>}
+            {opportunity && <p><Link href={`/opportunities?lead=${opportunity.id}&estimate=${set.estimate_id}&takeoff=${setId}&tab=takeoff`}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
-            <span className={pageStyles.estimate}>{set.name} · {estimate ? <Link href={`/estimates/${estimate.id}`}>{estimateLabel}</Link> : estimateLabel}</span>
+            <span className={pageStyles.estimate}>{set.name} · {estimate ? <Link href={`/opportunities?estimate=${estimate.id}&takeoff=${setId}&tab=worksheet`}>{estimateLabel}</Link> : estimateLabel}</span>
             {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={pageStyles.revision}>{set.revision_label}</span></>}
           </div>
         </div>
         {locked&&<span className={pageStyles.lock}>Read only</span>}
       </header>
 
-      {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
+      {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. <Link href={`/opportunities?estimate=${set.estimate_id}&tab=proposal`}>Open the revision workflow</Link> to change scope.</div>}
 
       {!document || !pdfUrl ? <div className="takeoff-upload-state"><div className="takeoff-upload-card"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source drawings</p><h1>Attach the PDF plan set</h1><p>This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm font-medium text-foreground">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />

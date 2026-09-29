@@ -1,12 +1,28 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {WORKSPACE_PRESENTATION_SURFACES} from '../lib/ui/navigation.ts';
 
 const shell=readFileSync(new URL('../components/AppShell.tsx',import.meta.url),'utf8');
-const navigation=readFileSync(new URL('../lib/ui/navigation.ts',import.meta.url),'utf8');
 
-test('desktop top navigation and mobile navigation consume the seven-surface model',()=>{assert.match(shell,/WORKSPACE_PRESENTATION_SURFACES/);assert.match(shell,/function CarezCommandRail/);assert.match(shell,/function MobileNavigation/);assert.match(shell,/WORKSPACE_PRESENTATION_SURFACES\.map/);assert.match(shell,/aria-label="Pourtrace global navigation"/);assert.match(shell,/aria-label="Primary domains"/);assert.match(shell,/aria-label="Mobile primary navigation"/);for(const surface of ['today','preconstruction','projects','field','production','finance','system'])assert.match(navigation,new RegExp(`id:'${surface}'`));assert.doesNotMatch(shell,/NAVIGATION_COMMAND_GROUPS/);});
-test('the transient deck retains accessible behavior and anchors to its trigger',()=>{assert.match(shell,/id="carez-domain-deck"/);assert.match(shell,/aria-expanded/);assert.match(shell,/aria-controls="carez-domain-deck"/);assert.match(shell,/event\.key==='Escape'/);assert.match(shell,/ArrowDown/);assert.match(shell,/navigationCommandValue/);assert.match(shell,/event\.metaKey\|\|event\.ctrlKey/);assert.match(shell,/positionDeck\(id\)/);assert.match(shell,/style=\{\{left\}\}/);assert.match(shell,/carez-domain-row/);assert.match(shell,/prefers-reduced-motion:reduce/);assert.match(shell,/max-h-\[calc\(100svh/);assert.doesNotMatch(shell,/ROUTES<\/span>/);});
-test('domain changes retain one deck shell and transition only its keyed content',()=>{assert.match(shell,/const \[deck,setDeck\]=useState/);assert.match(shell,/contentVersion/);assert.match(shell,/carez-domain-content-switch/);assert.match(shell,/carez-domain-content-switch \.carez-domain-row/);assert.match(shell,/key=\{contentVersion\}/);assert.doesNotMatch(shell,/setDeckId/);});
-test('dismissal exits briefly and stale close callbacks cannot clear a newer domain',()=>{assert.match(shell,/carez-domain-deck-out 120ms/);assert.match(shell,/clearTimeout\(closeTimer\.current\)/);assert.match(shell,/current\.phase!=='closing'\|\|current\.id!==closingId/);assert.match(shell,/event\.key==='Escape'/);});
-test('the rejected left rail and legacy full-route navigation do not return',()=>{assert.doesNotMatch(shell,/NavigationMenu|NAVIGATION_COMMAND_GROUPS|ExpandableNavbar|CarezPinnedNav|CarezNavigationManager|Workspaces|Quick Access/);assert.doesNotMatch(shell,/hidden h-svh w-48/);assert.match(shell,/lg:grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\]/);});
+test('top navigation exposes the five consolidated workspace routes',()=>{
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(({label,href})=>[label,href]),[
+    ['Overview','/overview'],['Opportunities','/opportunities'],['Projects','/projects'],['Financials','/financials'],['Administration','/settings'],
+  ]);
+  assert.match(shell,/aria-label="Primary domains"/);
+  assert.match(shell,/<Link key=\{item\.id\} href=\{item\.href\}/);
+  assert.match(shell,/aria-label="Mobile primary navigation"/);
+  assert.doesNotMatch(shell,/DomainMegaMenu|CarezDomainDeck|carez-domain-deck/);
+});
+
+test('search button and Cmd+K open the command palette with company-scoped records',()=>{
+  assert.match(shell,/aria-label="Search Pourtrace"/);
+  assert.match(shell,/event\.metaKey\|\|event\.ctrlKey/);
+  assert.match(shell,/event\.key\.toLowerCase\(\)==='k'/);
+  assert.match(shell,/CommandGroup heading="Financials"/);
+  assert.match(shell,/CommandGroup heading="Projects"/);
+  assert.match(shell,/CommandGroup heading="Opportunities"/);
+  assert.match(shell,/CommandGroup heading="Crew members"/);
+  for(const table of ['projects','leads','crew_members'])assert.match(shell,new RegExp("from\\('"+table+"'\\).*eq\\('company_id'"));
+  assert.doesNotMatch(shell,/navigationCommandValue|allDestinationsFor|NAVIGATION_COMMAND_GROUPS/);
+});

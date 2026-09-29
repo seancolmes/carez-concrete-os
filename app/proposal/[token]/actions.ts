@@ -7,6 +7,16 @@ export async function submitProposalResponse(fd:FormData){
  const token=String(fd.get('token')||''),responseType=String(fd.get('response_type')||'').trim();
  if(!token||!responseType)throw new Error('Proposal response is incomplete.');
  const supabase=await createClient();
+ if(responseType==='ready_to_proceed'){
+  const name=String(fd.get('customer_name')||'').trim();
+  const email=String(fd.get('customer_email')||'').trim();
+  if(!name||!email)throw new Error('Name and email are required to send your response.');
+  const {data,error}=await supabase.rpc('submit_public_proposal_ready_intent',{p_token:token,p_name:name,p_email:email});
+  if(error)throw new Error(error.message);
+  if(!data)throw new Error('This proposal link is no longer valid.');
+  revalidatePath(`/proposal/${token}`);
+  return;
+ }
  const {data,error}=await supabase.rpc('submit_public_proposal_response',{
   p_token:token,
   p_response_type:responseType,

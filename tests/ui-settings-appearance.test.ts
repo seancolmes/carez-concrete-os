@@ -6,7 +6,7 @@ const root = new URL('../', import.meta.url);
 const componentUrl = new URL('components/settings/AppearanceSettings.tsx', root);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 
-test('Settings exposes Carez appearance preferences', () => {
+test('Settings exposes theme without a non-functional density selector', () => {
   assert.equal(existsSync(componentUrl), true);
   const component = read('components/settings/AppearanceSettings.tsx');
   const settings = read('app/settings/page.tsx');
@@ -15,9 +15,8 @@ test('Settings exposes Carez appearance preferences', () => {
   assert.match(component, /value="system"/);
   assert.match(component, /value="light"/);
   assert.match(component, /value="dark"/);
-  assert.match(component, /Workspace default/);
-  assert.match(component, /Compact/);
-  assert.match(component, /Comfortable/);
+  assert.doesNotMatch(component, /Workspace density|densityPreference|setDensityPreference/);
+  assert.match(component, /dark:bg-\[#181A1B\]/);
   assert.match(settings, /AppearanceSettings/);
   assert.match(settings, /title="Appearance"/);
 });

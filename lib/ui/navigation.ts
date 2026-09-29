@@ -90,9 +90,9 @@ export type ProjectRouteContext = {
 };
 
 export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
-  {id:'today',href:'/',label:'Overview',hint:'Work and decisions across the company',domain:'today',icon:'home'},
+  {id:'today',href:'/overview',label:'Overview',hint:'Work and decisions across the company',domain:'today',icon:'home'},
   {id:'reports',href:'/reports',label:'Owner reports',hint:'Company and job reporting',domain:'today',icon:'reports'},
-  {id:'leads',href:'/leads',label:'Opportunities',hint:'Pursuits and customer follow-up',domain:'preconstruction',icon:'users'},
+  {id:'leads',href:'/opportunities',label:'Opportunities',hint:'Pursuits and customer follow-up',domain:'preconstruction',icon:'users'},
   {id:'lead-inbox',href:'/leads/inbox',label:'Intake',hint:'Incoming bid opportunities',domain:'preconstruction',icon:'inbox'},
   {id:'bid-intelligence',href:'/bid-intelligence',label:'Bid intelligence',hint:'Pursuit and pricing intelligence',domain:'preconstruction',icon:'trending'},
   {id:'takeoff',href:'/takeoff',label:'Takeoff',hint:'Plans, conditions and quantities',domain:'estimating',icon:'ruler'},
@@ -111,7 +111,7 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
   {id:'scope-drift',href:'/scope-drift',label:'Scope drift',hint:'Changed or unplanned work',domain:'projects',icon:'clipboard-list'},
   {id:'change-orders',href:'/change-orders',label:'Change orders',hint:'Price and control extra work',domain:'projects',icon:'clipboard-list'},
   {id:'forecast',href:'/forecast',label:'Forecast',hint:'Where each job is headed',domain:'projects',icon:'trending'},
-  {id:'field',href:'/field',label:'Field control',hint:'Time review and field control',domain:'field',icon:'hammer'},
+  {id:'field',href:'/field',label:'Field operations',hint:'Dispatch, schedule, production, crew and equipment',domain:'field',icon:'hammer'},
   {id:'production',href:'/production',label:'Production',hint:'Earned quantities and actual production rates',domain:'field',icon:'gauge'},
   {id:'pour-control',href:'/pour-control',label:'Pour control',hint:'Concrete placement readiness',domain:'field',icon:'shield'},
   {id:'crew',href:'/crew',label:'Crew',hint:'Workers, rates and labor setup',domain:'field',icon:'hard-hat'},
@@ -143,8 +143,8 @@ export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
 ] as const;
 
 export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurface[] = [
-  {id:'today',label:'Overview',href:'/',sections:[{id:'today',label:'Overview',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
-  {id:'preconstruction',label:'Opportunities',href:'/leads',sections:[
+  {id:'today',label:'Overview',href:'/overview',sections:[{id:'today',label:'Overview',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
+  {id:'preconstruction',label:'Opportunities',href:'/opportunities',sections:[
     {id:'opportunities',label:'Opportunities',destinations:[{id:'leads',classification:'primary-surface'},{id:'lead-inbox',classification:'internal-view'},{id:'bid-intelligence',classification:'internal-view'}]},
     {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'},{id:'assemblies',classification:'compatibility-entry'},{id:'production-intelligence',classification:'contextual-tool'}]},
     {id:'commercial',label:'Commercial',destinations:[{id:'estimates',classification:'internal-view'},{id:'estimate-audit',classification:'internal-view'},{id:'proposals',classification:'internal-view'}]},
@@ -152,16 +152,16 @@ export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurf
   {id:'projects',label:'Projects',href:'/projects',sections:[
     {id:'project-control',label:'Project Control',destinations:[{id:'projects',classification:'primary-surface'},{id:'job-setup',classification:'internal-view'},{id:'documents',classification:'internal-view'}]},
     {id:'planning',label:'Planning',destinations:[{id:'schedule',classification:'internal-view'},{id:'look-ahead',classification:'contextual-tool'},{id:'readiness',classification:'contextual-tool'},{id:'resources',classification:'contextual-tool'},{id:'work-packages',classification:'contextual-tool'}]},
-    {id:'delivery',label:'Delivery',destinations:[{id:'field',classification:'internal-view'},{id:'production',classification:'internal-view'},{id:'pour-control',classification:'compatibility-entry'},{id:'scope-drift',classification:'contextual-tool'},{id:'change-orders',classification:'internal-view'},{id:'forecast',classification:'internal-view'}]},
+    {id:'delivery',label:'Delivery',destinations:[{id:'field',classification:'internal-view'},{id:'production',classification:'internal-view'},{id:'pour-control',classification:'compatibility-entry'},{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'internal-view'},{id:'equipment',classification:'internal-view'},{id:'scope-drift',classification:'contextual-tool'},{id:'change-orders',classification:'internal-view'},{id:'forecast',classification:'internal-view'}]},
   ]},
-  {id:'finance',label:'Financials',href:'/billing',sections:[
+  {id:'finance',label:'Financials',href:'/financials',sections:[
     {id:'cash',label:'Cash',destinations:[{id:'cashflow',classification:'internal-view'}]},
     {id:'billing-payables',label:'Billing & Payables',destinations:[{id:'billing',classification:'primary-surface'},{id:'payables',classification:'internal-view'}]},
     {id:'procurement',label:'Procurement',destinations:[{id:'procurement',classification:'internal-view'}]},
     {id:'banking',label:'Banking',destinations:[{id:'banking',classification:'internal-view'},{id:'reconcile',classification:'internal-view'},{id:'bank-rules',classification:'internal-view'}]},
     {id:'payroll-cost',label:'Payroll & Cost',destinations:[{id:'payroll',classification:'internal-view'},{id:'costs',classification:'internal-view'},{id:'overhead',classification:'internal-view'}]},
   ]},
-  {id:'system',label:'Administration',href:'/settings',sections:[{id:'administration',label:'Administration',destinations:[{id:'settings',classification:'primary-surface'},{id:'crew',classification:'internal-view'},{id:'employee-access',classification:'internal-view'},{id:'equipment',classification:'internal-view'}]}]},
+  {id:'system',label:'Administration',href:'/settings',sections:[{id:'administration',label:'Administration',destinations:[{id:'settings',classification:'primary-surface'}]}]},
 ] as const;
 
 const destinationById = new Map(NAVIGATION_DESTINATIONS.map(destination=>[destination.id,destination]));
@@ -179,6 +179,8 @@ export function getWorkspacePresentationSurface(id: WorkspaceSurfaceId): Workspa
 }
 
 export function resolveActiveWorkspacePresentationSurface(pathname: string): WorkspacePresentationSurface | null {
+  if(pathname==='/')return getWorkspacePresentationSurface('today');
+  if(pathname==='/financials')return getWorkspacePresentationSurface('finance');
   const destination=resolveActiveDestination(pathname);
   return destination?getWorkspacePresentationForDestination(destination.id)?.surface||null:null;
 }
@@ -221,6 +223,7 @@ export function matchesDestinationPath(pathname: string, href: string): boolean 
 }
 
 export function resolveActiveDestination(pathname: string): NavigationDestination | null {
+  if(pathname==='/')return getDestinationById('today');
   return [...NAVIGATION_DESTINATIONS]
     .sort((a,b)=>b.href.length-a.href.length)
     .find(destination=>matchesDestinationPath(pathname,destination.href))||null;

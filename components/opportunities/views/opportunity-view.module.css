@@ -1,0 +1,48 @@
+.workspace {
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--pt-line);
+  border-radius: 0.75rem;
+  background: var(--pt-shell);
+  color: var(--pt-text);
+}
+
+.workspace :is(h1, h2, h3, h4) {
+  font-family: var(--pourtrace-ui-font);
+  letter-spacing: -0.02em;
+}
+
+.workspace table {
+  border-color: var(--pt-line);
+}
+
+.workspace :is(th, td, [data-slot="table-row"]) {
+  border-color: color-mix(in srgb, var(--pt-line) 50%, transparent);
+}
+
+.workspace tbody tr:hover {
+  background: var(--pt-surface-hover);
+}
+
+:is(.workspace, .takeoff) :global(.carez-button-primary) {
+  background: var(--pt-logo);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 0 15px rgb(0 153 102 / 20%);
+}
+
+:is(.workspace, .takeoff) :global(.carez-button-primary):hover {
+  background: color-mix(in srgb, var(--pt-logo) 90%, transparent);
+}
+
+.takeoff {
+  overflow: hidden;
+  border: 1px solid var(--pt-line);
+  border-radius: 0.75rem;
+  background: var(--pt-shell);
+}
+
+.takeoff :is(h1, h2, h3, h4) {
+  font-family: var(--pourtrace-ui-font);
+  letter-spacing: -0.02em;
+}

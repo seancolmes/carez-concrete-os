@@ -1,5 +1,5 @@
 'use server';
-import { revalidatePath } from 'next/cache';
+import {revalidateFinancialsWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import { createClient } from '@/lib/supabase/server';
 async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:p}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!p?.company_id)throw new Error('Company missing');return {supabase,user,companyId:p.company_id};}
 const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};

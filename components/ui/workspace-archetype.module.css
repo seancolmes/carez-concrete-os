@@ -1,0 +1,129 @@
+.workspace :global([data-slot="card"]) {
+  border-color: #D4DBD7;
+  border-radius: .75rem;
+  background: #FFFFFF;
+  box-shadow: 0 4px 8px rgb(23 27 25 / 8%);
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.workspace :global([data-slot="card"]):hover {
+  border-color: #B9C3BE;
+  background: #F5F7F6;
+}
+
+.workspace :global([data-slot="card"][class*="border-destructive"]) {
+  border-color: rgb(184 69 88 / 40%);
+}
+
+.workspace :global([data-slot="card"][class*="border-warning"]) {
+  border-color: rgb(138 97 11 / 40%);
+}
+
+.workspace :global([data-slot="card"][class*="border-success"]) {
+  border-color: rgb(52 122 70 / 40%);
+}
+
+.workspace :global(a.group),
+.workspace :global(details:not([class*="border"]) > summary) {
+  border: 1px solid #D4DBD7;
+  border-radius: .75rem;
+  background: #FFFFFF;
+  box-shadow: 0 4px 8px rgb(23 27 25 / 8%);
+}
+
+.workspace :global(a.group):hover,
+.workspace :global(details:not([class*="border"]) > summary):hover {
+  border-color: #B9C3BE;
+  background: #F5F7F6;
+}
+
+.workspace :global(details:not([class*="border"]) > summary) {
+  padding: .75rem 1rem;
+  cursor: pointer;
+}
+
+.workspace :global(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .75rem;
+}
+
+.workspace :global(thead) {
+  background: #EFF2F0;
+  color: #525C57;
+}
+
+.workspace :global(th),
+.workspace :global(td) {
+  padding: .5rem .75rem;
+  border-bottom: 1px solid rgb(212 219 215 / 50%);
+  vertical-align: middle;
+}
+
+.workspace :global(tbody tr) {
+  transition: background-color .15s ease;
+}
+
+.workspace :global(tbody tr):hover {
+  background: #EFF2F0;
+}
+
+:global(.dark) .workspace :global([data-slot="card"]) {
+  border-color: #343A3F;
+  background: #181A1B;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
+}
+
+:global(.dark) .workspace :global([data-slot="card"]):hover {
+  border-color: #525B62;
+  background: #1C1F23;
+}
+
+:global(.dark) .workspace :global([data-slot="card"][class*="border-destructive"]),
+:global(.dark) .workspace :global([data-slot="card"][class*="border-destructive"]):hover {
+  border-color: rgb(224 107 116 / 40%);
+}
+
+:global(.dark) .workspace :global([data-slot="card"][class*="border-warning"]),
+:global(.dark) .workspace :global([data-slot="card"][class*="border-warning"]):hover {
+  border-color: rgb(213 169 74 / 40%);
+}
+
+:global(.dark) .workspace :global([data-slot="card"][class*="border-success"]),
+:global(.dark) .workspace :global([data-slot="card"][class*="border-success"]):hover {
+  border-color: rgb(109 187 119 / 40%);
+}
+
+:global(.dark) .workspace :global(a.group),
+:global(.dark) .workspace :global(details:not([class*="border"]) > summary) {
+  border-color: #343A3F;
+  background: #181A1B;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
+}
+
+:global(.dark) .workspace :global(a.group):hover,
+:global(.dark) .workspace :global(details:not([class*="border"]) > summary):hover {
+  border-color: #525B62;
+  background: #1C1F23;
+}
+
+:global(.dark) .workspace :global(thead) {
+  background: #25292C;
+  color: #B6BEBA;
+}
+
+:global(.dark) .workspace :global(th),
+:global(.dark) .workspace :global(td) {
+  border-bottom-color: rgb(52 58 63 / 50%);
+}
+
+:global(.dark) .workspace :global(tbody tr):hover {
+  background: #1C1F23;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace :global([data-slot="card"]),
+  .workspace :global(tbody tr) {
+    transition: none;
+  }
+}

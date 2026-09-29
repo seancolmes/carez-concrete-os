@@ -17,7 +17,7 @@ async function ctx(){
 const text=(fd:FormData,key:string)=>String(fd.get(key)||'').trim();
 const numberValue=(fd:FormData,key:string,fallback=0)=>{const raw=text(fd,key);if(!raw)return fallback;const n=Number(raw.replace(/[$,% ,]/g,''));return Number.isFinite(n)?n:fallback;};
 const dateOnly=(d:Date)=>d.toISOString().slice(0,10);
-const refresh=()=>{for(const p of ['/','/leads','/estimates','/proposals','/bid-intelligence'])revalidatePath(p);};
+const refresh=()=>{for(const p of ['/','/leads','/estimates','/proposals','/bid-intelligence','/opportunities'])revalidatePath(p);};
 
 async function liveProposalExists(supabase:any,companyId:string,estimateId:string){
  const {data}=await supabase.from('proposal_access_tokens').select('id,expires_at').eq('company_id',companyId).eq('estimate_id',estimateId).is('revoked_at',null);
@@ -139,8 +139,8 @@ export async function createNextProposalRevision(fd:FormData){
  const {data,error}=await supabase.rpc('carez_create_next_proposal_revision',{p_proposal_revision_id:id});
  if(error)throw new Error(error.message);
  const estimateId=String(data?.estimate_id||'');if(!estimateId)throw new Error('The next Estimate revision was not created.');
- revalidatePath('/estimates');revalidatePath('/proposals');revalidatePath(`/proposals/${estimateId}`);
- redirect(`/proposals/${estimateId}`);
+ revalidatePath('/estimates');revalidatePath('/proposals');revalidatePath('/opportunities');revalidatePath(`/proposals/${estimateId}`);
+ redirect(`/opportunities?estimate=${estimateId}&tab=proposal`);
 }
 
 export async function awardProposalAndCreateProject(fd:FormData){

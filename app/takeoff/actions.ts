@@ -45,8 +45,8 @@ export async function createTakeoffSet(fd: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath('/takeoff');
   revalidatePath('/takeoff/plans');
-  revalidatePath('/estimates');
-  redirect(`/takeoff/${data.id}`);
+  revalidatePath('/estimates');revalidatePath('/opportunities');
+  redirect(`/opportunities?takeoff=${data.id}&tab=takeoff`);
 }
 
 export async function createAssemblyMeasurement(fd: FormData) {
@@ -100,7 +100,7 @@ export async function createAssemblyMeasurement(fd: FormData) {
   revalidatePath('/takeoff');
   revalidatePath(`/takeoff/${takeoffSetId}`);
   revalidatePath('/takeoff/plans');
-  revalidatePath('/estimates');
+  revalidatePath('/estimates');revalidatePath('/opportunities');
 }
 
 export async function updateTakeoffOutputPrice(fd: FormData) {
@@ -112,7 +112,7 @@ export async function updateTakeoffOutputPrice(fd: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath('/takeoff');
   revalidatePath('/takeoff/plans');
-  revalidatePath('/estimates');
+  revalidatePath('/estimates');revalidatePath('/opportunities');
 }
 
 export async function deleteTakeoffMeasurement(fd: FormData) {
@@ -125,7 +125,7 @@ export async function deleteTakeoffMeasurement(fd: FormData) {
   revalidatePath('/takeoff');
   if (measurement?.takeoff_set_id) revalidatePath(`/takeoff/${measurement.takeoff_set_id}`);
   revalidatePath('/takeoff/plans');
-  revalidatePath('/estimates');
+  revalidatePath('/estimates');revalidatePath('/opportunities');
 }
 
 export async function updateEstimatingLaborProfile(fd: FormData) {
@@ -160,5 +160,5 @@ export async function updateEstimatingLaborProfile(fd: FormData) {
   }
   revalidatePath('/takeoff');
   revalidatePath('/takeoff/plans');
-  revalidatePath('/estimates');
+  revalidatePath('/estimates');revalidatePath('/opportunities');
 }

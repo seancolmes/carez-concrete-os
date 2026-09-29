@@ -1,96 +1,55 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {Clock3,FileClock,HardHat,MapPin,Plus} from 'lucide-react';
+import {BriefcaseBusiness,Clock3,HardHat,Truck} from 'lucide-react';
 import {AppShell} from '@/components/AppShell';
-import {Badge} from '@/components/ui/badge';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
-import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
-import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
-import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
-import {Textarea} from '@/components/ui/textarea';
+import {FieldWorkspace} from '@/components/field/FieldWorkspace';
+import {MetricBentoTile} from '@/components/projects/MetricBentoTile';
+import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/ui/WorkspaceRecordBoard';
 import {createClient} from '@/lib/supabase/server';
-import {createDailyLog,createTimecard} from './actions';
-import {JobsiteLocationSetter} from '@/components/field/JobsiteLocationSetter';
 
-const today=()=>new Date().toISOString().slice(0,10);
-const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
+type SearchParams={tab?:string;view?:string};
+const workDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
-function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-1 py-3 shadow-none"><CardHeader className="gap-1 px-3"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="hidden px-3 text-xs leading-5 text-muted-foreground sm:block">{help}</CardContent></Card>;
-}
-
-export default async function FieldPage(){
+export default async function FieldPage({searchParams}:{searchParams:Promise<SearchParams>}){
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
-  if(profile?.role==='employee')redirect('/employee');
   if(!profile?.company_id)redirect('/login');
-
-  const [{data:projects},{data:crew},{data:riskClasses},{data:waiting},{data:logs},{data:recentApproved}]=await Promise.all([
-    supabase.from('projects').select('id,job_number,name,site_latitude,site_longitude,geofence_radius_ft').eq('status','active').order('job_number'),
-    supabase.from('crew_members').select('id,name,hourly_rate,is_owner,default_risk_class_code').eq('active',true).order('name'),
-    supabase.from('li_risk_classes').select('code,name').eq('company_id',profile.company_id).eq('tax_year',2026).eq('active',true).order('code'),
-    supabase.from('employee_shift_sessions').select('id').eq('status','submitted'),
-    supabase.from('daily_logs').select('*,projects(job_number,name)').order('log_date',{ascending:false}).limit(8),
-    supabase.from('employee_shift_sessions').select('id,work_date,clock_in_at,clock_out_at,crew_members(name),projects(job_number,name)').eq('status','approved').order('work_date',{ascending:false}).limit(8),
+  if(profile.role==='employee')redirect('/employee');
+  const today=workDate();
+  const [{data:pours,error:poursError},{data:logs,error:logsError},{data:crew,error:crewError},{data:shifts,error:shiftsError},{data:scheduled,error:scheduleError}]=await Promise.all([
+    supabase.from('pour_plans').select('id,status').eq('company_id',profile.company_id).eq('scheduled_date',today),
+    supabase.from('daily_logs').select('concrete_yards').eq('company_id',profile.company_id).eq('log_date',today),
+    supabase.from('crew_members').select('id').eq('company_id',profile.company_id).eq('active',true).eq('is_owner',false),
+    supabase.from('employee_shift_sessions').select('crew_member_id,status').eq('company_id',profile.company_id).eq('work_date',today),
+    supabase.from('work_schedule_items').select('id,title,schedule_date,status,item_type,crew_needed,projects(job_number,name),pour_plans(name,expected_concrete_yards)').eq('company_id',profile.company_id).gte('schedule_date',today).neq('status','cancelled').order('schedule_date',{ascending:true}).limit(100),
   ]);
+  const activePours=poursError?null:(pours||[]).filter(p=>['authorized','in_progress','active'].includes(p.status)).length;
+  const present=shiftsError?null:new Set((shifts||[]).filter(shift=>shift.status!=='rejected').map(shift=>shift.crew_member_id)).size;
+  const placed=logsError?null:(logs||[]).reduce((sum,log)=>sum+Number(log.concrete_yards||0),0);
+  const records:WorkspaceRecordRow[]=(scheduled||[]).map(item=>{
+    const project=Array.isArray(item.projects)?item.projects[0]:item.projects;
+    const pour=Array.isArray(item.pour_plans)?item.pour_plans[0]:item.pour_plans;
+    const hasPour=Boolean(pour);
+    const plannedConcrete=pour?.expected_concrete_yards==null?'Not set':`${Number(pour.expected_concrete_yards).toLocaleString()} CY`;
+    const crewNeeded=item.crew_needed==null?'Not set':`${Number(item.crew_needed)} people`;
+    const status=String(item.status||'planned').replaceAll('_',' ');
+    return {id:item.id,code:project?.job_number||`S-${item.id.slice(0,8)}`,title:item.title||pour?.name||'Scheduled operation',context:`${project?.name||'Project'} · ${String(item.item_type||'work').replaceAll('_',' ')}`,status,tone:/hold|blocked/i.test(status)?'error':/ready|complete/i.test(status)?'success':'info',date:item.schedule_date,figureLabel:hasPour?'Planned concrete':'Crew required',figure:hasPour?plannedConcrete:crewNeeded,details:[{label:'Scheduled',value:item.schedule_date||'Not set'},{label:'Crew required',value:crewNeeded},...(hasPour?[{label:'Planned concrete',value:plannedConcrete}]:[])],href:hasPour?'/field?tab=dispatch&view=dispatch':'/field?tab=schedule&view=schedule',actionLabel:hasPour?'Open dispatch':'Open schedule'};
+  });
+  const {tab,view}=await searchParams;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><h1>Field control</h1></div>
-        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access"><HardHat/>Employee access</Link></div>
-      </header>
-
-      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Metric label="Time waiting for approval" value={String((waiting||[]).length)} help="Clocked-out employee shifts still needing approval." tone={(waiting||[]).length?'warning':'success'}/>
-        <Metric label="Active jobs" value={String((projects||[]).length)} help="Jobs employees can choose when they clock in."/>
-        <div className="col-span-2 sm:col-span-1"><Metric label="Employees" value={String((crew||[]).filter((c:any)=>!c.is_owner).length)} help="Active crew records available for timekeeping."/></div>
+    <main className="mx-auto flex w-full max-w-screen-2xl flex-col">
+      <header className="mb-6 border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F]"><nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field Operations</nav><h1 className="mt-1 text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Field Operations</h1><p className="mt-1 text-sm text-[#525C57] dark:text-[#B6BEBA]">Dispatch, schedule, production, crew and equipment in one workspace.</p></header>
+      <section aria-label="Field operations summary" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MetricBentoTile title="Active pours today" icon={<BriefcaseBusiness/>} value={activePours} description="Authorized pours scheduled today"/>
+        <MetricBentoTile title="Average truck cycle time" icon={<Truck/>} value={null} suffix=" min" description="Arrival and departure times are not recorded yet"/>
+        <MetricBentoTile title="Crew attendance" icon={<HardHat/>} value={present} description={crewError?'Crew roster unavailable':`${present??'—'} of ${(crew||[]).length} active crew recorded today`}/>
+        <MetricBentoTile title="Cubic yards placed" icon={<Clock3/>} value={placed} suffix=" CY" precision={2} description="Concrete entered in today's daily logs"/>
       </section>
-
-      <section>
-        <div className="carez-section-heading flex-wrap"><MapPin className="size-4 text-primary"/><div className="min-w-0 flex-1"><h2>Jobsite locations</h2><p>Set the job pin once. Pourtrace compares employee clock events against that location.</p></div><div className="w-full sm:w-auto"><JobsiteLocationSetter projects={(projects||[]) as any}/></div></div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="shadow-none">
-          <CardHeader><div className="flex items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><FileClock className="size-4"/></span><div><CardTitle>Daily log</CardTitle><CardDescription className="mt-1">Record completed work and placed concrete.</CardDescription></div></div></CardHeader>
-          <CardContent><Dialog><DialogTrigger render={<Button/>}><Plus/>New daily log</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Daily log</DialogTitle><DialogDescription>Capture what happened, how much concrete was placed, and what affected production.</DialogDescription></DialogHeader>
-            <form action={createDailyLog} className="grid gap-4">
-              <div className="grid gap-2"><Label htmlFor="daily-project">Job</Label><select id="daily-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div>
-              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-date">Date</Label><Input id="daily-date" type="date" name="log_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="daily-crew">Crew count</Label><Input id="daily-crew" type="number" min="0" name="crew_count" defaultValue="0"/></div></div>
-              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-cy">Concrete placed (CY)</Label><Input id="daily-cy" type="number" step="0.1" min="0" name="concrete_yards" defaultValue="0"/></div><div className="grid gap-2"><Label htmlFor="daily-weather">Weather</Label><Input id="daily-weather" name="weather" placeholder="Dry, 68°F"/></div></div>
-              <div className="grid gap-2"><Label htmlFor="daily-work">What we got done</Label><Textarea id="daily-work" name="work_completed" rows={4} required/></div>
-              <div className="grid gap-2"><Label htmlFor="daily-delays">Problems / delays</Label><Textarea id="daily-delays" name="delays_issues" rows={3}/></div>
-              <div className="grid gap-2"><Label htmlFor="daily-notes">Notes</Label><Input id="daily-notes" name="notes"/></div>
-              <div><Button type="submit">Save daily log</Button></div>
-            </form>
-          </DialogContent></Dialog></CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>Manual time correction</CardTitle><CardDescription>Use only when an employee could not use the GPS clock or owner/manual time must be entered.</CardDescription></CardHeader><CardContent><Dialog><DialogTrigger render={<Button variant="outline"/>}><Plus/>Enter manual time</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>Manual timecard / correction</DialogTitle><DialogDescription>Normal employee time should come through the GPS clock and daily approval workflow.</DialogDescription></DialogHeader><form action={createTimecard} className="grid gap-4">
-            <div className="grid gap-2"><Label htmlFor="manual-project">Job</Label><select id="manual-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div>
-            <div className="grid gap-2"><Label htmlFor="manual-worker">Worker</Label><select id="manual-worker" className={fieldSelect} name="crew_member_id" required defaultValue=""><option value="" disabled>Choose worker</option>{(crew||[]).map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-date">Date</Label><Input id="manual-date" type="date" name="work_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="manual-task">Work type</Label><Input id="manual-task" name="task" defaultValue="General"/></div></div>
-            <div className="grid gap-2"><Label htmlFor="manual-risk">L&I class</Label><select id="manual-risk" className={fieldSelect} name="risk_class_code" defaultValue=""><option value="">Choose class</option>{(riskClasses||[]).map((r:any)=><option key={r.code} value={r.code}>{r.code} — {r.name}</option>)}</select></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-regular">Regular hours</Label><Input id="manual-regular" type="number" step="0.25" min="0" name="regular_hours" defaultValue="8"/></div><div className="grid gap-2"><Label htmlFor="manual-overtime">Overtime hours</Label><Input id="manual-overtime" type="number" step="0.25" min="0" name="overtime_hours" defaultValue="0"/></div></div>
-            <div className="grid gap-2"><Label htmlFor="manual-notes">Reason / notes</Label><Input id="manual-notes" name="notes" placeholder="Phone died, owner time, correction..."/></div>
-            <div className="flex justify-end"><Button type="submit">Save manual time</Button></div>
-          </form></DialogContent></Dialog></CardContent></Card>
-
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Approved employee time</CardTitle><CardDescription>Most recent approved shift sessions.</CardDescription></CardHeader>{(recentApproved||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><Clock3/></EmptyMedia><EmptyTitle>No approved employee time yet</EmptyTitle><EmptyDescription>Approved shifts will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Worker</TableHead><TableHead>Job</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{(recentApproved||[]).map((s:any)=><TableRow key={s.id}><TableCell className="font-medium">{s.crew_members?.name}</TableCell><TableCell>{s.projects?.job_number} — {s.projects?.name}</TableCell><TableCell className="tabular-nums">{s.work_date}</TableCell><TableCell><Badge variant="secondary" className="bg-success/10 text-success">Approved</Badge></TableCell></TableRow>)}</TableBody></Table>}</Card>
-
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Daily logs</CardTitle><CardDescription>Most recent jobsite records.</CardDescription></CardHeader>{(logs||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><FileClock/></EmptyMedia><EmptyTitle>No daily logs yet</EmptyTitle><EmptyDescription>Saved field logs will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Date</TableHead><TableHead>Job</TableHead><TableHead>Work completed</TableHead><TableHead className="text-right">Concrete</TableHead></TableRow></TableHeader><TableBody>{(logs||[]).map((l:any)=><TableRow key={l.id}><TableCell className="tabular-nums">{l.log_date}</TableCell><TableCell className="font-medium">{l.projects?.job_number||'Job'}</TableCell><TableCell className="max-w-80 truncate text-muted-foreground">{l.work_completed}</TableCell><TableCell className="text-right tabular-nums">{Number(l.concrete_yards||0).toFixed(1)} CY</TableCell></TableRow>)}</TableBody></Table>}</Card>
-      </div>
-    </div>
+      <WorkspaceRecordBoard title="Upcoming field operations" description="Scheduled work and pours, ordered by field date." rows={records} empty={scheduleError?'The field schedule is temporarily unavailable.':'No upcoming field operations are scheduled.'}/>
+      <FieldWorkspace tab={tab} view={view}/>
+    </main>
   </AppShell>;
 }

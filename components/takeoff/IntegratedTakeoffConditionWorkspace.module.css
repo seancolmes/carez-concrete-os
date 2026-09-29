@@ -227,10 +227,11 @@
 .propertySection{background:transparent}
 
 /* Takeoff canvas: all editing stays in an on-demand, scrollable window. */
-.integrated,.conditionDialog{--background:var(--pt-bg);--card:var(--pt-surface);--popover:var(--pt-surface-raised);--foreground:var(--pt-text);--card-foreground:var(--pt-text);--popover-foreground:var(--pt-text);--muted-foreground:var(--pt-text-secondary);--muted:var(--pt-surface-raised);--border:var(--pt-line);--border-strong:var(--pt-line-strong);--input:var(--pt-line-strong);--accent:var(--pt-brand-muted);--accent-foreground:var(--pt-text);--primary:var(--pt-brand);--primary-foreground:var(--pt-bg);--ring:var(--pt-brand-hover);--success:var(--pt-success);--warning:var(--pt-warning);color-scheme:dark}
+.integrated,.conditionDialog{--background:var(--pt-bg);--card:var(--pt-surface);--popover:var(--pt-surface-raised);--foreground:var(--pt-text);--card-foreground:var(--pt-text);--popover-foreground:var(--pt-text);--muted-foreground:var(--pt-text-secondary);--muted:var(--pt-surface-raised);--border:var(--pt-line);--border-strong:var(--pt-line-strong);--input:var(--pt-line-strong);--accent:var(--pt-brand-muted);--accent-foreground:var(--pt-text);--primary:var(--pt-brand);--primary-foreground:var(--pt-bg);--ring:var(--pt-brand-hover);--success:var(--pt-success);--warning:var(--pt-warning);color-scheme:light}
+.dark .integrated,.dark .conditionDialog{color-scheme:dark}
 .integrated,.integrated[data-mobile-review="true"]{grid-template-columns:minmax(0,1fr)!important}
-.drawingHost,.integrated[data-mobile-review="true"] .drawingHost{grid-template-rows:48px minmax(0,1fr) 34px!important}
-.drawingHost>div:first-child{grid-row:2}
+.drawingHost,.integrated[data-mobile-review="true"] .drawingHost{grid-template-rows:48px 34px minmax(0,1fr)!important}
+.drawingHost>div:first-child{grid-row:3}
 .drawingHost>div:first-child>div:first-child,.integrated[data-mobile-review="true"] .drawingHost>div:first-child>div:first-child{grid-template-columns:minmax(0,1fr)!important}
 .drawingHost>div:first-child>div:first-child>aside:last-child{display:block!important;position:absolute;z-index:90;top:0;right:0;bottom:0;width:min(370px,90vw);border-left:1px solid var(--border-strong);background:var(--card)!important;box-shadow:-8px 0 28px rgb(0 0 0 / .22)}
 .conditionToolbar{z-index:21;grid-row:1;grid-column:1;display:flex;min-width:0;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);background:var(--pt-surface-2)}
@@ -248,8 +249,8 @@
 .conditionsSearch input:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
 .conditionToolbar button{flex:none}
 .conditionToolbarHint{min-width:0;overflow:hidden;color:var(--muted-foreground);font-size:11px;text-overflow:ellipsis;white-space:nowrap}
-.spatialRail,.integrated[data-mobile-review="true"] .spatialRail{grid-row:3!important;grid-column:1;padding-inline:12px!important}
-.derivedOverlay{top:48px}
+.spatialRail,.integrated[data-mobile-review="true"] .spatialRail{grid-row:2!important;grid-column:1;padding-inline:12px!important}
+.derivedOverlay{top:82px}
 .derivedOverlay3d{left:0!important}
 .conditionDialog{display:block!important;width:min(920px,calc(100vw - 24px))!important;max-width:none!important;height:min(850px,calc(100dvh - 24px));max-height:none!important;overflow:hidden!important;padding:0!important;border:1px solid var(--border-strong)!important;border-radius:var(--radius-md)!important;background:var(--background)!important;box-shadow:0 22px 70px rgb(0 0 0 / .38)!important}
 .conditionDialog .propertiesPane{height:100%;border:0;background:var(--background)}

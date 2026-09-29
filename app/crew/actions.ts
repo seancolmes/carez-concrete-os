@@ -1,5 +1,5 @@
 'use server';
-import { revalidatePath } from 'next/cache';
+import {revalidateFieldWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import { createClient } from '@/lib/supabase/server';
 
 async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!profile?.company_id)throw new Error('Company profile missing');return {supabase,companyId:profile.company_id};}

@@ -1,5 +1,5 @@
 'use server';
-import {revalidatePath} from 'next/cache';
+import {revalidateFieldWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import {createClient} from '@/lib/supabase/server';
 
 const num=(v:FormDataEntryValue|null)=>{const n=Number(v??0);return Number.isFinite(n)?n:0};
