@@ -22,7 +22,7 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
     supabase.from('daily_logs').select('concrete_yards').eq('company_id',profile.company_id).eq('log_date',today),
     supabase.from('crew_members').select('id').eq('company_id',profile.company_id).eq('active',true).eq('is_owner',false),
     supabase.from('employee_shift_sessions').select('crew_member_id,status').eq('company_id',profile.company_id).eq('work_date',today),
-    supabase.from('work_schedule_items').select('id,title,schedule_date,status,item_type,crew_needed,projects(job_number,name),pour_plans(id,name,expected_concrete_yards)').eq('company_id',profile.company_id).gte('schedule_date',today).neq('status','cancelled').order('schedule_date',{ascending:true}).limit(100),
+    supabase.from('work_schedule_items').select('id,title,schedule_date,status,item_type,crew_needed,pour_plan_id,projects(job_number,name)').eq('company_id',profile.company_id).gte('schedule_date',today).neq('status','cancelled').order('schedule_date',{ascending:true}).limit(100),
     supabase.from('projects').select('id,job_number,name').eq('company_id',profile.company_id).in('status',['active','on_hold']).order('job_number'),
     supabase.from('project_budget_sections').select('id,budget_id,name').eq('company_id',profile.company_id).order('sort_order'),
     supabase.from('project_budgets').select('id,project_id').eq('company_id',profile.company_id).eq('status','active'),
@@ -37,10 +37,14 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
   const projectOptions=(projects||[]).map(project=>({id:project.id,label:`${project.job_number} — ${project.name}`}));
   const scopeLinks=sectionOptions.map(section=>({id:section.id,label:`${projectMap.get(budgetProject.get(section.budget_id)||'')?.job_number||'Job'} — ${section.name}`}));
   const orderOptions=((changeOrders||[]) as {id:string;project_id:string;co_number:string;title:string}[]).map(order=>({id:order.id,label:`${projectMap.get(order.project_id)?.job_number||'Job'} — ${order.co_number} · ${order.title}`}));
-  const scheduledPourIds=new Set((scheduled||[]).flatMap(item=>{const pour=Array.isArray(item.pour_plans)?item.pour_plans[0]:item.pour_plans;return pour?.id?[pour.id]:[];}));
+  const scheduledPourIds=new Set((scheduled||[]).flatMap(item=>item.pour_plan_id?[item.pour_plan_id]:[]));
+  const {data:linkedPours,error:linkedPourError}=scheduledPourIds.size
+    ? await supabase.from('pour_plans').select('id,name,expected_concrete_yards').eq('company_id',profile.company_id).in('id',[...scheduledPourIds])
+    : {data:[],error:null};
+  const linkedPourMap=new Map((linkedPours||[]).map(pour=>[pour.id,pour]));
   const records:WorkspaceRecordRow[]=[...(scheduled||[]).map(item=>{
     const project=Array.isArray(item.projects)?item.projects[0]:item.projects;
-    const pour=Array.isArray(item.pour_plans)?item.pour_plans[0]:item.pour_plans;
+    const pour=item.pour_plan_id?linkedPourMap.get(item.pour_plan_id):null;
     const hasPour=Boolean(pour);
     const plannedConcrete=pour?.expected_concrete_yards==null?'Not set':`${Number(pour.expected_concrete_yards).toLocaleString()} CY`;
     const crewNeeded=item.crew_needed==null?'Not set':`${Number(item.crew_needed)} people`;
@@ -60,7 +64,7 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
         <div className="flex h-14 min-w-0 flex-col justify-center border-r border-border px-3" title={crewError?'Crew roster unavailable':`${present??'—'} of ${(crew||[]).length} active crew recorded today`}><span className="truncate text-muted-foreground">Crew attendance</span><strong className="font-mono text-base tabular-nums">{present??'—'}<span className="ml-1 text-xs font-normal text-muted-foreground">/ {(crew||[]).length}</span></strong></div>
         <div className="flex h-14 min-w-0 flex-col justify-center px-3" title="Concrete entered in today's daily logs"><span className="truncate text-muted-foreground">Cubic yards placed</span><strong className="font-mono text-base tabular-nums">{placed==null?'—':placed.toFixed(2)}<span className="ml-1 text-xs font-normal text-muted-foreground">CY</span></strong></div>
       </section>
-      <WorkspaceRecordBoard title="Dispatch Board" description="Scheduled work and pour plans, ordered by field date." rows={records} empty={scheduleError||poursError?'The dispatch board is temporarily unavailable.':'No upcoming field operations are scheduled.'}/></>}/>
+      <WorkspaceRecordBoard title="Dispatch Board" description="Scheduled work and pour plans, ordered by field date." rows={records} empty={scheduleError||poursError||linkedPourError?'The dispatch board is temporarily unavailable.':'No upcoming field operations are scheduled.'}/></>}/>
     </main>
   </AppShell>;
 }
