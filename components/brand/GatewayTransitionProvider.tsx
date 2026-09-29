@@ -2,6 +2,8 @@
 
 import {createContext,useCallback,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
+import {AnimatePresence,LayoutGroup} from 'framer-motion';
+import {SplashScreen} from './SplashScreen';
 import styles from './GatewayTransitionProvider.module.css';
 
 type Phase='idle'|'zooming'|'awaiting-route'|'arriving';
@@ -13,21 +15,22 @@ export function GatewayTransitionProvider({children}:{children:ReactNode}){
   const pathname=usePathname();
   const [phase,setPhase]=useState<Phase>('idle');
   const destinationRef=useRef<string|null>(null);
-  const routeTimer=useRef<number|null>(null);
   const fallbackTimer=useRef<number|null>(null);
 
   const begin=useCallback((destination:string)=>{
     if(destinationRef.current)return;
     destinationRef.current=destination;
     setPhase('zooming');
-    const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?150:1000;
-    routeTimer.current=window.setTimeout(()=>{
-      setPhase('awaiting-route');
-      router.push(destination);
-      fallbackTimer.current=window.setTimeout(()=>{
-        if(window.location.pathname==='/login')window.location.assign(destination);
-      },5000);
-    },duration);
+  },[]);
+
+  const finishHandoff=useCallback(()=>{
+    const destination=destinationRef.current;
+    if(!destination||window.location.pathname!=='/login')return;
+    setPhase('awaiting-route');
+    router.push(destination);
+    fallbackTimer.current=window.setTimeout(()=>{
+      if(window.location.pathname==='/login')window.location.assign(destination);
+    },5000);
   },[router]);
 
   useEffect(()=>{
@@ -42,14 +45,14 @@ export function GatewayTransitionProvider({children}:{children:ReactNode}){
   },[pathname,phase]);
 
   useEffect(()=>()=>{
-    if(routeTimer.current!==null)window.clearTimeout(routeTimer.current);
     if(fallbackTimer.current!==null)window.clearTimeout(fallbackTimer.current);
   },[]);
 
-  return <GatewayTransitionContext.Provider value={{phase,begin}}>
+  return <GatewayTransitionContext.Provider value={{phase,begin}}><LayoutGroup id="pourtrace-landing-brand">
     {children}
     <div className={styles.grid} data-phase={phase} aria-hidden="true"/>
-  </GatewayTransitionContext.Provider>;
+    <AnimatePresence>{phase==='zooming'||phase==='awaiting-route'?<SplashScreen key="workspace-handoff" kind="handoff" playing onComplete={finishHandoff}/>:null}</AnimatePresence>
+  </LayoutGroup></GatewayTransitionContext.Provider>;
 }
 
 export function useGatewayTransition(){

@@ -5,7 +5,6 @@ import {FormEvent,useState} from 'react';
 import {AnimatePresence,motion} from 'framer-motion';
 import Link from 'next/link';
 import {Button} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {signInToWorkspace} from '@/app/login/actions';
@@ -44,15 +43,15 @@ export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
     }
   }
 
-  return <Card className="w-full max-w-md border-0 bg-transparent shadow-none" style={{backgroundColor:'transparent',padding:0}}>
-    <CardHeader className="space-y-4 px-0">
+  return <div className="w-full max-w-md">
+    <div className="space-y-4">
       <div className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">Workspace access</div>
       <div>
-        <CardTitle className="font-sans text-2xl font-semibold tracking-tight">Sign in to Pourtrace</CardTitle>
-        <CardDescription className="mt-2 max-w-sm text-sm leading-6">Sign in to Pourtrace with the account associated with your organization.</CardDescription>
+        <h2 className="font-sans text-2xl font-semibold tracking-tight">Sign in to Pourtrace</h2>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Sign in to Pourtrace with the account associated with your organization.</p>
       </div>
-    </CardHeader>
-    <CardContent className="px-0">
+    </div>
+    <div className="mt-6">
       <AnimatePresence mode="wait" initial={false}>{authenticated?
         <motion.div key="authenticated" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} className="flex min-h-[270px] flex-col items-center justify-center gap-3 text-center" role="status" aria-live="polite"><span className="inline-flex size-9 items-center justify-center rounded-full border border-[#009966]/40 bg-[#009966]/10 text-[#009966]">✓</span><span className="font-mono text-sm font-semibold tracking-wide text-[#171B19] dark:text-[#F4F6F5]">AUTHENTICATED...<br/>ROUTING_TO_WORKSPACE<span className="animate-pulse text-[#009966] motion-reduce:animate-none" aria-hidden="true">_</span></span></motion.div>
       :<motion.div key="credentials" exit={{opacity:0,y:-8}} transition={{duration:0.16}}><form className="grid gap-4" onSubmit={submit}>
@@ -76,6 +75,6 @@ export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
         <p className="mt-4 text-center text-sm text-muted-foreground">Don't have a workspace? <Link href="/signup" className="font-medium text-[#007A52] underline-offset-4 hover:underline focus-visible:underline dark:text-[#009966]">Sign up here</Link></p>
         <p className="text-center text-[11px] leading-5 text-muted-foreground">Your organization controls access to this workspace.</p>
       </form></motion.div>}</AnimatePresence>
-    </CardContent>
-  </Card>;
+    </div>
+  </div>;
 }

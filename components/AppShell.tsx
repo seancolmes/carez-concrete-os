@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
+import {motion} from 'framer-motion';
 import {BriefcaseBusiness,Building2,ChevronRight,HardHat,Home,Landmark,Menu,Moon,Search,Settings,Sun,Users,Wallet} from 'lucide-react';
 import {BrandLogo} from '@/components/brand/BrandLogo';
 import {useCarezAppearance} from '@/components/carez/appearance-provider';
@@ -39,7 +40,7 @@ function CarezCommandRail({pathname,userName,onOpenCommand,onOpenMobile}:{pathna
   return <header aria-label="Pourtrace global navigation" className="carez-command-bar carez-top-nav sticky top-0 z-40 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 text-[var(--shell-foreground)] lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-4">
     <div className="flex min-w-0 items-center gap-1">
       <Button type="button" variant="ghost" size="icon" className="shrink-0 lg:hidden" aria-label="Open navigation" onClick={onOpenMobile}><Menu className="size-4"/></Button>
-      <Link href="/overview" prefetch={false} aria-label="Pourtrace home" className="pt-brand-logo-link relative inline-flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--pt-logo)]"><BrandLogo size="md" className="max-sm:h-[31px] max-sm:w-[128px]"/></Link>
+      <Link href="/overview" prefetch={false} aria-label="Pourtrace home" className="pt-brand-logo-link relative inline-flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--pt-logo)]"><motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><BrandLogo size="md" className="max-sm:h-[31px] max-sm:w-[128px]"/></motion.span></Link>
     </div>
     <nav aria-label="Primary domains" className="hidden min-w-0 items-center justify-center gap-1 lg:flex">
       {WORKSPACE_PRESENTATION_SURFACES.map(item=>{const Icon=DOMAIN_ICONS[item.id];const selected=active===item.id;return <Link key={item.id} href={item.href} prefetch={false} aria-current={selected?'page':undefined} className={cn('carez-nav-button relative inline-flex h-8 shrink-0 items-center gap-2 rounded-md border border-[var(--shell-border)] bg-[var(--shell-surface)] px-3 text-xs font-semibold text-[var(--shell-muted)] outline-none transition-colors hover:bg-[var(--shell-accent)] hover:text-[var(--shell-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--pt-logo)]',selected&&'carez-nav-button-active text-[var(--shell-foreground)]')}><Icon className="size-3.5"/><span>{item.label}</span></Link>;})}

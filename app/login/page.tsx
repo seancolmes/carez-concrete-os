@@ -3,7 +3,7 @@
 import {useCallback,useEffect,useLayoutEffect,useRef,useState,type PointerEvent} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import {AnimatePresence,LayoutGroup,motion,useMotionTemplate,useMotionValue,useSpring} from 'framer-motion';
+import {AnimatePresence,motion,useMotionTemplate,useMotionValue,useSpring} from 'framer-motion';
 import {ArrowDown,ArrowRight,ArrowUpRight,ChevronDown,HardHat,Layers3,Ruler,Truck,Wallet} from 'lucide-react';
 import {LoginForm} from '@/components/auth/LoginForm';
 import {WorkspaceLoginDialog} from '@/components/auth/WorkspaceLoginDialog';
@@ -165,7 +165,7 @@ export default function LoginPage(){
     window.setTimeout(()=>document.getElementById(section)?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}),500);
   };
 
-  return <LayoutGroup id="pourtrace-landing-brand"><main className={styles.page} inert={bootPhase==='checking'||bootPhase==='playing'}>
+  return <><main className={styles.page} inert={bootPhase==='checking'||bootPhase==='playing'}>
     <header className={styles.header}>
       <Link href="/login" className={styles.wordmark} aria-label="Pourtrace home">{bootPhase==='exiting'||bootPhase==='done'?<motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><AnimatedLogo/></motion.span>:<span className={styles.logoPlace}/>}</Link>
       <nav aria-label="Page navigation" className={styles.nav}><button type="button" onClick={()=>showSection('workflow')}>How it works</button><button type="button" onClick={()=>showSection('capabilities')}>The platform</button><button type="button" className={`${styles.navAccess} inline-flex items-center rounded-full border border-[#009966]/40 bg-[#009966]/10 px-3.5 py-1.5 font-mono text-xs text-[#009966] shadow-[0_0_15px_rgba(0,153,102,0.15)] transition-all hover:border-[#009966] hover:bg-[#009966]/20`} onClick={()=>setLoginOpen(true)}><span className="relative mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[#009966]" aria-hidden="true"><span className="absolute inset-0 inline-flex h-full w-full animate-ping rounded-full bg-[#009966] opacity-75 motion-reduce:animate-none"/></span>Workspace sign in <ArrowUpRight size={15} aria-hidden="true"/></button></nav>
@@ -225,5 +225,5 @@ export default function LoginPage(){
       </motion.div>}</AnimatePresence>
     </div>
     {learnMoreOpen&&<footer className={styles.footer}><span>System status: ready <span className={styles.footerDot} aria-hidden="true"/> · Local preview</span><a href="#landing-heading">Back to top ↑</a></footer>}
-  </main><WorkspaceLoginDialog open={loginOpen} onOpenChange={setLoginOpen}/><AnimatePresence onExitComplete={()=>setBootPhase('done')}>{bootPhase==='checking'||bootPhase==='playing'?<SplashScreen key="pourtrace-boot" playing={bootPhase==='playing'} onComplete={finishBoot}/>:null}</AnimatePresence></LayoutGroup>;
+  </main><WorkspaceLoginDialog open={loginOpen} onOpenChange={setLoginOpen}/><AnimatePresence onExitComplete={()=>setBootPhase('done')}>{bootPhase==='checking'||bootPhase==='playing'?<SplashScreen key="pourtrace-boot" playing={bootPhase==='playing'} onComplete={finishBoot}/>:null}</AnimatePresence></>;
 }

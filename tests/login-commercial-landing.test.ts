@@ -14,7 +14,9 @@ test('public landing page connects product story to working sign-in', () => {
   assert.match(page, /id="workflow"/);
   assert.match(page, /id="capabilities"/);
   assert.match(page, /id="workspace-access"/);
-  assert.match(page, /href="#workspace-access"/);
+  assert.match(page, /<WorkspaceLoginDialog open=\{loginOpen\}/);
+  assert.match(page, /Sign in to your workspace/);
+  assert.match(page, /onClick=\{\(\)=>setLoginOpen\(true\)\}/);
   assert.doesNotMatch(page, /href="\/(demo|estimating-sandbox)"/);
 });
 
@@ -44,15 +46,17 @@ test('login preserves real Supabase sign-in on the new landing page', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
   const loginForm = readFileSync('components/auth/LoginForm.tsx', 'utf8');
   const loginAction = readFileSync('app/login/actions.ts', 'utf8');
+  const handoff = readFileSync('components/brand/GatewayTransitionProvider.tsx', 'utf8');
   assert.match(page, /className=\{styles\.page\}/);
   assert.match(page, /<LoginForm\s*\/>/);
   assert.match(loginAction, /supabase\.auth\.signInWithPassword\(\{email,password\}\)/);
   assert.match(loginForm, /signInToWorkspace\(email,password\)/);
   assert.match(loginForm, /if\(result\.error\)/);
   assert.match(loginForm, /fetch\('\/api\/auth\/workspace-readiness'/);
-  assert.match(loginForm, /window\.location\.assign\(result\.destination\|\|'\/'\)/);
-  assert.match(page, /if\(!active\|\|!response\.ok\)return/);
-  assert.doesNotMatch(page, /authSuccess|setTimeout|mousemove|coords|SECURE_GATEWAY_ACTIVE|SYS \/\/ METALLIC_ENGINE/);
+  assert.match(loginForm, /begin\(result\.destination\|\|'\/'\)/);
+  assert.match(handoff, /<SplashScreen key="workspace-handoff" kind="handoff"/);
+  assert.match(handoff, /router\.push\(destination\)/);
+  assert.doesNotMatch(handoff, /router\.push\('\/overview'\)/);
 });
 
 test('Pourtrace login contains no demo-only auth claims or inline remote font imports', () => {
