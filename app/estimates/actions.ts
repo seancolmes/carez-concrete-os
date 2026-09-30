@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import {manualEstimateCellPatch,type ManualEstimateField} from '@/lib/estimating/manualEstimateCell';
 
 async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:p}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!p?.company_id||p.role==='employee')throw new Error('Owner access required');return {supabase,user,companyId:p.company_id};}
 const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
@@ -18,7 +19,11 @@ export async function addEstimateItem(fd:FormData){const estimate_id=String(fd.g
 export async function updateEstimatePricing(fd:FormData){const id=String(fd.get('estimate_id')||'');if(!id)return;const {supabase,companyId}=await ctx();await assertEstimateEditable(supabase,companyId,id);const requestedStatus=String(fd.get('status')||'draft');if(requestedStatus==='ready'){const {data:takeoff}=await supabase.from('estimate_takeoff_summary').select('active_measurements,missing_price_outputs').eq('estimate_id',id).eq('company_id',companyId).maybeSingle();if(Number(takeoff?.active_measurements||0)>0&&Number(takeoff?.missing_price_outputs||0)>0)throw new Error(`Takeoff has ${takeoff?.missing_price_outputs} unpriced output(s). Resolve current material/equipment/labor pricing before marking this estimate Ready to Send.`);}const bo=String(fd.get('bo_classification')||'retailing') as BoClassification;if(!(bo in BO_RATE_PERCENT))throw new Error('Choose a valid B&O classification.');const {data:current,error:estimateError}=await supabase.from('estimates').select('bo_classification,bo_rate_percent').eq('id',id).eq('company_id',companyId).single();if(estimateError||!current)throw new Error(estimateError?.message||'Estimate pricing snapshot not found.');const currentRate=Number(current.bo_rate_percent);const boRate=bo===current.bo_classification&&Number.isFinite(currentRate)&&currentRate>=0?currentRate:BO_RATE_PERCENT[bo];const {error}=await supabase.from('estimates').update({target_margin_percent:n(fd.get('target_margin_percent')),bo_classification:bo,bo_rate_percent:boRate,payment_processing_rate_percent:n(fd.get('payment_processing_rate_percent')),proposed_sell_price:n(fd.get('proposed_sell_price')),status:requestedStatus}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);revalidatePath('/estimates');revalidatePath('/opportunities');revalidatePath('/proposals');revalidatePath('/takeoff');}
 
 const requiredEstimateNumber=(value:FormDataEntryValue|null,label:string)=>{
-  const parsed=Number(String(value??'').replace(/[$,% ,]/g,''));
+  const raw=String(value??'').trim();
+  if(!raw)throw new Error(`Enter a valid ${label}.`);
+  const normalized=raw.replace(/[$,% ,]/g,'');
+  if(!normalized)throw new Error(`Enter a valid ${label}.`);
+  const parsed=Number(normalized);
   if(!Number.isFinite(parsed))throw new Error(`Enter a valid ${label}.`);
   return parsed;
 };
@@ -133,6 +138,28 @@ export async function createEstimateSupplierQuoteSet(fd:FormData){
   });
   if(error)throw new Error(error.message);
   revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/vendor-quotes');
+}
+
+export async function updateManualEstimateCell(estimateId:string,itemId:string,field:ManualEstimateField,value:string){
+  if(!estimateId||!itemId||!['description','quantity','unit','unit_cost'].includes(field))throw new Error('Choose a valid estimate cell.');
+  const {supabase,companyId}=await ctx();
+  await assertEstimateEditable(supabase,companyId,estimateId);
+  const {data:item,error:readError}=await supabase.from('estimate_items')
+    .select('id,estimate_id,item_type,quantity,unit_cost,source_takeoff_measurement_id,source_takeoff_output_id')
+    .eq('id',itemId).eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle();
+  if(readError||!item)throw new Error(readError?.message||'Estimate line not found.');
+  const patch=manualEstimateCellPatch(item,field,value);
+  const {data:takeoffOutput,error:outputError}=await supabase.from('takeoff_measurement_outputs')
+    .select('id').eq('company_id',companyId).eq('generated_estimate_item_id',itemId).limit(1).maybeSingle();
+  if(outputError)throw new Error(outputError.message);
+  if(takeoffOutput)throw new Error('Takeoff output lines must be changed through Takeoff pricing.');
+  const {error}=await supabase.from('estimate_items').update(patch)
+    .eq('id',itemId).eq('estimate_id',estimateId).eq('company_id',companyId);
+  if(error)throw new Error(error.message);
+  revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/estimates');
+  revalidatePath('/opportunities');
 }
 
 export async function createEstimateSupplierQuote(fd:FormData){
@@ -165,6 +192,7 @@ export async function createEstimateSupplierQuote(fd:FormData){
   });
   if(error)throw new Error(error.message);
   revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/vendor-quotes');
 }
 
 export async function createEstimateSupplierQuoteLine(fd:FormData){
@@ -217,6 +245,7 @@ export async function createEstimateSupplierQuoteLine(fd:FormData){
     await supabase.from('estimate_supplier_quotes').update({status:'received',updated_at:new Date().toISOString()}).eq('id',quoteId).eq('company_id',companyId);
   }
   revalidatePath(`/estimates/${estimateId}`);
+  revalidatePath('/vendor-quotes');
 }
 
 export async function selectEstimateSupplierQuoteLine(fd:FormData){
@@ -229,6 +258,7 @@ export async function selectEstimateSupplierQuoteLine(fd:FormData){
   if(error)throw new Error(error.message);
   revalidatePath(`/estimates/${estimateId}`);
   revalidatePath('/estimates');revalidatePath('/opportunities');
+  revalidatePath('/vendor-quotes');
   revalidatePath('/takeoff');
 }
 

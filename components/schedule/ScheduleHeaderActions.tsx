@@ -1,10 +1,10 @@
 'use client';
 
-import type {ReactNode} from 'react';
-import {CalendarRange,ListChecks,PackageCheck,ShieldCheck} from 'lucide-react';
-import {CarezRelatedToolsMenu} from '@/components/carez/related-tools-menu';
-import {Button} from '@/components/ui/button';
-import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle,SheetTrigger} from '@/components/ui/sheet';
+import {useState,type ReactNode} from 'react';
+import {Button,DrawerBody,DrawerHeader,Menu,MenuItem,MenuList,MenuPopover,MenuTrigger,OverlayDrawer} from '@fluentui/react-components';
+import {ChevronDownRegular,DismissRegular} from '@fluentui/react-icons';
+import { CalendarLtrRegular as CalendarRange, TextBulletListCheckmarkRegular as ListChecks, BoxCheckmarkRegular as PackageCheck, ShieldCheckmarkRegular as ShieldCheck } from '@fluentui/react-icons';
+import {useRouter} from 'next/navigation';
 
 const tools=[
   {href:'/look-ahead',label:'21-day look-ahead',Icon:CalendarRange},
@@ -14,19 +14,16 @@ const tools=[
 ];
 
 export function ScheduleHeaderActions({children}:{children:ReactNode}){
+  const router=useRouter();
+  const [open,setOpen]=useState(false);
   return <div className="flex shrink-0 items-center gap-2">
-    <CarezRelatedToolsMenu items={tools}/>
-    <Sheet>
-      <SheetTrigger render={<Button type="button" size="sm"/>}>
-        + Schedule Work
-      </SheetTrigger>
-      <SheetContent className="obsidian-wash w-full max-w-none overflow-y-auto border-[#343A3F] p-0 sm:max-w-[540px]">
-        <SheetHeader className="border-b border-[#343A3F] px-5 py-4">
-          <SheetTitle>Schedule work</SheetTitle>
-          <SheetDescription>Commit a work package, pour, inspection, delivery, or equipment window.</SheetDescription>
-        </SheetHeader>
-        <div className="px-5 pb-5">{children}</div>
-      </SheetContent>
-    </Sheet>
+    <Menu><MenuTrigger disableButtonEnhancement><Button appearance="outline" size="small" icon={<ChevronDownRegular/>} iconPosition="after">Related tools</Button></MenuTrigger><MenuPopover><MenuList>{tools.map(({href,label,Icon})=><MenuItem key={href} icon={<Icon/>} onClick={()=>router.push(href)}>{label}</MenuItem>)}</MenuList></MenuPopover></Menu>
+    <Button type="button" appearance="primary" size="small" onClick={()=>setOpen(true)}>+ Schedule Work</Button>
+    <OverlayDrawer open={open} onOpenChange={(_,data)=>setOpen(data.open)} position="end" size="medium" className="obsidian-wash overflow-y-auto border-win-stroke p-0">
+      <DrawerHeader className="border-b border-win-stroke px-5 py-4">
+        <div className="flex items-start justify-between gap-3"><div><h2 className="text-base font-semibold">Schedule work</h2><p className="text-sm text-muted-foreground">Commit a work package, pour, inspection, delivery, or equipment window.</p></div><Button appearance="subtle" icon={<DismissRegular/>} aria-label="Close schedule work" onClick={()=>setOpen(false)}/></div>
+      </DrawerHeader>
+      <DrawerBody className="px-5 pb-5">{children}</DrawerBody>
+    </OverlayDrawer>
   </div>;
 }

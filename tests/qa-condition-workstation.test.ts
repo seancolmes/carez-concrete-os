@@ -11,7 +11,6 @@ const derived3d = readFileSync('lib/takeoff/conditions/derived3d.ts', 'utf8');
 const coordinates = readFileSync('lib/takeoff/conditions/derived3d/coordinates.ts', 'utf8');
 const conditionCatalog = readFileSync('lib/takeoff/conditions/catalog.ts', 'utf8');
 const conditionActions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
-const direction = readFileSync('components/takeoff/ConditionPropertiesDirectionA.module.css', 'utf8');
 const r3fViewport = readFileSync('components/takeoff/3d/Takeoff3DViewport.tsx', 'utf8');
 const r3fPlan = readFileSync('components/takeoff/3d/Takeoff3DPlan.tsx', 'utf8');
 const r3fScene = readFileSync('components/takeoff/3d/Takeoff3DScene.tsx', 'utf8');
@@ -44,13 +43,14 @@ test('Condition issues stay in the scrollable review section', () => {
   const reviewIndex = workstation.indexOf('<strong>Review</strong>');
   const issuesIndex = workstation.indexOf('selectedIssues.map(issue=>',reviewIndex);
   assert.ok(reviewIndex >= 0 && issuesIndex > reviewIndex);
-  assert.match(workstation, /className=\{direction\.holdsDock\}/);
+  assert.match(workstation, /className=\{styles\.diagnosticsPanel\} hidden=\{!issuesOpen\}/);
+  assert.match(workspaceStyles, /\.diagnosticsPanel\{[^}]*overflow-y:auto/);
 });
 
 test('pricing issues route to Review when available or the linked Estimate otherwise', () => {
   assert.match(workstation, /issue\.category==='pricing'\|\|issue\.category==='commercial'\?'review'/);
   assert.match(workstation, /router\.push\(`\/opportunities\?estimate=\$\{encodeURIComponent\(estimateId\)\}&tab=worksheet#pricing-coverage`\)/);
-  assert.match(workstation, /return'Estimate'/);
+  assert.match(workstation, /setPropertyTab\(tab\);setPhase\('assembly'\)/);
 });
 
 test('full-sheet 3D preserves active sheet and synchronizes exact Takeoff selection', () => {
@@ -73,7 +73,7 @@ test('unmeasured Condition selection arms the primary drawing role without bypas
   const drawing = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
   assert.match(workstation, /requestConditionSelection\(row\.condition_version_id,true,undefined,undefined,undefined,true\)/);
   assert.match(workstation, /startPrimaryDraw&&!editorLocked&&!primaryMeasurementId/);
-  assert.match(workstation, /setPendingSwitch\(\{versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode,startPrimaryDraw\}\)/);
+  assert.match(workstation, /setPendingSwitch\(\{kind:'condition',versionId,focusPlan,measurementId,propertyTab:nextTab,viewMode:nextMode,startPrimaryDraw\}\)/);
   assert.match(workstation, /requestedVersionId!==selectedVersionId\|\|requestedVersionId!==loadedVersionId/);
   assert.match(workstation, /if\(primaryRole\)startTakeoff\(primaryRole\)/);
   assert.match(drawing, /setConditionDrawActive\(true\)/);
@@ -89,7 +89,8 @@ test('drawing controls use the bottom dock and empty-sheet guidance expires', ()
   assert.match(drawing, /window\.setTimeout\(\(\)=>setShowEmptyToast\(false\),4000\)/);
   assert.match(dock, /fixed bottom-8 left-1\/2/);
   assert.match(dock, /createPortal\(<nav/);
-  assert.match(dock, /useReducedMotion\(\)/);
+  assert.match(dock, /<Button/);
+  assert.doesNotMatch(dock, /animate-pulse|animate-spin/);
 });
 
 test('R3F exposes Focus, filters and active-sheet partial-model holds without hiding siblings', () => {
@@ -114,13 +115,11 @@ test('R3F exposes Focus, filters and active-sheet partial-model holds without hi
 test('3D and Split share the current authoritative drawing viewport', () => {
   const retiredSplitClass = ['derived', 'Overlay', 'Split'].join('');
   assert.doesNotMatch(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
-  assert.match(workspaceStyles, /\.derivedOverlay3d\{left:260px\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
   assert.equal(workspaceStyles.includes(retiredSplitClass), false);
-  assert.match(workspaceStyles, /data-view-mode="split"/);
-  assert.match(workspaceStyles, /\.splitVerification\{left:calc\(var\(--takeoff-navigator-width,260px\) \+ \(100% - var\(--takeoff-navigator-width,260px\)\)\/2\)\}/);
+  assert.match(workspaceStyles, /\.splitVerification\{left:50%\}/);
   assert.match(workstation, /\['2d','split','3d'\]/);
-  assert.match(workstation, /drawingViewHidden=\{!mobileReview&&viewMode==='3d'\}/);
+  assert.match(workstation, /drawingViewHidden=\{phase!=='tracing'\|\|\(!mobileReview&&viewMode==='3d'\)\}/);
   assert.match(workstation, /jumpToDerivedIssue=.*'split'/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
@@ -182,7 +181,7 @@ test('3D elevation reference exposes governed choices required by projection', (
 });
 
 test('Condition contract version is visible and an older editable Strip draft has a governed latest-contract upgrade action', () => {
-  assert.match(workstation, /`Contract v\$\{contractVersion\}`/);
+  assert.match(workstation, /Contract v\{contractVersion\}/);
   assert.match(workstation, /Upgrade to v\{latestContractVersion\}/);
   assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v5/);
   assert.match(conditionActions, /carez_ensure_strip_footing_v5_template/);

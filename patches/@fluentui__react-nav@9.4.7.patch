@@ -1,0 +1,18 @@
+diff --git a/lib/components/NavCategoryContext.js b/lib/components/NavCategoryContext.js
+--- a/lib/components/NavCategoryContext.js
++++ b/lib/components/NavCategoryContext.js
+@@ -8 +8 @@
+-export const { Provider: NavCategoryProvider } = NavCategoryContext;
++export const NavCategoryProvider = NavCategoryContext.Provider;
+diff --git a/lib/components/NavCategoryItemContext.js b/lib/components/NavCategoryItemContext.js
+--- a/lib/components/NavCategoryItemContext.js
++++ b/lib/components/NavCategoryItemContext.js
+@@ -7 +7 @@
+-export const { Provider: NavCategoryItemProvider } = NavCategoryItemContext;
++export const NavCategoryItemProvider = NavCategoryItemContext.Provider;
+diff --git a/lib/components/NavSubItemContext.js b/lib/components/NavSubItemContext.js
+--- a/lib/components/NavSubItemContext.js
++++ b/lib/components/NavSubItemContext.js
+@@ -8 +8 @@
+-export const { Provider: NavSubItemProvider } = NavSubItemContext;
++export const NavSubItemProvider = NavSubItemContext.Provider;

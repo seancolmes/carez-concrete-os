@@ -1,5 +1,6 @@
 'use client';
 
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel} from '@fluentui/react-components';
 import type {ConditionOutputTrace} from '@/lib/takeoff/conditions/types';
 
 type TraceOutput = {
@@ -13,11 +14,11 @@ export function ConditionFormulaTerminal({outputs, pending=false}: {outputs: Tra
   const traces=outputs.filter(output=>output.calculation_trace);
   return <section aria-label="Calculation traces" className="bg-[#0A0A0C] border border-[#1C1F23] rounded-[4px] p-3 mt-4 font-mono text-[10px] leading-[1.4] tabular-nums overflow-x-auto">
     <h3 className="mb-1 text-[10px] uppercase tracking-widest text-[#A1A1AA]">{pending?'Draft calculation preview':'Saved calculation traces'}</h3>
-    {!traces.length?<p className="text-[#A1A1AA]">No calculation trace available. Link a measured takeoff to calculate.</p>:traces.map(output=>{
+    {!traces.length?<p className="text-[#A1A1AA]">No calculation trace available. Link a measured takeoff to calculate.</p>:<Accordion collapsible defaultOpenItems={['concrete.installed_cy']}>{traces.map(output=>{
       const trace=output.calculation_trace!;
       const tokens=String(trace.algorithm||'').split(/([+\-*/=()]|\b\d+(?:\.\d+)?\b|[a-zA-Z_][a-zA-Z_0-9.]*)/g);
-      return <details key={output.output_key} className="border-t border-[#1C1F23] py-1 first-of-type:border-0" open={output.output_key==='concrete.installed_cy'}>
-        <summary className="cursor-pointer text-[10px] font-bold text-[#A1A1AA]">{output.label}</summary>
+      return <AccordionItem value={output.output_key} key={output.output_key} className="border-t border-[#1C1F23] py-1 first-of-type:border-0">
+        <AccordionHeader>{output.label}</AccordionHeader><AccordionPanel>
         <code className="mt-1 block whitespace-pre-wrap break-words text-[#A1A1AA]">{tokens.map((token,index)=>
           /^[+\-*/=()]$/.test(token)?<span key={index} className="text-[#8B949E]">{token}</span>:
           /^\d+(?:\.\d+)?$/.test(token)?<span key={index} className="text-[#3FB950]">{token}</span>:
@@ -28,7 +29,7 @@ export function ConditionFormulaTerminal({outputs, pending=false}: {outputs: Tra
         </div>)}</dl>
         <p className="mt-1 text-white">Derived quantity <span className="text-[#8B949E]">=</span> <span className="text-[#3FB950]">{trace.derivedQuantity===null?'Held':trace.derivedQuantity}</span></p>
         {trace.override?<p className="mt-2 text-[#A1A1AA]">Explicit override: {trace.override.quantity} · {trace.override.reason}</p>:null}
-      </details>;
-    })}
+        </AccordionPanel></AccordionItem>;
+    })}</Accordion>}
   </section>;
 }

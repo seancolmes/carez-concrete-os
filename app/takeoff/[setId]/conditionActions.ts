@@ -53,7 +53,6 @@ function refreshConditionSurfaces(takeoffSetId: string) {
   revalidatePath(`/takeoff/${takeoffSetId}`);
   revalidatePath('/takeoff');
   revalidatePath('/takeoff/plans');
-  revalidatePath('/takeoff/assemblies');
   revalidatePath('/estimates');
 }
 

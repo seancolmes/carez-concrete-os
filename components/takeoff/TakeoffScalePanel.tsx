@@ -1,6 +1,7 @@
 'use client';
 
-import { Ruler, ScanSearch, Trash2 } from 'lucide-react';
+import {RulerRegular as Ruler,ScanRegular as ScanSearch,DeleteRegular as Trash2} from '@fluentui/react-icons';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Input} from '@fluentui/react-components';
 import type { ScaleCandidate, TakeoffScaleRegion } from '@/lib/takeoff/scaleRegions';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
@@ -50,12 +51,12 @@ export function TakeoffScalePanel({
   const pendingLabel = pendingCandidate?.label || pendingManualLabel;
 
   return <div className={`${styles.group} ${styles.scaleGate}`} onClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>
-    <div className={styles.groupHead}><div><div className={styles.groupTitle}>Drawing Scale</div><div className={styles.groupHelp}>Carez reads vector PDF scale labels. Confirm the proposal before it controls quantities.</div></div><ScanSearch size={17}/></div>
+    <div className={styles.groupHead}><div><div className={styles.groupTitle}>Drawing Scale</div><div className={styles.groupHelp}>Carez reads vector PDF scale labels. Confirm the proposal before it controls quantities.</div></div><ScanSearch fontSize={17}/></div>
 
     {regions.length > 0 && <div className={styles.objectList}>{regions.map(region => <div key={region.id} className={styles.scaleReady}>
       <span>{region.is_default ? 'Whole sheet' : 'Scale region'}</span>
       <strong>{region.scale_label}</strong>
-      <button type="button" disabled={locked || busy} title="Remove unused scale region" onClick={() => onDeleteRegion(region)}><Trash2 size={13}/></button>
+      <Button type="button" disabled={locked || busy} title="Remove unused scale region" onClick={() => onDeleteRegion(region)}><Trash2 fontSize={13}/></Button>
     </div>)}</div>}
 
     {detectionStatus === 'scanning' && <div className={styles.groupHelp}>Scanning embedded PDF text for architectural or engineering scale labels…</div>}
@@ -68,8 +69,8 @@ export function TakeoffScalePanel({
       <strong>{candidate.label}</strong>
       <small>{candidate.sourceText}</small>
       <div className={styles.buttonRow}>
-        <button type="button" className={styles.primary} disabled={locked || busy} onClick={() => onUseDetectedSheet(candidate)}>Use whole sheet</button>
-        <button type="button" className={styles.secondary} disabled={locked || busy} onClick={() => onAssignDetectedRegion(candidate)}>Assign region</button>
+        <Button type="button" className={styles.primary} disabled={locked || busy} onClick={() => onUseDetectedSheet(candidate)}>Use whole sheet</Button>
+        <Button type="button" className={styles.secondary} disabled={locked || busy} onClick={() => onAssignDetectedRegion(candidate)}>Assign region</Button>
       </div>
     </div>)}
 
@@ -78,22 +79,22 @@ export function TakeoffScalePanel({
       <strong>{pendingLabel}</strong>
       <small>Pick two opposite corners around the plan or detail that uses this scale.</small>
       <div className={styles.buttonRow}>
-        <button type="button" className={styles.primary} disabled={locked || busy || regionPointCount !== 2} onClick={onSaveRegion}>Save region</button>
-        <button type="button" className={styles.secondary} disabled={busy} onClick={onCancelRegion}>Cancel</button>
+        <Button type="button" className={styles.primary} disabled={locked || busy || regionPointCount !== 2} onClick={onSaveRegion}>Save region</Button>
+        <Button type="button" className={styles.secondary} disabled={busy} onClick={onCancelRegion}>Cancel</Button>
       </div>
     </div>}
 
-    <details className={styles.advanced}>
-      <summary><Ruler size={14}/> Manual calibration fallback</summary>
+    <Accordion collapsible className={styles.advanced}><AccordionItem value="manual-calibration">
+      <AccordionHeader><Ruler fontSize={14}/> Manual calibration fallback</AccordionHeader><AccordionPanel>
       <div className={styles.advancedBody}>
-        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><input disabled={locked || busy} value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
+        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><Input appearance="underline" disabled={locked || busy} value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
         <div className={styles.buttonRow}>
-          <button type="button" className={styles.secondary} disabled={locked || busy} onClick={onPickManual}>Pick 2 points</button>
-          <button type="button" className={styles.primary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onUseManualSheet}>Use whole sheet</button>
-          <button type="button" className={styles.secondary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onAssignManualRegion}>Assign region</button>
+          <Button type="button" className={styles.secondary} disabled={locked || busy} onClick={onPickManual}>Pick 2 points</Button>
+          <Button type="button" className={styles.primary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onUseManualSheet}>Use whole sheet</Button>
+          <Button type="button" className={styles.secondary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onAssignManualRegion}>Assign region</Button>
         </div>
         <div className={styles.groupHelp}>Use a printed dimension line only when the PDF scale label is missing, NTS, scanned, or unreliable.</div>
       </div>
-    </details>
+    </AccordionPanel></AccordionItem></Accordion>
   </div>;
 }

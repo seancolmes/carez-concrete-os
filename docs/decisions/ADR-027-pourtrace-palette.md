@@ -4,6 +4,8 @@ Status: **Accepted**
 Date: 2026-09-28  
 Authority: Nik's approved revised PourTrace palette
 
+Historical palette authority. ADR-028 supersedes its application colors, active states, and theme preference for the current local implementation. The approved PourTrace logo asset remains authoritative.
+
 This decision supersedes the color directions in ADR-024, ADR-025, earlier design explorations, and older Carez UI skill text. ADR-025 continues to govern workspace structure and interaction where compatible.
 
 The approved logo asset is `public/brand/pourtrace-logo-approved.png`. Its pixels and alpha are authoritative. Do not recolor it or place an artificial white rectangle behind it.

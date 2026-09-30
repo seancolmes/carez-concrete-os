@@ -2,8 +2,8 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import {GripVertical} from 'lucide-react';
-import {CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,CarezDataGridHeaderCell,CarezDataGridRow,CarezDataGridTable,CarezStatus} from '@/components/carez';
+import { ReOrderDotsVerticalRegular as GripVertical } from '@fluentui/react-icons';
+import {Badge,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow} from '@fluentui/react-components';
 
 export type TodayOperation={id:string;time:string;project:string;operation:string;quantity:string;status:string;tone:'success'|'blocked'|'neutral';href:string};
 const columns=['time','project','operation','quantity','status'] as const;
@@ -18,8 +18,8 @@ export function TodayOperationsGrid({operations}:{operations:TodayOperation[]}){
   const cell=(row:TodayOperation,column:Column)=>{
     if(column==='project')return <Link href={row.href} className="font-semibold hover:text-primary">{row.project}</Link>;
     if(column==='operation')return <span className="text-muted-foreground">{row.operation}</span>;
-    if(column==='status')return <CarezStatus tone={row.tone} label={row.status}/>;
+    if(column==='status')return <Badge appearance="outline" color={row.tone==='blocked'?'danger':row.tone==='success'?'success':'informative'}>{row.status}</Badge>;
     return <span className={column==='quantity'?'font-mono tabular-nums':''}>{row[column]}</span>;
   };
-  return <CarezDataGrid className="rounded-md border-border bg-muted/20"><CarezDataGridTable><CarezDataGridHead><CarezDataGridRow>{order.map(column=><CarezDataGridHeaderCell key={column} draggable onDragStart={()=>setDragged(column)} onDragOver={event=>event.preventDefault()} onDrop={()=>move(column)} className={column==='quantity'?'text-right max-sm:hidden':column==='status'?'text-right':''}><span className="inline-flex items-center gap-1"><GripVertical aria-hidden="true" className="size-3 cursor-grab text-muted-foreground/0 transition-colors group-hover/row:text-muted-foreground/60 group-focus-within/row:text-muted-foreground"/>{label[column]}</span></CarezDataGridHeaderCell>)}</CarezDataGridRow></CarezDataGridHead><CarezDataGridBody>{operations.map(row=><CarezDataGridRow key={row.id} className="group/row transition-colors hover:bg-muted/50">{order.map(column=><CarezDataGridCell key={column} numeric={column==='quantity'} className={column==='quantity'?'max-sm:hidden':column==='status'?'text-right':''}>{cell(row,column)}</CarezDataGridCell>)}</CarezDataGridRow>)}</CarezDataGridBody></CarezDataGridTable></CarezDataGrid>;
+  return <div className="overflow-auto rounded-md border border-border bg-muted/20"><Table size="small"><TableHeader><TableRow>{order.map(column=><TableHeaderCell key={column} draggable onDragStart={()=>setDragged(column)} onDragOver={event=>event.preventDefault()} onDrop={()=>move(column)} className={column==='quantity'?'text-right max-sm:hidden':column==='status'?'text-right':''}><span className="inline-flex items-center gap-1"><GripVertical aria-hidden="true" className="size-3 cursor-grab text-muted-foreground/0 transition-colors group-hover/row:text-muted-foreground/60 group-focus-within/row:text-muted-foreground"/>{label[column]}</span></TableHeaderCell>)}</TableRow></TableHeader><TableBody>{operations.map(row=><TableRow key={row.id} className="group/row transition-colors hover:bg-muted/50">{order.map(column=><TableCell key={column} className={column==='quantity'?'text-right font-mono tabular-nums max-sm:hidden':column==='status'?'text-right':''}>{cell(row,column)}</TableCell>)}</TableRow>)}</TableBody></Table></div>;
 }

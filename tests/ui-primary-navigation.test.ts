@@ -21,10 +21,11 @@ test('search button and Cmd+K open the command palette with company-scoped recor
   assert.match(shell,/aria-label="Search Pourtrace"/);
   assert.match(shell,/event\.metaKey\|\|event\.ctrlKey/);
   assert.match(shell,/event\.key\.toLowerCase\(\)==='k'/);
-  assert.match(shell,/CommandGroup heading="Financials"/);
-  assert.match(shell,/CommandGroup heading="Projects"/);
-  assert.match(shell,/CommandGroup heading="Opportunities"/);
-  assert.match(shell,/CommandGroup heading="Crew members"/);
+  assert.match(shell,/from '@fluentui\/react-components'/);
+  assert.match(shell,/<Dialog open=\{open\}/);
+  assert.match(shell,/<DialogSurface/);
+  assert.match(shell,/const groups=\['Workspaces','Financials','Projects','Opportunities','Crew members'\]/);
+  assert.match(shell,/role="option" aria-selected=\{index===activeIndex\}/);
   for(const table of ['projects','leads','crew_members'])assert.match(shell,new RegExp("from\\('"+table+"'\\).*eq\\('company_id'"));
   assert.doesNotMatch(shell,/navigationCommandValue|allDestinationsFor|NAVIGATION_COMMAND_GROUPS/);
 });

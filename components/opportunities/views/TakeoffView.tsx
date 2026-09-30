@@ -1,3 +1,4 @@
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel} from '@fluentui/react-components';
 import {DeleteTakeoffButton} from '@/components/takeoff/DeleteTakeoffButton';
 import {estimateHref,opportunityHref} from '../opportunityHref';
 import { redirect, notFound } from 'next/navigation';
@@ -47,7 +48,7 @@ export async function TakeoffView({ setId }: { setId: string }) {
   let summaries: any[] = [];
   if (measurementIds.length) {
     const { data } = await supabase.from('takeoff_measurement_outputs')
-      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
+      .select('id,measurement_id,generated_estimate_item_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,baseline_man_hours_per_unit,job_man_hours_per_unit,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
     summaries = data || [];
@@ -181,21 +182,21 @@ export async function TakeoffView({ setId }: { setId: string }) {
       <header className="sr-only">
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
-            <h1 className={`${pageStyles.title} text-base font-semibold tracking-tight text-[#171B19] dark:text-white`}>Takeoff</h1>
-            {opportunity && <p><Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={opportunityHref(opportunity.id)}>Opportunity {opportunity.opportunity_number}</Link></p>}
+            <h1 className={`${pageStyles.title} text-base font-semibold tracking-tight text-[#EDEDED] dark:text-white`}>Takeoff</h1>
+            {opportunity && <p><Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#222222] bg-[#111111] px-4 py-2 text-xs font-medium text-[#EDEDED] shadow-sm transition-all hover:border-[#333333] hover:bg-[#1A1A1A] dark:border-[#222222] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#333333] dark:hover:bg-[#111111]" href={opportunityHref(opportunity.id)}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
-            <span className={`${pageStyles.estimate} text-sm font-medium text-[#171B19] dark:text-[#E1E7E3]`}>{set.name} · {estimate ? <Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-4 py-2 text-xs font-medium text-[#171B19] shadow-sm transition-all hover:border-[#B9C3BE] hover:bg-[#E5EBE7] dark:border-[#343A3F] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#525B62] dark:hover:bg-[#25292C]" href={estimateHref(estimate.id)}>{estimateLabel}</Link> : estimateLabel}</span>
-            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={`${pageStyles.revision} text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]`}>{set.revision_label}</span></>}
+            <span className={`${pageStyles.estimate} text-sm font-medium text-[#EDEDED] dark:text-[#EDEDED]`}>{set.name} · {estimate ? <Link className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[#222222] bg-[#111111] px-4 py-2 text-xs font-medium text-[#EDEDED] shadow-sm transition-all hover:border-[#333333] hover:bg-[#1A1A1A] dark:border-[#222222] dark:bg-[#1C1F23] dark:text-white dark:hover:border-[#333333] dark:hover:bg-[#111111]" href={estimateHref(estimate.id)}>{estimateLabel}</Link> : estimateLabel}</span>
+            {set.revision_label && <><span className={pageStyles.separator} aria-hidden="true">•</span><span className={`${pageStyles.revision} text-xs font-mono uppercase tracking-wider text-[#999999] dark:text-[#525B62]`}>{set.revision_label}</span></>}
           </div>
         </div>
         {locked&&<span className={pageStyles.lock}>Read only</span>}
       </header>
 
-      {['owner','office','estimator'].includes(profile.role)&&<details className="shrink-0 border-b border-[#343A3F] px-3 py-1.5"><summary className="cursor-pointer text-[11px] text-muted-foreground">Takeoff Settings · {set.name}</summary><div className="py-2"><DeleteTakeoffButton setId={setId}/></div></details>}
+      {['owner','office','estimator'].includes(profile.role)&&<Accordion collapsible><AccordionItem value="content" className="shrink-0 border-b border-[#222222] px-3 py-1.5"><AccordionHeader className="cursor-pointer text-[11px] text-muted-foreground">Takeoff Settings · {set.name}</AccordionHeader><AccordionPanel><div className="py-2"><DeleteTakeoffButton setId={setId}/></div></AccordionPanel></AccordionItem></Accordion>}
       {locked && <div className="takeoff-app-notice"><strong>Issued revision.</strong> Takeoff remains reviewable, but geometry, scale and deletion are locked. Create the next estimate revision to change scope.</div>}
 
-      {!document || !pdfUrl ? <div className="takeoff-upload-state flex-1 min-h-0 border-2 border-dashed border-[#343A3F] flex items-center justify-center"><div className="takeoff-upload-card"><p className="text-xs font-mono uppercase tracking-wider text-[#7B8580] dark:text-[#525B62]">Source drawings</p><h1 className="text-base font-semibold tracking-tight text-[#171B19] dark:text-white">Attach the PDF plan set</h1><p className="text-sm leading-relaxed text-[#525C57] dark:text-[#8B949E]">This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-[#D4DBD7] bg-[#EFF2F0] px-3 py-3 text-sm font-medium text-[#171B19] dark:border-[#343A3F] dark:bg-[#181A1B] dark:text-[#E1E7E3]">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
+      {!document || !pdfUrl ? <div className="takeoff-upload-state flex-1 min-h-0 border-2 border-dashed border-[#222222] flex items-center justify-center"><div className="takeoff-upload-card"><p className="text-xs font-mono uppercase tracking-wider text-[#999999] dark:text-[#525B62]">Source drawings</p><h1 className="text-base font-semibold tracking-tight text-[#EDEDED] dark:text-white">Attach the PDF plan set</h1><p className="text-sm leading-relaxed text-[#AAAAAA] dark:text-[#AAAAAA]">This drawing becomes the permanent source for this estimate revision. Once attached, Pourtrace opens the takeoff workspace.</p>{locked ? <div className="rounded-lg border border-[#222222] bg-[#111111] px-3 py-3 text-sm font-medium text-[#EDEDED] dark:border-[#222222] dark:bg-[#0A0A0A] dark:text-[#EDEDED]">No source drawing is attached to this locked revision.</div> : <TakeoffPlanUpload companyId={companyId} takeoffSetId={setId} />}</div></div> : <>
       <TakeoffSheetAutoNaming takeoffSetId={setId} pdfUrl={pdfUrl} initialSheets={sheets || []} locked={locked} />
       <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}

@@ -1,19 +1,9 @@
 'use client';
 
-import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import {ArrowClockwiseRegular as RefreshCw,DeleteRegular as Trash2} from '@fluentui/react-icons';
 import { deleteProjectConcreteCondition } from '@/app/takeoff/[setId]/conditionActions';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {Button,Combobox,Dialog,DialogActions,DialogBody,DialogContent,DialogSurface,DialogTitle,Field,Option} from '@fluentui/react-components';
 
 type ConditionRow = {
   condition_id: string;
@@ -42,19 +32,10 @@ function currentConditions(rows: ConditionRow[]) {
 export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
   const rows = useMemo(() => currentConditions(conditions), [conditions]);
   const draftRows = useMemo(() => rows.filter(row => row.version_status === 'draft'), [rows]);
-  const [host, setHost] = useState<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedConditionId, setSelectedConditionId] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    const findHost = () => setHost(document.querySelector<HTMLElement>('aside[aria-label="Condition Properties"] header > div:last-child'));
-    findHost();
-    const observer = new MutationObserver(findHost);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (selectedConditionId && draftRows.some(row => row.condition_id === selectedConditionId)) return;
@@ -91,42 +72,32 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
     });
   };
 
-  if (!host) return null;
-
-  return createPortal(<>
+  return <>
     <Button
       type="button"
-      size="sm"
-      variant="outline"
+      size="small"
+      appearance="outline"
+      icon={<Trash2/>}
       disabled={locked || isPending || !draftRows.length}
       onClick={openDeleteDialog}
       title={draftRows.length ? 'Delete a draft Condition' : 'No draft Conditions can be deleted'}
     >
-      <Trash2 />Delete
+      Delete
     </Button>
 
-    <Dialog open={open} onOpenChange={nextOpen => {
-      if (!nextOpen && isPending) return;
-      setOpen(nextOpen);
-      if (!nextOpen) setError('');
+    <Dialog open={open} onOpenChange={(_,data) => {
+      if (!data.open && isPending) return;
+      setOpen(data.open);
+      if (!data.open) setError('');
     }}>
-      <DialogContent>
-        <DialogHeader>
+      <DialogSurface>
+        <DialogBody>
           <DialogTitle>Delete draft Condition?</DialogTitle>
-          <DialogDescription>
+          <DialogContent>
             This permanently removes the selected draft Condition, its calculated outputs and generated estimate projection, plus takeoff geometry linked only to this Condition. Takeoffs shared with another Condition are preserved. Verified or issued history cannot be deleted.
-          </DialogDescription>
-        </DialogHeader>
+          </DialogContent>
 
-        <label className="grid gap-1.5 text-xs">
-          <span className="font-medium text-foreground">Condition</span>
-          <Select value={selectedConditionId} onValueChange={value => { setSelectedConditionId(String(value || '')); setError(''); }} disabled={isPending || locked}>
-            <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Select Condition" /></SelectTrigger>
-            <SelectContent>
-              {draftRows.map(row => <SelectItem key={row.condition_id} value={row.condition_id}>{row.code} · {row.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </label>
+          <Field label="Condition"><Combobox appearance="underline" value={target?`${target.code} · ${target.name}`:''} selectedOptions={selectedConditionId?[selectedConditionId]:[]} placeholder="Select Condition" onOptionSelect={(_,data)=>{setSelectedConditionId(data.optionValue||'');setError('');}} disabled={isPending||locked}>{draftRows.map(row=><Option key={row.condition_id} value={row.condition_id} text={`${row.code} · ${row.name}`}>{row.code} · {row.name}</Option>)}</Combobox></Field>
 
         {target ? <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           <strong className="block text-foreground">{target.code} · {target.name}</strong>
@@ -135,14 +106,14 @@ export function ConditionDeletionManager({ setId, locked, conditions }: Props) {
 
         {error ? <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div> : null}
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => { setOpen(false); setError(''); }} disabled={isPending}>Cancel</Button>
-          <Button type="button" variant="destructive" onClick={confirmDelete} disabled={isPending || locked || !target}>
-            {isPending ? <RefreshCw className="animate-spin" /> : <Trash2 />}
+        <DialogActions>
+          <Button type="button" appearance="outline" onClick={() => { setOpen(false); setError(''); }} disabled={isPending}>Cancel</Button>
+          <Button type="button" appearance="primary" style={{backgroundColor:'var(--pt-danger)',borderColor:'var(--pt-danger)',color:'white'}} icon={isPending?<RefreshCw className="animate-spin"/>:<Trash2/>} onClick={confirmDelete} disabled={isPending || locked || !target}>
             Delete Condition + takeoffs
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </DialogActions>
+        </DialogBody>
+      </DialogSurface>
     </Dialog>
-  </>, host);
+  </>;
 }

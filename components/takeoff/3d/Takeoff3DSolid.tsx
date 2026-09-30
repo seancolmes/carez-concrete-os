@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edges, Html, useCursor } from '@react-three/drei';
 import { Color } from 'three';
+import { Button } from '@fluentui/react-components';
 import styles from './Takeoff3DViewport.module.css';
 import type { Derived3DIssue, Derived3DSolid } from '@/lib/takeoff/conditions/derived3d/contracts';
 import { buildTakeoffMeshGeometry } from '@/lib/takeoff/3d/meshGeometry';
@@ -48,9 +49,9 @@ export function Takeoff3DSolid({ solid, selected, issue, onJumpToIssue, onSelect
     <Edges key={solid.geometryKey} threshold={20} color={selected ? '#171B19' : hovered ? '#7C8580' : '#343A3F'}
       lineWidth={selected ? 2.5 : hovered ? 1.5 : 0.75} />
     {selected && marker && <Html position={marker} center zIndexRange={[20, 10]}>
-      {issue ? <button type="button" className={styles.spatialIssue} aria-label={`Resolve verification issue: ${issue.message}`}
+      {issue ? <Button type="button" className={styles.spatialIssue} aria-label={`Resolve verification issue: ${issue.message}`}
         title={issue.message} onPointerDown={event => event.stopPropagation()}
-        onClick={event => { event.stopPropagation(); onJumpToIssue(issue); }}>!<span>Review input</span></button>
+        onClick={event => { event.stopPropagation(); onJumpToIssue(issue); }}>!<span>Review input</span></Button>
         : <span className={styles.focusMarker} aria-hidden="true">+</span>}
     </Html>}
   </mesh>;

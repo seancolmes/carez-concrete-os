@@ -1,7 +1,6 @@
 'use client';
 
 import {useEffect,useState} from 'react';
-import {ConditionDeletionManager} from './ConditionDeletionManager';
 import {IntegratedTakeoffConditionWorkspace} from './IntegratedTakeoffConditionWorkspace';
 import styles from './TakeoffConditionWorkflowShell.module.css';
 
@@ -20,6 +19,5 @@ export function TakeoffConditionWorkflowShell({setId,workspaceProps,conditionDat
 
   return <div className={styles.shell}>
     <IntegratedTakeoffConditionWorkspace setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} mobileReview={mobileReview}/>
-    {!mobileReview&&<ConditionDeletionManager setId={setId} locked={Boolean(workspaceProps.locked)} conditions={conditionData?.conditions||[]}/>} 
   </div>;
 }

@@ -15,10 +15,10 @@ type MetricBentoTileProps={
 };
 
 const tones={
-  neutral:'border-[#D4DBD7] bg-white text-[#171B19] dark:border-[#343A3F] dark:bg-[#181A1B] dark:text-[#F4F6F5]',
-  danger:'border-[#B84558]/40 bg-white text-[#B84558] hover:border-[#B84558]/60 dark:border-[#E06B74]/40 dark:bg-[#181A1B] dark:text-[#E06B74] dark:hover:border-[#E06B74]/60',
-  warning:'border-[#8A610B]/40 bg-white text-[#8A610B] hover:border-[#8A610B]/60 dark:border-[#D5A94A]/40 dark:bg-[#181A1B] dark:text-[#D5A94A] dark:hover:border-[#D5A94A]/60',
-  success:'border-[#347A46]/40 bg-white text-[#347A46] hover:border-[#347A46]/60 dark:border-[#6DBB77]/40 dark:bg-[#181A1B] dark:text-[#6DBB77] dark:hover:border-[#6DBB77]/60',
+  neutral:'border-border bg-card text-foreground',
+  danger:'border-destructive/40 bg-card text-destructive',
+  warning:'border-warning/40 bg-card text-warning',
+  success:'border-success/40 bg-card text-success',
 } as const;
 
 export function MetricBentoTile({title,icon,value,prefix='',suffix='',precision=0,description,tone='neutral'}:MetricBentoTileProps){
@@ -45,7 +45,7 @@ export function MetricBentoTile({title,icon,value,prefix='',suffix='',precision=
 
   const formatter=new Intl.NumberFormat('en-US',{minimumFractionDigits:precision,maximumFractionDigits:precision});
   const formatted=value===null?'—':formatter.format(displayValue);
-  return <div className={cn('min-w-0 rounded-xl border p-4 transition-colors hover:border-[#B9C3BE] dark:hover:border-[#525B62] motion-reduce:transition-none',tone==='neutral'&&'surface-card',tones[tone])}>
+  return <div className={cn('min-w-0 rounded-lg border p-4 shadow-sm transition-colors hover:border-[var(--border-strong)] motion-reduce:transition-none',tones[tone])}>
     <div className="flex items-start justify-between gap-2">
       <div className="text-sm font-medium text-muted-foreground">{title}</div>
       <div aria-hidden="true" className="shrink-0 [&_svg]:size-4">{icon}</div>

@@ -1,9 +1,8 @@
 'use client';
 
-import {useMemo,useState} from 'react';
-import {ImageIcon,RotateCcw,Save} from 'lucide-react';
-import {CarezFileUpload,CarezLoadingState} from '@/components/carez/fields';
-import {Button} from '@/components/ui/button';
+import {useMemo,useRef,useState} from 'react';
+import { ImageRegular as ImageIcon, ArrowRotateCounterclockwiseRegular as RotateCcw, SaveRegular as Save, ArrowUploadRegular } from '@fluentui/react-icons';
+import {Button,Spinner} from '@fluentui/react-components';
 import {createClient} from '@/lib/supabase/client';
 import {
   COMPANY_BRANDING_BUCKET,
@@ -20,6 +19,8 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
   const supabase=useMemo(()=>createClient(),[]);
   const [logoPath,setLogoPath]=useState<string|null>(initialLogoPath);
   const [files,setFiles]=useState<File[]>([]);
+  const fileInputRef=useRef<HTMLInputElement>(null);
+  const [dragging,setDragging]=useState(false);
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const preview=companyLogoPublicUrl(supabase,logoPath);
@@ -56,7 +57,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
       if(saveError){await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([path]);throw saveError;}
       await syncCommercialLogo(path);
       const previous=logoPath;
-      publish(path);setFiles([]);setMessage('Company logo updated.');
+      publish(path);setFiles([]);if(fileInputRef.current)fileInputRef.current.value='';setMessage('Company logo updated.');
       if(previous&&previous!==path)await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([previous]);
     }catch(error:any){setMessage(error?.message||'Could not update company logo.');}
     finally{setBusy(false);}
@@ -76,7 +77,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
       if(error)throw error;
       await syncCommercialLogo(null);
       const previous=logoPath;
-      publish(null);setFiles([]);setMessage('Using the default Carez logo.');
+      publish(null);setFiles([]);if(fileInputRef.current)fileInputRef.current.value='';setMessage('Using the default Carez logo.');
       if(previous)await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([previous]);
     }catch(error:any){setMessage(error?.message||'Could not reset company logo.');}
     finally{setBusy(false);}
@@ -87,12 +88,12 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
       <img src={preview||FALLBACK_COMPANY_LOGO} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>
     </div>
     <div className="space-y-3">
-      <CarezFileUpload files={files} onFilesChange={setFiles} accept={COMPANY_LOGO_ACCEPT} maxBytes={COMPANY_LOGO_MAX_BYTES} disabled={busy} label="Choose company logo" hint="PNG, JPEG, or WebP · 5 MB max"/>
-      {busy?<CarezLoadingState label="Updating company branding"/>:null}
+      <div className="space-y-2"><input ref={fileInputRef} type="file" className="sr-only" accept={COMPANY_LOGO_ACCEPT} disabled={busy} onChange={event=>setFiles(Array.from(event.target.files||[]).slice(0,1))}/><Button type="button" appearance="outline" disabled={busy} className={`min-h-20 w-full border-dashed ${dragging?'border-primary bg-accent':''}`} icon={<ArrowUploadRegular/>} onClick={()=>fileInputRef.current?.click()} onDragEnter={event=>{event.preventDefault();setDragging(true)}} onDragOver={event=>event.preventDefault()} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);setFiles(Array.from(event.dataTransfer.files||[]).slice(0,1))}}>Choose company logo · PNG, JPEG, or WebP · 5 MB max</Button>{files[0]?<div className="flex items-center justify-between gap-2 text-xs"><span className="truncate">{files[0].name}</span><Button type="button" appearance="subtle" size="small" disabled={busy} onClick={()=>{setFiles([]);if(fileInputRef.current)fileInputRef.current.value=''}}>Remove</Button></div>:null}</div>
+      {busy?<Spinner size="tiny" label="Updating company branding"/>:null}
       {message?<div role="status" className="text-xs text-muted-foreground">{message}</div>:null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" onClick={()=>void save()} disabled={busy||!files.length}><Save/>Use this logo</Button>
-        <Button type="button" variant="outline" size="sm" onClick={()=>void reset()} disabled={busy||!logoPath}><RotateCcw/>Use default</Button>
+        <Button type="button" appearance="primary" size="small" icon={<Save/>} onClick={()=>void save()} disabled={busy||!files.length}>Use this logo</Button>
+        <Button type="button" appearance="outline" size="small" icon={<RotateCcw/>} onClick={()=>void reset()} disabled={busy||!logoPath}>Use default</Button>
         <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"><ImageIcon className="size-3.5"/>Company-wide branding</span>
       </div>
       <p className="text-xs leading-5 text-muted-foreground">The current logo is used in the authenticated Carez shell and on newly created customer-facing commercial documents. Already-issued records keep the branding snapshot they were issued with.</p>

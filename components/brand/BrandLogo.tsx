@@ -1,19 +1,17 @@
-import {useId} from 'react';
 import {cn} from '@/lib/utils';
 
-type BrandLogoProps={size?:'sm'|'md'|'lg';iconOnly?:boolean;className?:string};
+type BrandLogoProps={size?:'sm'|'md'|'lg';iconOnly?:boolean;className?:string;idPrefix:string};
 
 const sizes={sm:'h-[31px] w-[128px]',md:'h-[43px] w-[178px]',lg:'h-[54px] w-[223px]'};
 const viewWidth=1591;
 const viewHeight=385;
 const markWidth=425;
 
-export function BrandLogo({size='md',iconOnly=false,className}:BrandLogoProps){
-  const id=useId().replaceAll(':','');
-  const inkMask=`pt-logo-ink-${id}`;
-  const accentMask=`pt-logo-accent-${id}`;
-  const markClip=`pt-logo-mark-${id}`;
-  const typeClip=`pt-logo-type-${id}`;
+export function BrandLogo({size='md',iconOnly=false,className,idPrefix}:BrandLogoProps){
+  const inkMask=`pt-logo-ink-${idPrefix}`;
+  const accentMask=`pt-logo-accent-${idPrefix}`;
+  const markClip=`pt-logo-mark-${idPrefix}`;
+  const typeClip=`pt-logo-type-${idPrefix}`;
 
   return <svg
     aria-label="Pourtrace home"

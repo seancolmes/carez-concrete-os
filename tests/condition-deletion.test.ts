@@ -5,7 +5,7 @@ import test from 'node:test';
 const migration = readFileSync('supabase/migrations/20260905162324_condition_draft_deletion.sql', 'utf8');
 const actions = readFileSync('app/takeoff/[setId]/conditionActions.ts', 'utf8');
 const manager = readFileSync('components/takeoff/ConditionDeletionManager.tsx', 'utf8');
-const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx', 'utf8');
+const assemblyWorkspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 
 test('draft Condition deletion preserves verified and issued history', () => {
   assert.match(migration, /carez_delete_project_concrete_condition/);
@@ -41,12 +41,12 @@ test('deleting a Condition-linked takeoff invalidates stale Condition projection
 test('Condition-first UI exposes guarded draft deletion and resets stale drawing selection after cascade delete', () => {
   assert.match(actions, /export async function deleteProjectConcreteCondition/);
   assert.match(actions, /carez_delete_project_concrete_condition/);
-  assert.match(shell, /ConditionDeletionManager/);
+  assert.match(assemblyWorkspace, /ConditionDeletionManager/);
   assert.match(manager, /Delete Condition \+ takeoffs/);
   assert.match(manager, /Takeoffs shared with another Condition are preserved/);
   assert.match(manager, /row\.version_status === 'draft'/);
   assert.match(manager, /Delete draft Condition\?/);
-  assert.match(manager, /<Select /);
+  assert.match(manager, /<Combobox /);
   assert.match(manager, /window\.location\.reload\(\)/);
   assert.doesNotMatch(manager, /DropdownMenu/);
   assert.doesNotMatch(manager, /<select/);

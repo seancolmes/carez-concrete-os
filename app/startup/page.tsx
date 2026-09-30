@@ -1,11 +1,6 @@
 import {redirect} from 'next/navigation';
-import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
-import {Badge} from '@/components/ui/badge';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
-import {Empty,EmptyDescription,EmptyHeader,EmptyTitle} from '@/components/ui/empty';
-import {Input} from '@/components/ui/input';
+import {Badge,Button,Card,Input} from '@fluentui/react-components';
 import {cn} from '@/lib/utils';
 import {createClient} from '@/lib/supabase/server';
 import {updateStartupItem} from './actions';
@@ -28,47 +23,47 @@ export default async function StartupPage(){
   const rows:any[]=jobs||[];const ready=rows.filter(r=>r.readiness_status==='ready');const needs=rows.filter(r=>r.readiness_status!=='ready');const soonEnd=addDays(today(),7);const startingSoon=rows.filter(r=>r.next_work_date&&r.next_work_date>=today()&&r.next_work_date<=soonEnd);const unscheduled=rows.filter(r=>!r.has_work_scheduled);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-      <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-col gap-3 lg:h-full">
+      <header className="carez-page-heading flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Jobs & field</p>
           <h1 className="text-2xl font-semibold tracking-tight">Job Startup</h1>
           <p className="text-sm text-muted-foreground">Before the crew rolls out, Carez checks the job setup and shows exactly what is still missing.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link className={buttonVariants()} href="/schedule">Schedule Work</Link>
-          <Link className={buttonVariants({variant:'outline'})} href="/projects">Projects</Link>
+          <Button as="a" appearance="primary" href="/schedule">Schedule Work</Button>
+          <Button as="a" appearance="secondary" href="/projects">Projects</Button>
         </div>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card size="sm">
-          <CardHeader><CardDescription>Need Setup</CardDescription><CardTitle className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',needs.length?'text-warning':'text-success')}>{needs.length}</CardTitle></CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Awarded jobs not ready for crew startup yet.</CardContent>
+      <div className="grid shrink-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <Card size="small">
+          <div><p>Need Setup</p><h3 className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',needs.length?'text-warning':'text-success')}>{needs.length}</h3></div>
+          <div className="text-xs text-muted-foreground">Awarded jobs not ready for crew startup yet.</div>
         </Card>
-        <Card size="sm">
-          <CardHeader><CardDescription>Ready to Work</CardDescription><CardTitle className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',ready.length&&'text-success')}>{ready.length}</CardTitle></CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Required startup checks are clear.</CardContent>
+        <Card size="small">
+          <div><p>Ready to Work</p><h3 className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',ready.length&&'text-success')}>{ready.length}</h3></div>
+          <div className="text-xs text-muted-foreground">Required startup checks are clear.</div>
         </Card>
-        <Card size="sm">
-          <CardHeader><CardDescription>Starting Next 7 Days</CardDescription><CardTitle className="text-2xl tabular-nums group-data-[size=sm]/card:text-2xl">{startingSoon.length}</CardTitle></CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Jobs with scheduled work coming up.</CardContent>
+        <Card size="small">
+          <div><p>Starting Next 7 Days</p><h3 className="text-2xl tabular-nums group-data-[size=sm]/card:text-2xl">{startingSoon.length}</h3></div>
+          <div className="text-xs text-muted-foreground">Jobs with scheduled work coming up.</div>
         </Card>
-        <Card size="sm">
-          <CardHeader><CardDescription>No Work Date</CardDescription><CardTitle className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',unscheduled.length?'text-destructive':'text-success')}>{unscheduled.length}</CardTitle></CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Active jobs with nothing scheduled.</CardContent>
+        <Card size="small">
+          <div><p>No Work Date</p><h3 className={cn('text-2xl tabular-nums group-data-[size=sm]/card:text-2xl',unscheduled.length?'text-destructive':'text-success')}>{unscheduled.length}</h3></div>
+          <div className="text-xs text-muted-foreground">Active jobs with nothing scheduled.</div>
         </Card>
       </div>
 
-      <section className="space-y-4" aria-labelledby="startup-board-title">
+      <section className="min-h-0 flex-1 space-y-4 overflow-auto border border-border bg-card p-3" aria-labelledby="startup-board-title">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Ready to work</p>
           <h2 id="startup-board-title" className="text-lg font-semibold">Startup Board</h2>
           <p className="text-sm text-muted-foreground">System checks update automatically. You only confirm the field decisions Carez cannot know on its own.</p>
         </div>
-        {rows.length===0?<Empty className="border border-border">
-          <EmptyHeader><EmptyTitle>No active jobs need startup</EmptyTitle><EmptyDescription>When an estimate is awarded, the new job will appear here automatically.</EmptyDescription></EmptyHeader>
-        </Empty>:<div className="space-y-4">{rows.map(r=>{
+        {rows.length===0?<div className="border border-border">
+          <div><h3>No active jobs need startup</h3><p>When an estimate is awarded, the new job will appear here automatically.</p></div>
+        </div>:<div className="space-y-4">{rows.map(r=>{
       const manual=byProject.get(r.project_id)||[];const pct=Math.round((Number(r.ready_steps||0)/Math.max(1,Number(r.total_steps||10)))*100);
       const checks=[
         {ok:Boolean(r.has_awarded_budget),title:'Awarded job budget',detail:r.has_awarded_budget?'Accepted estimate is frozen as the job baseline.':'No frozen original budget yet.'},
@@ -79,14 +74,14 @@ export default async function StartupPage(){
       ];
       return <article key={r.project_id} aria-labelledby={`startup-project-${r.project_id}`}>
         <Card>
-          <CardHeader className="flex flex-col gap-3 border-b border-border sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-border sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-1">
               <h3 id={`startup-project-${r.project_id}`} className="text-base font-semibold">{r.job_number} — {r.name}</h3>
-              <CardDescription>{[r.address,r.city,r.state].filter(Boolean).join(', ')||'Jobsite not complete'}</CardDescription>
+              <p>{[r.address,r.city,r.state].filter(Boolean).join(', ')||'Jobsite not complete'}</p>
             </div>
-            <Badge variant="outline" className={r.readiness_status==='ready'?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning'}>{r.readiness_status==='ready'?'Ready to work':'Needs setup'}</Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <Badge appearance="outline" className={r.readiness_status==='ready'?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning'}>{r.readiness_status==='ready'?'Ready to work':'Needs setup'}</Badge>
+          </div>
+          <div className="space-y-4">
             <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3">
                 <dt className="text-xs text-muted-foreground">Startup Ready</dt>
@@ -110,72 +105,72 @@ export default async function StartupPage(){
             </dl>
 
             <div className="grid items-start gap-4 xl:grid-cols-2">
-              <Card size="sm">
-                <CardHeader>
+              <Card size="small">
+                <div>
                   <h4 className="text-sm font-semibold">Carez Checks Automatically</h4>
-                  <CardDescription>These change as the rest of the OS is updated.</CardDescription>
-                </CardHeader>
-                <CardContent className="divide-y divide-border">
+                  <p>These change as the rest of the OS is updated.</p>
+                </div>
+                <div className="divide-y divide-border">
                   {checks.map((c,i)=><div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0" key={i}>
                     <div className="min-w-0 space-y-1"><p className="text-sm font-medium">{c.title}</p><p className="break-words text-xs text-muted-foreground">{c.detail}</p></div>
-                    <Badge variant="outline" className={c.ok?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning'}>{c.ok?'Ready':'Needed'}</Badge>
+                    <Badge appearance="outline" className={c.ok?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning'}>{c.ok?'Ready':'Needed'}</Badge>
                   </div>)}
-                </CardContent>
+                </div>
               </Card>
 
-              <Card size="sm">
-                <CardHeader className="flex flex-row items-start justify-between gap-3">
-                  <div className="space-y-1"><h4 className="text-sm font-semibold">Field Confirmations</h4><CardDescription>Mark these once you have actually handled them.</CardDescription></div>
+              <Card size="small">
+                <div className="flex flex-row items-start justify-between gap-3">
+                  <div className="space-y-1"><h4 className="text-sm font-semibold">Field Confirmations</h4><p>Mark these once you have actually handled them.</p></div>
                   <strong className="shrink-0 text-sm tabular-nums">{Number(r.manual_open||0)} left</strong>
-                </CardHeader>
-                <CardContent className="divide-y divide-border">
+                </div>
+                <div className="divide-y divide-border">
                   {manual.map(item=><form action={updateStartupItem} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0" key={item.id}>
                     <input type="hidden" name="id" value={item.id}/>
                     <input type="hidden" name="current_status" value={item.status}/>
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-sm font-medium">{item.title}</p>
                       <p className="break-words text-xs text-muted-foreground">{item.detail}</p>
-                      <Input name="notes" defaultValue={item.notes||''} placeholder="Optional note" aria-label={`Notes for ${item.title}`} className="mt-2 w-full"/>
+                      <Input appearance="underline" name="notes" defaultValue={item.notes||''} placeholder="Optional note" aria-label={`Notes for ${item.title}`} className="mt-2 w-full"/>
                     </div>
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Badge variant="outline" className={item.status==='done'?'border-success/30 bg-success/10 text-success':item.status==='not_needed'?'text-muted-foreground':'border-warning/30 bg-warning/10 text-warning'}>{item.status==='done'?'Done':item.status==='not_needed'?'Not Needed':'Open'}</Badge>
+                      <Badge appearance="outline" className={item.status==='done'?'border-success/30 bg-success/10 text-success':item.status==='not_needed'?'text-muted-foreground':'border-warning/30 bg-warning/10 text-warning'}>{item.status==='done'?'Done':item.status==='not_needed'?'Not Needed':'Open'}</Badge>
                       {item.status==='open'?<>
-                        <Button type="submit" variant="outline" name="status" value="done">Done</Button>
-                        <Button type="submit" variant="outline" name="status" value="not_needed">Not Needed</Button>
-                      </>:<Button type="submit" variant="outline" name="status" value="open">Reopen</Button>}
-                      <Button type="submit" variant="outline">Save Note</Button>
+                        <Button type="submit" appearance="secondary" name="status" value="done">Done</Button>
+                        <Button type="submit" appearance="secondary" name="status" value="not_needed">Not Needed</Button>
+                      </>:<Button type="submit" appearance="secondary" name="status" value="open">Reopen</Button>}
+                      <Button type="submit" appearance="secondary">Save Note</Button>
                     </div>
                   </form>)}
-                </CardContent>
+                </div>
               </Card>
             </div>
 
-            <Card size="sm">
-              <CardHeader><h4 className="text-sm font-semibold">Production Setup</h4><CardDescription>The next operational pieces for this job.</CardDescription></CardHeader>
-              <CardContent className="divide-y divide-border">
+            <Card size="small">
+              <div><h4 className="text-sm font-semibold">Production Setup</h4><p>The next operational pieces for this job.</p></div>
+              <div className="divide-y divide-border">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
                   <div className="space-y-1"><p className="text-sm font-medium">Upcoming work</p><p className="text-xs text-muted-foreground">{r.next_work_date?`First scheduled day: ${day(r.next_work_date)}`:'No work scheduled yet.'}</p></div>
-                  <Link className={buttonVariants({variant:'outline'})} href="/schedule">Schedule</Link>
+                  <Button as="a" appearance="secondary" href="/schedule">Schedule</Button>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="space-y-1"><p className="text-sm font-medium">Concrete pour</p><p className="text-xs text-muted-foreground">{r.next_pour_name?`${r.next_pour_name} · ${r.next_pour_date?day(r.next_pour_date):'date not set'}`:'No pour plan yet.'}</p></div>
-                  <Link className={buttonVariants({variant:'outline'})} href="/pour-control">Pour Control</Link>
+                  <Button as="a" appearance="secondary" href="/pour-control">Pour Control</Button>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
                   <div className="space-y-1"><p className="text-sm font-medium">Materials / equipment committed</p><p className="text-xs text-muted-foreground">{Number(r.open_po_count||0)} issued purchase order{Number(r.open_po_count||0)===1?'':'s'} open.</p></div>
-                  <Link className={buttonVariants({variant:'outline'})} href="/procurement">Purchasing</Link>
+                  <Button as="a" appearance="secondary" href="/procurement">Purchasing</Button>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
             {r.readiness_status==='ready'?<div className="rounded-lg border border-success/30 bg-success/10 p-3 text-sm text-success"><strong>Ready to work.</strong> Carez has the startup information required to send the crew to this job.</div>:<div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"><strong>Do not call this job ready yet.</strong> Clear the items marked Needed or Open above first.</div>}
             <div className="flex flex-wrap gap-2">
-              <Link className={buttonVariants()} href={`/projects/${r.project_id}`}>Open Job</Link>
-              <Link className={buttonVariants({variant:'outline'})} href="/schedule">Schedule</Link>
-              <Link className={buttonVariants({variant:'outline'})} href="/pour-control">Plan Pour</Link>
-              <Link className={buttonVariants({variant:'outline'})} href="/procurement">Order Materials</Link>
+              <Button as="a" appearance="primary" href={`/projects/${r.project_id}`}>Open Job</Button>
+              <Button as="a" appearance="secondary" href="/schedule">Schedule</Button>
+              <Button as="a" appearance="secondary" href="/pour-control">Plan Pour</Button>
+              <Button as="a" appearance="secondary" href="/procurement">Order Materials</Button>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </article>;
     })}</div>}</section>

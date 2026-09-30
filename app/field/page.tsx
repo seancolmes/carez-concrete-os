@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
 import {FieldWorkspace} from '@/components/field/FieldWorkspace';
 import {NewPourPlanDialog} from '@/components/field/NewPourPlanDialog';
-import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/ui/WorkspaceRecordBoard';
+import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/workspace/WorkspaceRecordBoard';
 import {createClient} from '@/lib/supabase/server';
 
 type SearchParams={tab?:string;view?:string};
@@ -54,10 +54,11 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
   const {tab,view}=await searchParams;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <main className="mx-auto flex w-full max-w-screen-2xl flex-col">
-      <header className="industrial-header relative mb-3 px-4 py-3 pr-40"><nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field</nav><h1 className="mt-1 text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Field</h1>
+    <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <header className="relative shrink-0 border border-border bg-card px-4 py-3 pr-40 shadow-sm"><nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field</nav><h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Field</h1>
         <NewPourPlanDialog today={today} projects={projectOptions} scopeLinks={scopeLinks} changeOrders={orderOptions}/>
       </header>
+      <div className="min-h-0 flex-1 overflow-auto">
       <FieldWorkspace tab={tab} view={view} dispatch={<><section aria-label="Dispatch summary" className="ambient-glow mb-4 grid grid-cols-2 border-y border-border text-xs sm:grid-cols-4">
         <div className="flex h-14 min-w-0 flex-col justify-center border-r border-b border-border px-3 sm:border-b-0" title="Authorized pours scheduled today"><span className="truncate text-muted-foreground">Active pours today</span><strong className="font-mono text-base tabular-nums">{activePours??'—'}</strong></div>
         <div className="flex h-14 min-w-0 flex-col justify-center border-b border-border px-3 sm:border-r sm:border-b-0" title="Upcoming work on the dispatch board"><span className="truncate text-muted-foreground">Scheduled operations</span><strong className="font-mono text-base tabular-nums">{scheduleError?'—':(scheduled||[]).length}</strong></div>
@@ -65,6 +66,7 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
         <div className="flex h-14 min-w-0 flex-col justify-center px-3" title="Concrete entered in today's daily logs"><span className="truncate text-muted-foreground">Cubic yards placed</span><strong className="font-mono text-base tabular-nums">{placed==null?'—':placed.toFixed(2)}<span className="ml-1 text-xs font-normal text-muted-foreground">CY</span></strong></div>
       </section>
       <WorkspaceRecordBoard title="Dispatch Board" description="Scheduled work and pour plans, ordered by field date." rows={records} empty={scheduleError||poursError||linkedPourError?'The dispatch board is temporarily unavailable.':'No upcoming field operations are scheduled.'}/></>}/>
-    </main>
+      </div>
+    </div>
   </AppShell>;
 }

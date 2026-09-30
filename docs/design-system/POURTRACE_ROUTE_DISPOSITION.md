@@ -1,6 +1,6 @@
 # Pourtrace route disposition — design draft
 
-Status: Discussion draft with the product owner's confirmed decision to retire standalone Pour Control while retaining concrete delivery tickets and placed quantities in project documents and production work. Source inventory began with 71 `app/**/page.tsx` routes; the new opportunity detail route makes 72 in the current local checkout. This maps presentation and entry points; it does not authorize immediate route deletion, data migration, or changes to domain rules. Runtime behavior and visual quality remain to be checked with representative accounts and data.
+Status: Historical discussion draft. The product owner subsequently directed retirement of the legacy assembly audit, Takeoff intelligence preview, and design-review study routes. Their persisted Takeoff and production evidence remains authoritative; this route decision does not change data contracts. Runtime behavior and visual quality remain to be checked with representative accounts and data.
 
 ## Proposed navigation
 
@@ -21,8 +21,8 @@ Disposition terms: **Hub** = main area entry; **View** = contextual view or cros
 | `/employee/join/[token]` | Team invitation | Utility | Private invitation acceptance; preserve role and company binding. |
 | `/crew/access/invite/[token]` | Team invitation | Utility | Existing employee invite link; reconcile with the broader company invite model. |
 | `/proposal/[token]` | Customer review | Utility | Customer-facing proposal access and decision; outside employee navigation. |
-| `/design-review` | Internal design QA | Utility | Keep out of customer navigation and production discovery. |
-| `/design-reviews/overlays` | Internal design QA | Utility | Keep out of customer navigation and production discovery. |
+| `/design-review` | Retired | Retire | Internal design-review study route removed. |
+| `/design-reviews/overlays` | Retired | Retire | Internal overlay study route removed; production overlay components remain. |
 
 ## Opportunities
 
@@ -35,8 +35,8 @@ Disposition terms: **Hub** = main area entry; **View** = contextual view or cros
 | `/takeoff` | Opportunities · Takeoff queue | View | Cross-opportunity queue and compatibility entry; primary entry is the selected opportunity. |
 | `/takeoff/plans` | Opportunity · Plans | View | Plan and sheet management in the opportunity context. |
 | `/takeoff/[setId]` | Opportunity · Takeoff | Detail | Preserve the dominant drawing workstation, authoritative 2D geometry, and deep link. |
-| `/takeoff/assemblies` | Estimating history | Compatibility | Legacy assembly audit remains accessible for referenced records, outside primary navigation. |
-| `/takeoff/intelligence` | Opportunities · Estimating evidence | View | Cross-job production learning available when estimating; distinguish evidence from approved rates. |
+| `/takeoff/assemblies` | Retired | Retire | Legacy assembly audit UI removed; referenced published records and compatibility IDs remain persisted. |
+| `/takeoff/intelligence` | Retired | Retire | Preview UI removed; cross-job production evidence remains in source data and current production views. |
 | `/estimates` | Opportunities · Estimate queue | View | Cross-opportunity workload; selected opportunity holds its estimate revisions. |
 | `/estimates/[estimateId]` | Opportunity · Estimate | Detail | Preserve revision, quantity, direct cost, sell, and review lineage. |
 | `/estimates/audit` | Opportunity · Commercial review | View | Review belongs with the exact estimate/proposal decision. |

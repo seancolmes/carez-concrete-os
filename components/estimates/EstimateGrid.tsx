@@ -3,16 +3,8 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {ExternalLink,Search} from 'lucide-react';
-import {Badge} from '@/components/ui/badge';
-import {buttonVariants} from '@/components/ui/button';
-import {Checkbox} from '@/components/ui/checkbox';
-import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
-import {Input} from '@/components/ui/input';
-import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle} from '@/components/ui/sheet';
-import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
-import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
-import {CarezDataGrid} from '@/components/carez';
+import {OpenRegular as ExternalLink,SearchRegular as Search} from '@fluentui/react-icons';
+import {Badge,Button,Checkbox,DrawerBody,DrawerHeader,DrawerHeaderTitle,Input,OverlayDrawer,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow,Tab,TabList} from '@fluentui/react-components';
 import {cn} from '@/lib/utils';
 
 export type EstimateGridStage='working'|'ready'|'issued'|'awarded'|'history';
@@ -41,6 +33,8 @@ const money=(value:number)=>new Intl.NumberFormat('en-US',{style:'currency',curr
 const date=(value:string|null)=>value?new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'2-digit'}).format(new Date(value)):'—';
 const stageOrder:EstimateGridStage[]=['working','ready','issued','awarded','history'];
 const stageLabels:Record<EstimateGridStage,string>={working:'Pricing',ready:'Ready',issued:'Issued',awarded:'Awarded',history:'History'};
+const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
+const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';
 
 function interactiveTarget(target:EventTarget|null){
   const element=target as HTMLElement|null;
@@ -48,11 +42,11 @@ function interactiveTarget(target:EventTarget|null){
 }
 
 function StageBadge({stage,label}:{stage:EstimateGridStage;label:string}){
-  if(stage==='awarded')return <Badge variant="secondary" className="bg-success/10 text-success">{label}</Badge>;
-  if(stage==='ready')return <Badge variant="secondary" className="bg-primary/10 text-primary">{label}</Badge>;
-  if(stage==='issued')return <Badge variant="outline">{label}</Badge>;
-  if(stage==='history')return <Badge variant="secondary" className="text-muted-foreground">{label}</Badge>;
-  return <Badge variant="default">{label}</Badge>;
+  if(stage==='awarded')return <Badge appearance="tint" className="bg-success/10 text-success">{label}</Badge>;
+  if(stage==='ready')return <Badge appearance="tint" className="bg-primary/10 text-primary">{label}</Badge>;
+  if(stage==='issued')return <Badge appearance="outline">{label}</Badge>;
+  if(stage==='history')return <Badge appearance="tint" className="text-muted-foreground">{label}</Badge>;
+  return <Badge appearance="filled">{label}</Badge>;
 }
 
 export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
@@ -122,43 +116,41 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
   const inspected=rows.find(row=>row.id===inspectedId)||null;
 
   return <div className="space-y-3">
-    <CarezDataGrid ref={shellRef} tabIndex={0} onKeyDown={handleKeyDown} className="focus-visible:ring-3 focus-visible:ring-ring/20" aria-label="Estimate workbench grid">
+    <div ref={shellRef} tabIndex={0} onKeyDown={handleKeyDown} className="min-w-0 overflow-hidden border-y border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label="Estimate workbench grid">
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
-        <div className="relative min-w-64 flex-1 lg:max-w-md"><Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/><Input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search estimate, job, or project" aria-label="Search estimates" className="h-8 pl-8 text-xs"/></div>
-        <Tabs value={stage} onValueChange={value=>setStage(value as 'all'|EstimateGridStage)} className="w-auto">
-          <TabsList className="h-auto min-h-8 flex-wrap">
-            <TabsTrigger value="all" className="px-2 text-xs">All <span className="text-muted-foreground">{rows.length}</span></TabsTrigger>
+        <div className="relative min-w-64 flex-1 lg:max-w-md"><Input appearance="underline" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search estimate, job, or project" aria-label="Search estimates" contentBefore={<Search className="size-3.5 text-muted-foreground"/>} className="h-8 text-xs"/></div>
+        <TabList selectedValue={stage} onTabSelect={(_,data)=>setStage(data.value as 'all'|EstimateGridStage)} className="min-h-8 flex-wrap">
+            <Tab value="all" className="px-2 text-xs">All <span className="text-muted-foreground">{rows.length}</span></Tab>
             {stageOrder.map(value=>{
               const count=rows.filter(row=>row.stage===value).length;
-              return <TabsTrigger key={value} value={value} className="px-2 text-xs">{stageLabels[value]} <span className="text-muted-foreground">{count}</span></TabsTrigger>;
+              return <Tab key={value} value={value} className="px-2 text-xs">{stageLabels[value]} <span className="text-muted-foreground">{count}</span></Tab>;
             })}
-          </TabsList>
-        </Tabs>
+        </TabList>
         <div className="ml-auto hidden text-xs text-muted-foreground xl:block">{selectedIds.size} selected · ↑↓ move · Space select · Enter open</div>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground"><span>{visibleRows.length} visible of {rows.length}</span><span className="hidden md:inline">{selectedIds.size} selected</span></div>
 
-      {visibleRows.length===0?<Empty className="min-h-64 border-0"><EmptyHeader><EmptyMedia variant="icon"><Search/></EmptyMedia><EmptyTitle>No estimates match this view</EmptyTitle><EmptyDescription>Change the search or stage filter to see other estimate revisions.</EmptyDescription></EmptyHeader></Empty>:
+      {visibleRows.length===0?<div className="flex min-h-64 flex-col items-center justify-center gap-2 p-6 text-center"><Search fontSize={24} aria-hidden="true"/><h3 className="text-sm font-semibold">No estimates match this view</h3><p className="text-xs text-muted-foreground">Change the search or stage filter to see other estimate revisions.</p></div>:
         <><div className="hidden overflow-x-auto md:block"><Table>
           <TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30">
-            <TableHead className="w-10"><Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisible} aria-label={allVisibleSelected?'Clear visible estimate selection':'Select all visible estimates'}/></TableHead>
-            <TableHead>Estimate</TableHead>
-            <TableHead className="min-w-64">Description / job</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead className="text-right">Takeoff</TableHead>
-            <TableHead className="text-right">Holds</TableHead>
-            <TableHead className="text-right">Direct cost</TableHead>
-            <TableHead className="text-right">Quote</TableHead>
-            <TableHead className="text-right">Margin</TableHead>
-            <TableHead className="text-right">Target</TableHead>
-            <TableHead>Updated</TableHead>
-            <TableHead className="min-w-40">Actions</TableHead>
+            <TableHeaderCell className="w-10"><Checkbox checked={allVisibleSelected} onChange={toggleAllVisible} aria-label={allVisibleSelected?'Clear visible estimate selection':'Select all visible estimates'}/></TableHeaderCell>
+            <TableHeaderCell>Estimate</TableHeaderCell>
+            <TableHeaderCell className="min-w-64">Description / job</TableHeaderCell>
+            <TableHeaderCell>Stage</TableHeaderCell>
+            <TableHeaderCell className="text-right">Takeoff</TableHeaderCell>
+            <TableHeaderCell className="text-right">Holds</TableHeaderCell>
+            <TableHeaderCell className="text-right">Direct cost</TableHeaderCell>
+            <TableHeaderCell className="text-right">Quote</TableHeaderCell>
+            <TableHeaderCell className="text-right">Margin</TableHeaderCell>
+            <TableHeaderCell className="text-right">Target</TableHeaderCell>
+            <TableHeaderCell>Updated</TableHeaderCell>
+            <TableHeaderCell className="min-w-40">Actions</TableHeaderCell>
           </TableRow></TableHeader>
           <TableBody>{visibleRows.map((row,index)=>{
             const selected=selectedIds.has(row.id),active=index===activeIndex,marginLow=row.projectedMargin<row.targetMargin;
             return <TableRow key={row.id} data-grid-index={index} data-state={selected?'selected':undefined} className={cn('cursor-pointer',active&&'ring-1 ring-inset ring-foreground/20')} aria-selected={selected} onClick={()=>{setActiveIndex(index);setInspectedId(row.id)}} onDoubleClick={()=>router.push(row.estimateHref)}>
-              <TableCell onClick={event=>event.stopPropagation()}><Checkbox checked={selected} onCheckedChange={()=>toggleRow(row.id)} aria-label={selected?`Clear ${row.displayNumber} selection`:`Select ${row.displayNumber}`}/></TableCell>
+              <TableCell onClick={event=>event.stopPropagation()}><Checkbox checked={selected} onChange={()=>toggleRow(row.id)} aria-label={selected?`Clear ${row.displayNumber} selection`:`Select ${row.displayNumber}`}/></TableCell>
               <TableCell><Link className="font-mono text-xs font-semibold text-foreground hover:underline" href={row.estimateHref}>{row.displayNumber}</Link></TableCell>
               <TableCell><div className="font-medium">{row.name}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</div></TableCell>
               <TableCell><StageBadge stage={row.stage} label={row.stageLabel}/></TableCell>
@@ -169,15 +161,14 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
               <TableCell className={cn('carez-data-number text-right font-medium',marginLow?'text-warning':'text-success')}>{row.projectedMargin.toFixed(1)}%</TableCell>
               <TableCell className="carez-data-number text-right text-muted-foreground">{row.targetMargin.toFixed(1)}%</TableCell>
               <TableCell className="text-xs text-muted-foreground">{date(row.updatedAt)}</TableCell>
-              <TableCell onClick={event=>event.stopPropagation()}><div className="flex items-center gap-1.5"><Link className={buttonVariants({size:'sm'})} href={row.estimateHref}>Open<ExternalLink/></Link>{row.secondaryHref&&row.secondaryLabel?<Link className={buttonVariants({variant:'outline',size:'sm'})} href={row.secondaryHref}>{row.secondaryLabel}</Link>:null}</div></TableCell>
+              <TableCell onClick={event=>event.stopPropagation()}><div className="flex items-center gap-1.5"><Link className={primaryLinkClass} href={row.estimateHref}>Open<ExternalLink/></Link>{row.secondaryHref&&row.secondaryLabel?<Link className={secondaryLinkClass} href={row.secondaryHref}>{row.secondaryLabel}</Link>:null}</div></TableCell>
             </TableRow>;
           })}</TableBody>
-        </Table></div><div className="divide-y md:hidden">{visibleRows.map(row=><div key={row.id} className="grid gap-2 px-3 py-2"><div className="flex items-center justify-between gap-2"><strong className="font-mono text-xs">{row.displayNumber}</strong><StageBadge stage={row.stage} label={row.stageLabel}/></div><div className="min-w-0"><strong className="block truncate text-sm">{row.name}</strong><span className="block truncate text-xs text-muted-foreground">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</span></div><div className="flex items-center justify-between gap-3 text-xs"><span className="font-mono tabular-nums">{money(row.quote)} quote · {row.projectedMargin.toFixed(1)}% margin</span><span className={row.priceHolds?'text-warning':'text-muted-foreground'}>{row.priceHolds} holds</span></div><div className="flex gap-2"><Link className={buttonVariants({size:'sm'})} href={row.estimateHref}>Open estimate</Link><button type="button" className={buttonVariants({variant:'outline',size:'sm'})} onClick={()=>setInspectedId(row.id)}>View details</button></div></div>)}</div></>}
-    </CarezDataGrid>
+        </Table></div><div className="divide-y md:hidden">{visibleRows.map(row=><div key={row.id} className="grid gap-2 px-3 py-2"><div className="flex items-center justify-between gap-2"><strong className="font-mono text-xs">{row.displayNumber}</strong><StageBadge stage={row.stage} label={row.stageLabel}/></div><div className="min-w-0"><strong className="block truncate text-sm">{row.name}</strong><span className="block truncate text-xs text-muted-foreground">{row.projectNumber?`Job ${row.projectNumber} · ${row.projectName||'Project'}`:'New opportunity / no job yet'}</span></div><div className="flex items-center justify-between gap-3 text-xs"><span className="font-mono tabular-nums">{money(row.quote)} quote · {row.projectedMargin.toFixed(1)}% margin</span><span className={row.priceHolds?'text-warning':'text-muted-foreground'}>{row.priceHolds} holds</span></div><div className="flex gap-2"><Link className={primaryLinkClass} href={row.estimateHref}>Open estimate</Link><Button type="button" appearance="outline" size="small" onClick={()=>setInspectedId(row.id)}>View details</Button></div></div>)}</div></>}
+    </div>
 
-    <Sheet open={Boolean(inspected)} onOpenChange={open=>{if(!open)setInspectedId(null)}}>
-      {inspected?<SheetContent className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader className="border-b pr-12"><SheetTitle>{inspected.displayNumber}</SheetTitle><SheetDescription>{inspected.name}</SheetDescription></SheetHeader>
+    <OverlayDrawer open={Boolean(inspected)} onOpenChange={(_,data)=>{if(!data.open)setInspectedId(null)}} position="end" size="medium">
+      {inspected?<><DrawerHeader><DrawerHeaderTitle>{inspected.displayNumber}</DrawerHeaderTitle><p className="text-xs text-muted-foreground">{inspected.name}</p></DrawerHeader><DrawerBody className="overflow-y-auto">
         <div className="space-y-5 px-4 pb-6">
           <section className="space-y-2"><div className="text-xs font-semibold text-muted-foreground">Pricing summary</div><dl className="divide-y rounded-lg border">
             <InspectorRow label="Stage"><StageBadge stage={inspected.stage} label={inspected.stageLabel}/></InspectorRow>
@@ -189,10 +180,10 @@ export function EstimateGrid({rows}:{rows:EstimateGridRow[]}){
             <InspectorRow label="Price holds"><span className={cn('carez-data-number',inspected.priceHolds&&'text-warning')}>{inspected.priceHolds}</span></InspectorRow>
             <InspectorRow label="Updated"><span>{date(inspected.updatedAt)}</span></InspectorRow>
           </dl></section>
-          <div className="flex flex-wrap gap-2"><Link className={buttonVariants()} href={inspected.estimateHref}>Open estimate<ExternalLink/></Link>{inspected.secondaryHref&&inspected.secondaryLabel?<Link className={buttonVariants({variant:'outline'})} href={inspected.secondaryHref}>{inspected.secondaryLabel}</Link>:null}</div>
+          <div className="flex flex-wrap gap-2"><Link className={primaryLinkClass} href={inspected.estimateHref}>Open estimate<ExternalLink/></Link>{inspected.secondaryHref&&inspected.secondaryLabel?<Link className={secondaryLinkClass} href={inspected.secondaryHref}>{inspected.secondaryLabel}</Link>:null}</div>
         </div>
-      </SheetContent>:null}
-    </Sheet>
+      </DrawerBody></>:null}
+    </OverlayDrawer>
   </div>;
 }
 

@@ -1,10 +1,9 @@
+import {Card,CardHeader} from '@fluentui/react-components';
 import {createHash} from 'crypto';
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
 import {InviteLinkBox} from '@/components/employee/InviteLinkBox';
-import {buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import {createClient} from '@/lib/supabase/server';
 
 export default async function InvitePage({params}:{params:Promise<{token:string}>}){
@@ -20,18 +19,21 @@ export default async function InvitePage({params}:{params:Promise<{token:string}
  const path=`/employee/join/${token}`;
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
-  <div className="mx-auto flex w-full max-w-screen-lg flex-col gap-6">
-   <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crew access</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Employee Invite</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Send this private link to {invite.employee_name}. It connects their Carez login to the correct crew record.</p></div>
-    <Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access">Done</Link>
+  <div className="flex w-full flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+   <header className="carez-page-heading flex shrink-0 flex-col gap-3 rounded-md border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crew access</p><h1 className="mt-1 text-lg font-semibold tracking-tight">Employee Invite</h1><p className="mt-1 text-xs text-muted-foreground">Send this private link to {invite.employee_name}. It connects their Carez login to the correct crew record.</p></div>
+    <Link className={secondaryLinkClass} href="/crew/access">Done</Link>
    </header>
 
-   <Card className="shadow-none">
-    <CardHeader><CardTitle>{invite.employee_name}</CardTitle><CardDescription>Expires {new Date(invite.expires_at).toLocaleString()}</CardDescription></CardHeader>
-    <CardContent>
+   <Card className="shadow-none lg:min-h-0 lg:overflow-y-auto">
+    <CardHeader><h3>{invite.employee_name}</h3><p>Expires {new Date(invite.expires_at).toLocaleString()}</p></CardHeader>
+    <div className="p-4">
      {invite.accepted_at?<div className="rounded-lg border border-success/30 bg-success/10 px-3 py-3 text-sm text-success">This invite has already been used.</div>:<InviteLinkBox path={path}/>} 
-    </CardContent>
+    </div>
    </Card>
   </div>
  </AppShell>;
 }
+
+const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
+const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';

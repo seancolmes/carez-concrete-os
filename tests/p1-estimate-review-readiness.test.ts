@@ -176,7 +176,7 @@ test('Estimate Review consumes authoritative readiness and avoids obsolete audit
   assert.match(page, /Reviewed \/ proceed/);
   assert.match(page, /latest_acknowledgement_id[\s\S]*acknowledgement_valid[\s\S]*stale/i);
   assert.match(page, /readiness\.release_state==='review'&&readiness\.blocker_count===0&&readiness\.warning_count>0/);
-  const sectionOrder = ['aria-label="Release state"', 'title="Commercial recap"', 'title="Blockers"', 'title="Warnings"', 'title="Commercial decisions"', 'title="Scope recap"', 'title="Pricing recap"', 'title="Labor recap"', 'title="Proposal preparation"', '>Estimate trace</summary>'].map(section => page.indexOf(section));
+  const sectionOrder = ['aria-label="Release state"', 'title="Commercial recap"', 'title="Blockers"', 'title="Warnings"', 'title="Commercial decisions"', 'title="Scope recap"', 'title="Pricing recap"', 'title="Labor recap"', 'title="Proposal preparation"', '>Estimate trace</AccordionHeader>'].map(section => page.indexOf(section));
   assert.ok(sectionOrder.every(index => index >= 0), 'Each review section is present');
   assert.deepEqual(sectionOrder, [...sectionOrder].sort((a, b) => a - b));
   const warningsSection = page.indexOf('<FindingSection title="Warnings"');

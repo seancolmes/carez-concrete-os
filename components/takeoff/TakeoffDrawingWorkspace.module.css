@@ -178,19 +178,29 @@
 .pageSelect option{background:var(--card);color:var(--foreground)}
 @media(max-width:860px){.pageSelect{max-width:130px;padding-inline:6px}.pageSelect span{display:none}.pageSelect select{min-width:90px;height:34px}}
 
-.commandWorkspace{position:relative;display:flex;flex:1;width:100%;height:100%;min-height:0;overflow:hidden;background:#090A0B;color:#fff}
-.commandWorkspace .commandCanvas{position:absolute;inset:0;display:flex;min-width:0;height:100%;background:#090A0B}
-.commandWorkspace .canvasViewport{flex:1;min-height:0;background:#090A0B;padding:58px 16px 128px}
-.commandWorkspace .toolbar{position:absolute;top:42px;left:24px;right:24px;z-index:40;display:flex;flex-wrap:nowrap;max-height:none;overflow-x:auto;border:1px solid #343A3F;border-radius:12px;background:#181A1Bf2;padding:4px;backdrop-filter:blur(12px)}
+.commandWorkspace{position:relative;display:flex;flex:1;width:100%;height:100%;min-height:0;overflow:hidden;background:var(--pt-bg);color:var(--pt-text)}
+.dockingLayout{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
+.dockingLayout :global(.flexlayout__layout){font-family:inherit}
+.dockingLayout :global(.flexlayout__tab){overflow:hidden}
+.dockingLayout :global(.flexlayout__tabset_content){min-width:0;min-height:0}
+.commandWorkspace .commandCanvas{position:absolute;inset:0;display:flex;min-width:0;height:100%;background:var(--pt-bg)}
+.commandWorkspace .canvasViewport{flex:1;min-height:0;background:var(--pt-bg);padding:58px 16px 128px}
+.commandWorkspace .toolbar{position:absolute;top:42px;left:24px;right:24px;z-index:40;display:flex;flex-wrap:nowrap;max-height:none;overflow-x:auto;border:1px solid var(--pt-line);border-radius:12px;background:color-mix(in srgb,var(--pt-surface-1) 94%,transparent);padding:4px;backdrop-filter:blur(12px)}
 .commandWorkspace .toolGroup,.commandWorkspace .zoomGroup{flex:none;flex-wrap:nowrap}
-.commandWorkspace .toolbar :is(button,select){color:#A1A1AA;background:transparent}
-.commandWorkspace .toolbar button:hover{color:#fff;background:#2A2E33}
-.commandWorkspace .statusbar{position:absolute;bottom:0;left:0;right:0;z-index:40;background:#121212d9;color:#A1A1AA}
+.commandWorkspace .toolbar :is(button,select){color:var(--pt-text-secondary);background:transparent}
+.commandWorkspace .toolbar button:hover{color:var(--pt-text);background:var(--pt-surface-hover)}
+.commandWorkspace .statusbar{position:absolute;bottom:0;left:0;right:0;z-index:40;background:color-mix(in srgb,var(--pt-surface-1) 85%,transparent);color:var(--pt-text-secondary)}
 @media(max-width:860px){.commandWorkspace .toolbar{top:42px;left:8px;right:8px}.commandWorkspace .canvasViewport{padding:84px 8px 50px}}
 
 .canvasHud{max-width:calc(100% - 32px)}
-.hudControls{position:absolute;right:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 48px));max-height:min(520px,65dvh);overflow:auto;padding:12px;border:1px solid #343A3F;border-radius:6px;background:#121212eb;backdrop-filter:blur(16px);box-shadow:0 10px 40px #0008;color:#A1A1AA}
-.hudControls .group{padding:8px 0;border:0;border-bottom:1px solid #25292C;background:transparent}
+.utilityHandle{display:flex;min-height:22px;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--pt-line);margin-bottom:6px;color:var(--pt-text-secondary);font:600 10px ui-monospace,monospace;cursor:move;user-select:none;touch-action:none}
+.utilityHandle span{font-size:15px;line-height:1}
+.floatingUtility{top:88px!important;left:20px!important;right:auto!important;bottom:auto!important;width:max-content;max-width:calc(100% - 40px);padding:8px!important;background:var(--pt-surface-1)!important;color:var(--pt-text)!important}
+.floatingUtility :global(.react-resizable){max-width:calc(100vw - 300px);max-height:calc(100dvh - 210px)}
+.floatingUtility .hudControls{position:relative;top:auto;right:auto;bottom:auto;width:100%;height:100%;max-height:none;overflow:auto;border:0;padding:8px 2px 2px;background:var(--pt-surface-1);box-shadow:none;backdrop-filter:none}
+.floatingUtility :global(.react-resizable-handle){z-index:2}
+.hudControls{position:absolute;right:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 48px));max-height:min(520px,65dvh);overflow:auto;padding:12px;border:1px solid var(--pt-line);border-radius:6px;background:color-mix(in srgb,var(--pt-surface-1) 92%,transparent);backdrop-filter:blur(16px);box-shadow:0 10px 40px rgb(0 0 0 / .22);color:var(--pt-text-secondary)}
+.hudControls .group{padding:8px 0;border:0;border-bottom:1px solid var(--pt-line-soft);background:transparent}
 .hudControls :is(.groupTitle,.groupHelp,.selectedTitle,.statusWarn,.advanced summary){font-size:10px;line-height:1.4}
 .hudControls .selectedQty{font:600 12px ui-monospace,monospace;font-variant-numeric:tabular-nums}
 .hudControls :is(button,input){min-height:24px;font-size:10px;padding:3px 6px}

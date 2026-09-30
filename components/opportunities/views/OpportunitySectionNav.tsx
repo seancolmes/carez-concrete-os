@@ -1,20 +1,17 @@
-'use client';
+import Link from 'next/link';
 
-import {useEffect,useState} from 'react';
+export type OpportunityDetail='scope'|'plans'|'estimates'|'proposals';
 
-const sections=[['scope','Scope'],['plans','Plans & Takeoff'],['estimates','Estimates'],['proposals','Proposals'],['activity','Activity']] as const;
-const inactive='bg-white border border-[#D4DBD7] text-[#525C57] dark:bg-[#181A1B] dark:border-[#343A3F] dark:text-[#8B949E] text-sm font-medium px-4 py-1.5 rounded-lg hover:text-[#171B19] hover:border-[#B9C3BE] hover:bg-[#EFF2F0] dark:hover:text-white dark:hover:border-[#525B62] dark:hover:bg-[#1C1F23] transition-all cursor-pointer whitespace-nowrap';
-const activeClass='bg-[#007A52]/10 border border-[#007A52] text-[#007A52] dark:bg-[#009966]/15 dark:border-[#009966] dark:text-[#009966] text-sm font-semibold px-4 py-1.5 rounded-lg shadow-[0_0_10px_rgba(0,153,102,0.15)] whitespace-nowrap';
+const sections:[OpportunityDetail,string][]=[['scope','Scope'],['plans','Plans & Takeoff'],['estimates','Estimates'],['proposals','Proposals']];
 
-export function OpportunitySectionNav(){
-  const [active,setActive]=useState<string>('scope');
-  useEffect(()=>{
-    const sync=()=>setActive(sections.some(([id])=>`#${id}`===window.location.hash)?window.location.hash.slice(1):'scope');
-    sync();
-    window.addEventListener('hashchange',sync);
-    return ()=>window.removeEventListener('hashchange',sync);
-  },[]);
-  return <nav aria-label="Opportunity sections" className="mb-6 flex w-full items-center gap-2 overflow-x-auto border-b border-[#D4DBD7] pb-4 dark:border-[#343A3F]">
-    {sections.map(([id,label])=><a key={id} href={`#${id}`} aria-current={active===id?'location':undefined} onClick={()=>setActive(id)} className={active===id?activeClass:inactive}>{label}</a>)}
+export function OpportunitySectionNav({active,leadId,estimateId}:{active:OpportunityDetail;leadId:string;estimateId?:string|null}){
+  const base=new URLSearchParams({lead:leadId,section:'scope'});
+  if(estimateId)base.set('estimate',estimateId);
+  return <nav aria-label="Opportunity record views" className="flex w-full items-center gap-1 overflow-x-auto border-b border-border pb-2">
+    {sections.map(([id,label])=>{
+      const params=new URLSearchParams(base);
+      params.set('detail',id);
+      return <Link key={id} href={`/opportunities?${params.toString()}`} aria-current={active===id?'page':undefined} className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${active===id?'bg-accent text-foreground':'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}`}>{label}</Link>;
+    })}
   </nav>;
 }

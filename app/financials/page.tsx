@@ -1,10 +1,10 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {Banknote,CalendarClock,Landmark,ReceiptText} from 'lucide-react';
+import { MoneyRegular as Banknote, CalendarClockRegular as CalendarClock, BuildingBankRegular as Landmark, ReceiptRegular as ReceiptText } from '@fluentui/react-icons';
 import {AppShell} from '@/components/AppShell';
 import {FinancialsWorkspace} from '@/components/financials/FinancialsWorkspace';
 import {MetricBentoTile} from '@/components/projects/MetricBentoTile';
-import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/ui/WorkspaceRecordBoard';
+import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/workspace/WorkspaceRecordBoard';
 import {createClient} from '@/lib/supabase/server';
 
 type SearchParams={tab?:string;view?:string};
@@ -31,17 +31,19 @@ export default async function FinancialsPage({searchParams}:{searchParams:Promis
   const {tab,view}=await searchParams;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <main className="mx-auto flex w-full max-w-screen-2xl flex-col">
-      <header className="industrial-header mb-6 px-4 py-3"><nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Financials</nav><h1 className="mt-1 text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Financials</h1><p className="mt-1 text-sm text-[#525C57] dark:text-[#B6BEBA]">Customer billing and job costs are available. Banking, payables, and payroll need their financial data connections.</p></header>
-      <section aria-label="Financial health summary" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <header className="shrink-0 border border-border bg-card px-4 py-3 shadow-sm"><nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Financials</nav><h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Financials</h1><p className="mt-1 text-xs text-muted-foreground">Customer billing and job costs are available. Banking, payables, and payroll need their financial data connections.</p></header>
+      <section aria-label="Financial health summary" className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
         <MetricBentoTile title="Cash position" icon={<Landmark/>} value={null} prefix="$" precision={2} description="Banking is not connected yet"/>
         <MetricBentoTile title="A/R aging" icon={<ReceiptText/>} value={arAging} prefix="$" precision={2} description="Open invoices past due" tone={arAging!==null&&arAging>0?'warning':'neutral'}/>
         <MetricBentoTile title="A/P due" icon={<CalendarClock/>} value={null} prefix="$" precision={2} description="Payables are not connected yet"/>
         <MetricBentoTile title="Weekly payroll burn" icon={<Banknote/>} value={null} prefix="$" precision={2} description="Payroll is not connected yet"/>
       </section>
-      {invoiceError&&<p role="status" className="mb-3 rounded-md border border-[#8A610B]/40 bg-[#FFF5D9] px-3 py-2 text-xs text-[#8A610B] dark:border-[#D5A94A]/40 dark:bg-[#181A1B] dark:text-[#D5A94A]">Billing records are temporarily unavailable.</p>}
-      <WorkspaceRecordBoard title="Financial worklist" description="Open customer invoices, ordered by due date." rows={records} empty={invoiceError?'Billing records are temporarily unavailable.':'No open customer invoices require action.'}/>
+      <div className="min-h-0 flex-1 overflow-auto">
+      {invoiceError&&<p role="status" className="mb-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">Billing records are temporarily unavailable.</p>}
+      {records.length>0?<WorkspaceRecordBoard title="Financial worklist" description="Open customer invoices, ordered by due date." rows={records} empty="No open customer invoices require action."/>:null}
       <FinancialsWorkspace tab={tab} view={view}/>
-    </main>
+      </div>
+    </div>
   </AppShell>;
 }

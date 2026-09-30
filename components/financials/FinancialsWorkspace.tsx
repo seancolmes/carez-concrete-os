@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import {WorkspaceSubnav,workspacePillClass} from '@/components/ui/workspace-subnav';
-import archetype from '@/components/ui/workspace-archetype.module.css';
+import styles from './FinancialsWorkspace.module.css';
 
 const groups = [
   {id:'ledger',label:'Ledger & Cash Flow',views:[['ledger','Cash position'],['banking','Banking'],['reconcile','Reconcile'],['bank-rules','Bank rules'],['cash-accounts','Cash accounts'],['expenses','Expenses'],['reserves','Protected money'],['pour-funding','Pour funding']]},
@@ -41,18 +40,14 @@ export async function FinancialsWorkspace({tab,view}:{tab?:string;view?:string})
   const selected=group.views.find(item=>item[0]===view)?.[0]||group.views.find(item=>availableViews.has(item[0]))?.[0]||group.views[0][0];
   const View=availableViews.has(selected)?(await loaders[selected]()).default:null;
 
-  return <section aria-label="Financial operations workspace" className={`${archetype.workspace} surface-card min-w-0 overflow-hidden rounded-xl`}>
-    <WorkspaceSubnav label="Financial domains">
-      {groups.map(item=>item.views.some(([id])=>availableViews.has(id))
-        ? <Link key={item.id} href={`/financials?tab=${item.id}&view=${item.views.find(([id])=>availableViews.has(id))?.[0]}`} prefetch={false} scroll={false} aria-current={item.id===group.id?'page':undefined} className={workspacePillClass(item.id===group.id)}>{item.label}</Link>
-        : <span key={item.id} aria-disabled="true" className="shrink-0 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground" title="Financial data contract not connected yet">{item.label} · Not connected</span>)}
-    </WorkspaceSubnav>
+  return <section aria-label="Financial operations workspace" className="surface-card min-w-0 overflow-hidden rounded-xl">
+    <nav aria-label="Financial views" className={styles.navigation}>
+      {groups.map(item=>{const available=item.views.filter(([id])=>availableViews.has(id));return available.length?<div key={item.id} className={styles.navigationGroup}>
+        <span className={styles.navigationLabel}>{item.label}</span>
+        {available.map(([id,label])=><Link key={id} href={`/financials?tab=${item.id}&view=${id}`} prefetch={false} scroll={false} aria-current={item.id===group.id&&selected===id?'page':undefined} className={`${styles.navigationLink} ${item.id===group.id&&selected===id?styles.navigationLinkActive:''}`}>{label}</Link>)}
+      </div>:null;})}
+    </nav>
     {View?<>
-      <WorkspaceSubnav label={`${group.label} views`}>
-        {group.views.map(([id,label])=>availableViews.has(id)
-          ? <Link key={id} href={`/financials?tab=${group.id}&view=${id}`} prefetch={false} scroll={false} aria-current={selected===id?'page':undefined} className={workspacePillClass(selected===id)}>{label}</Link>
-          : <span key={id} aria-disabled="true" className="shrink-0 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground" title="Financial data contract not connected yet">{label} · Not connected</span>)}
-      </WorkspaceSubnav>
       <div className="min-w-0 p-3 sm:p-5"><View/></div>
     </>:<div role="status" className="space-y-2 p-5 text-sm text-muted-foreground"><h2 className="text-base font-semibold text-foreground">{group.label} is not connected yet</h2><p>This workspace needs its source-controlled financial records and summaries before it can show reliable figures.</p><Link className="inline-flex text-primary underline-offset-4 hover:underline" href="/financials?tab=billing&view=billing">Open Billing & Invoices</Link></div>}
   </section>;

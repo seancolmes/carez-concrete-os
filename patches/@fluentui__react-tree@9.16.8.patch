@@ -1,0 +1,11 @@
+diff --git a/lib/contexts/treeItemContext.js b/lib/contexts/treeItemContext.js
+index 812b6848550dc16316019e563b2179831450612a..5b1e6e182af885812b8d69080e8b0e64530de75f 100644
+--- a/lib/contexts/treeItemContext.js
++++ b/lib/contexts/treeItemContext.js
+@@ -17,5 +17,5 @@ const defaultContextValue = {
+     checked: false
+ };
+ const TreeItemContext = createContext(undefined);
+-export const { Provider: TreeItemProvider } = TreeItemContext;
++export const TreeItemProvider = TreeItemContext.Provider;
+ export const useTreeItemContext_unstable = (selector)=>useContextSelector(TreeItemContext, (ctx = defaultContextValue)=>selector(ctx));

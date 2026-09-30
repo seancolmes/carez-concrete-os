@@ -2,17 +2,14 @@
 
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
+import {Button,Dialog,DialogSurface,DialogTitle,DrawerBody,DrawerHeader,Input,OverlayDrawer} from '@fluentui/react-components';
+import type {FluentIcon} from '@fluentui/react-icons';
 import {usePathname,useRouter} from 'next/navigation';
 import {motion} from 'framer-motion';
-import {BriefcaseBusiness,Building2,ChevronRight,HardHat,Home,Landmark,Menu,Moon,Search,Settings,Sun,Users,Wallet} from 'lucide-react';
+import { BriefcaseRegular as BriefcaseBusiness, BuildingRegular as Building2, ChevronRightRegular as ChevronRight, PersonWrenchRegular as HardHat, HomeRegular as Home, BuildingBankRegular as Landmark, NavigationRegular as Menu, SearchRegular as Search, SettingsRegular as Settings, PeopleRegular as Users, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {BrandLogo} from '@/components/brand/BrandLogo';
-import {CursorGlow} from '@/components/CursorGlow';
-import {useCarezAppearance} from '@/components/carez/appearance-provider';
 import {CarezProjectContextBar} from '@/components/carez/project-context';
 export {CarezProjectSwitcher} from '@/components/carez/project-context';
-import {Button} from '@/components/ui/button';
-import {Command,CommandDialog,CommandEmpty,CommandGroup,CommandInput,CommandItem,CommandList} from '@/components/ui/command';
-import {Sheet,SheetContent,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 import {cn} from '@/lib/utils';
 import {createClient} from '@/lib/supabase/client';
 import {WORKSPACE_PRESENTATION_SURFACES,resolveActiveDestination,resolveActiveWorkspacePresentationSurface,resolveProjectRoute,buildProjectSwitchHref,type WorkspaceSurfaceId} from '@/lib/ui/navigation';
@@ -25,30 +22,23 @@ type CrewOption={id:string;name:string;role:string};
 type CrewRow={id:string;name:string|null;role:string|null};
 const DOMAIN_ICONS:Record<WorkspaceSurfaceId,typeof Home>={today:Home,preconstruction:Building2,projects:BriefcaseBusiness,field:HardHat,finance:Landmark,system:Settings};
 const FINANCIAL_COMMANDS=[
-  {label:'Cash position',hint:'Ledger and cash flow',href:'/financials?tab=ledger&view=ledger'},
-  {label:'Banking',hint:'Accounts and transactions',href:'/financials?tab=ledger&view=banking'},
-  {label:'Reconcile',hint:'Match bank activity',href:'/financials?tab=ledger&view=reconcile'},
-  {label:'Bank rules',hint:'Transaction rules',href:'/financials?tab=ledger&view=bank-rules'},
   {label:'Billing and invoices',hint:'Customer receivables',href:'/financials?tab=billing&view=invoices'},
-  {label:'Procurement and payables',hint:'Purchases and vendor bills',href:'/financials?tab=procurement&view=payables'},
-  {label:'Labor and payroll',hint:'Crew payroll and job costs',href:'/financials?tab=labor&view=payroll'},
+  {label:'Job costs',hint:'Recorded project costs',href:'/financials?tab=costs&view=costs'},
 ] as const;
-const isWorkstation=(pathname:string)=>{const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];return Boolean(segment&&!['assemblies','intelligence','plans'].includes(segment));};
+const isWorkstation=(pathname:string)=>{const segment=pathname.match(/^\/takeoff\/([^/]+)/)?.[1];return Boolean(segment&&segment!=='plans');};
 
 function CarezCommandRail({pathname,userName,onOpenCommand,onOpenMobile}:{pathname:string;userName:string;onOpenCommand:()=>void;onOpenMobile:()=>void}){
-  const {resolvedTheme,setThemePreference}=useCarezAppearance();
   const active=resolveActiveWorkspacePresentationSurface(pathname)?.id;
-  return <header aria-label="Pourtrace global navigation" className="carez-command-bar carez-top-nav sticky top-0 z-40 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 text-[var(--shell-foreground)] lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-4">
+  return <header aria-label="Pourtrace global navigation" className="carez-command-bar carez-top-nav sticky top-0 z-40 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 text-[var(--shell-foreground)] lg:grid lg:h-12 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-4">
     <div className="flex min-w-0 items-center gap-1">
-      <Button type="button" variant="ghost" size="icon" className="shrink-0 lg:hidden" aria-label="Open navigation" onClick={onOpenMobile}><Menu className="size-4"/></Button>
-      <Link href="/overview" prefetch={false} aria-label="Pourtrace home" className="pt-brand-logo-link relative inline-flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--pt-logo)]"><motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><BrandLogo size="md" className="max-sm:h-[31px] max-sm:w-[128px]"/></motion.span></Link>
+      <Button type="button" appearance="subtle" icon={<Menu className="size-4"/>} className="shrink-0 lg:hidden" aria-label="Open navigation" onClick={onOpenMobile}/>
+      <Link href="/overview" prefetch={false} aria-label="Pourtrace home" className="pt-brand-logo-link relative inline-flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-ring"><motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><BrandLogo size="sm" idPrefix="app-navigation"/></motion.span></Link>
     </div>
     <nav aria-label="Primary domains" className="hidden min-w-0 items-center justify-center gap-1 lg:flex">
-      {WORKSPACE_PRESENTATION_SURFACES.map(item=>{const Icon=DOMAIN_ICONS[item.id];const selected=active===item.id;return <Link key={item.id} href={item.href} prefetch={false} aria-current={selected?'page':undefined} className={cn('carez-nav-button relative inline-flex h-8 shrink-0 items-center gap-2 rounded-md border border-[var(--shell-border)] bg-[var(--shell-surface)] px-3 text-xs font-semibold text-[var(--shell-muted)] outline-none transition-colors hover:bg-[var(--shell-accent)] hover:text-[var(--shell-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--pt-logo)]',selected&&'carez-nav-button-active text-[var(--shell-foreground)]')}><Icon className="size-3.5"/><span>{item.label}</span></Link>;})}
+      {WORKSPACE_PRESENTATION_SURFACES.map(item=>{const Icon=DOMAIN_ICONS[item.id];const selected=active===item.id;return <Link key={item.id} href={item.href} prefetch={false} aria-current={selected?'page':undefined} className={cn('carez-nav-button relative inline-flex h-8 shrink-0 items-center gap-2 rounded-sm border border-[var(--shell-border)] bg-[var(--shell-surface)] px-3 text-xs font-semibold text-[var(--shell-muted)] outline-none transition-colors hover:bg-[var(--shell-accent)] hover:text-[var(--shell-foreground)] focus-visible:ring-2 focus-visible:ring-ring',selected&&'carez-nav-button-active text-[var(--shell-foreground)]')}><Icon className="size-3.5"/><span>{item.label}</span></Link>;})}
     </nav>
     <div className="flex shrink-0 items-center justify-end gap-1">
-      <Button type="button" variant="ghost" size="sm" onClick={onOpenCommand} aria-label="Search Pourtrace" aria-keyshortcuts="Meta+K Control+K" className="gap-2 text-muted-foreground"><Search className="size-4"/><span className="hidden xl:inline">Search</span><kbd className="hidden text-[10px] text-muted-foreground 2xl:inline">⌘K</kbd></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={()=>setThemePreference(resolvedTheme==='dark'?'light':'dark')} aria-label={resolvedTheme==='dark'?'Switch to light mode':'Switch to dark mode'} title={resolvedTheme==='dark'?'Switch to light mode':'Switch to dark mode'}>{resolvedTheme==='dark'?<Sun className="size-4"/>:<Moon className="size-4"/>}</Button>
+      <Button type="button" appearance="subtle" size="small" icon={<Search className="size-4"/>} onClick={onOpenCommand} aria-label="Search Pourtrace" aria-keyshortcuts="Meta+K Control+K" className="gap-2 text-muted-foreground"><span className="hidden xl:inline">Search</span><kbd className="hidden text-[10px] text-muted-foreground 2xl:inline">⌘K</kbd></Button>
       <Link href="/settings" prefetch={false} aria-label={'Settings for '+userName} className="flex size-8 items-center justify-center border-l border-border text-xs font-medium text-muted-foreground outline-none hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50">{userName.trim().charAt(0).toUpperCase()||'C'}</Link>
     </div>
   </header>;
@@ -56,27 +46,60 @@ function CarezCommandRail({pathname,userName,onOpenCommand,onOpenMobile}:{pathna
 
 function MobileNavigation({open,onOpenChange,pathname,onNavigate}:{open:boolean;onOpenChange:(open:boolean)=>void;pathname:string;onNavigate:(href:string)=>void}){
   const activeSurface=resolveActiveWorkspacePresentationSurface(pathname)?.id;
-  return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="left" className="w-[90vw] max-w-sm gap-0 rounded-none p-0 lg:hidden"><SheetHeader className="border-b border-border"><SheetTitle>Navigation</SheetTitle></SheetHeader><nav aria-label="Mobile primary navigation" className="min-h-0 overflow-y-auto py-2">{WORKSPACE_PRESENTATION_SURFACES.map(destination=>{const selected=activeSurface===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={selected?'page':undefined} onClick={event=>{event.preventDefault();onOpenChange(false);onNavigate(destination.href);}} className={cn('flex min-h-14 items-center justify-between border-b border-border px-4 text-sm font-semibold outline-none hover:bg-accent/60 focus-visible:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',selected&&'border-l-2 border-l-primary bg-primary/5 text-primary')}>{destination.label}<ChevronRight className="size-4" aria-hidden="true"/></Link>;})}</nav><p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">Use Search for a specific tool or record.</p></SheetContent></Sheet>;
+  return <OverlayDrawer open={open} onOpenChange={(_,data)=>onOpenChange(data.open)} position="start" size="small" className="gap-0 p-0 lg:hidden">
+    <DrawerHeader className="border-b border-border"><div className="flex items-center justify-between"><h2 className="text-base font-semibold">Navigation</h2><Button appearance="subtle" aria-label="Close navigation" onClick={()=>onOpenChange(false)}>Close</Button></div></DrawerHeader>
+    <DrawerBody className="p-0"><nav aria-label="Mobile primary navigation" className="min-h-0 overflow-y-auto py-2">{WORKSPACE_PRESENTATION_SURFACES.map(destination=>{const selected=activeSurface===destination.id;return <Link key={destination.id} href={destination.href} prefetch={false} aria-current={selected?'page':undefined} onClick={event=>{event.preventDefault();onOpenChange(false);onNavigate(destination.href);}} className={cn('flex min-h-14 items-center justify-between border-b border-border px-4 text-sm font-semibold outline-none hover:bg-accent/60 focus-visible:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',selected&&'border-l-2 border-l-primary bg-primary/5 text-primary')}>{destination.label}<ChevronRight className="size-4" aria-hidden="true"/></Link>;})}</nav><p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">Use Search for a specific tool or record.</p></DrawerBody>
+  </OverlayDrawer>;
 }
 
 function CarezCommandMenu({open,onOpenChange,onNavigate,projects,opportunities,crew}:{open:boolean;onOpenChange:(open:boolean)=>void;onNavigate:(href:string)=>void;projects:ProjectOption[];opportunities:OpportunityOption[];crew:CrewOption[]}){
-  return <CommandDialog open={open} onOpenChange={onOpenChange} title="Search Pourtrace" description="Search workspaces and company records"><Command><CommandInput placeholder="Search projects, opportunities, financials, or crew…" autoFocus/><CommandList className="max-h-[min(65vh,32rem)]"><CommandEmpty>No matching result.</CommandEmpty>
-    <CommandGroup heading="Workspaces">{WORKSPACE_PRESENTATION_SURFACES.map(surface=><CommandItem key={surface.id} value={surface.label+' workspace '+surface.href} onSelect={()=>onNavigate(surface.href)}><span className="font-medium">{surface.label}</span></CommandItem>)}</CommandGroup>
-    <CommandGroup heading="Financials">{FINANCIAL_COMMANDS.map(item=><CommandItem key={item.href} value={item.label+' '+item.hint+' financials'} onSelect={()=>onNavigate(item.href)}><Wallet/><span><strong className="block font-medium">{item.label}</strong><span className="text-xs text-muted-foreground">{item.hint}</span></span></CommandItem>)}</CommandGroup>
-    {projects.length?<CommandGroup heading="Projects">{projects.map(project=><CommandItem key={project.id} value={project.jobNumber+' '+project.name+' '+project.location} onSelect={()=>onNavigate('/projects/'+encodeURIComponent(project.id))}><BriefcaseBusiness/><span className="truncate font-medium">{project.jobNumber?project.jobNumber+' · ':''}{project.name}</span></CommandItem>)}</CommandGroup>:null}
-    {opportunities.length?<CommandGroup heading="Opportunities">{opportunities.map(item=><CommandItem key={item.id} value={item.number+' '+item.name+' '+item.customer} onSelect={()=>onNavigate('/opportunities?lead='+encodeURIComponent(item.id))}><Users/><span className="truncate font-medium">{item.number?item.number+' · ':''}{item.name}</span></CommandItem>)}</CommandGroup>:null}
-    {crew.length?<CommandGroup heading="Crew members">{crew.map(member=><CommandItem key={member.id} value={member.name+' '+member.role+' crew employee'} onSelect={()=>onNavigate('/field?tab=crew&view=crew#crew-'+encodeURIComponent(member.id))}><HardHat/><span className="truncate font-medium">{member.name}<span className="ml-2 text-xs font-normal text-muted-foreground">{member.role}</span></span></CommandItem>)}</CommandGroup>:null}
-  </CommandList></Command></CommandDialog>;
+  const [query,setQuery]=useState('');
+  const [activeIndex,setActiveIndex]=useState(0);
+  const entries=useMemo(()=>[
+    ...WORKSPACE_PRESENTATION_SURFACES.map(surface=>({group:'Workspaces',label:surface.label,detail:'Workspace',href:surface.href,Icon:DOMAIN_ICONS[surface.id] as FluentIcon})),
+    ...FINANCIAL_COMMANDS.map(item=>({group:'Financials',label:item.label,detail:item.hint,href:item.href,Icon:Wallet as FluentIcon})),
+    ...projects.map(project=>({group:'Projects',label:(project.jobNumber?project.jobNumber+' · ':'')+project.name,detail:project.location,href:'/projects/'+encodeURIComponent(project.id),Icon:BriefcaseBusiness as FluentIcon})),
+    ...opportunities.map(item=>({group:'Opportunities',label:(item.number?item.number+' · ':'')+item.name,detail:item.customer,href:'/opportunities?lead='+encodeURIComponent(item.id),Icon:Users as FluentIcon})),
+    ...crew.map(member=>({group:'Crew members',label:member.name,detail:member.role,href:'/field?tab=crew&view=crew#crew-'+encodeURIComponent(member.id),Icon:HardHat as FluentIcon})),
+  ],[projects,opportunities,crew]);
+  const filtered=useMemo(()=>entries.filter(entry=>(entry.label+' '+entry.detail+' '+entry.group).toLowerCase().includes(query.trim().toLowerCase())).slice(0,100),[entries,query]);
+  useEffect(()=>{if(open){setQuery('');setActiveIndex(0)}},[open]);
+  const groups=['Workspaces','Financials','Projects','Opportunities','Crew members'];
+  return <Dialog open={open} onOpenChange={(_,data)=>onOpenChange(data.open)}>
+    <DialogSurface className="w-[min(640px,calc(100vw-2rem))] max-w-none border border-win-stroke bg-win-bg2 p-0 shadow-2xl">
+      <DialogTitle className="border-b border-win-stroke px-4 py-3 text-base">Search Pourtrace</DialogTitle>
+      <Input appearance="underline" autoFocus aria-label="Search workspaces and company records" placeholder="Search projects, opportunities, financials, or crew…" contentBefore={<Search/>} value={query} onChange={(_,data)=>{setQuery(data.value);setActiveIndex(0)}} onKeyDown={event=>{
+        if(event.key==='ArrowDown'){event.preventDefault();setActiveIndex(index=>Math.min(index+1,filtered.length-1))}
+        if(event.key==='ArrowUp'){event.preventDefault();setActiveIndex(index=>Math.max(index-1,0))}
+        if(event.key==='Enter'&&filtered[activeIndex]){event.preventDefault();onNavigate(filtered[activeIndex].href)}
+      }} className="mx-4 my-3 w-[calc(100%-2rem)]"/>
+      <div role="listbox" aria-label="Search results" className="max-h-[min(65vh,32rem)] overflow-y-auto px-2 pb-2">
+        {filtered.length===0?<p className="px-3 py-5 text-sm text-muted-foreground">No matching result.</p>:groups.map(group=>{
+          const rows=filtered.filter(entry=>entry.group===group);
+          return rows.length?<div key={group}><div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{group}</div>{rows.map(entry=>{
+            const index=filtered.indexOf(entry);const Icon=entry.Icon;
+            return <Button key={entry.href} role="option" aria-selected={index===activeIndex} appearance={index===activeIndex?'secondary':'subtle'} icon={<Icon/>} onMouseEnter={()=>setActiveIndex(index)} onClick={()=>onNavigate(entry.href)} className="mb-0.5 flex w-full justify-start text-left"><span className="min-w-0 truncate">{entry.label}{entry.detail?<small className="ml-2 font-normal text-muted-foreground">{entry.detail}</small>:null}</span></Button>;
+          })}</div>:null;
+        })}
+      </div>
+    </DialogSurface>
+  </Dialog>;
 }
 
 function CarezProjectPicker({open,onOpenChange,projects,activeProjectId,onSelect}:{open:boolean;onOpenChange:(open:boolean)=>void;projects:ProjectOption[];activeProjectId:string;onSelect:(projectId:string)=>void}){
-  return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="right" className="w-[92vw] gap-0 p-0 sm:max-w-md"><SheetHeader className="border-b border-border"><SheetTitle>Switch project</SheetTitle></SheetHeader><Command className="min-h-0 flex-1 rounded-none"><CommandInput placeholder="Search project name or job number..." autoFocus/><CommandList className="max-h-none flex-1"><CommandEmpty>No accessible project found.</CommandEmpty><CommandGroup heading="Projects">{projects.map(project=><CommandItem key={project.id} value={project.jobNumber+' '+project.name+' '+project.location} data-checked={project.id===activeProjectId} onSelect={()=>onSelect(project.id)}><BriefcaseBusiness/><span className="truncate font-medium">{project.jobNumber?project.jobNumber+' · ':''}{project.name}</span></CommandItem>)}</CommandGroup></CommandList></Command></SheetContent></Sheet>;
+  const [query,setQuery]=useState('');
+  useEffect(()=>{if(open)setQuery('')},[open]);
+  const visible=projects.filter(project=>(project.jobNumber+' '+project.name+' '+project.location).toLowerCase().includes(query.trim().toLowerCase()));
+  return <OverlayDrawer open={open} onOpenChange={(_,data)=>onOpenChange(data.open)} position="end" size="small" className="gap-0 p-0">
+    <DrawerHeader className="border-b border-border"><div className="flex items-center justify-between"><h2 className="text-base font-semibold">Switch project</h2><Button appearance="subtle" aria-label="Close project picker" onClick={()=>onOpenChange(false)}>Close</Button></div></DrawerHeader>
+    <DrawerBody className="min-h-0 p-3"><Input appearance="underline" autoFocus placeholder="Search project name or job number..." aria-label="Search projects" value={query} onChange={(_,data)=>setQuery(data.value)} className="w-full"/><div className="mt-3 max-h-[calc(100dvh-10rem)] overflow-y-auto">{visible.length?visible.map(project=><Button key={project.id} appearance={project.id===activeProjectId?'secondary':'subtle'} icon={<BriefcaseBusiness/>} onClick={()=>onSelect(project.id)} className="mb-1 w-full justify-start text-left">{project.jobNumber?project.jobNumber+' · ':''}{project.name}</Button>):<p className="px-2 py-4 text-sm text-muted-foreground">No accessible project found.</p>}</div></DrawerBody>
+  </OverlayDrawer>;
 }
 
 export function AppShell({children,userName,immersive=false}:{children:React.ReactNode;userName:string;immersive?:boolean}){
   const pathname=usePathname(),router=useRouter(),supabase=useMemo(()=>createClient(),[]);
   const [commandOpen,setCommandOpen]=useState(false),[mobileOpen,setMobileOpen]=useState(false),[projectSwitcherOpen,setProjectSwitcherOpen]=useState(false),[projects,setProjects]=useState<ProjectOption[]>([]),[opportunities,setOpportunities]=useState<OpportunityOption[]>([]),[crew,setCrew]=useState<CrewOption[]>([]);
-  const workstation=isWorkstation(pathname),activeDestination=useMemo(()=>resolveActiveDestination(pathname),[pathname]),projectContext=useMemo(()=>resolveProjectRoute(pathname),[pathname]),activeProject=useMemo(()=>projectContext?projects.find(project=>project.id===projectContext.projectId)||null:null,[projectContext,projects]);
+  const workstation=isWorkstation(pathname),estimatingWorkspace=pathname==='/opportunities',activeDestination=useMemo(()=>resolveActiveDestination(pathname),[pathname]),workspaceLabel=activeDestination?.label||resolveActiveWorkspacePresentationSurface(pathname)?.label||'Workspace',projectContext=useMemo(()=>resolveProjectRoute(pathname),[pathname]),activeProject=useMemo(()=>projectContext?projects.find(project=>project.id===projectContext.projectId)||null:null,[projectContext,projects]);
   useEffect(()=>{let cancelled=false;async function load(){
     const {data:{user}}=await supabase.auth.getUser();if(!user||cancelled)return;
     const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).maybeSingle();if(!profile?.company_id||cancelled)return;
@@ -95,5 +118,5 @@ export function AppShell({children,userName,immersive=false}:{children:React.Rea
   useEffect(()=>{setMobileOpen(false);setProjectSwitcherOpen(false);},[pathname]);
   if(immersive)return <div className="min-h-svh bg-background text-foreground">{children}</div>;
   const navigate=(href:string)=>{setCommandOpen(false);setMobileOpen(false);router.push(href)};
-  return <div className="carez-app flex min-h-svh flex-col bg-background text-foreground"><a href="#carez-workspace" className="carez-skip-link">Skip to workspace</a><CarezCommandRail pathname={pathname} userName={userName} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/><div className="flex min-w-0 flex-1 flex-col">{projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}<main id="carez-workspace" tabIndex={-1} aria-label={activeDestination?.label||'Pourtrace workspace'} className={workstation?'carez-workstation min-h-0 min-w-0 flex-1 overflow-hidden':'carez-workspace relative isolate bg-vignette-light min-h-0 min-w-0 flex-1 overflow-auto'}>{workstation?null:<CursorGlow/>}{children}</main></div><MobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} pathname={pathname} onNavigate={navigate}/><CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate} projects={projects} opportunities={opportunities} crew={crew}/>{projectContext&&activeProject?<CarezProjectPicker open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen} projects={projects} activeProjectId={activeProject.id} onSelect={projectId=>{setProjectSwitcherOpen(false);router.push(buildProjectSwitchHref(pathname,projectId))}}/>:null}</div>;
+  return <div className={cn('carez-app flex min-h-svh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden',workstation&&'h-svh overflow-hidden')}><a href="#carez-workspace" className="carez-skip-link">Skip to workspace</a><CarezCommandRail pathname={pathname} userName={userName} onOpenCommand={()=>setCommandOpen(true)} onOpenMobile={()=>setMobileOpen(true)}/><div className="flex min-h-0 min-w-0 flex-1 flex-col">{projectContext&&activeProject?<CarezProjectContextBar projectName={activeProject.name} projectDetail={activeProject.jobNumber||activeProject.location||'Project'} workspaceLabel={projectContext.workspaceLabel} onOpenProjectSwitcher={()=>setProjectSwitcherOpen(true)}/>:null}<main id="carez-workspace" tabIndex={-1} aria-label={workspaceLabel} className={cn('relative isolate min-h-0 min-w-0 flex-1',workstation?'carez-workstation overflow-hidden':estimatingWorkspace?'carez-workstation overflow-auto lg:overflow-hidden':'carez-workspace carez-desktop-main overflow-auto')}>{children}</main></div>{workstation||estimatingWorkspace?null:<div role="status" className="carez-desktop-status hidden shrink-0 items-center justify-between gap-3 px-3 text-[11px] lg:flex"><span className="min-w-0 truncate">{workspaceLabel}</span><Button type="button" appearance="subtle" size="small" onClick={()=>setCommandOpen(true)} aria-label="Open workspace search">Ctrl+K · Search</Button></div>}<MobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} pathname={pathname} onNavigate={navigate} /><CarezCommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate} projects={projects} opportunities={opportunities} crew={crew}/>{projectContext&&activeProject?<CarezProjectPicker open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen} projects={projects} activeProjectId={activeProject.id} onSelect={projectId=>{setProjectSwitcherOpen(false);router.push(buildProjectSwitchHref(pathname,projectId))}}/>:null}</div>;
 }

@@ -1,0 +1,37 @@
+diff --git a/lib/contexts/accordion.js b/lib/contexts/accordion.js
+index 36e9bcea88fab2c03f0a3575d00a9bbfe047becc..78b12a8007fa52c34fc5ecf60cf4b4bc2edab592 100644
+--- a/lib/contexts/accordion.js
++++ b/lib/contexts/accordion.js
+@@ -9,5 +9,5 @@ const accordionContextDefaultValue = {
+     requestToggle () {
+     /* noop */ }
+ };
+-export const { Provider: AccordionProvider } = AccordionContext;
++export const AccordionProvider = AccordionContext.Provider;
+ export const useAccordionContext_unstable = (selector)=>useContextSelector(AccordionContext, (ctx = accordionContextDefaultValue)=>selector(ctx));
+diff --git a/lib/contexts/accordionHeader.js b/lib/contexts/accordionHeader.js
+index 594987cdb46ff8506127b405aad44f9804df9f04..e3ddc293507d04d366fa91bbc762960cefd59278 100644
+--- a/lib/contexts/accordionHeader.js
++++ b/lib/contexts/accordionHeader.js
+@@ -7,7 +7,7 @@ const accordionHeaderContextDefaultValue = {
+     size: 'medium',
+     expandIconPosition: 'start'
+ };
+-export const { Provider: AccordionHeaderProvider } = AccordionHeaderContext;
++export const AccordionHeaderProvider = AccordionHeaderContext.Provider;
+ export const useAccordionHeaderContext_unstable = ()=>{
+     var _React_useContext;
+     return (_React_useContext = React.useContext(AccordionHeaderContext)) !== null && _React_useContext !== void 0 ? _React_useContext : accordionHeaderContextDefaultValue;
+diff --git a/lib/contexts/accordionItem.js b/lib/contexts/accordionItem.js
+index 66286b14955d5fcdb39adb4d7f40152d2648d80e..5373dab4a29a35e29fda73a81026e08983c42609 100644
+--- a/lib/contexts/accordionItem.js
++++ b/lib/contexts/accordionItem.js
+@@ -8,7 +8,7 @@ const accordionItemContextDefaultValue = {
+     onHeaderClick () {
+     /* noop */ }
+ };
+-export const { Provider: AccordionItemProvider } = AccordionItemContext;
++export const AccordionItemProvider = AccordionItemContext.Provider;
+ export const useAccordionItemContext_unstable = ()=>{
+     var _React_useContext;
+     return (_React_useContext = React.useContext(AccordionItemContext)) !== null && _React_useContext !== void 0 ? _React_useContext : accordionItemContextDefaultValue;

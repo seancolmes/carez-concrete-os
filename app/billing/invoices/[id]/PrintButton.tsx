@@ -1,7 +1,7 @@
 'use client';
 
-import {Button} from '@/components/ui/button';
+import {Button} from '@fluentui/react-components';
 
 export function PrintButton(){
-  return <Button type="button" onClick={()=>window.print()}>Print / Save PDF</Button>;
+  return <Button type="button" appearance="outline" onClick={()=>window.print()}>Print / Save PDF</Button>;
 }

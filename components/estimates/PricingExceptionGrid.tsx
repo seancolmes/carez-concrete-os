@@ -1,10 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PourtraceDialog } from '@/components/overlays/PourtraceOverlays';
-import { ChevronRight } from 'lucide-react';
+import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, Input, Select } from '@fluentui/react-components';
 import { groupPricingRows, paginateConditionGroups } from '@/lib/estimating/pricingGrid';
 
 export type PricingExceptionRow = {
@@ -112,19 +109,19 @@ export function PricingExceptionGrid({ rows }: { rows: PricingExceptionRow[] }) 
   return <>
     <div className="mb-3 flex flex-wrap items-end gap-2" aria-label="Pricing grid controls">
       <label className="min-w-44 flex-1 text-xs text-muted-foreground sm:max-w-xs">Search outputs
-        <Input value={query} onChange={event => { setQuery(event.target.value); resetView(); }} placeholder="Condition, drawing, source…" className="mt-1 h-9" />
+        <Input appearance="underline" value={query} onChange={event => { setQuery(event.target.value); resetView(); }} placeholder="Condition, drawing, source…" className="mt-1 h-9" />
       </label>
       <label className="text-xs text-muted-foreground">Status
-        <select value={filter} onChange={event => { setFilter(event.target.value); resetView(); }} className="mt-1 block h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground">
+        <Select appearance="outline" value={filter} onChange={event => { setFilter(event.target.value); resetView(); }} className="mt-1 block h-9 text-sm">
           <option value="all">All statuses</option><option value="needs-attention">Needs attention</option><option value="missing_input">No input</option><option value="missing_price">Missing price</option><option value="missing_labor_rate">Missing labor</option><option value="expired">Expired quote</option><option value="priced">Complete</option>
-        </select>
+        </Select>
       </label>
       <label className="text-xs text-muted-foreground">Sort
-        <select value={sort} onChange={event => { setSort(event.target.value); resetView(); }} className="mt-1 block h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground">
+        <Select appearance="outline" value={sort} onChange={event => { setSort(event.target.value); resetView(); }} className="mt-1 block h-9 text-sm">
           <option value="priority">Attention first</option><option value="name">Condition A–Z</option><option value="quantity-desc">Quantity high to low</option><option value="quantity-asc">Quantity low to high</option>
-        </select>
+        </Select>
       </label>
-      <button type="button" onClick={exportFiltered} disabled={!filtered.length} className="carez-button-neutral h-9 rounded-md border border-input bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:border-ring hover:bg-accent disabled:opacity-40">Export filtered CSV</button>
+      <Button type="button" appearance="outline" onClick={exportFiltered} disabled={!filtered.length} className="h-9 text-xs">Export filtered CSV</Button>
     </div>
     <div role="table" aria-label="Pricing outputs" aria-rowcount={filtered.length} className="overflow-hidden rounded-lg border text-sm">
       <div role="rowgroup" className="hidden border-b bg-muted/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground lg:block">
@@ -134,12 +131,12 @@ export function PricingExceptionGrid({ rows }: { rows: PricingExceptionRow[] }) 
       </div>
       <div role="rowgroup" ref={scrollRef} className={virtual ? 'overflow-y-auto' : ''} style={virtual ? { height: WINDOW_HEIGHT } : undefined} onScroll={virtual ? event => setScrollTop(event.currentTarget.scrollTop) : undefined}>
         {virtual && topSpace > 0 ? <div aria-hidden="true" style={{ height: topSpace }} /> : null}
-        {visibleGroups.map(group => { const holds = conditionHolds.get(group.id); return <details key={group.id} open={expanded.has(group.id)} className="group border-b border-border/70 last:border-b-0"><summary onClick={event => { event.preventDefault(); toggleGroup(group.id); }} className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 border-l-2 border-transparent bg-muted/60 px-3 text-xs hover:bg-muted focus-visible:border-primary"><span className="flex min-w-0 items-center gap-2"><ChevronRight aria-hidden="true" size={14} className="shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"/><span className="truncate font-semibold">{group.name}</span></span><span className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-[11px]"><span className="font-mono text-muted-foreground">{group.rows.length} output{group.rows.length === 1 ? '' : 's'}</span>{holds ? <span className="font-semibold text-warning">{Object.entries(holds).map(([status, count]) => `${count} ${attentionLabel[status]}`).join(' · ')}</span> : <span className="text-muted-foreground">No pricing holds</span>}</span></summary>{group.rows.map(row => <div role="row" key={row.id} className="grid h-12 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center border-b border-border/70 last:border-b-0 lg:grid-cols-[minmax(0,2fr)_minmax(110px,.65fr)_minmax(145px,.85fr)_100px]">
+        {visibleGroups.map(group => { const holds = conditionHolds.get(group.id); return <Accordion key={group.id} collapsible openItems={expanded.has(group.id)?[group.id]:[]} onToggle={() => toggleGroup(group.id)} className="border-b border-border/70 last:border-b-0"><AccordionItem value={group.id}><AccordionHeader style={{minHeight:GROUP_HEIGHT,paddingTop:0,paddingBottom:0}} className="border-l-2 border-transparent bg-muted/60 px-3 text-xs hover:bg-muted focus-visible:border-primary"><span className="flex min-w-0 flex-1 items-center justify-between gap-3"><span className="truncate font-semibold">{group.name}</span><span className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-[11px]"><span className="font-mono text-muted-foreground">{group.rows.length} output{group.rows.length === 1 ? '' : 's'}</span>{holds ? <span className="font-semibold text-warning">{Object.entries(holds).map(([status, count]) => `${count} ${attentionLabel[status]}`).join(' · ')}</span> : <span className="text-muted-foreground">No pricing holds</span>}</span></span></AccordionHeader><AccordionPanel style={{margin:0,padding:0}}>{group.rows.map(row => <div role="row" key={row.id} className="grid h-12 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center border-b border-border/70 last:border-b-0 lg:grid-cols-[minmax(0,2fr)_minmax(110px,.65fr)_minmax(145px,.85fr)_100px]">
           <div role="cell" className="min-w-0 px-3"><div className="flex min-w-0 items-center gap-3"><span className="truncate font-medium" title={row.name}>{row.name}</span>{row.sourceHref ? <a href={row.sourceHref} className="shrink-0 text-[11px] font-medium text-primary underline-offset-2 hover:underline">{row.sourceAction}</a> : null}</div><div className="mt-0.5 flex items-center gap-2 lg:hidden">{row.badge}<span className="truncate font-mono text-[11px] text-muted-foreground">{row.production}</span></div></div>
           <div role="cell" className="hidden truncate px-3 text-right font-mono text-xs font-semibold tabular-nums lg:block">{row.production}</div>
           <div role="cell" className="hidden min-w-0 px-3 lg:block">{row.badge}</div>
-          <div role="cell" className="px-2 text-right lg:px-3"><button type="button" className="carez-button-neutral h-8 rounded-md border border-input bg-secondary px-2.5 text-xs font-medium text-secondary-foreground hover:border-ring hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-row-id={row.id} onClick={event => setSelectedId(event.currentTarget.dataset.rowId || null)}>View / Edit</button></div>
-        </div>)}</details>; })}
+          <div role="cell" className="px-2 text-right lg:px-3"><Button type="button" appearance="outline" size="small" data-row-id={row.id} onClick={event => setSelectedId(event.currentTarget.dataset.rowId || null)}>View / Edit</Button></div>
+        </div>)}</AccordionPanel></AccordionItem></Accordion>; })}
         {virtual && bottomSpace > 0 ? <div aria-hidden="true" style={{ height: bottomSpace }} /> : null}
         {filtered.length === 0 ? <div className="px-3 py-8 text-center text-sm text-muted-foreground">No pricing outputs match these filters.</div> : null}
       </div>
@@ -147,13 +144,14 @@ export function PricingExceptionGrid({ rows }: { rows: PricingExceptionRow[] }) 
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
       <span aria-live="polite">{filtered.length ? `${pageStart + 1}–${pageStart + pageRowCount} of ${filtered.length}` : '0 results'}</span>
       <div className="flex items-center gap-2">
-        <label>Rows <select aria-label="Rows per page" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); resetView(); }} className="rounded border border-input bg-background px-1 py-1 text-foreground">{PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}</select></label>
-        <Button type="button" variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => changePage(currentPage - 1)}>Previous</Button>
+        <label>Rows <Select appearance="outline" aria-label="Rows per page" value={String(pageSize)} onChange={event => { setPageSize(Number(event.target.value)); resetView(); }}>{PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}</Select></label>
+        <Button type="button" appearance="outline" size="small" disabled={currentPage <= 1} onClick={() => changePage(currentPage - 1)}>Previous</Button>
         <span className="tabular-nums">{currentPage} / {totalPages}</span>
-        <Button type="button" variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => changePage(currentPage + 1)}>Next</Button>
+        <Button type="button" appearance="outline" size="small" disabled={currentPage >= totalPages} onClick={() => changePage(currentPage + 1)}>Next</Button>
       </div>
     </div>
-    <PourtraceDialog variant="review" open={Boolean(selected)} onOpenChange={open => { if (!open) { setSelectedId(null); handledRequest.current = null; const url = new URL(window.location.href); url.searchParams.delete('pricingOutput'); window.history.replaceState(null, '', url); } }} title={selected?.name || 'Pricing output'} description={selected?.measurement}>
+    <Dialog open={Boolean(selected)} onOpenChange={(_,data) => { if (!data.open) { setSelectedId(null); handledRequest.current = null; const url = new URL(window.location.href); url.searchParams.delete('pricingOutput'); window.history.replaceState(null, '', url); } }}>
+      <DialogSurface className="max-h-[90vh] overflow-y-auto"><DialogBody><DialogTitle>{selected?.name || 'Pricing output'}</DialogTitle><DialogContent>{selected?.measurement?<p className="text-xs text-muted-foreground">{selected.measurement}</p>:null}
         {selected ? <div className="space-y-5 p-4">
           <div className="grid grid-cols-2 gap-3 border-b pb-4"><div><div className="text-xs text-muted-foreground">Production</div><div className="mt-1 font-mono text-sm font-semibold">{selected.production}</div></div><div><div className="text-xs text-muted-foreground">Status</div><div className="mt-1">{selected.badge}</div></div></div>
           <section><h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current source</h3><div className="mt-2 text-sm">{selected.source || 'No pricing source recorded.'}</div></section>
@@ -161,6 +159,7 @@ export function PricingExceptionGrid({ rows }: { rows: PricingExceptionRow[] }) 
           {selected.sourceHref ? <a href={selected.sourceHref} className="inline-flex min-h-9 items-center border border-primary/50 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20">{selected.sourceAction}</a> : null}
           {selected.costHref ? <a href={selected.costHref} className="inline-flex min-h-9 items-center border border-primary/50 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20">Edit unit cost</a> : null}
         </div> : null}
-    </PourtraceDialog>
+      </DialogContent></DialogBody></DialogSurface>
+    </Dialog>
   </>;
 }

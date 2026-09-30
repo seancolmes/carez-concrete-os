@@ -25,8 +25,8 @@ export function TakeoffScaleOverlay({
       const width = bounds.width * pageWidth;
       const height = bounds.height * pageHeight;
       return <g key={region.id}>
-        <rect x={x} y={y} width={width} height={height} fill="rgba(0,153,102,.04)" stroke="#009966" strokeWidth="1.5" strokeDasharray="8 5" vectorEffect="non-scaling-stroke"/>
-        <rect x={x + 5} y={y + 5} width={Math.max(82, region.scale_label.length * 6 + 18)} height="18" rx="4" fill="rgba(23,27,25,.88)" stroke="#009966" vectorEffect="non-scaling-stroke"/>
+        <rect x={x} y={y} width={width} height={height} fill="rgba(185,149,107,.05)" stroke="#B9956B" strokeWidth="1.5" strokeDasharray="8 5" vectorEffect="non-scaling-stroke"/>
+        <rect x={x + 5} y={y + 5} width={Math.max(82, region.scale_label.length * 6 + 18)} height="18" rx="4" fill="rgba(10,10,10,.9)" stroke="#B9956B" vectorEffect="non-scaling-stroke"/>
         <text x={x + 12} y={y + 17} fill="#F4F6F5" fontSize="9" fontWeight="700">{region.name} · {region.scale_label}</text>
       </g>;
     })}

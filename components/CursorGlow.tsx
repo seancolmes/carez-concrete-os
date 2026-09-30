@@ -11,7 +11,7 @@ export function CursorGlow() {
   const opacity=useMotionValue(0);
   const springX=useSpring(x,{stiffness:180,damping:32});
   const springY=useSpring(y,{stiffness:180,damping:32});
-  const backgroundImage=useMotionTemplate`radial-gradient(400px circle at ${springX}px ${springY}px, rgba(0,153,102,0.12), transparent 70%)`;
+  const backgroundImage=useMotionTemplate`radial-gradient(400px circle at ${springX}px ${springY}px, rgba(212,164,106,0.10), transparent 70%)`;
 
   useEffect(()=>{
     if(reducedMotion||!window.matchMedia('(pointer: fine)').matches)return;
@@ -33,5 +33,5 @@ export function CursorGlow() {
   },[opacity,reducedMotion,x,y]);
 
   if(reducedMotion)return null;
-  return <motion.div aria-hidden="true" className="carez-cursor-glow pointer-events-none fixed inset-0 z-[-1] hidden dark:block motion-reduce:hidden" style={{backgroundImage,opacity}}/>;
+  return <motion.div aria-hidden="true" className="carez-cursor-glow pointer-events-none fixed inset-0 z-[-1] motion-reduce:hidden" style={{backgroundImage,opacity}}/>;
 }

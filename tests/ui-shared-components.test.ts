@@ -1,80 +1,52 @@
 import assert from 'node:assert/strict';
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
+import {dirname,join,relative,resolve,sep} from 'node:path';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {resolveProjectRoute} from '../lib/ui/navigation.ts';
 
 const root=new URL('../',import.meta.url);
+const rootPath=fileURLToPath(root);
 const readMaybe=(path:string)=>{
   const url=new URL(path,root);
   return existsSync(url)?readFileSync(url,'utf8'):'';
 };
 
-test('shared Carez state/workspace components are exported from one source-owned package',()=>{
-  const index=readMaybe('components/carez/index.ts');
-  const state=readMaybe('components/carez/state.tsx');
-  const record=readMaybe('components/carez/record-header.tsx');
-  const inspector=readMaybe('components/carez/inspector.tsx');
-  const projectContext=readMaybe('components/carez/project-context.tsx');
+function sourceFiles(directory:string):string[]{
+  return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{
+    const path=join(directory,entry.name);
+    return entry.isDirectory()?sourceFiles(path):/\.[jt]sx?$/.test(entry.name)?[path]:[];
+  });
+}
 
-  assert.match(index,/state/);
-  assert.match(index,/record-header/);
-  assert.match(index,/inspector/);
-  assert.match(index,/project-context/);
-
-  for(const [name,source] of [['state',state],['record header',record],['inspector',inspector],['project context',projectContext]]){
-    assert.ok(source.length>0,`${name} source must exist`);
-    assert.doesNotMatch(source,/#[0-9a-fA-F]{3,8}\b/,`${name} must use semantic tokens instead of hard-coded colors`);
+test('application source imports Fluent instead of removed UI frameworks or shared UI primitives',()=>{
+  const forbidden:string[]=[];
+  const sharedUiPath=resolve(rootPath,'components/ui');
+  for(const file of [...sourceFiles(resolve(rootPath,'app')),...sourceFiles(resolve(rootPath,'components'))]){
+    const source=readFileSync(file,'utf8');
+    for(const match of source.matchAll(/\b(?:from\s*|import\s*|require\s*\(\s*)['"]([^'"]+)['"]/g)){
+      const specifier=match[1];
+      const relativeTarget=specifier.startsWith('.')?resolve(dirname(file),specifier):null;
+      if(/^(?:@base-ui\/|@radix-ui\/|lucide-react(?:\/|$)|@\/components\/ui(?:\/|$))/.test(specifier)
+        ||(relativeTarget!==null&&(relativeTarget===sharedUiPath||relativeTarget.startsWith(`${sharedUiPath}${sep}`)))){
+        forbidden.push(`${relative(rootPath,file)}: ${specifier}`);
+      }
+    }
   }
-
-  assert.match(state,/CarezStatus/);
-  assert.match(state,/CarezAuthorityState/);
-  assert.match(state,/CarezSaveState/);
-  assert.match(state,/CarezFeedback/);
-  assert.match(state,/CarezProvenance/);
-  assert.match(state,/aria-live/);
-  assert.match(state,/role=.alert.|role=\{[^}]*alert/);
-
-  assert.match(record,/data-slot=.carez-record-header/);
-  assert.match(record,/actions/);
-  assert.match(record,/status/);
-
-  assert.match(inspector,/data-slot=.carez-inspector/);
-  assert.match(inspector,/CarezInspectorHeader/);
-  assert.match(inspector,/CarezInspectorSection/);
-  assert.match(inspector,/CarezInspectorFooter/);
+  assert.deepEqual(forbidden,[]);
 });
 
-test('shared Data Grid exposes selected, sortable, loading, empty, and error semantics',()=>{
-  const grid=readMaybe('components/carez/data-grid.tsx');
-  assert.match(grid,/aria-selected/);
-  assert.match(grid,/aria-sort/);
-  assert.match(grid,/error/);
-  assert.match(grid,/CarezLoadingSkeleton/);
-  assert.match(grid,/CarezEmptyState/);
-  assert.match(grid,/var\(--density-row-height\)/);
+test('the application supplies a light and dark Fluent provider',()=>{
+  const layout=readMaybe('app/layout.tsx');
+  const appearance=readMaybe('components/CarezAppearanceProvider.tsx');
+  assert.match(layout,/<CarezAppearanceProvider>/);
+  assert.match(appearance,/FluentProvider/);
+  assert.match(appearance,/webLightTheme/);
+  assert.match(appearance,/webDarkTheme/);
+  assert.match(appearance,/theme=\{resolvedTheme===['"]dark['"]\?carezDarkTheme:webLightTheme\}/);
 });
 
-test('semantic number field exposes presentation metadata without client calculation authority',()=>{
-  const fields=readMaybe('components/carez/fields.tsx');
-  const start=fields.indexOf('type NumberInputProps');
-  const end=fields.indexOf('export type CarezDateTimeMode');
-  const numberField=start>=0&&end>start?fields.slice(start,end):fields;
-  assert.match(numberField,/kind\?/);
-  assert.match(numberField,/resolveNumericKind/);
-  assert.match(numberField,/data-numeric-kind/);
-  assert.match(numberField,/aria-invalid/);
-  assert.doesNotMatch(numberField,/toFixed\(/);
-  assert.doesNotMatch(numberField,/Math\.round\(/);
-});
-test('toolbar foundation prevents uncontrolled wrapping and remains task-local',()=>{
-  const workspace=readMaybe('components/carez/workspace.tsx');
-  assert.match(workspace,/data-slot=.carez-toolbar/);
-  assert.match(workspace,/flex-nowrap/);
-  assert.match(workspace,/overflow-x-auto|overflow-hidden/);
-});
-
-test('project context remains limited to the authoritative Issue #71 route boundary after extraction',()=>{
-  assert.ok(readMaybe('components/carez/project-context.tsx').length>0);
+test('project context stays within its authoritative route boundary',()=>{
   assert.deepEqual(resolveProjectRoute('/projects/project-1'),{projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'});
   assert.deepEqual(resolveProjectRoute('/job-setup/project-1'),{projectId:'project-1',workspace:'job-setup',workspaceLabel:'Job setup'});
   assert.equal(resolveProjectRoute('/schedule'),null);
@@ -82,12 +54,22 @@ test('project context remains limited to the authoritative Issue #71 route bound
   assert.equal(resolveProjectRoute('/estimates/estimate-1'),null);
 });
 
-test('Project Overview retains the shared record header and actionable workspaces',()=>{
+test('Project Overview retains tenant boundaries, workspaces, and direct actions',()=>{
   const page=readMaybe('app/projects/[id]/page.tsx');
-  assert.match(page,/CarezRecordHeader/);
+  assert.match(page,/if\(!user\)redirect\(['"]\/login['"]\)/);
+  assert.match(page,/\.eq\(['"]company_id['"],profile\.company_id\)/);
   assert.match(page,/Review Crew Time/);
-  assert.match(page,/Order Materials/);
   assert.match(page,/What Needs Your Attention/);
-  assert.match(page,/href="\/field\?view=production"/);
-  assert.match(page,/href="\/financials\?tab=procurement&view=procurement"/);
+  for(const href of [
+    '/field?view=time-review',
+    '/field?view=production',
+    '/field?view=schedule',
+    '/field?view=work-packages',
+    '/documents',
+    '/forecast',
+    '/change-orders',
+  ])assert.ok(page.includes(`href="${href}"`),`Project Overview action ${href} must remain linked`);
+  for(const tab of ['Commercial Baseline','Scope & Specs','Activity'])assert.ok(page.includes(tab),`${tab} tab must remain`);
+  assert.doesNotMatch(page,/Order Materials/);
+  assert.doesNotMatch(page,/href="\/financials\?tab=procurement&view=procurement"/);
 });

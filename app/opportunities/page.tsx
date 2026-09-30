@@ -1,16 +1,17 @@
+import {Button,Input} from '@fluentui/react-components';
 import {redirect} from 'next/navigation';
-import {BriefcaseBusiness,ChartNoAxesCombined,ClipboardList,Wallet} from 'lucide-react';
+import { BriefcaseRegular as BriefcaseBusiness, DataTrendingRegular as ChartNoAxesCombined, ClipboardTaskListLtrRegular as ClipboardList, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {AppShell} from '@/components/AppShell';
 import {MetricBentoTile} from '@/components/projects/MetricBentoTile';
 import {OpportunitiesGrid,type OpportunityGridRow} from '@/components/opportunities/OpportunitiesGrid';
-import {ExpandedOpportunityWorkspace,type OpportunityTab} from '@/components/opportunities/ExpandedOpportunityWorkspace';
 import {ScopeView} from '@/components/opportunities/views/ScopeView';
+import type {OpportunityDetail} from '@/components/opportunities/views/OpportunitySectionNav';
 import {IntakeView} from '@/components/opportunities/views/IntakeView';
-import {TakeoffView} from '@/components/opportunities/views/TakeoffView';
 import {WorksheetView} from '@/components/opportunities/views/WorksheetView';
 import {AuditView} from '@/components/opportunities/views/AuditView';
 import {ProposalView} from '@/components/opportunities/views/ProposalView';
 import {BidIntelligenceView} from '@/components/opportunities/views/BidIntelligenceView';
+import {ActivityView} from '@/components/opportunities/views/ActivityView';
 import {OpportunityActions} from '@/components/opportunities/OpportunityActions';
 import {OpportunityToolSwitcher,type OpportunityTool} from '@/components/opportunities/OpportunityToolSwitcher';
 import Link from 'next/link';
@@ -18,7 +19,9 @@ import {createTakeoffSet} from '@/app/takeoff/actions';
 import {convertLeadToEstimate} from '@/app/leads/actions';
 import {createClient} from '@/lib/supabase/server';
 
-type Search={lead?:string;estimate?:string;takeoff?:string;tab?:string;view?:string};
+type Search={lead?:string;estimate?:string;takeoff?:string;tab?:string;view?:string;section?:string;detail?:string};
+type OpportunitySection='overview'|'scope'|'commercial'|'proposal'|'activity';
+const sections:[OpportunitySection,string][]=[['overview','Bids'],['scope','Scope & Plans'],['commercial','Pricing'],['proposal','Proposal'],['activity','Activity']];
 const closed=new Set(['won','lost','declined','superseded','accepted','approved','awarded']);
 const active=(status:string|null|undefined)=>!closed.has(status||'');
 const stage=(status:string|null|undefined)=>String(status||'New').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -80,34 +83,59 @@ export default async function OpportunitiesPage({searchParams}:{searchParams:Pro
   const selectedRow=rows.find(row=>row.key===selectedKey);
   const estimateId=query.estimate&&estimates.some(item=>item.id===query.estimate&&(!selectedLeadId||item.lead_id===selectedLeadId))?query.estimate:selectedRow?.estimateId||null;
   const set=query.takeoff&&sets.some(item=>item.id===query.takeoff&&item.estimate_id===estimateId)?sets.find(item=>item.id===query.takeoff):estimateId?latestSet.get(estimateId):undefined;
+  if(query.tab==='takeoff'&&set)redirect(`/takeoff/${set.id}`);
   const currentEstimate=estimates.find(item=>item.id===estimateId);
   const issuedProposal=estimateId?latestProposal.get(estimateId):undefined;
   const takeoffLocked=Boolean(currentEstimate&&['accepted','approved','superseded'].includes(currentEstimate.status))||Boolean(issuedProposal);
-  const validTabs:OpportunityTab[]=['scope','takeoff','worksheet','proposal'];
-  const initialTab=validTabs.includes(query.tab as OpportunityTab)?query.tab as OpportunityTab:'scope';
   const validTools:OpportunityTool[]=['intake','audit','intelligence'];
   const activeTool=validTools.includes(query.view as OpportunityTool)?query.view as OpportunityTool:null;
+  const sectionFromLegacyTab=query.tab==='worksheet'?'commercial':query.tab==='scope'||query.tab==='takeoff'?'scope':query.tab==='proposal'?'proposal':activeTool?'activity':'overview';
+  const section=sections.some(([key])=>key===query.section)?query.section as OpportunitySection:sectionFromLegacyTab;
+  const detail=(['scope','plans','estimates','proposals'] as const).find(value=>value===query.detail)||'scope';
   const openRows=rows.filter(row=>active(row.stage.toLowerCase().replaceAll(' ','_')));
   const decided=leads.filter(item=>item.status==='won'||item.status==='lost').length;
   const wins=leads.filter(item=>item.status==='won').length;
   const backlog=estimates.filter(item=>active(item.status)&&!latestProposal.has(item.id)&&(!latestSet.has(item.id)||!['complete','completed'].includes(latestSet.get(item.id)?.status||''))).length;
   const openValue=openRows.reduce((sum,row)=>sum+Number(row.value||0),0);
-  const takeoffPanel=set?<TakeoffView setId={set.id}/>:estimateId?takeoffLocked?<div role="status" className="space-y-3 border-l-2 border-[#D5A94A] py-2 pl-4 text-sm"><p className="font-semibold">This estimate revision is locked.</p><p className="text-muted-foreground">Takeoff cannot start on an issued or finalized revision. Its scope and quantities remain preserved. An open issued proposal can be revised from the Proposal view.</p>{issuedProposal&&<Link href={`/opportunities?estimate=${estimateId}&tab=proposal`} className="inline-flex font-semibold text-[#007A52] hover:underline dark:text-[#009966]">Open Proposal</Link>}</div>:<div className="space-y-3"><p className="text-sm text-muted-foreground">No plan set is linked to this estimate revision yet.</p><form action={createTakeoffSet} className="flex flex-wrap gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><input name="name" aria-label="Plan set name" defaultValue="Concrete Takeoff" className="h-9 rounded-sm border border-input bg-background px-3 text-sm"/><button type="submit" className="carez-button-primary h-9 rounded-sm border border-[#009966]/30 bg-[#007A52] px-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(0,122,82,0.15)] transition-all hover:bg-[#005c3e]">Start takeoff</button></form></div>:<StartEstimate leadId={selectedRow?.leadId||null}/>;
+  const takeoffPanel=estimateId?takeoffLocked?<div role="status" className="space-y-3 border-l-2 border-warning py-2 pl-4 text-sm"><p className="font-semibold">This estimate revision is locked.</p><p className="text-muted-foreground">Takeoff cannot start on an issued or finalized revision. Its scope and quantities remain preserved. An open issued proposal can be revised from the Proposal view.</p>{issuedProposal&&<Link href={`/opportunities?estimate=${estimateId}&tab=proposal`} className="inline-flex font-semibold text-foreground hover:underline">Open Proposal</Link>}</div>:<div className="space-y-3"><p className="text-sm text-muted-foreground">No plan set is linked to this estimate revision yet.</p><form action={createTakeoffSet} className="flex flex-wrap gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><Input appearance="underline" name="name" aria-label="Plan set name" defaultValue="Concrete Takeoff"/><Button type="submit" appearance="primary">Start takeoff</Button></form></div>:<StartEstimate leadId={selectedRow?.leadId||null}/>;
 
-  const workspace=selectedRow?<ExpandedOpportunityWorkspace key={selectedRow.key} initialTab={initialTab} context={selectedRow}
-    scope={<ScopeSection leadId={selectedRow.leadId}/>}
-    takeoff={takeoffPanel}
-    worksheet={estimateId?<WorksheetView estimateId={estimateId}/>:<StartEstimate leadId={selectedRow.leadId}/>}
-    proposal={estimateId?<ProposalView estimateId={estimateId}/>:<StartEstimate leadId={selectedRow.leadId}/>}
-  />:null;
-
-  return <AppShell userName={profile.full_name||user.email||'Owner'}><div className="mx-auto flex w-full max-w-screen-2xl flex-col pb-8">
-    <header className="industrial-header mb-6 flex flex-wrap items-start justify-between gap-3 px-4 py-3"><div><nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Opportunities</nav><h1 className="mt-1 text-2xl font-bold tracking-tight">Opportunities</h1><p className="mt-1 text-sm text-muted-foreground">Follow each pursuit from scope and plans through estimate and proposal.</p></div><OpportunityActions projects={projectResult.data||[]}/></header>
-    <section aria-label="Preconstruction summary" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4"><MetricBentoTile title="Active Pipeline" icon={<BriefcaseBusiness/>} value={openRows.length} description="Open leads and bids"/><MetricBentoTile title="Win Rate" icon={<ChartNoAxesCombined/>} value={decided?Math.round(wins/decided*100):null} suffix="%" description={decided?`${wins} wins from ${decided} decisions`:'No decided bids yet'}/><MetricBentoTile title="Takeoff Backlog" icon={<ClipboardList/>} value={backlog} description="Active revisions needing takeoff"/><MetricBentoTile title="Open Value" icon={<Wallet/>} value={openValue} prefix="$" description="Open lead and bid value"/></section>
-    <OpportunityToolSwitcher initialView={activeTool} panel={activeTool==='intake'?<IntakeView/>:activeTool==='audit'?<AuditView estimateId={query.estimate}/>:activeTool==='intelligence'?<BidIntelligenceView/>:null}/>
-    <section aria-label="Opportunities and bids"><OpportunitiesGrid rows={rows} selectedKey={selectedRow?.key||null} workspace={workspace}/></section>
-  </div></AppShell>;
+  const recordParams=new URLSearchParams();
+  if(selectedRow?.leadId)recordParams.set('lead',selectedRow.leadId);
+  if(estimateId)recordParams.set('estimate',estimateId);
+  const sectionHref=(key:OpportunitySection)=>{
+    const params=new URLSearchParams(recordParams);
+    params.set('section',key);
+    if(key==='scope')params.set('detail',detail);
+    return `/opportunities?${params.toString()}`;
+  };
+  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+    <div className="flex min-h-0 w-full flex-col lg:h-full lg:overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-2.5">
+        <div className="min-w-0">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground"><Link href="/overview">Workspace</Link><span aria-hidden="true">/</span><Link href="/opportunities">Bids</Link>{selectedRow?<><span aria-hidden="true">/</span><span className="truncate">{selectedRow.number}</span></>:null}</nav>
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5"><h1 className="truncate text-base font-semibold text-foreground">{selectedRow?.name||'Opportunity workbench'}</h1>{selectedRow?<span className="text-xs text-muted-foreground">{selectedRow.stage}{currentEstimate?' · '+currentEstimate.estimate_number+'-R'+(currentEstimate.version??0):''}</span>:<span className="text-xs text-muted-foreground">Bids, plans, pricing, and proposals</span>}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {set?<Link href={'/takeoff/'+set.id} className="inline-flex h-8 items-center rounded-md border border-border bg-secondary px-3 text-xs font-medium text-foreground hover:bg-accent">Open Takeoff</Link>:null}
+          {estimateId?<Link href={'/vendor-quotes?estimate='+encodeURIComponent(estimateId)} className="inline-flex h-8 items-center rounded-md border border-border bg-secondary px-3 text-xs font-medium text-foreground hover:bg-accent">Price sources</Link>:null}
+          <OpportunityActions projects={projectResult.data||[]}/>
+        </div>
+      </header>
+      <nav aria-label="Estimating tasks" className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-background px-3 py-1.5">{sections.map(([key,label])=><Link key={key} href={sectionHref(key)} aria-current={section===key?'page':undefined} className={section===key?'whitespace-nowrap rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-foreground':'whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground'}>{label}</Link>)}</nav>
+      <div className="min-h-0 flex-1 overflow-auto p-3 lg:overflow-hidden lg:p-4">
+        {section==='overview'?<div className="flex min-h-0 flex-col gap-3 lg:h-full">
+          <section aria-label="Pipeline position" className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4"><MetricBentoTile title="Active Pipeline" icon={<BriefcaseBusiness/>} value={openRows.length} description="Open leads and bids"/><MetricBentoTile title="Win Rate" icon={<ChartNoAxesCombined/>} value={decided?Math.round(wins/decided*100):null} suffix="%" description={decided?wins+' wins from '+decided+' decisions':'No decided bids yet'}/><MetricBentoTile title="Takeoff Backlog" icon={<ClipboardList/>} value={backlog} description="Active revisions needing takeoff"/><MetricBentoTile title="Open Value" icon={<Wallet/>} value={openValue} prefix="$" description="Open lead and bid value"/></section>
+          <section aria-label="Opportunities and bids" className="min-h-0 flex-1"><OpportunitiesGrid rows={rows} selectedKey={selectedRow?.key||null}/></section>
+        </div>:null}
+        {section==='scope'?<section aria-label="Scope and plans" className="h-full min-h-0 overflow-y-auto">{selectedRow?query.tab==='takeoff'?takeoffPanel:<ScopeSection leadId={selectedRow.leadId} panel={detail} estimateId={estimateId}/>:<SelectRecord rows={rows}/>}</section>:null}
+        {section==='commercial'?<section aria-label="Pricing" className="h-full min-h-0 overflow-y-auto">{selectedRow?estimateId?<WorksheetView estimateId={estimateId}/>:<StartEstimate leadId={selectedRow.leadId}/>:<SelectRecord rows={rows}/>}</section>:null}
+        {section==='proposal'?<section aria-label="Proposal" className="h-full min-h-0 overflow-y-auto">{selectedRow?estimateId?<ProposalView estimateId={estimateId}/>:<StartEstimate leadId={selectedRow.leadId}/>:<SelectRecord rows={rows}/>}</section>:null}
+        {section==='activity'?<section aria-label="Opportunity activity" className="h-full min-h-0 overflow-y-auto"><OpportunityToolSwitcher initialView={activeTool} panel={activeTool==='intake'?<IntakeView/>:activeTool==='audit'?<AuditView estimateId={estimateId||undefined}/>:activeTool==='intelligence'?<BidIntelligenceView/>:null}/>{!activeTool?selectedRow?.leadId?<ActivityView leadId={selectedRow.leadId}/>:selectedRow?<p className="border border-border bg-card p-4 text-sm text-muted-foreground">This standalone estimate has no lead activity.</p>:<SelectRecord rows={rows}/>:null}</section>:null}
+      </div>
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-card px-4 py-1.5 text-[11px] text-muted-foreground"><span>{rows.length} loaded bids</span><span>{selectedRow?selectedRow.number+' · '+selectedRow.name:'Select a bid to inspect its work'}</span></footer>
+    </div>
+  </AppShell>;
 }
-
-function ScopeSection({leadId}:{leadId:string|null}){return leadId?<ScopeView id={leadId}/>:<p className="text-sm text-muted-foreground">This estimate was started without a linked CRM lead. Its scope and pricing remain in the worksheet.</p>}
-function StartEstimate({leadId}:{leadId:string|null}){return leadId?<div className="space-y-3"><p className="text-sm text-muted-foreground">Start an estimate revision to continue this opportunity.</p><form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={leadId}/><button type="submit" className="carez-button-primary h-9 rounded-sm border border-[#009966]/30 bg-[#007A52] px-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(0,122,82,0.15)] transition-all hover:bg-[#005c3e]">Start estimate</button></form></div>:<p className="text-sm text-muted-foreground">Choose an estimate revision to continue.</p>}
+function ScopeSection({leadId,panel,estimateId}:{leadId:string|null;panel:OpportunityDetail;estimateId:string|null}){return leadId?<ScopeView id={leadId} panel={panel} estimateId={estimateId}/>:<p className="border border-border bg-card p-4 text-sm text-muted-foreground">This estimate was started without a linked CRM lead. Its scope and pricing remain in the worksheet.</p>}
+function SelectRecord({rows}:{rows:OpportunityGridRow[]}){return <div className="flex h-full min-h-0 flex-col gap-2"><p className="shrink-0 text-sm text-muted-foreground">Select a bid below to open this task.</p><div className="min-h-0 flex-1"><OpportunitiesGrid rows={rows} selectedKey={null}/></div></div>}
+function StartEstimate({leadId}:{leadId:string|null}){return leadId?<div className="space-y-3 border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Start an estimate revision to continue this opportunity.</p><form action={convertLeadToEstimate}><input type="hidden" name="lead_id" value={leadId}/><Button type="submit" appearance="primary">Start estimate</Button></form></div>:<p className="border border-border bg-card p-4 text-sm text-muted-foreground">Choose an estimate revision to continue.</p>}

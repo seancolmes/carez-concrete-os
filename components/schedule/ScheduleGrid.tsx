@@ -1,29 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import {
   useEffect,useMemo,useRef,useState,useTransition,
   type KeyboardEvent as ReactKeyboardEvent,type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {useRouter} from 'next/navigation';
-import {
-  ArrowDown,ArrowUp,CalendarOff,ChevronDown,MoreHorizontal,Rows3,Search,Users,
-} from 'lucide-react';
+import { ArrowDownRegular as ArrowDown, ArrowUpRegular as ArrowUp, CalendarCancelRegular as CalendarOff, ChevronDownRegular as ChevronDown, MoreHorizontalRegular as MoreHorizontal, RowTripleRegular as Rows3, SearchRegular as Search, PeopleRegular as Users } from '@fluentui/react-icons';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Checkbox,Dropdown,Input,Menu,MenuDivider,MenuItem,MenuList,MenuPopover,MenuTrigger,Option,Tab,TabList,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow} from '@fluentui/react-components';
 import {deleteScheduleItem,updateScheduleStatus} from '@/app/schedule/actions';
-import {
-  CarezDataGrid,CarezDataGridBody,CarezDataGridCell,CarezDataGridHead,CarezDataGridHeaderCell,
-  CarezDataGridRow,CarezDataGridTable,
-} from '@/components/carez/data-grid';
-import {Badge} from '@/components/ui/badge';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Checkbox} from '@/components/ui/checkbox';
-import {
-  DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator,DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
-import {Input} from '@/components/ui/input';
-import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
-import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {cn} from '@/lib/utils';
 import {ScheduleMatrix} from './ScheduleMatrix';
 
@@ -124,7 +108,7 @@ function statusRank(item:ScheduleGridItem){
 
 function ReadinessBadge({item}:{item:ScheduleGridItem}){
   const state=readinessBucket(item);
-  return <Badge variant={state==='blocked'?'destructive':'outline'} className={cn(
+  return <Badge appearance="outline" color={state==='blocked'?'danger':'informative'} className={cn(
     'h-5 rounded-none px-1.5 font-mono text-[10px] uppercase tracking-[.04em]',
     state==='ready'&&'border-success/30 bg-success/10 text-success',
     state==='at_risk'&&'border-warning/30 bg-warning/10 text-warning',
@@ -134,7 +118,7 @@ function ReadinessBadge({item}:{item:ScheduleGridItem}){
 function WorkStatusBadge({item}:{item:ScheduleGridItem}){
   const completed=item.status==='completed';
   const active=['confirmed','in_progress'].includes(item.status);
-  return <Badge variant="outline" className={cn(
+  return <Badge appearance="outline" className={cn(
     'h-5 rounded-none px-1.5 font-mono text-[10px]',
     completed&&'border-success/25 bg-success/8 text-success',
     active&&'bg-muted text-foreground',
@@ -332,43 +316,40 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
     className="absolute inset-y-1 right-0 z-40 w-1 cursor-col-resize rounded-full bg-transparent outline-none hover:bg-ring/45 focus-visible:bg-ring"
   />;
 
-  const header=(key:SortKey,column:ColumnKey,label:string,min:number,max:number,stickyLeft?:number)=><CarezDataGridHeaderCell
+  const header=(key:SortKey,column:ColumnKey,label:string,min:number,max:number,stickyLeft?:number)=><TableHeaderCell
     className={cn('relative',stickyLeft!==undefined&&'sticky z-30 bg-muted/95 backdrop-blur-sm')}
     style={{width:widths[column],minWidth:widths[column],left:stickyLeft}}
   >
-    <button type="button" onClick={()=>updateSort(key)} className="flex w-full items-center gap-1 text-left outline-none hover:text-foreground focus-visible:text-foreground">
+    <Button type="button" appearance="subtle" size="small" onClick={()=>updateSort(key)} className="flex w-full items-center gap-1 text-left outline-none hover:text-foreground focus-visible:text-foreground">
       <span className="truncate">{label}</span>{sortIcon(key)}
-    </button>
+    </Button>
     {resizer(column,min,max)}
-  </CarezDataGridHeaderCell>;
+  </TableHeaderCell>;
 
   const actualToolbar=<div className="w-full space-y-3 border-b border-border pb-3 pt-1">
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 lg:gap-x-4">
-      <ToggleGroup value={[view]} onValueChange={values=>{const next=values[0] as ViewMode|undefined;if(next)setView(next)}} size="sm" aria-label="Schedule view">
-        <ToggleGroupItem value="work"><Rows3 className="size-3.5"/> Work plan</ToggleGroupItem>
-        <ToggleGroupItem value="crew"><Users className="size-3.5"/> Crew loading</ToggleGroupItem>
-      </ToggleGroup>
-      <div className="relative min-w-[260px] flex-1 lg:ml-auto lg:w-[340px] lg:flex-none">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"/>
-        <Input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search work, job, package, or crew" className="h-8 pl-8 text-xs" aria-label="Search schedule"/>
-      </div>
-      <NativeSelect size="sm" className="w-40" value={readiness} onChange={event=>setReadiness(event.target.value as ReadinessFilter)} aria-label="Filter by readiness">
-        <NativeSelectOption value="all">Readiness: All</NativeSelectOption>
-        <NativeSelectOption value="blocked">Blocked</NativeSelectOption>
-        <NativeSelectOption value="at_risk">At risk</NativeSelectOption>
-        <NativeSelectOption value="ready">Ready</NativeSelectOption>
-        <NativeSelectOption value="crew_short">Crew short</NativeSelectOption>
-      </NativeSelect>
-      <NativeSelect size="sm" className="w-36" value={itemType} onChange={event=>setItemType(event.target.value)} aria-label="Filter by work type">
-        <NativeSelectOption value="all">Type: All</NativeSelectOption>
-        {types.map(type=><NativeSelectOption key={type} value={type}>{titleCase(type)}</NativeSelectOption>)}
-      </NativeSelect>
-      <NativeSelect size="sm" className="w-40" value={rangePreset} onChange={event=>applyRangePreset(event.target.value)} aria-label="Date range">
-        <NativeSelectOption value="all">Range: 90-day horizon</NativeSelectOption>
-        <NativeSelectOption value="today">Today</NativeSelectOption>
-        <NativeSelectOption value="7">Next 7 days</NativeSelectOption>
-        {rangePreset==='custom'?<NativeSelectOption value="custom">Custom range</NativeSelectOption>:null}
-      </NativeSelect>
+      <TabList selectedValue={view} onTabSelect={(_,data)=>setView(data.value as ViewMode)} size="small" aria-label="Schedule view">
+        <Tab value="work" icon={<Rows3 className="size-3.5"/>}>Work plan</Tab>
+        <Tab value="crew" icon={<Users className="size-3.5"/>}>Crew loading</Tab>
+      </TabList>
+      <Input value={query} onChange={event=>setQuery(event.target.value)} contentBefore={<Search className="size-3.5"/>} placeholder="Search work, job, package, or crew" appearance="underline" size="small" className="min-w-[260px] flex-1 lg:ml-auto lg:w-[340px] lg:flex-none" aria-label="Search schedule"/>
+      <Dropdown size="small" className="w-40" selectedOptions={[readiness]} value={{all:'Readiness: All',blocked:'Blocked',at_risk:'At risk',ready:'Ready',crew_short:'Crew short'}[readiness]} onOptionSelect={(_,data)=>setReadiness((data.optionValue||'all') as ReadinessFilter)} aria-label="Filter by readiness">
+        <Option value="all" text="Readiness: All">Readiness: All</Option>
+        <Option value="blocked" text="Blocked">Blocked</Option>
+        <Option value="at_risk" text="At risk">At risk</Option>
+        <Option value="ready" text="Ready">Ready</Option>
+        <Option value="crew_short" text="Crew short">Crew short</Option>
+      </Dropdown>
+      <Dropdown size="small" className="w-36" selectedOptions={[itemType]} value={itemType==='all'?'Type: All':titleCase(itemType)} onOptionSelect={(_,data)=>setItemType(data.optionValue||'all')} aria-label="Filter by work type">
+        <Option value="all" text="Type: All">Type: All</Option>
+        {types.map(type=><Option key={type} value={type} text={titleCase(type)}>{titleCase(type)}</Option>)}
+      </Dropdown>
+      <Dropdown size="small" className="w-40" selectedOptions={[rangePreset]} value={{all:'Range: 90-day horizon',today:'Today','7':'Next 7 days',custom:'Custom range'}[rangePreset]} onOptionSelect={(_,data)=>applyRangePreset(data.optionValue||'all')} aria-label="Date range">
+        <Option value="all" text="Range: 90-day horizon">Range: 90-day horizon</Option>
+        <Option value="today" text="Today">Today</Option>
+        <Option value="7" text="Next 7 days">Next 7 days</Option>
+        {rangePreset==='custom'?<Option value="custom" text="Custom range">Custom range</Option>:null}
+      </Dropdown>
     </div>
     <div className="overflow-x-auto pb-1 pt-0.5">
       <div className="flex min-w-max gap-2.5" role="group" aria-label="Select schedule day or date range">
@@ -380,14 +361,14 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
           const date=new Date(`${day.date}T12:00:00`);
           const weekday=new Intl.DateTimeFormat('en-US',{weekday:'short'}).format(date);
           const monthDay=new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).format(date);
-          return <button key={day.date} type="button" aria-pressed={selected} title="Click for one day. Shift+click to extend the selected range." onClick={event=>chooseDate(day.date,event.shiftKey)} className={cn(
+          return <Button key={day.date} type="button" appearance="subtle" size="small" aria-pressed={selected} title="Click for one day. Shift+click to extend the selected range." onClick={event=>chooseDate(day.date,event.shiftKey)} className={cn(
             'flex h-14 w-[88px] shrink-0 flex-col items-center justify-center border-r border-border bg-transparent text-[11px] text-muted-foreground outline-none transition-all duration-150 hover:border-primary/70 hover:text-foreground focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',
             day.isToday&&'border-t border-primary/70',
             selected&&'border-y border-primary/70 text-foreground',
           )}>
             <span className="font-medium">{weekday}</span><span>{monthDay}</span>
             <span className="mt-1 flex items-center gap-1 font-mono text-[10px] tabular-nums"><span className={cn('size-1.5 rounded-full bg-muted-foreground/45',blocked&&'bg-destructive',atRisk&&'bg-warning',!blocked&&!atRisk&&dayItems.length>0&&'bg-success')}/>{dayItems.length}</span>
-          </button>;
+          </Button>;
         })}
       </div>
     </div>
@@ -398,80 +379,79 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
     <div className="flex flex-wrap items-center gap-3 font-mono tabular-nums"><span>Blocked <strong className={cn(blockedVisible&&'text-destructive')}>{blockedVisible}</strong></span><span>Crew demand <strong className="text-foreground">{crewDemandVisible}</strong></span><span>Crew short <strong className={cn(crewShortVisible&&'text-destructive')}>{crewShortVisible}</strong></span></div>
   </>;
 
-  return <CarezDataGrid
+  return <div
     ref={shellRef}
     tabIndex={0}
     onKeyDown={handleKeyDown}
     aria-label="Crew and readiness schedule"
-    className="min-h-[420px] !border-x-0 !bg-transparent [&_[data-slot=carez-data-grid-footer]]:bg-transparent [&_[data-slot=carez-data-grid-toolbar]]:bg-transparent"
-    toolbar={actualToolbar}
-    footer={footer}
-    isEmpty={view==='work'&&displayItems.length===0}
-    empty={<Empty className="min-h-64 rounded-none border-0">
-      <EmptyHeader><EmptyMedia variant="icon"><CalendarOff/></EmptyMedia><EmptyTitle>Nothing scheduled in this view</EmptyTitle><EmptyDescription>Adjust the active filters or open the look-ahead to review upcoming operations.</EmptyDescription></EmptyHeader>
-      <EmptyContent><div className="flex flex-wrap items-center justify-center gap-2"><Button type="button" variant="outline" size="sm" onClick={resetFilters}>Show full horizon</Button><Link href="/look-ahead" className={buttonVariants({variant:'outline',size:'sm'})}>View 21-day look-ahead</Link></div></EmptyContent>
-    </Empty>}
+    className="min-h-[420px] min-w-0 overflow-hidden border-y border-border bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
   >
-    {view==='work'?<CarezDataGridTable className="table-fixed" style={{minWidth:totalWidth,width:totalWidth}}>
+    <div className="px-3 py-1.5">{actualToolbar}</div>
+    <div className="min-h-0 min-w-0 overflow-auto">
+    {view==='work'&&displayItems.length===0?<div className="flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center">
+      <CalendarOff className="size-7 text-muted-foreground" aria-hidden="true"/><h3 className="text-sm font-semibold">Nothing scheduled in this view</h3><p className="max-w-md text-xs text-muted-foreground">Adjust the active filters or open the look-ahead to review upcoming operations.</p>
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-2"><Button type="button" appearance="outline" size="small" onClick={resetFilters}>Show full horizon</Button><Button as="a" href="/look-ahead" appearance="outline" size="small">View 21-day look-ahead</Button></div>
+    </div>:view==='work'?<Table className="table-fixed text-xs" style={{minWidth:totalWidth,width:totalWidth}}>
       <colgroup>
         <col style={{width:SELECT_WIDTH}}/>
         {(Object.keys(widths) as ColumnKey[]).map(key=><col key={key} style={{width:widths[key]}}/>)}
       </colgroup>
-      <CarezDataGridHead><tr>
-        <CarezDataGridHeaderCell className="sticky left-0 z-30 w-9 bg-muted/95 px-2 text-center"><Checkbox checked={allVisibleSelected} indeterminate={partiallySelected} onCheckedChange={toggleAllVisible} aria-label={allVisibleSelected?'Clear visible schedule selection':'Select all visible schedule items'}/></CarezDataGridHeaderCell>
+      <TableHeader><TableRow>
+        <TableHeaderCell className="sticky left-0 z-30 w-9 bg-muted/95 px-2 text-center"><Checkbox checked={partiallySelected?'mixed':allVisibleSelected} onChange={toggleAllVisible} aria-label={allVisibleSelected?'Clear visible schedule selection':'Select all visible schedule items'}/></TableHeaderCell>
         {header('date','date','Date / time',116,220,stickyDate)}
         {header('job','job','Job',130,300,stickyJob)}
         {header('work','work','Work',150,360,stickyWork)}
         {header('type','type','Type',84,180)}
-        <CarezDataGridHeaderCell className="relative" style={{width:widths.package,minWidth:widths.package}}>Package / quantity{resizer('package',140,320)}</CarezDataGridHeaderCell>
+        <TableHeaderCell className="relative" style={{width:widths.package,minWidth:widths.package}}>Package / quantity{resizer('package',140,320)}</TableHeaderCell>
         {header('readiness','readiness','Readiness',170,360)}
-        <CarezDataGridHeaderCell className="relative" style={{width:widths.crew,minWidth:widths.crew}}>Crew{resizer('crew',140,320)}</CarezDataGridHeaderCell>
+        <TableHeaderCell className="relative" style={{width:widths.crew,minWidth:widths.crew}}>Crew{resizer('crew',140,320)}</TableHeaderCell>
         {header('status','status','Status',90,180)}
-        <CarezDataGridHeaderCell className="relative" style={{width:widths.notes,minWidth:widths.notes}}>Notes{resizer('notes',140,360)}</CarezDataGridHeaderCell>
-        <CarezDataGridHeaderCell className="relative text-center" style={{width:widths.actions,minWidth:widths.actions}}>Actions{resizer('actions',48,84)}</CarezDataGridHeaderCell>
-      </tr></CarezDataGridHead>
-      <CarezDataGridBody>{displayItems.map((item,index)=>{
+        <TableHeaderCell className="relative" style={{width:widths.notes,minWidth:widths.notes}}>Notes{resizer('notes',140,360)}</TableHeaderCell>
+        <TableHeaderCell className="relative text-center" style={{width:widths.actions,minWidth:widths.actions}}>Actions{resizer('actions',48,84)}</TableHeaderCell>
+      </TableRow></TableHeader>
+      <TableBody>{displayItems.map((item,index)=>{
         const selected=selectedIds.has(item.id);
         const assigned=item.assignedCrew.map(crew=>crew.name).join(', ');
         const nextStatus=item.status==='completed'?'planned':item.status==='confirmed'?'completed':'confirmed';
         const pending=pendingId===item.id;
         const stickyClass='sticky z-20 bg-background group-data-[state=selected]:bg-background';
-        return <CarezDataGridRow key={item.id} data-grid-index={index} data-state={selected?'selected':undefined} className={cn('group cursor-default hover:!bg-transparent hover:outline hover:outline-1 hover:outline-primary/45',index===activeIndex&&'outline outline-1 -outline-offset-1 outline-ring/35')} aria-selected={selected} onClick={()=>setActiveIndex(index)} onDoubleClick={event=>{if(!interactiveTarget(event.target))router.push(item.openHref)}}>
-          <CarezDataGridCell className={cn(stickyClass,'left-0 w-9 px-2 text-center')}><Checkbox checked={selected} onCheckedChange={()=>toggleRow(item.id)} aria-label={selected?`Clear ${item.title} selection`:`Select ${item.title}`}/></CarezDataGridCell>
-          <CarezDataGridCell className={stickyClass} style={{left:stickyDate,width:widths.date,minWidth:widths.date}}><CellStack primary={days.find(value=>value.date===item.scheduleDate)?.label||item.scheduleDate} secondary={`${time(item.startTime)}${item.endTime?` – ${time(item.endTime)}`:''}`}/></CarezDataGridCell>
-          <CarezDataGridCell className={stickyClass} style={{left:stickyJob,width:widths.job,minWidth:widths.job}}><CellStack primary={item.projectName} secondary={item.jobNumber}/></CarezDataGridCell>
-          <CarezDataGridCell className={stickyClass} style={{left:stickyWork,width:widths.work,minWidth:widths.work}}><CellStack primary={item.title} secondary={item.employeeTask||undefined}/></CarezDataGridCell>
-          <CarezDataGridCell><span className="text-[11px] text-muted-foreground">{titleCase(item.itemType)}</span></CarezDataGridCell>
-          <CarezDataGridCell>{item.packageName?<CellStack primary={`${item.packageName}${item.packageLocation?` · ${item.packageLocation}`:''}`} secondary={`${quantity(item.plannedQuantity)} ${item.unit||''}${item.operationStatus?` · ${titleCase(item.operationStatus)}`:''}`}/>:item.pourName?<CellStack primary={item.pourName} secondary={`${quantity(item.pourYards)} CY`}/>:<span className="text-muted-foreground">—</span>}</CarezDataGridCell>
-          <CarezDataGridCell><div className="flex min-w-0 items-center gap-2"><ReadinessBadge item={item}/><span className="min-w-0 truncate text-[11px] text-muted-foreground">{item.readinessAction||item.warningReasons[0]||''}</span></div></CarezDataGridCell>
-          <CarezDataGridCell><CellStack primary={assigned||'Unassigned'} secondary={`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`} className={item.crewShort?'[&>div:last-child]:font-mono [&>div:last-child]:text-destructive':''}/></CarezDataGridCell>
-          <CarezDataGridCell><WorkStatusBadge item={item}/></CarezDataGridCell>
-          <CarezDataGridCell className="truncate text-[11px] text-muted-foreground" title={item.notes||item.warningReasons.join(' · ')}>{item.notes||item.warningReasons.join(' · ')||'—'}</CarezDataGridCell>
-          <CarezDataGridCell className="text-center"><DropdownMenu>
-            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-xs" disabled={pending} aria-label={`Actions for ${item.title}`}/> }><MoreHorizontal/></DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-40">
-              {item.inspectionId?<DropdownMenuItem onClick={()=>router.push('/readiness')}>Open inspection</DropdownMenuItem>:item.blocked?<><DropdownMenuItem onClick={()=>router.push('/readiness')}>Clear hold</DropdownMenuItem>{item.blockingResourceCount>0?<DropdownMenuItem onClick={()=>router.push('/readiness/resources')}>Open resources</DropdownMenuItem>:null}</>:<DropdownMenuItem onClick={()=>runStatusAction(item,nextStatus)}>{item.status==='completed'?'Reopen':item.status==='confirmed'?'Complete':'Confirm'}</DropdownMenuItem>}
-              <DropdownMenuItem onClick={()=>router.push(item.openHref)}>Open work item</DropdownMenuItem>
-              <DropdownMenuSeparator/>
-              <DropdownMenuItem variant="destructive" onClick={()=>runDelete(item)}>Remove from schedule</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu></CarezDataGridCell>
-        </CarezDataGridRow>;
-      })}</CarezDataGridBody>
-    </CarezDataGridTable>:<CarezDataGridTable className="table-fixed" style={{minWidth:Math.max(520,250+visibleDays.length*150),width:Math.max(520,250+visibleDays.length*150)}}>
-      <CarezDataGridHead><tr><CarezDataGridHeaderCell className="sticky left-0 z-30 w-[170px] bg-muted/95">Crew / resource</CarezDataGridHeaderCell><CarezDataGridHeaderCell className="sticky left-[170px] z-30 w-20 bg-muted/95">Role</CarezDataGridHeaderCell>{visibleDays.map(day=><CarezDataGridHeaderCell key={day.date} className="w-[150px]"><CellStack primary={day.isToday?'Today':day.shortLabel} secondary={day.label}/></CarezDataGridHeaderCell>)}</tr></CarezDataGridHead>
-      <CarezDataGridBody>{matrixRows.map(row=><CarezDataGridRow key={row.id} className="group hover:!bg-transparent"><CarezDataGridCell className="sticky left-0 z-20 w-[170px] bg-background"><CellStack primary={row.name}/></CarezDataGridCell><CarezDataGridCell className="sticky left-[170px] z-20 w-20 bg-background text-[11px] text-muted-foreground">{row.role}</CarezDataGridCell>{visibleDays.map(day=>{const cellItems=matrixItems(row,day.date);return <CarezDataGridCell key={day.date} className="h-auto min-h-14 border-l border-border/60 align-top"><div className="space-y-1 py-1">{cellItems.length?cellItems.map(item=>{const tone=readinessBucket(item);return <button type="button" key={item.id} onClick={()=>toggleRow(item.id)} onDoubleClick={()=>router.push(item.openHref)} className={cn('block w-full border-l border-border px-2 py-1.5 text-left outline-none transition-all duration-150 hover:border-primary/70 focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',tone==='blocked'&&'border-destructive text-destructive',tone==='at_risk'&&'border-warning text-warning',tone==='ready'&&'border-success')}><div className="truncate font-mono text-[10px] text-muted-foreground">{time(item.startTime)} · {item.jobNumber}</div><div className="mt-0.5 truncate text-[11px] font-medium text-foreground">{item.title}</div></button>}):<span className="text-muted-foreground/50">—</span>}</div></CarezDataGridCell>;})}</CarezDataGridRow>)}</CarezDataGridBody>
-    </CarezDataGridTable>}
-  </CarezDataGrid>;
+        return <TableRow key={item.id} data-grid-index={index} data-state={selected?'selected':undefined} className={cn('group cursor-default hover:!bg-transparent hover:outline hover:outline-1 hover:outline-primary/45',index===activeIndex&&'outline outline-1 -outline-offset-1 outline-ring/35')} aria-selected={selected} onClick={()=>setActiveIndex(index)} onDoubleClick={event=>{if(!interactiveTarget(event.target))router.push(item.openHref)}}>
+          <TableCell className={cn(stickyClass,'left-0 w-9 px-2 text-center')}><Checkbox checked={selected} onChange={()=>toggleRow(item.id)} aria-label={selected?`Clear ${item.title} selection`:`Select ${item.title}`}/></TableCell>
+          <TableCell className={stickyClass} style={{left:stickyDate,width:widths.date,minWidth:widths.date}}><CellStack primary={days.find(value=>value.date===item.scheduleDate)?.label||item.scheduleDate} secondary={`${time(item.startTime)}${item.endTime?` – ${time(item.endTime)}`:''}`}/></TableCell>
+          <TableCell className={stickyClass} style={{left:stickyJob,width:widths.job,minWidth:widths.job}}><CellStack primary={item.projectName} secondary={item.jobNumber}/></TableCell>
+          <TableCell className={stickyClass} style={{left:stickyWork,width:widths.work,minWidth:widths.work}}><CellStack primary={item.title} secondary={item.employeeTask||undefined}/></TableCell>
+          <TableCell><span className="text-[11px] text-muted-foreground">{titleCase(item.itemType)}</span></TableCell>
+          <TableCell>{item.packageName?<CellStack primary={`${item.packageName}${item.packageLocation?` · ${item.packageLocation}`:''}`} secondary={`${quantity(item.plannedQuantity)} ${item.unit||''}${item.operationStatus?` · ${titleCase(item.operationStatus)}`:''}`}/>:item.pourName?<CellStack primary={item.pourName} secondary={`${quantity(item.pourYards)} CY`}/>:<span className="text-muted-foreground">—</span>}</TableCell>
+          <TableCell><div className="flex min-w-0 items-center gap-2"><ReadinessBadge item={item}/><span className="min-w-0 truncate text-[11px] text-muted-foreground">{item.readinessAction||item.warningReasons[0]||''}</span></div></TableCell>
+          <TableCell><CellStack primary={assigned||'Unassigned'} secondary={`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`} className={item.crewShort?'[&>div:last-child]:font-mono [&>div:last-child]:text-destructive':''}/></TableCell>
+          <TableCell><WorkStatusBadge item={item}/></TableCell>
+          <TableCell className="truncate text-[11px] text-muted-foreground" title={item.notes||item.warningReasons.join(' · ')}>{item.notes||item.warningReasons.join(' · ')||'—'}</TableCell>
+          <TableCell className="text-center"><Menu>
+            <MenuTrigger disableButtonEnhancement><Button type="button" appearance="subtle" size="small" icon={<MoreHorizontal/>} disabled={pending} aria-label={`Actions for ${item.title}`}/></MenuTrigger>
+            <MenuPopover><MenuList>
+              {item.inspectionId?<MenuItem onClick={()=>router.push('/readiness')}>Open inspection</MenuItem>:item.blocked?<><MenuItem onClick={()=>router.push('/readiness')}>Clear hold</MenuItem>{item.blockingResourceCount>0?<MenuItem onClick={()=>router.push('/readiness/resources')}>Open resources</MenuItem>:null}</>:<MenuItem onClick={()=>runStatusAction(item,nextStatus)}>{item.status==='completed'?'Reopen':item.status==='confirmed'?'Complete':'Confirm'}</MenuItem>}
+              <MenuItem onClick={()=>router.push(item.openHref)}>Open work item</MenuItem>
+              <MenuDivider/>
+              <MenuItem onClick={()=>runDelete(item)} className="text-destructive">Remove from schedule</MenuItem>
+            </MenuList></MenuPopover>
+          </Menu></TableCell>
+        </TableRow>;
+      })}</TableBody>
+    </Table>:<Table className="table-fixed text-xs" style={{minWidth:Math.max(520,250+visibleDays.length*150),width:Math.max(520,250+visibleDays.length*150)}}>
+      <TableHeader><TableRow><TableHeaderCell className="sticky left-0 z-30 w-[170px] bg-muted/95">Crew / resource</TableHeaderCell><TableHeaderCell className="sticky left-[170px] z-30 w-20 bg-muted/95">Role</TableHeaderCell>{visibleDays.map(day=><TableHeaderCell key={day.date} className="w-[150px]"><CellStack primary={day.isToday?'Today':day.shortLabel} secondary={day.label}/></TableHeaderCell>)}</TableRow></TableHeader>
+      <TableBody>{matrixRows.map(row=><TableRow key={row.id} className="group hover:!bg-transparent"><TableCell className="sticky left-0 z-20 w-[170px] bg-background"><CellStack primary={row.name}/></TableCell><TableCell className="sticky left-[170px] z-20 w-20 bg-background text-[11px] text-muted-foreground">{row.role}</TableCell>{visibleDays.map(day=>{const cellItems=matrixItems(row,day.date);return <TableCell key={day.date} className="h-auto min-h-14 border-l border-border/60 align-top"><div className="space-y-1 py-1">{cellItems.length?cellItems.map(item=>{const tone=readinessBucket(item);return <Button appearance="subtle" type="button" key={item.id} onClick={()=>toggleRow(item.id)} onDoubleClick={()=>router.push(item.openHref)} className={cn('block w-full border-l border-border px-2 py-1.5 text-left outline-none transition-all duration-150 hover:border-primary/70 focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',tone==='blocked'&&'border-destructive text-destructive',tone==='at_risk'&&'border-warning text-warning',tone==='ready'&&'border-success')}><div className="truncate font-mono text-[10px] text-muted-foreground">{time(item.startTime)} · {item.jobNumber}</div><div className="mt-0.5 truncate text-[11px] font-medium text-foreground">{item.title}</div></Button>}):<span className="text-muted-foreground/50">—</span>}</div></TableCell>;})}</TableRow>)}</TableBody>
+    </Table>}
+    </div>
+    <div className="flex min-h-9 flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">{footer}</div>
+  </div>;
 }
 
 export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];pumpDataAvailable?:boolean}){
   const [registerOpen,setRegisterOpen]=useState(false);
   return <div className="min-w-0 space-y-3">
     <ScheduleMatrix days={days} items={items} pumpDataAvailable={pumpDataAvailable}/>
-    <details className="border-t border-[#343A3F] pt-2" onToggle={event=>setRegisterOpen(event.currentTarget.open)}>
-      <summary className="w-fit cursor-pointer text-[11px] font-medium text-[#8B949E] hover:text-white">Open schedule register and crew detail</summary>
-      {registerOpen?<div className="pt-3"><ScheduleRegister days={days} items={items} crewMembers={crewMembers}/></div>:null}
-    </details>
+    <Accordion collapsible openItems={registerOpen?['register']:[]} onToggle={(_,data)=>setRegisterOpen(data.openItems.includes('register'))} className="border-t border-border pt-2">
+      <AccordionItem value="register"><AccordionHeader size="small">Open schedule register and crew detail</AccordionHeader><AccordionPanel>{registerOpen?<ScheduleRegister days={days} items={items} crewMembers={crewMembers}/>:null}</AccordionPanel></AccordionItem>
+    </Accordion>
   </div>;
 }

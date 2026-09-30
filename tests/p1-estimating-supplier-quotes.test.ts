@@ -9,6 +9,8 @@ const panelPath = 'components/estimates/PricingCoverage.tsx';
 const gridPath = 'components/estimates/PricingExceptionGrid.tsx';
 const pagePath = 'components/opportunities/views/WorksheetView.tsx';
 const actionsPath = 'app/estimates/actions.ts';
+const vendorPortalPath = 'app/vendor-quotes/page.tsx';
+const vendorAccessMigrationPath = 'supabase/migrations/20260929090000_vendor_quote_access.sql';
 
 const requireFile = (path: string, message: string) => {
   assert.equal(existsSync(path), true, message);
@@ -86,20 +88,24 @@ test('pricing coverage distinguishes holds, source selections, expiry and unused
   });
 });
 
-test('Estimate workspace exposes supplier quote entry, coverage and explicit selection without quantity editing', () => {
+test('Estimate workspace keeps coverage and quote selection while supplier entry uses Vendor Quotes', () => {
   const panel = requireFile(panelPath, 'P1.2 PricingCoverage component must exist');
+  const portal = requireFile(vendorPortalPath, 'Vendor Quotes portal must exist');
   const grid = requireFile(gridPath, 'Pricing exception grid must exist');
   const page = requireFile(pagePath, 'Estimate page must exist');
   const actions = requireFile(actionsPath, 'Estimate actions must exist');
 
   assert.match(panel, /Pricing coverage/i);
-  assert.match(panel, /Supplier quote sets/i);
+  assert.match(panel, /Vendor Quotes/i);
   assert.match(panel, /Missing price/i);
   assert.match(panel, /Expired/i);
   assert.match(grid, /Quote candidates/i);
   assert.match(panel, /Select quote/i);
-  assert.match(panel, /supplier_name/i);
-  assert.match(panel, /supplier_quote_number/i);
+  assert.match(portal, /createEstimateSupplierQuoteSet/i);
+  assert.match(portal, /createEstimateSupplierQuoteLine/i);
+  assert.match(portal, /supplier_name/i);
+  assert.match(portal, /supplier_quote_number/i);
+  assert.doesNotMatch(panel, /createEstimateSupplierQuoteSet/i);
   assert.doesNotMatch(panel, /name="(?:quantity|production_quantity)"/i);
 
   assert.match(page, /estimate_supplier_quote_sets/i);
@@ -117,6 +123,21 @@ test('Estimate workspace exposes supplier quote entry, coverage and explicit sel
   const selection = actions.slice(actions.indexOf('export async function selectEstimateSupplierQuoteLine'));
   assert.match(selection, /carez_select_estimate_supplier_quote_line/);
   assert.doesNotMatch(selection.split('export async function', 2)[0] || selection, /fd\.get\(['"]quantity['"]\)/);
+});
+
+test('supplier links expose only chosen estimate resources and cannot select commercial pricing', () => {
+  const sql=requireFile(vendorAccessMigrationPath,'Vendor quote access migration must exist');
+  assert.match(sql,/estimate_supplier_quote_access_tokens[\s\S]*estimate_supplier_quote_access_items/i);
+  assert.match(sql,/alter table public\.estimate_supplier_quote_access_tokens enable row level security/i);
+  assert.match(sql,/alter table public\.estimate_supplier_quote_access_items enable row level security/i);
+  assert.match(sql,/join public\.estimate_supplier_quote_access_items access_item[\s\S]*access_item\.access_token_id = v_token\.id/i);
+  assert.match(sql,/v_estimate\.status not in \('accepted', 'approved', 'superseded'\)/i);
+  assert.match(sql,/not exists \(select 1 from public\.proposal_presentations/i);
+  assert.match(sql,/insert into public\.estimate_supplier_quote_lines/i);
+  assert.match(sql,/estimate_supplier_quote_submission_events/i);
+  assert.doesNotMatch(sql,/update public\.estimate_supplier_quote_lines/i);
+  assert.doesNotMatch(sql,/update public\.takeoff_measurement_outputs/i);
+  assert.doesNotMatch(sql,/carez_select_estimate_supplier_quote_line\(/i);
 });
 
 

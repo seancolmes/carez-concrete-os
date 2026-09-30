@@ -1,5 +1,11 @@
 allowBuilds:
   supabase: true
+overrides:
+  postcss: 8.5.26
+patchedDependencies:
+  '@fluentui/react-accordion@9.12.4': patches/@fluentui__react-accordion@9.12.4.patch
+  '@fluentui/react-nav@9.4.7': patches/@fluentui__react-nav@9.4.7.patch
+  '@fluentui/react-tree@9.16.8': patches/@fluentui__react-tree@9.16.8.patch
 # Expose Drei's existing transitive declarations without another direct dependency.
 publicHoistPattern:
   - '@types/three'

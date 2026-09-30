@@ -1,20 +1,20 @@
 ---
 name: PourTrace
-description: A concrete-neutral workspace with restrained green signals for concrete estimating and operations.
+description: A light Fluent-inspired desktop estimating workbench with optional charcoal dark surfaces and the approved PourTrace logo.
 colors:
-  light-canvas: "#FAFAF8"
+  light-canvas: "#F2F5F7"
   light-surface: "#FFFFFF"
-  dark-canvas: "#191F21"
-  dark-surface: "#2B3033"
-  graphite: "#2B3033"
-  logo-green: "#13A95A"
-  light-action: "#08783F"
-  dark-action: "#78D7A0"
-  light-link: "#195570"
-  dark-link: "#86C7DB"
+  dark-canvas: "#182128"
+  dark-surface: "#29343E"
+  graphite: "#17212B"
+  logo-green: "#009966"
+  light-action: "#29485E"
+  dark-action: "#EDEDED"
+  light-link: "#205F85"
+  dark-link: "#BED8EA"
 typography:
   body:
-    fontFamily: "Fira Sans, Segoe UI, Arial, sans-serif"
+    fontFamily: "Segoe UI Variable, Segoe UI, Fira Sans, Arial, sans-serif"
   display:
     fontFamily: "Roboto Slab, Georgia, serif"
   code:
@@ -31,26 +31,26 @@ spacing:
 
 ## Color authority
 
-The supplied PourTrace tonal palettes are implemented as `--trace-green-*`, `--concrete-*`, `--blueprint-*`, and `--amber-*` in `app/globals.css`. Graphite and concrete neutrals carry the working interface. Green 500 belongs to the logo and small highlights; green 700 carries normal-size text and white-label primary buttons in light mode. Green 300 carries those roles in dark mode. Blue marks links, information, and secondary chart series. Amber marks attention and pending decisions.
+`app/globals.css` is the token authority. Its `:root` values provide the optional charcoal workspace; `html[data-theme='light']` supplies the first-use pale blue-gray workbench. The approved logo retains `#009966`; green elsewhere signals actual success. Primary buttons use a solid graphite-blue treatment in light mode and a light-neutral treatment in dark mode. Tabs, menus, lists, fields, and dialogs share compact desktop chrome with clear selected and focus states. Blue marks links and information; amber marks attention.
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Workspace | Neutral 50 | Neutral 950 |
-| Raised surface | White | Neutral 900 |
-| Primary text | Neutral 900 | Neutral 100 |
-| Secondary text | Neutral 600 | Neutral 300 |
-| Primary action | Green 700 with white text | Green 300 with neutral 950 text |
-| Selection | Green 50 with green 700 text and indicator | Neutral 900 with green 300 text and indicator |
-| Link and information | Blue 700 | Blue 300 |
-| Standard border | Neutral 300 | Neutral 700 |
-| Focus | Green 700 | Green 300 |
+| Workspace | `#F2F5F7` | `#182128` |
+| Panel | `#FFFFFF` | `#29343E` |
+| Raised control | `#F4F7F9` | `#313E48` |
+| Primary text | `#17212B` | `#F2F5F7` |
+| Secondary text | `#4C5C69` | `#C2CED7` |
+| Selection | `#DFEAF3` with `#17212B` text | `#394955` with white text |
+| Link and information | `#205F85` | `#BED8EA` |
+| Control border | `#8293A1` | `#8395A3` |
+| Focus | `#29485E` | `#EDEDED` |
 
-Status pairs in light mode: success `#EFFAF3` / `#08783F`; warning `#FFF4D9` / `#805100`; error `#FDEAE8` / `#A42C27`; information `#EFF7FA` / `#195570`. Dark status chips use neutral 900 with brighter semantic text. Ordinary money values use neutral text; green and red indicate an actual state or variance. Takeoff drawings and charts pair color with labels, line styles, or symbols.
+Light status pairs are success `#EAF5EC` / `#27693D`, warning `#FFF3DC` / `#8A5700`, error `#FCECEE` / `#A1333D`, and information `#EAF2F8` / `#245E82`. Dark status pairs use charcoal-tinted panels and brighter status text. Ordinary money values use neutral text; green and red indicate an actual state or variance. Takeoff drawings and charts pair color with labels, line styles, or symbols. The user can save dark or light, or follow the device setting; light is the first-use default.
 
 ## Spatial and type rules
 
-Keep the active drawing, record, or decision larger than its controls. The shared command navigation, contextual destination panel, and large task workspace form the operating frame. Avoid decorative gradients, repetitive cards, fake metrics, and permanently open inspectors. Use Fira Sans for controls and records, Roboto Slab sparingly for page headings, and Source Code Pro for technical content. Compact and comfortable density settings change row and control heights without changing hierarchy. Floating surfaces alone need strong shadow; ordinary panels use tonal layers and thin borders.
+Keep the active drawing, record, or decision larger than its controls. The shared command navigation, contextual destination panel, and large task workspace form the operating frame. Avoid decorative gradients, repetitive cards, fake metrics, and permanently open inspectors. Use Segoe UI Variable or Segoe UI for controls and records, Roboto Slab sparingly for page headings, and Source Code Pro for technical content. Existing density tokens set row and control heights without changing hierarchy. Floating surfaces alone need strong shadow; ordinary panels use tonal layers and thin borders.
 
 ## Accessibility
 
-The intended minimum is 4.5:1 for normal text and 3:1 for interface boundaries. Green 500 on white is insufficient for ordinary text; use green 700. Preserve visible focus, text labels, and non-color cues on dense estimating screens and outdoor mobile views.
+The intended minimum is 4.5:1 for normal text and 3:1 for interface boundaries and focus. Preserve visible focus, text labels, and non-color cues on dense estimating screens and outdoor mobile views. Customer-facing paper documents remain white independently of the workspace preference.

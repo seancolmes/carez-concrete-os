@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, GripHorizontal, Search, Table2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {WarningRegular as AlertTriangle,ChevronDownRegular as ChevronDown,ChevronUpRegular as ChevronUp,ReOrderDotsHorizontalRegular as GripHorizontal,SearchRegular as Search,TableRegular as Table2} from '@fluentui/react-icons';
+import { Button, Input } from '@fluentui/react-components';
 import {
   projectConditionWorksheet,
   type ConditionWorksheetAuthority,
@@ -296,11 +296,11 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">SF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.sf)}</output></div>
     <span className="h-5 w-px shrink-0 bg-[#343A3F]" aria-hidden="true"/>
     <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">LF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.lf)}</output></div>
-    <Button type="button" variant="texture" size="icon-sm" aria-label="Quantity Worksheet" aria-expanded={!collapsed} aria-controls="takeoff-quantity-worksheet" onClick={()=>setCollapsed(value=>!value)}><Table2 size={14}/></Button>
+    <Button type="button" appearance="subtle" size="small" aria-label="Quantity Worksheet" aria-expanded={!collapsed} aria-controls="takeoff-quantity-worksheet" onClick={()=>setCollapsed(value=>!value)}><Table2 fontSize={14}/></Button>
     {rollups.pending?<span className="absolute -top-4 left-2 whitespace-nowrap text-[9px] text-[#A1A1AA]">* Partial · calculation pending or held</span>:null}
     <section id="takeoff-quantity-worksheet" hidden={collapsed} className={`${styles.dock} ${styles.floatingWorksheet}`} style={{height}} aria-label="Takeoff quantity worksheet" data-resizing={resizing} data-current-sheet-id={currentSheetId || ''}>
 
-    {!collapsed && <button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" title="Drag or use Up / Down arrows to resize" onKeyDown={event => {
+    {!collapsed && <Button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" title="Drag or use Up / Down arrows to resize" onKeyDown={event => {
       if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
       setHeight(current => event.key === 'Home' ? 150 : event.key === 'End' ? 480 : Math.max(150, Math.min(480, current + (event.key === 'ArrowUp' ? 24 : -24))));
@@ -310,23 +310,23 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
       document.body.style.cursor = 'ns-resize';
       document.body.style.userSelect = 'none';
       event.currentTarget.setPointerCapture(event.pointerId);
-    }}><GripHorizontal size={15} /></button>}
+    }}><GripHorizontal fontSize={15} /></Button>}
     <header className={styles.header}>
-      <div className={styles.title}><Table2 size={15} /><strong>Quantity Worksheet</strong><span>{filteredRows.length} measurement{filteredRows.length === 1 ? '' : 's'}</span></div>
+      <div className={styles.title}><Table2 fontSize={15} /><strong>Quantity Worksheet</strong><span>{filteredRows.length} measurement{filteredRows.length === 1 ? '' : 's'}</span></div>
       {!collapsed && <>
         <div className={styles.scope} aria-label="Worksheet scope">
-          <button type="button" className={scope === 'sheet' ? styles.active : ''} onClick={() => setScope('sheet')}>This Sheet</button>
-          <button type="button" className={scope === 'all' ? styles.active : ''} onClick={() => setScope('all')}>All Sheets</button>
+          <Button type="button" className={scope === 'sheet' ? styles.active : ''} onClick={() => setScope('sheet')}>This Sheet</Button>
+          <Button type="button" className={scope === 'all' ? styles.active : ''} onClick={() => setScope('all')}>All Sheets</Button>
         </div>
-        <label className={styles.search}><Search size={13} /><span className="sr-only">Filter worksheet</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter measurements" /></label>
-        <div className={styles.totals}><span><b>{quantity(totals.manHours)}</b> MH</span><span><b>{money(totals.cost)}</b> direct{totals.pricingMissing > 0 ? ' partial' : ''}</span>{totals.issues > 0 && <span className={styles.totalWarning}><AlertTriangle size={12} /><b>{totals.issues}</b> issue{totals.issues === 1 ? '' : 's'}</span>}</div>
+        <label className={styles.search}><Search fontSize={13} /><span className="sr-only">Filter worksheet</span><Input appearance="underline" value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter measurements" /></label>
+        <div className={styles.totals}><span><b>{quantity(totals.manHours)}</b> MH</span><span><b>{money(totals.cost)}</b> direct{totals.pricingMissing > 0 ? ' partial' : ''}</span>{totals.issues > 0 && <span className={styles.totalWarning}><AlertTriangle fontSize={12} /><b>{totals.issues}</b> issue{totals.issues === 1 ? '' : 's'}</span>}</div>
       </>}
-      <button type="button" className={styles.collapse} aria-expanded={!collapsed} aria-controls="takeoff-quantity-grid" onClick={() => setCollapsed(value => !value)}>{collapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}<span>{collapsed ? 'Open' : 'Collapse'}</span></button>
+      <Button type="button" className={styles.collapse} aria-expanded={!collapsed} aria-controls="takeoff-quantity-grid" onClick={() => setCollapsed(value => !value)}>{collapsed ? <ChevronUp fontSize={15} /> : <ChevronDown fontSize={15} />}<span>{collapsed ? 'Open' : 'Collapse'}</span></Button>
     </header>
 
     <div id="takeoff-quantity-grid" className={styles.grid} role="table" inert={collapsed} aria-hidden={collapsed||undefined} style={{height:height-38,visibility:collapsed?'hidden':undefined}} aria-rowcount={filteredRows.length}>
       <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={gridStyle}>
-        {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<button type="button" className={styles.columnResizeHandle} aria-label={`Resize ${label} column`} title="Drag to resize · double-click to reset" onDoubleClick={event => {
+        {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<Button type="button" className={styles.columnResizeHandle} aria-label={`Resize ${label} column`} title="Drag to resize · double-click to reset" onDoubleClick={event => {
           event.preventDefault(); event.stopPropagation();
           setColumnWidths(current => current.map((width, currentIndex) => currentIndex === index ? DEFAULT_COLUMN_WIDTHS[index] : width));
         }} onPointerDown={event => {
@@ -340,7 +340,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
       <div ref={bodyRef} className={styles.body} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
         {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT, minWidth: gridWidth }}>
           <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
-            {visibleRows.map((row, index) => <button type="button" role="row" aria-rowindex={start + index + 2} aria-selected={selectedMeasurementId === row.measurement.id} data-takeoff-measurement-id={row.measurement.id} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>
+            {visibleRows.map((row, index) => <Button type="button" role="row" aria-rowindex={start + index + 2} aria-selected={selectedMeasurementId === row.measurement.id} data-takeoff-measurement-id={row.measurement.id} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>
               <span role="cell" className={styles.measurement}><strong>{row.measurement.name}</strong><small>{row.sheet}{row.measurement.location ? ` · ${row.measurement.location}` : ''}</small></span>
               <span role="cell" className={styles.numeric} title={`${row.measurement.raw_quantity} ${row.measurement.raw_unit}`}>{formatTakeoffQuantityValue(row.measurement.raw_quantity, row.measurement.raw_unit)}</span>
               <span role="cell">{row.measurement.raw_unit}</span>
@@ -351,8 +351,8 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
               <span role="cell" className={styles.numeric}>{row.formwork}</span>
               <span role="cell" className={styles.numeric}>{quantity(row.manHours)}</span>
               <span role="cell" className={styles.numeric}>{money(row.cost)}{row.pricingMissing > 0 ? ' partial' : ''}</span>
-              <span role="cell" title={row.issues.join('\n')}>{row.status === 'Ready' || row.status === 'Compatibility' ? <span className={styles.ready}>{row.status}</span> : <span className={styles.warning}>{row.issues.length ? <AlertTriangle size={12} /> : null}{row.status}</span>}</span>
-            </button>)}
+              <span role="cell" title={row.issues.join('\n')}>{row.status === 'Ready' || row.status === 'Compatibility' ? <span className={styles.ready}>{row.status}</span> : <span className={styles.warning}>{row.issues.length ? <AlertTriangle fontSize={12} /> : null}{row.status}</span>}</span>
+            </Button>)}
           </div>
         </div>}
       </div>

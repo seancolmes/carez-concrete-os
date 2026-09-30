@@ -1,15 +1,13 @@
-import {useId} from 'react';
 import {motion} from 'framer-motion';
 import {BrandLogo} from '@/components/brand/BrandLogo';
 import styles from './AnimatedLogo.module.css';
 
-export function AnimatedLogo({size='md',draw=false}:{size?:'md'|'lg';draw?:boolean}){
-  const id=useId().replaceAll(':','');
-  const accentMask=`landing-logo-accent-${id}`;
-  const revealMask=`landing-logo-reveal-${id}`;
+export function AnimatedLogo({size='md',draw=false,idPrefix}:{size?:'md'|'lg';draw?:boolean;idPrefix:string}){
+  const accentMask=`landing-logo-accent-${idPrefix}`;
+  const revealMask=`landing-logo-reveal-${idPrefix}`;
 
   return <span className={styles.logo} data-size={size} data-drawing={draw}>
-    <BrandLogo size="md"/>
+    <BrandLogo size="md" idPrefix={`${idPrefix}-base`}/>
     {draw?<svg className={styles.trace} viewBox="0 0 1591 385" aria-hidden="true" focusable="false">
       <defs>
         <mask id={accentMask} maskUnits="userSpaceOnUse" style={{maskType:'alpha'}}>

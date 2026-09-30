@@ -162,7 +162,15 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
             shapes.push({ part: `location:${pointKey}:${ordinal}`, shape: { kind: 'box', centerX: point.x, centerZ: point.z, width, length, yawRad: yaw * Math.PI / 180, ...range } });
           });
         }
-      } catch (error) { report('invalid_geometry', error instanceof Error ? error.message : 'The physical footprint is invalid.'); continue; }
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : 'The physical footprint is invalid.';
+        const generatedLinearCrossing = LINEAR_PROJECTION_FAMILIES.has(condition.archetypeKey) && detail === 'Measured area cannot cross over itself.';
+        const subject = condition.archetypeKey === 'strip_wall_footing' ? 'linear footing' : 'linear run';
+        report('invalid_geometry', generatedLinearCrossing
+          ? `The ${subject}'s generated footprint crosses itself. Review the centerline bend or ${subject === 'linear footing' ? 'footing ' : ''}width in 2D. Saved LF geometry and quantities remain available; 3D verification is on hold.`
+          : detail);
+        continue;
+      }
       const quantityKey = `${scopeKey}:${measurement.id}`;
       sourceQuantities[quantityKey] = { measurementId: measurement.id, value: rawQuantity, unit: measurement.raw_unit, revision: measurement.updated_at || null };
       const reference = {

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { buttonVariants } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { PrintButton } from './PrintButton';
 
@@ -30,41 +29,42 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
 
   return <div className="invoice-screen">
     <style>{`
-      .invoice-screen{min-height:100vh;background:#F5F7F6;padding:30px;color:#171B19;font-family:"Fira Sans",Arial,sans-serif}
+      .invoice-screen{min-height:100vh;background:#000000;padding:30px;color:#EDEDED;font-family:"Fira Sans",Arial,sans-serif}
       .invoice-actions{width:min(900px,100%);margin:0 auto 16px;display:flex;justify-content:flex-end;gap:10px}
+      .invoice-actions a{border:1px solid #333333;background:#111111;color:#EDEDED;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
       .invoice-document{position:relative;width:min(900px,100%);min-height:1100px;margin:0 auto;background:#fff;color:#171B19;padding:52px 58px 40px;box-shadow:0 28px 80px rgba(0,0,0,.38);border-radius:4px;overflow:hidden}
-      .invoice-document:before{content:'';position:absolute;left:0;top:0;right:0;height:8px;background:linear-gradient(90deg,#009966,#00AD73,#B9C3BE)}
+      .invoice-document:before{content:'';position:absolute;left:0;top:0;right:0;height:5px;background:#222222}
       .invoice-doc-header{display:flex;justify-content:space-between;gap:40px;align-items:flex-start;padding-bottom:28px;border-bottom:2px solid #D4DBD7}
       .invoice-brand{font-size:12px;line-height:1.55;color:#525C57;max-width:55%}
       .invoice-brand img{display:block;width:220px;max-width:100%;height:auto;margin-bottom:8px;filter:none}
       .invoice-company-name{font-size:18px;font-weight:900;color:#171B19;margin-bottom:4px}
       .invoice-credentials{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#7B8580}
-      .invoice-doc-title{text-align:right;display:grid;justify-items:end;gap:5px;color:#007A52}
+      .invoice-doc-title{text-align:right;display:grid;justify-items:end;gap:5px;color:#171B19}
       .invoice-doc-title>div:first-child{font-size:31px;line-height:1;font-weight:900;letter-spacing:.04em}
       .invoice-doc-title strong{font-size:17px;color:#171B19}
-      .invoice-status-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:#EAF2F8;color:#426F93}
+      .invoice-status-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:#F0F0F0;color:#333333}
       .invoice-info-grid{display:grid;grid-template-columns:1.1fr 1.15fr .85fr;gap:24px;padding:26px 0;font-size:12px;line-height:1.55;color:#525C57}
       .invoice-info-grid strong{color:#171B19;font-size:13px}
-      .invoice-small-label{font-size:9px;font-weight:900;letter-spacing:.12em;color:#426F93;margin-bottom:5px}
+      .invoice-small-label{font-size:9px;font-weight:900;letter-spacing:.12em;color:#525C57;margin-bottom:5px}
       .invoice-date-box{display:grid;gap:8px}
       .invoice-date-box>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #E1E6E3;padding-bottom:5px}
       .invoice-date-box span{color:#7B8580}
       .invoice-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-      .invoice-table th{background:#007A52;color:#fff;text-align:left;padding:11px 10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+      .invoice-table th{background:#171B19;color:#fff;text-align:left;padding:11px 10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
       .invoice-table th:nth-child(n+2),.invoice-table td:nth-child(n+2){text-align:right}
       .invoice-table td{padding:13px 10px;border-bottom:1px solid #E1E6E3;vertical-align:top;color:#525C57}
       .invoice-table td:first-child{color:#171B19}
       .invoice-line-note{font-size:10px;color:#7B8580;margin-top:3px}
       .invoice-totals-wrap{display:grid;grid-template-columns:1fr 330px;gap:36px;margin-top:26px;align-items:start}
       .invoice-notes{display:grid;gap:20px;font-size:11px;line-height:1.5;color:#525C57}
-      .invoice-note-box{padding:12px 14px;background:#EAF2F8;border-left:4px solid #426F93;color:#525C57}
+      .invoice-note-box{padding:12px 14px;background:#F0F0F0;border-left:4px solid #333333;color:#525C57}
       .invoice-prewrap{white-space:pre-wrap}
       .invoice-totals{display:grid;font-size:12px}
       .invoice-totals>div{display:flex;justify-content:space-between;gap:20px;padding:8px 2px;border-bottom:1px solid #E1E6E3}
       .invoice-totals span{color:#7B8580}
       .invoice-total-line{font-size:14px;margin-top:3px}
       .invoice-total-line strong{color:#171B19}
-      .invoice-balance-line{margin-top:7px!important;padding:13px 12px!important;background:#007A52;border-bottom:0!important;color:#fff;border-radius:3px;font-size:16px}
+      .invoice-balance-line{margin-top:7px!important;padding:13px 12px!important;background:#171B19;border-bottom:0!important;color:#fff;border-radius:3px;font-size:16px}
       .invoice-balance-line span,.invoice-balance-line strong{color:#fff}
       .invoice-footer{margin-top:46px;padding-top:16px;border-top:1px solid #D4DBD7;text-align:center;font-size:10px;color:#7B8580;white-space:pre-wrap}
       .invoice-void{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:120px;font-weight:900;color:rgba(184,69,88,.10);letter-spacing:.08em;pointer-events:none}
@@ -72,7 +72,7 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
       @page{size:letter;margin:.35in}
       @media print{html,body{background:#fff!important;color-scheme:light}.invoice-screen{padding:0;background:#fff}.invoice-actions{display:none!important}.invoice-document{width:100%;min-height:0;padding:20px 24px;box-shadow:none;border-radius:0}.invoice-document:before{height:5px}.invoice-doc-header{padding-bottom:18px}.invoice-info-grid{padding:18px 0}.invoice-brand img{width:185px}.invoice-totals-wrap{margin-top:18px}.invoice-footer{margin-top:28px}}
     `}</style>
-    <div className="invoice-actions"><Link className={buttonVariants({variant:'outline'})} href="/billing">Back to Billing</Link><PrintButton/></div>
+    <div className="invoice-actions"><Link className={secondaryLinkClass} href="/billing">Back to Billing</Link><PrintButton/></div>
     <article className="invoice-document">
       {isVoid&&<div className="invoice-void">VOID</div>}
       <header className="invoice-doc-header">
@@ -142,3 +142,6 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
     </article>
   </div>;
 }
+
+const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
+const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';

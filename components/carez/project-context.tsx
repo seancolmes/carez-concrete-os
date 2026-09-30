@@ -1,14 +1,14 @@
 'use client';
 
-import {BriefcaseBusiness,ChevronDown} from 'lucide-react';
-import {Button} from '@/components/ui/button';
+import {BriefcaseRegular,ChevronDownRegular} from '@fluentui/react-icons';
+import {Button} from '@fluentui/react-components';
 import {cn} from '@/lib/utils';
 
 export function CarezProjectSwitcher({label='Carez workspace',detail='Company',onClick,className}:{label?:string;detail?:string;onClick?:()=>void;className?:string}){
-  return <Button type="button" variant="ghost" size="sm" className={cn('h-7 min-w-0 max-w-[min(72vw,30rem)] justify-start gap-2 px-2 text-left',className)} onClick={onClick}>
-    <BriefcaseBusiness className="size-3.5 shrink-0 text-muted-foreground"/>
+  return <Button type="button" appearance="subtle" size="small" className={cn('h-7 min-w-0 max-w-[min(72vw,30rem)] justify-start gap-2 px-2 text-left',className)} onClick={onClick}>
+    <BriefcaseRegular className="size-3.5 shrink-0 text-muted-foreground"/>
     <span className="min-w-0"><span className="block truncate text-xs font-medium">{label}</span><span className="hidden truncate text-[10px] leading-3 text-muted-foreground sm:block">{detail}</span></span>
-    <ChevronDown className="ml-1 size-3 shrink-0 text-muted-foreground"/>
+    <ChevronDownRegular className="ml-1 size-3 shrink-0 text-muted-foreground"/>
   </Button>;
 }
 

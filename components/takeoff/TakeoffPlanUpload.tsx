@@ -1,15 +1,15 @@
 'use client';
 
-import {useMemo,useState} from 'react';
+import {useMemo,useRef,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 import {attachPlanToTakeoffSet} from '@/app/takeoff/[setId]/actions';
-import {Button} from '@/components/ui/button';
-import {CarezFileUpload,CarezLoadingState} from '@/components/carez';
+import {Button,Spinner,Text} from '@fluentui/react-components';
 
 export function TakeoffPlanUpload({companyId,takeoffSetId}:{companyId:string;takeoffSetId:string}){
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [files,setFiles]=useState<File[]>([]);
+  const fileInputRef=useRef<HTMLInputElement|null>(null);
   const supabase=useMemo(()=>createClient(),[]);
 
   async function submit(){
@@ -37,9 +37,13 @@ export function TakeoffPlanUpload({companyId,takeoffSetId}:{companyId:string;tak
   }
 
   return <div className="space-y-4">
-    <CarezFileUpload files={files} onFilesChange={setFiles} accept="application/pdf,.pdf" required disabled={busy} label="Choose or drop PDF plans" hint="PDF plan sets only"/>
+    <div className="flex min-h-24 flex-col items-start justify-center gap-2 border border-dashed border-border bg-muted/20 p-4" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();if(!busy)setFiles(Array.from(event.dataTransfer.files).slice(0,1));}}>
+      <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" aria-label="Choose PDF plans" disabled={busy} onChange={event=>setFiles(Array.from(event.target.files||[]).slice(0,1))}/>
+      <Button type="button" appearance="outline" onClick={()=>fileInputRef.current?.click()} disabled={busy}>Choose PDF plans</Button>
+      <Text size={200}>{files[0]?.name||'Or drop a PDF plan set here'}</Text>
+    </div>
     <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Revision rule:</strong> after drawing measurements exist, this source PDF cannot be silently replaced. Revised plans should create the next takeoff/estimate revision so quantity deltas remain auditable.</div>
-    {busy?<CarezLoadingState label="Uploading plan set"/>:null}
+    {busy?<Spinner size="tiny" label="Uploading plan set"/>:null}
     {message?<div role="status" className="text-xs text-muted-foreground">{message}</div>:null}
     <Button type="button" onClick={()=>void submit()} disabled={busy||!files.length}>{busy?'Uploading…':'Attach PDF + open drawings'}</Button>
   </div>;

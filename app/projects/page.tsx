@@ -1,12 +1,9 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {CalendarDays,Plus} from 'lucide-react';
+import { CalendarMonthRegular as CalendarDays, AddRegular as Plus } from '@fluentui/react-icons';
+import {Button,Dialog,DialogSurface,DialogTitle,Input,Label,DialogTrigger} from '@fluentui/react-components';
 import {AppShell} from '@/components/AppShell';
 import {JobsOperationsBoard,type JobsBoardMetrics,type JobsBoardRow} from '@/components/projects/JobsOperationsBoard';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
 import {createClient} from '@/lib/supabase/server';
 import {createProject} from './actions';
 
@@ -79,32 +76,34 @@ export default async function ProjectsPage(){
   };
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="carez-projects-page mx-auto flex w-full max-w-screen-2xl flex-col">
-      <header className="industrial-header mb-6 flex flex-col justify-between px-4 py-3 md:flex-row md:items-start">
+    <div className="carez-projects-page mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <header className="flex shrink-0 flex-col justify-between gap-3 border border-border bg-card px-4 py-3 shadow-sm md:flex-row md:items-center">
         <div className="space-y-1">
-          <nav aria-label="Breadcrumb" className="pb-1 text-xs font-medium text-[#7B8580] dark:text-[#7C8580]"><Link href="/">Dashboard</Link><span className="mx-1 opacity-50">/</span>Projects</nav>
-          <h1 className="text-2xl font-bold tracking-tight text-[#171B19] dark:text-[#F4F6F5]">Projects</h1>
-          <p className="text-sm text-[#7B8580] dark:text-[#7C8580]">Current work · Find the constraint. Line up the next operation.</p>
+          <nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/">Dashboard</Link><span className="mx-1 opacity-50">/</span>Projects</nav>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">Projects</h1>
+          <p className="text-xs text-muted-foreground">Current work · Find the constraint. Line up the next operation.</p>
         </div>
-        <div className="mt-4 flex items-center gap-2 md:mt-0">
-          <Link href="/field?view=schedule" className={buttonVariants({variant:'outline',size:'sm'})}><CalendarDays/>Schedule</Link>
+        <div className="flex items-center gap-2">
+          <Button as="a" href="/field?view=schedule" appearance="outline" size="small" icon={<CalendarDays/>}>Schedule</Button>
           <Dialog>
-            <DialogTrigger render={<Button size="sm"/>}><Plus/>New direct job</DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
-              <DialogHeader><DialogTitle>Create direct job</DialogTitle><DialogDescription>Direct-job exception only. Accepted proposals create jobs automatically.</DialogDescription></DialogHeader>
+            <DialogTrigger><Button appearance="primary" size="small" icon={<Plus/>}>New direct job</Button></DialogTrigger>
+            <DialogSurface className="sm:max-w-xl">
+              <DialogTitle>Create direct job</DialogTitle><p className="text-sm text-muted-foreground">Direct-job exception only. Accepted proposals create jobs automatically.</p>
               <form action={createProject} className="grid gap-4">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground"><strong className="text-foreground">Use this only for emergency/direct work.</strong> Normal awarded work should come through the accepted proposal workflow.</div>
-                <div className="grid gap-2"><Label htmlFor="direct-name">Customer / job</Label><Input id="direct-name" name="name" required placeholder="Smith Residence · emergency slab repair"/></div>
-                <div className="grid gap-2"><Label htmlFor="direct-address">Address</Label><Input id="direct-address" name="address"/></div>
-                <div className="grid gap-3 sm:grid-cols-3"><div className="grid gap-2"><Label htmlFor="direct-city">City</Label><Input id="direct-city" name="city"/></div><div className="grid gap-2"><Label htmlFor="direct-state">State</Label><Input id="direct-state" name="state" defaultValue="WA"/></div><div className="grid gap-2"><Label htmlFor="direct-contract">Contract amount</Label><Input id="direct-contract" name="contract_value" inputMode="decimal"/></div></div>
-                <div className="grid gap-2"><Label htmlFor="direct-next">Next physical action</Label><Input id="direct-next" name="next_action" placeholder="Layout and form driveway"/></div>
-                <div className="flex justify-end"><Button type="submit">Create direct job</Button></div>
+                <div className="grid gap-2"><Label htmlFor="direct-name">Customer / job</Label><Input appearance="underline" id="direct-name" name="name" required placeholder="Smith Residence · emergency slab repair"/></div>
+                <div className="grid gap-2"><Label htmlFor="direct-address">Address</Label><Input appearance="underline" id="direct-address" name="address"/></div>
+                <div className="grid gap-3 sm:grid-cols-3"><div className="grid gap-2"><Label htmlFor="direct-city">City</Label><Input appearance="underline" id="direct-city" name="city"/></div><div className="grid gap-2"><Label htmlFor="direct-state">State</Label><Input appearance="underline" id="direct-state" name="state" defaultValue="WA"/></div><div className="grid gap-2"><Label htmlFor="direct-contract">Contract amount</Label><Input appearance="underline" id="direct-contract" name="contract_value" inputMode="decimal"/></div></div>
+                <div className="grid gap-2"><Label htmlFor="direct-next">Next physical action</Label><Input appearance="underline" id="direct-next" name="next_action" placeholder="Layout and form driveway"/></div>
+                <div className="flex justify-end"><Button type="submit" appearance="primary">Create direct job</Button></div>
               </form>
-            </DialogContent>
+            </DialogSurface>
           </Dialog>
         </div>
       </header>
-      <JobsOperationsBoard rows={rows} metrics={metrics}/>
+      <section aria-label="Jobs workbench" className="min-h-0 flex-1 overflow-auto border border-border bg-card/40 p-2 sm:p-3">
+        <JobsOperationsBoard rows={rows} metrics={metrics}/>
+      </section>
     </div>
   </AppShell>;
 }

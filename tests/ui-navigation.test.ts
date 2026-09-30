@@ -94,7 +94,6 @@ test('active destination resolution prefers the most specific nested route',()=>
   assert.equal(resolveActiveDestination('/overview')?.id,'today');
   assert.equal(resolveActiveDestination('/opportunities')?.id,'leads');
   assert.equal(resolveActiveDestination('/estimates/audit/review')?.id,'estimate-audit');
-  assert.equal(resolveActiveDestination('/takeoff/assemblies/library')?.id,'assemblies');
   assert.equal(resolveActiveDestination('/banking/reconcile/session')?.id,'reconcile');
   assert.equal(resolveActiveDestination('/not-a-carez-route'),null);
 });

@@ -19,7 +19,9 @@ export type StoredSheetMetadata = {
 
 const titleWords = /\b(PLAN|PLANS|FOUNDATION|FRAMING|FLOOR|ROOF|SITE|CIVIL|STRUCTURAL|DETAIL|DETAILS|SECTION|SECTIONS|ELEVATION|ELEVATIONS|NOTES|SCHEDULE|SCHEDULES|GENERAL|DEMOLITION|GRADING|UTILITY|UTILITIES|REFLECTED|CEILING|SLAB|WALL)\b/i;
 const noiseWords = /\b(PROJECT|PROJECT NO|ADDRESS|OWNER|ARCHITECT|ENGINEER|DRAWN|CHECKED|DATE|SCALE|REVISION|REVISIONS|ISSUE|SHEET OF|COPYRIGHT)\b/i;
-const numberPattern = /\b([A-Z]{1,3})\s*[- ]?\s*(\d{1,3}(?:\.\d{1,2})?)\b/i;
+const numberPattern = /^([A-Z]{1,2})\s*[- ]?\s*(\d{1,3}(?:\.\d{1,2})?)\b/i;
+const drawingIndex = /\b(?:INDEX\s+OF\s+DRAWINGS|DRAWING\s+INDEX|SHEET\s+INDEX|LIST\s+OF\s+DRAWINGS)\b/i;
+const emptyMetadata = (): SheetMetadata => ({ sheetNumber: null, title: null, confidence: 0 });
 
 const normalizeText = (value: string) => value.replace(/\s+/g, ' ').trim();
 const normalizeSheetNumber = (prefix: string, number: string) => `${prefix.toUpperCase()}${number}`;
@@ -40,7 +42,9 @@ const titleScore = (text: string) => {
   if (value.length < 4 || value.length > 72) return -10;
   if (noiseWords.test(value)) return -8;
   if (/^\d+(?:\.\d+)*$/.test(value)) return -8;
+  if (/^\d+[.)]\s/.test(value)) return -8;
   if (/^\d+[/'-]\d+/.test(value)) return -8;
+  if (value.split(' ').filter(Boolean).length < 2) return -8;
   let score = 0;
   if (titleWords.test(value)) score += 6;
   if (/^[A-Z0-9 &/.'()-]+$/.test(value)) score += 1;
@@ -59,28 +63,31 @@ export function inferSheetMetadata(items: PositionedPdfText[]): SheetMetadata {
   const clean = items
     .map(item => ({ ...item, text: normalizeText(item.text) }))
     .filter(item => item.text);
+  // Index tables often sit in the same lower-right area as a title block. A
+  // page containing one is ambiguous; leave its label for human review.
+  if (drawingIndex.test(clean.map(item => item.text).join(' '))) return emptyMetadata();
 
   let bestNumber: { value: string; item: PositionedPdfText; score: number; inlineTitle: string | null } | null = null;
+  const titleBlockNumbers = new Set<string>();
   for (const item of clean) {
     const match = item.text.match(numberPattern);
     if (!match) continue;
     const value = normalizeSheetNumber(match[1], match[2]);
     const position = locationScore(item);
+    if (position < 8) continue;
+    titleBlockNumbers.add(value);
     const candidateInlineTitle = inlineTitle(item.text, match);
-    const shortBodyReference = match[2].replace(/\./g, '').length <= 1 && position === 0 && !candidateInlineTitle;
-    if (shortBodyReference) continue;
 
     let score = position;
     const compactSource = item.text.replace(/[\s-]+/g, '').toUpperCase();
     if (compactSource === value) score += 3;
-    if (/^[A-Z]{1,3}\d/.test(value)) score += 1;
     if (candidateInlineTitle) score += 2;
     if (!bestNumber || score > bestNumber.score) {
       bestNumber = { value, item, score, inlineTitle: candidateInlineTitle };
     }
   }
 
-  if (!bestNumber || bestNumber.score < 4) return { sheetNumber: null, title: null, confidence: 0 };
+  if (!bestNumber || titleBlockNumbers.size !== 1) return emptyMetadata();
 
   let bestTitle: { value: string; score: number } | null = bestNumber.inlineTitle
     ? { value: bestNumber.inlineTitle, score: titleScore(bestNumber.inlineTitle) + locationScore(bestNumber.item) + 4 }
@@ -92,14 +99,14 @@ export function inferSheetMetadata(items: PositionedPdfText[]): SheetMetadata {
     if (base < 0) continue;
     const dx = Math.abs(item.x - bestNumber.item.x) / Math.max(1, item.pageWidth);
     const dy = Math.abs(item.y - bestNumber.item.y) / Math.max(1, item.pageHeight);
+    if (dx > 0.24 || dy > 0.16) continue;
     let score = base + locationScore(item);
-    if (dx <= 0.24) score += 3;
-    if (dy <= 0.16) score += 4;
-    else if (dy <= 0.28) score += 2;
+    score += 7;
     if (!bestTitle || score > bestTitle.score) bestTitle = { value: item.text, score };
   }
 
   const title = bestTitle && bestTitle.score >= 8 ? bestTitle.value : null;
+  if (!title) return emptyMetadata();
   const confidence = Math.min(1, (bestNumber.score + (bestTitle?.score || 0)) / 24);
   return { sheetNumber: bestNumber.value, title, confidence };
 }

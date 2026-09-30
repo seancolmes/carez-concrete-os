@@ -2,17 +2,18 @@
 
 import {useCallback,useEffect,useLayoutEffect,useRef,useState,type PointerEvent} from 'react';
 import Link from 'next/link';
+import {Button} from '@fluentui/react-components';
 import {useRouter} from 'next/navigation';
 import {AnimatePresence,motion,useMotionTemplate,useMotionValue,useSpring} from 'framer-motion';
-import {ArrowDown,ArrowRight,ArrowUpRight,ChevronDown,HardHat,Layers3,Ruler,Truck,Wallet} from 'lucide-react';
+import { ArrowDownRegular as ArrowDown, ArrowRightRegular as ArrowRight, ArrowUpRightRegular as ArrowUpRight, ChevronDownRegular as ChevronDown, PersonWrenchRegular as HardHat, LayerRegular as Layers3, RulerRegular as Ruler, VehicleTruckRegular as Truck, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {LoginForm} from '@/components/auth/LoginForm';
 import {WorkspaceLoginDialog} from '@/components/auth/WorkspaceLoginDialog';
 import {FieldFootage} from '@/components/landing/FieldFootage';
 import {AnimatedLogo} from '@/components/brand/AnimatedLogo';
 import {SplashScreen} from '@/components/brand/SplashScreen';
 import {MetricBentoTile} from '@/components/projects/MetricBentoTile';
-import {CSICostCodeStrip} from '@/components/ui/CSICostCodeStrip';
-import {TakeoffThumbnail} from '@/components/ui/TakeoffThumbnail';
+import {CSICostCodeStrip} from '@/components/estimating/CSICostCodeStrip';
+import {TakeoffThumbnail} from '@/components/takeoff/TakeoffThumbnail';
 import styles from './Landing.module.css';
 
 const heroSteps=[
@@ -53,10 +54,10 @@ function CapabilityCard({item}:{item:(typeof capabilities)[number]}){
   const y=useMotionValue(0);
   const intensity=useMotionValue(0);
   const opacity=useSpring(intensity,{stiffness:220,damping:26});
-  const glow=useMotionTemplate`radial-gradient(280px circle at ${x}px ${y}px, rgba(0,153,102,.10), transparent 72%)`;
+  const glow=useMotionTemplate`radial-gradient(280px circle at ${x}px ${y}px, rgba(237,237,237,.06), transparent 72%)`;
   return <motion.article onPointerEnter={()=>intensity.set(1)} onPointerLeave={()=>intensity.set(0)} onPointerMove={event=>{const bounds=event.currentTarget.getBoundingClientRect();x.set(event.clientX-bounds.left);y.set(event.clientY-bounds.top);}}>
     <motion.span className={styles.cardGlow} style={{backgroundImage:glow,opacity}} aria-hidden="true"/>
-    <div className={styles.cardContent}><item.icon size={22} strokeWidth={1.6} aria-hidden="true"/><h3>{item.title}</h3><p>{item.body}</p></div>
+    <div className={styles.cardContent}><item.icon fontSize={22} aria-hidden="true"/><h3>{item.title}</h3><p>{item.body}</p></div>
   </motion.article>;
 }
 
@@ -167,8 +168,8 @@ export default function LoginPage(){
 
   return <><main className={styles.page} inert={bootPhase==='checking'||bootPhase==='playing'}>
     <header className={styles.header}>
-      <Link href="/login" className={styles.wordmark} aria-label="Pourtrace home">{bootPhase==='exiting'||bootPhase==='done'?<motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><AnimatedLogo/></motion.span>:<span className={styles.logoPlace}/>}</Link>
-      <nav aria-label="Page navigation" className={styles.nav}><button type="button" onClick={()=>showSection('workflow')}>How it works</button><button type="button" onClick={()=>showSection('capabilities')}>The platform</button><button type="button" className={`${styles.navAccess} inline-flex items-center rounded-full border border-[#009966]/40 bg-[#009966]/10 px-3.5 py-1.5 font-mono text-xs text-[#009966] shadow-[0_0_15px_rgba(0,153,102,0.15)] transition-all hover:border-[#009966] hover:bg-[#009966]/20`} onClick={()=>setLoginOpen(true)}><span className="relative mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[#009966]" aria-hidden="true"><span className="absolute inset-0 inline-flex h-full w-full animate-ping rounded-full bg-[#009966] opacity-75 motion-reduce:animate-none"/></span>Workspace sign in <ArrowUpRight size={15} aria-hidden="true"/></button></nav>
+      <Link href="/login" className={styles.wordmark} aria-label="Pourtrace home">{bootPhase==='exiting'||bootPhase==='done'?<motion.span layoutId="brand-logo" transition={{layout:{duration:0.7,ease:[0.22,1,0.36,1]}}}><AnimatedLogo idPrefix="login-navigation"/></motion.span>:<span className={styles.logoPlace}/>}</Link>
+      <nav aria-label="Page navigation" className={styles.nav}><Button appearance="subtle" type="button" onClick={()=>showSection('workflow')}>How it works</Button><Button appearance="subtle" type="button" onClick={()=>showSection('capabilities')}>The platform</Button><Button appearance="subtle" type="button" className={styles.navAccess} onClick={()=>setLoginOpen(true)}><span className={styles.navStatus} aria-hidden="true"/>Workspace sign in <ArrowUpRight fontSize={15} aria-hidden="true"/></Button></nav>
     </header>
 
     <div className={styles.content}>
@@ -176,12 +177,12 @@ export default function LoginPage(){
         <div className={styles.heroCopy}>
           <h1 id="landing-heading" className="font-sans font-extrabold tracking-tight">From the drawing to the <em>day’s work.</em></h1>
           <p>Pourtrace keeps concrete takeoff, estimates, project operations, field production, and billing connected to the same job.</p>
-          <div className={styles.heroActions}><button type="button" className={styles.primaryAction} onClick={()=>setLoginOpen(true)}>Sign in to your workspace <ArrowUpRight size={18} aria-hidden="true"/></button><button type="button" className={styles.textAction} onClick={()=>showSection('workflow')}>See the workflow <ArrowDown size={17} aria-hidden="true"/></button></div>
+          <div className={styles.heroActions}><Button appearance="subtle" type="button" className={styles.primaryAction} onClick={()=>setLoginOpen(true)}>Sign in to your workspace <ArrowUpRight fontSize={18} aria-hidden="true"/></Button><Button appearance="subtle" type="button" className={styles.textAction} onClick={()=>showSection('workflow')}>See the workflow <ArrowDown fontSize={17} aria-hidden="true"/></Button></div>
         </div>
         <div className={styles.heroVisual} aria-label="Illustration of a concrete job record moving from plans to field work">
           <div className={styles.visualTop}><span>Concrete job record</span><span>Drawing → field</span></div>
           <div className={styles.visualBody}><div className={styles.visualSpine} aria-hidden="true"/>
-            {heroSteps.map(step=><button key={step.number} type="button" className={`${styles.visualStep} ${activeStep===step.number?styles.visualCurrent:''}`} aria-pressed={activeStep===step.number} onMouseEnter={()=>setActiveStep(step.number)} onFocus={()=>setActiveStep(step.number)} onClick={()=>setActiveStep(step.number)}><span className={styles.visualIndex}>{step.number}</span><span className={styles.visualStepCopy}><small>{step.eyebrow}</small><strong>{step.name}</strong><span>{step.detail}</span></span>{activeStep===step.number?<ArrowRight size={17} aria-hidden="true"/>:null}</button>)}
+            {heroSteps.map(step=><Button appearance="subtle" key={step.number} type="button" className={`${styles.visualStep} ${activeStep===step.number?styles.visualCurrent:''}`} aria-pressed={activeStep===step.number} onMouseEnter={()=>setActiveStep(step.number)} onFocus={()=>setActiveStep(step.number)} onClick={()=>setActiveStep(step.number)}><span className={styles.visualIndex}>{step.number}</span><span className={styles.visualStepCopy}><small>{step.eyebrow}</small><strong>{step.name}</strong><span>{step.detail}</span></span>{activeStep===step.number?<ArrowRight fontSize={17} aria-hidden="true"/>:null}</Button>)}
           </div>
           <div className={`${styles.visualPreview} dark`} aria-label="Illustrative product component preview">
             <div className={styles.visualPreviewLabel}>PRODUCT COMPONENT · ILLUSTRATIVE DATA</div>
@@ -196,7 +197,7 @@ export default function LoginPage(){
           </div>
           <div className={styles.visualBottom}>Source quantity / Direct cost / Sell</div>
         </div>
-        <div className={styles.learnMoreRail}><button type="button" className={styles.learnMoreButton} aria-expanded={learnMoreOpen} onClick={toggleLearnMore}>{learnMoreOpen?'Show less':'Learn more'}<ChevronDown size={17} className={`${idleHint?styles.chevronHint:''} ${learnMoreOpen?styles.chevronOpen:''}`} aria-hidden="true"/></button></div>
+        <div className={styles.learnMoreRail}><Button appearance="subtle" type="button" className={styles.learnMoreButton} aria-expanded={learnMoreOpen} onClick={toggleLearnMore}>{learnMoreOpen?'Show less':'Learn more'}<ChevronDown fontSize={17} className={`${idleHint?styles.chevronHint:''} ${learnMoreOpen?styles.chevronOpen:''}`} aria-hidden="true"/></Button></div>
       </section>
 
       <AnimatePresence initial={false}>{learnMoreOpen&&<motion.div id="landing-details" key="landing-details" className={styles.detailsReveal} initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:0.5,ease:[0.22,1,0.36,1]}} style={{overflow:detailsUnclipped?'visible':'hidden'}} onAnimationComplete={()=>setDetailsUnclipped(true)}>
@@ -205,7 +206,7 @@ export default function LoginPage(){
         <div className={styles.sectionMeta}>THE PLATFORM</div>
         <div className={styles.sectionLead}><h2 id="workflow-heading">From takeoff to billing, without a reset.</h2><p>Plans, quantities, estimates, field work, and financials stay attached to the same project.</p></div>
         <div className={styles.workflowBody}>
-          <ol className={styles.stageList}>{stages.map((stage,index)=><li key={stage.number} data-workflow-step data-active={activeWorkflow===index}><button type="button" onMouseEnter={()=>setActiveWorkflow(index)} onFocus={()=>setActiveWorkflow(index)} onClick={()=>setActiveWorkflow(index)} aria-current={activeWorkflow===index?'step':undefined}><span>{stage.number}</span><span><strong>{stage.name}</strong><small>{stage.detail}</small></span></button></li>)}</ol>
+          <ol className={styles.stageList}>{stages.map((stage,index)=><li key={stage.number} data-workflow-step data-active={activeWorkflow===index}><Button appearance="subtle" type="button" onMouseEnter={()=>setActiveWorkflow(index)} onFocus={()=>setActiveWorkflow(index)} onClick={()=>setActiveWorkflow(index)} aria-current={activeWorkflow===index?'step':undefined}><span>{stage.number}</span><span><strong>{stage.name}</strong><small>{stage.detail}</small></span></Button></li>)}</ol>
           <div className={styles.workflowWindowRail}><div className={`${styles.osWindow} ${styles.workflowLive}`} data-visible={workflowVisible} aria-label="Illustrative Pourtrace app window" aria-hidden={!workflowVisible}>
             <div className={styles.windowChrome}><span><i/><i/><i/></span><span>POURTRACE / JOB WORKSPACE</span></div>
             <AnimatePresence mode="wait" initial={false}><motion.div key={activeWorkflow} initial={{opacity:0,x:16,y:8}} animate={{opacity:1,x:0,y:0}} exit={{opacity:0,x:-12,y:-6}} transition={{duration:0.22}}><WorkflowWindow step={activeWorkflow} logIndex={logIndex}/></motion.div></AnimatePresence>

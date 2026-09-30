@@ -46,7 +46,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   let summaries: any[] = [];
   if (measurementIds.length) {
     const { data } = await supabase.from('takeoff_measurement_outputs')
-      .select('measurement_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
+      .select('id,measurement_id,generated_estimate_item_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,baseline_man_hours_per_unit,job_man_hours_per_unit,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
     summaries = data || [];
@@ -134,7 +134,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         .in('condition_version_id', conditionVersionIds)
         .order('sort_order'),
       supabase.from('project_condition_outputs')
-        .select('id,condition_version_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id,calculation_trace')
+        .select('id,condition_version_id,legacy_takeoff_output_id,output_key,label,production_quantity,production_unit,status,direct_cost,pricing_status,generated_estimate_item_id,calculation_trace')
         .eq('company_id', companyId)
         .in('condition_version_id', conditionVersionIds)
         .order('output_key'),
@@ -181,7 +181,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         <div className={pageStyles.identity}>
           <div className={pageStyles.workspaceCopy}>
             <h1 className={pageStyles.title}>Takeoff</h1>
-            {opportunity && <p><Link href={`/opportunities?lead=${opportunity.id}&estimate=${set.estimate_id}&takeoff=${setId}&tab=takeoff`}>Opportunity {opportunity.opportunity_number}</Link></p>}
+            {opportunity && <p><Link href={`/opportunities?lead=${encodeURIComponent(opportunity.id)}&estimate=${encodeURIComponent(set.estimate_id)}&section=scope&detail=plans`}>Opportunity {opportunity.opportunity_number}</Link></p>}
           </div>
           <div className={pageStyles.meta}>
             <span className={pageStyles.estimate}>{set.name} · {estimate ? <Link href={`/opportunities?estimate=${estimate.id}&takeoff=${setId}&tab=worksheet`}>{estimateLabel}</Link> : estimateLabel}</span>

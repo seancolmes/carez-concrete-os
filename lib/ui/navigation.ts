@@ -99,8 +99,6 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
   {id:'estimates',href:'/estimates',label:'Estimates',hint:'Scope, pricing and review',domain:'estimating',icon:'calculator'},
   {id:'proposals',href:'/proposals',label:'Proposals',hint:'Customer proposal workflow',domain:'estimating',icon:'file'},
   {id:'estimate-audit',href:'/estimates/audit',label:'Estimate review',hint:'Commercial recap and release review',domain:'estimating',icon:'shield'},
-  {id:'assemblies',href:'/takeoff/assemblies',label:'Assembly history',hint:'Legacy compatibility records',domain:'estimating',icon:'library'},
-  {id:'production-intelligence',href:'/takeoff/intelligence',label:'Production intelligence',hint:'Actual production evidence',domain:'estimating',icon:'gauge'},
   {id:'projects',href:'/projects',label:'Projects',hint:'Active jobs and project control',domain:'projects',icon:'briefcase'},
   {id:'job-setup',href:'/job-setup',label:'Job setup',hint:'Turn accepted work into an executable job',domain:'projects',icon:'clipboard-check'},
   {id:'schedule',href:'/schedule',label:'Schedule',hint:'Who is working where and what happens next',domain:'projects',icon:'calendar'},
@@ -134,7 +132,7 @@ export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
 export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
   {id:'today',label:'Today',destinationIds:['today','reports']},
   {id:'preconstruction',label:'Preconstruction',destinationIds:['leads','lead-inbox','bid-intelligence']},
-  {id:'estimating',label:'Estimating',destinationIds:['takeoff','estimates','proposals','estimate-audit','assemblies','production-intelligence']},
+  {id:'estimating',label:'Estimating',destinationIds:['takeoff','estimates','proposals','estimate-audit']},
   {id:'projects',label:'Projects',destinationIds:['projects','job-setup','schedule','look-ahead','readiness','resources','work-packages','scope-drift','change-orders','forecast']},
   {id:'field',label:'Field',destinationIds:['field','production','crew','employee-access','equipment']},
   {id:'finance',label:'Finance',destinationIds:['pour-control','billing','cashflow','payables','banking','reconcile','bank-rules','payroll','costs','overhead','procurement']},
@@ -146,7 +144,7 @@ export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurf
   {id:'today',label:'Overview',href:'/overview',sections:[{id:'today',label:'Overview',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
   {id:'preconstruction',label:'Opportunities',href:'/opportunities',sections:[
     {id:'opportunities',label:'Opportunities',destinations:[{id:'leads',classification:'primary-surface'},{id:'lead-inbox',classification:'internal-view'},{id:'bid-intelligence',classification:'internal-view'}]},
-    {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'},{id:'assemblies',classification:'compatibility-entry'},{id:'production-intelligence',classification:'contextual-tool'}]},
+    {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'}]},
     {id:'commercial',label:'Commercial',destinations:[{id:'estimates',classification:'internal-view'},{id:'estimate-audit',classification:'internal-view'},{id:'proposals',classification:'internal-view'}]},
   ]},
   {id:'projects',label:'Projects',href:'/projects',sections:[

@@ -1,23 +1,29 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-26
+Last reconciled: 2026-09-29 (local working tree candidate)
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias
+
+## 2026-09-29 local estimating-workspace candidate
+
+ADR-028 supersedes ADR-027 for active application colors in the current uncommitted working tree. Shared semantic tokens now support a dark default plus saved light and device themes; the approved logo remains intact. Opportunities has five task destinations, four mutually exclusive record views, a bounded desktop grid, and a dedicated Takeoff entry; Projects retains four sections. Takeoff has exclusive Setup, Tracing, and Recap views, a transient Zustand UI store, and labor inputs that save MH per unit. A dedicated Vendor Quotes portal and source-controlled supplier-link migration are present locally. Supplier prices remain quote evidence until office selection.
+
+Local verification: TypeScript passes, 346 earlier tests passed with one skipped, PostCSS compiled the shared stylesheet, and the public login surface rendered in a local browser. A later focused 58-test UI/Takeoff run had one stale retired-procurement-link assertion; after updating it, the affected 10-test suite passed. Authenticated dark/light Opportunity views and the empty Field Schedule now rendered locally; the dedicated Takeoff remained blocked by a missing `.next` vendor chunk, and Commercial Recap was not reverified. Full route-by-route visual acceptance, live supplier submission, and migration replay are still outstanding. The new migration has not been applied to a remote database. No release or production action is authorized by this candidate.
 
 ## Execution model
 
 ### FINAL-2026-09-26 local completion program — local and staging acceptance complete
 
-The prior staging acceptance covered local V1 engineering and the historical Steam Sleek presentation. ADR-027 now governs the local PourTrace palette; its full route-by-route visual acceptance is still open. Production remains unauthorized.
+The prior staging acceptance covered local V1 engineering and the historical Steam Sleek presentation. ADR-027 later governed the PourTrace palette; the current ADR-028 local candidate supersedes those application colors. Full route-by-route visual acceptance remains open. Production remains unauthorized.
 
 - Approved Change Order reference RPC correction committed locally (`a4824f01`), with the original recovery migration preserved.
 - Stale legacy assembly creation RPC retired; profile authority columns protected from caller updates; nine definer search paths hardened (`71744385`).
 - The release gate replays the current source chain and reports **0 active missing source contracts** after scanning 1,149 references. Runtime SQL fixtures, schema security, schema lint, tests, typecheck, production build, whitespace, source-integrity checks, and the trigger/helper ACL regression pass.
-- The earlier light translation (`ffbcd08e`) was rejected at the time. ADR-027 now accepts distinct light and dark palettes, and appearance preferences retain light, dark, and system. The prior manual staging acceptance predates this palette change.
+- The earlier light translation (`ffbcd08e`) was rejected at the time. ADR-027 then accepted distinct light and dark palettes; that historical choice has been superseded locally by ADR-028's dual-theme candidate with a dark default. The prior manual staging acceptance predates both changes.
 - QA is canonical through **66 migrations** on Supabase project `tkcirsdfvvahwrcratkn`; trigger/helper ACL hardening is applied and verified, with the targeted security findings resolved. No further QA diagnostic crawling is required after completed acceptance; egress is conserved for production-authorized work.
 - V1 Condition edge-family parity, derived-3D verification, Issue #28 acceptance-resolution vocabulary, project execution, production, finance, billing/retainage, cash/commitment, scope/resource, and pour-control contracts are complete with regression coverage. Local/staging V1 acceptance is complete.
-- Estimating intelligence is V1-scoped through attributable production evidence, confidence/hold behavior, and the `/takeoff/intelligence` surface. Broader AI Plan Intelligence / assisted Takeoff remains an intentional POST-V1 P7 capability and is not a V1 blocker.
+- Estimating intelligence remains V1-scoped through attributable production evidence and confidence/hold behavior. The former `/takeoff/intelligence` preview route was retired by the product owner; its persisted evidence and calculation contracts remain. Broader AI Plan Intelligence / assisted Takeoff remains an intentional POST-V1 P7 capability and is not a V1 blocker.
 
 Evidence from the isolated database gate is retained outside the repository under `C:\Users\nikca\Documents\Carez-Rehearsal\release-gate\carez-release-1790442130852-eb32b2`. QA acceptance is complete; production remains untouched and not authorized.
 
@@ -69,7 +75,7 @@ The accepted design direction is:
 - selective spatial/3D treatment where it improves technical or customer-facing experiences;
 - Inter-led hierarchy with IBM Plex Mono reserved for technical alignment;
 - stronger shared tabs, meaningful domain icons, three depth levels, and no competing component system.
-- current palette authority: **ADR-027 revised PourTrace palette**, approved on 2026-09-28, superseding the historical Steam Sleek and Indigo Harbor color directions. The local source now uses its light/dark semantic tokens; authenticated browser smoke checks covered Projects, Opportunities, Billing, and Takeoff. Full route-by-route visual acceptance remains outstanding.
+- current local palette direction: **ADR-028 dual dark/light estimating workspaces** supersedes ADR-027's application colors while retaining the approved logo. The dark default, light preference, authenticated Opportunity list and Scope views, and mobile Scope layout have local browser evidence. Full route-by-route visual acceptance remains outstanding.
 
 ### Accepted reference implementation
 
@@ -176,7 +182,7 @@ Issue #39 is closed. `main` remains untouched.
 
 One cross-cutting UI acceptance item remains open:
 
-1. **Issue #76 / ADR-025 + ADR-027 — PourTrace route acceptance.** Source integration covers the representative application routes and shared shell; full authenticated responsive, keyboard, and visual browser acceptance remains outstanding.
+1. **Issue #76 / ADR-025 + ADR-028 — dark estimating route acceptance.** Source integration covers representative application routes and the shared shell; full authenticated responsive, keyboard, and visual browser acceptance remains outstanding.
 
 The P0.5 Concrete Condition foundation, Issue #39 P0.5E legacy migration, P1 estimating source slices, and V1 commercial handoff contracts are implemented on `staging`; authenticated representative workflow acceptance remains the outstanding release step.
 

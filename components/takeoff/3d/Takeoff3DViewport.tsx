@@ -6,7 +6,7 @@ import { DEFAULT_DERIVED_3D_VIEW_STATE, type Derived3DViewState } from '@/lib/ta
 import type { Takeoff3DCameraMemory } from '@/lib/takeoff/3d/camera';
 import { focusFrameForSolids, sheetSolidsForSelection } from '@/lib/takeoff/3d/selection';
 import { formatArchitecturalLength } from '@/lib/takeoff/lengthFormat';
-import { Button } from '@/components/ui/button';
+import { Button, Select } from '@fluentui/react-components';
 import { Takeoff3DScene } from './Takeoff3DScene';
 import { Takeoff3DToolbar } from './Takeoff3DToolbar';
 import { Takeoff3DErrorBoundary } from './Takeoff3DErrorBoundary';
@@ -78,17 +78,17 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
       onFocus={focusSelected} canFocus={Boolean(calibrated && pdfUrl && selectedSolids.length)} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen(current => !current)}
       issueCount={sheetIssues.length} checksOpen={checksOpen} onToggleChecks={() => setChecksOpen(current => !current)} />
     {filtersOpen && <div className={styles.filters} aria-label="3D filters">
-      <label>Zone<select aria-label="3D zone" value={viewState.zone} onChange={event => onViewStateChange(current => ({ ...current, zone: event.target.value }))}>
+      <label>Zone<Select aria-label="3D zone" value={viewState.zone} onChange={event => onViewStateChange(current => ({ ...current, zone: event.target.value }))}>
         <option value="all">All zones</option>{viewState.zone !== 'all' && !zones.includes(viewState.zone) && <option value={viewState.zone}>{viewState.zone} (not on this sheet)</option>}
         {zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}
-      </select></label>
-      <label>Top elevation<select aria-label="3D top elevation" value={viewState.elevation} onChange={event => onViewStateChange(current => ({ ...current, elevation: event.target.value }))}>
+      </Select></label>
+      <label>Top elevation<Select aria-label="3D top elevation" value={viewState.elevation} onChange={event => onViewStateChange(current => ({ ...current, elevation: event.target.value }))}>
         <option value="all">All elevations</option>{viewState.elevation !== 'all' && !elevations.some(value => String(value) === viewState.elevation) && <option value={viewState.elevation}>{formatArchitecturalLength(Number(viewState.elevation))} (not on this sheet)</option>}
         {elevations.map(value => <option key={value} value={String(value)}>{formatArchitecturalLength(value)}</option>)}
-      </select></label>
-      <Button size="xs" variant="ghost" disabled={!canFilterSelected} onClick={toggleSelected}>{selectedHidden ? 'Show selected' : 'Hide selected'}</Button>
-      <Button size="xs" variant="ghost" disabled={!canFilterSelected} aria-pressed={Boolean(viewState.isolated && viewState.isolated === selectedConditionVersionId)} onClick={isolateSelected}>Isolate</Button>
-      <Button size="xs" variant="ghost" disabled={!hasFilters} onClick={showAll}>Show all</Button>
+      </Select></label>
+      <Button size="small" appearance="subtle" disabled={!canFilterSelected} onClick={toggleSelected}>{selectedHidden ? 'Show selected' : 'Hide selected'}</Button>
+      <Button size="small" appearance="subtle" disabled={!canFilterSelected} aria-pressed={Boolean(viewState.isolated && viewState.isolated === selectedConditionVersionId)} onClick={isolateSelected}>Isolate</Button>
+      <Button size="small" appearance="subtle" disabled={!hasFilters} onClick={showAll}>Show all</Button>
     </div>}
     <div className={styles.canvas}>
       <span className={styles.datum} aria-hidden="true">+ Plan datum</span>
@@ -98,24 +98,24 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
       </Takeoff3DErrorBoundary> : <div className={styles.message} role="status">
         <strong>3D input required</strong>
         <span>{!pdfUrl ? 'The active sheet needs a PDF reference.' : sheetIssues.find(issue => issue.severity === 'hold')?.message ?? 'The active sheet needs calibrated 3D dimensions.'}</span>
-        {sheetIssues.find(issue => issue.severity === 'hold') && <Button size="xs" variant="outline" onClick={() => {
+        {sheetIssues.find(issue => issue.severity === 'hold') && <Button size="small" appearance="outline" onClick={() => {
           const issue = sheetIssues.find(entry => entry.severity === 'hold'); if (issue) onJumpToIssue(issue);
         }}>Open 2D / Condition input</Button>}
       </div>}
       {calibrated && pdfUrl && displayedIssue && <div key={displayedIssue.id} className={`${styles.issueOverlay} ${!renderedSolids.length ? styles.centeredIssue : ''}`} role="status">
         <strong>{displayedIssue.code === '3d_input_required' ? '3D input required' : '3D unavailable for this Takeoff'}</strong>
         <span>{displayedIssue.message}</span>
-        <Button size="xs" variant="outline" onClick={() => onJumpToIssue(displayedIssue)}>Open 2D / Condition input</Button>
+        <Button size="small" appearance="outline" onClick={() => onJumpToIssue(displayedIssue)}>Open 2D / Condition input</Button>
       </div>}
       {calibrated && pdfUrl && !renderedSolids.length && !displayedIssue && <div className={`${styles.issueOverlay} ${styles.centeredIssue}`} role="status">
         <strong>{hasFilters ? 'No visible concrete' : 'No 3D concrete on this sheet'}</strong>
         <span>{hasFilters ? 'Restore visibility to review this sheet.' : 'Supported measured concrete will appear here.'}</span>
-        {hasFilters && <Button size="xs" variant="outline" onClick={showAll}>Show all</Button>}
+        {hasFilters && <Button size="small" appearance="outline" onClick={showAll}>Show all</Button>}
       </div>}
       {checksOpen && <div className={styles.checks}>
         <strong>Verification checks</strong><p>Resolve geometry on the plan and dimensions in Condition Properties.</p>
         {sheetIssues.length ? sheetIssues.map(issue => <div key={issue.id} data-selected={issue.measurementId ? issue.measurementId === selectedMeasurementId : issue.conditionVersionId === selectedConditionVersionId}>
-          <p>{issue.message}</p><Button size="xs" variant="outline" onClick={() => onJumpToIssue(issue)}>Open 2D / Condition input</Button>
+          <p>{issue.message}</p><Button size="small" appearance="outline" onClick={() => onJumpToIssue(issue)}>Open 2D / Condition input</Button>
         </div>) : <p>No 3D input issues for this sheet.</p>}
       </div>}
     </div>

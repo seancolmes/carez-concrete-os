@@ -1,7 +1,6 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {AlertTriangle,ArrowUpRight,Banknote,CreditCard,Landmark,ReceiptText,ShieldCheck,ShoppingCart,Wallet} from 'lucide-react';
-import {buttonVariants} from '@/components/ui/button';
+import { WarningRegular as AlertTriangle, ArrowUpRightRegular as ArrowUpRight, MoneyRegular as Banknote, PaymentRegular as CreditCard, BuildingBankRegular as Landmark, ReceiptRegular as ReceiptText, ShieldCheckmarkRegular as ShieldCheck, CartRegular as ShoppingCart, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {createClient} from '@/lib/supabase/server';
 import {cn} from '@/lib/utils';
 
@@ -43,7 +42,7 @@ export default async function CashflowPage(){
 
   return <>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4">
-      <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Cash flow</h1><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/banking"><Landmark/>Banking</Link></header>
+      <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Cash flow</h1><Link className={secondaryLinkClass} href="/banking"><Landmark/>Banking</Link></header>
 
       <section aria-label="Cash position" className="grid grid-cols-2 gap-px border border-border bg-border [&>*:first-child]:col-span-2 sm:grid-cols-3 sm:[&>*:first-child]:col-span-1">
         <LedgerMetric label="Available after obligations" value={configured?money(safe):'Unavailable'} help={configured?undefined:'Connect or approve banking to calculate.'} tone={!configured?'warning':safe<0?'danger':'success'}/>
@@ -59,11 +58,14 @@ export default async function CashflowPage(){
 
       <section aria-labelledby="cash-controls-title" className="space-y-2"><div className="carez-page-heading"><h2 id="cash-controls-title">Cash controls</h2></div><div className="grid divide-y border border-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-3">{controls.map(({href,label,copy,Icon})=><Link href={href} key={href} className="group flex min-h-14 items-center gap-3 border-b border-border px-3 py-2 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><Icon className="size-4 shrink-0 text-primary"/><span className="min-w-0 flex-1"><strong className="block text-sm">{label}</strong><span className="block truncate text-xs text-muted-foreground">{copy}</span></span><ArrowUpRight className="size-3.5 text-muted-foreground"/></Link>)}<Link href="/procurement/orders" className="group flex min-h-14 items-center gap-3 border-b border-border px-3 py-2 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><ShoppingCart className="size-4 shrink-0 text-primary"/><span className="min-w-0 flex-1"><strong className="block text-sm">Open orders</strong><span className="block truncate text-xs text-muted-foreground">{money(pos)} committed</span></span><ArrowUpRight className="size-3.5 text-muted-foreground"/></Link></div></section>
 
-      <section aria-labelledby="spending-title" className="space-y-2"><div className="carez-page-heading flex items-center justify-between gap-3"><h2 id="spending-title">Company spending</h2><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/cashflow/expenses">Expenses</Link></div><dl className="grid grid-cols-3 divide-x border border-border bg-card/70">{[
+      <section aria-labelledby="spending-title" className="space-y-2"><div className="carez-page-heading flex items-center justify-between gap-3"><h2 id="spending-title">Company spending</h2><Link className={secondaryLinkClass} href="/cashflow/expenses">Expenses</Link></div><dl className="grid grid-cols-3 divide-x border border-border bg-card/70">{[
         ['This month',money(expenses?.current_month_business_expense)],['This year',money(expenses?.ytd_business_expense)],['Still unpaid',money(expenses?.unpaid_company_expense_obligations)],
       ].map(([label,value])=><div key={label} className="min-w-0 px-3 py-2"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="truncate font-mono text-sm font-semibold tabular-nums sm:text-base">{value}</dd></div>)}</dl></section>
 
-      <Link className={buttonVariants({variant:'outline',size:'sm',className:'w-fit'})} href="/cashflow/accounts"><Wallet/>Manual account fallback</Link>
+      <Link className={secondaryLinkClass+' w-fit'} href="/cashflow/accounts"><Wallet/>Manual account fallback</Link>
     </div>
   </>;
 }
+
+const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
+const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';

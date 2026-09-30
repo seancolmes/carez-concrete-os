@@ -11,12 +11,12 @@ import {
   resolveThemePreference,
 } from '../lib/ui/appearance.ts';
 
-test('theme preference normalizes safely', () => {
+test('theme preference normalizes safely and keeps light as the fresh default', () => {
   assert.equal(normalizeThemePreference('light'), 'light');
   assert.equal(normalizeThemePreference('dark'), 'dark');
   assert.equal(normalizeThemePreference('system'), 'system');
-  assert.equal(normalizeThemePreference('sepia'), 'system');
-  assert.equal(normalizeThemePreference(null), 'system');
+  assert.equal(normalizeThemePreference('sepia'), 'light');
+  assert.equal(normalizeThemePreference(undefined), 'light');
 });
 
 test('density preference normalizes safely', () => {
@@ -27,26 +27,46 @@ test('density preference normalizes safely', () => {
   assert.equal(normalizeDensityPreference(undefined), 'default');
 });
 
-test('theme preferences resolve to light, dark, or the device setting', () => {
-  assert.equal(resolveThemePreference('system', false), 'light');
-  assert.equal(resolveThemePreference('system', true), 'dark');
-  assert.equal(resolveThemePreference('light', true), 'light');
-  assert.equal(resolveThemePreference('dark', false), 'dark');
+test('theme preferences resolve to the selected or device theme', () => {
+  assert.equal(resolveThemePreference('light',true),'light');
+  assert.equal(resolveThemePreference('dark',false),'dark');
+  assert.equal(resolveThemePreference('system',true),'dark');
+  assert.equal(resolveThemePreference('system',false),'light');
 });
 
-test('boot migrates saved dark preference before paint and preserves density', () => {
-  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(_name:string,value:boolean){assert.equal(value,true);}}};
-  runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{document:{documentElement:root},window:{matchMedia:()=>({matches:true})},localStorage:{getItem:(key:string)=>key===CAREZ_DENSITY_STORAGE_KEY?'compact':key===CAREZ_THEME_STORAGE_KEY?'dark':null}});
+function boot(storedTheme:string|null,prefersDark:boolean){
+  let darkClass=false;
+  const root={
+    dataset:{} as Record<string,string>,
+    style:{} as Record<string,string>,
+    classList:{toggle(name:string,enabled:boolean){assert.equal(name,'dark');darkClass=enabled;}},
+  };
+  runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{
+    document:{documentElement:root},
+    window:{matchMedia:(query:string)=>{assert.equal(query,CAREZ_THEME_MEDIA_QUERY);return {matches:prefersDark};}},
+    localStorage:{getItem:(key:string)=>key===CAREZ_DENSITY_STORAGE_KEY?'compact':key===CAREZ_THEME_STORAGE_KEY?storedTheme:null},
+  });
+  return {root,darkClass};
+}
+
+test('boot keeps light as the fresh default and preserves density', () => {
+  const {root,darkClass}=boot(null,false);
+  assert.equal(root.dataset.themePreference,'light');
+  assert.equal(root.dataset.theme,'light');
+  assert.equal(root.dataset.density,'compact');
+  assert.equal(root.style.colorScheme,'light');
+  assert.equal(darkClass,false);
+});
+
+test('boot restores saved dark before paint even on a light device', () => {
+  const {root,darkClass}=boot('dark',false);
   assert.equal(root.dataset.themePreference,'dark');
   assert.equal(root.dataset.theme,'dark');
-  assert.equal(root.dataset.density,'compact');
   assert.equal(root.style.colorScheme,'dark');
+  assert.equal(darkClass,true);
 });
 
-test('boot follows a light device preference when no theme was saved', () => {
-  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(_name:string,value:boolean){assert.equal(value,false);}}};
-  runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{document:{documentElement:root},window:{matchMedia:(query:string)=>({matches:query===CAREZ_THEME_MEDIA_QUERY?false:true})},localStorage:{getItem:()=>null}});
-  assert.equal(root.dataset.themePreference,'system');
-  assert.equal(root.dataset.theme,'light');
-  assert.equal(root.style.colorScheme,'light');
+test('boot resolves a saved device setting in both directions', () => {
+  assert.equal(boot('system',true).root.dataset.theme,'dark');
+  assert.equal(boot('system',false).root.dataset.theme,'light');
 });

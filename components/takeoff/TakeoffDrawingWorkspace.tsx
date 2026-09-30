@@ -3,10 +3,11 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
-import {
-  Check,ChevronLeft,ChevronRight,Crosshair,Hand,Magnet,Maximize,Minus,MousePointer2,MoveHorizontal,
-  PenLine,Pencil,Plus,Redo2,RotateCcw,Ruler,Scissors,Trash2,Undo2,X
-} from 'lucide-react';
+import {Layout,Model} from 'flexlayout-react';
+import Draggable from 'react-draggable';
+import {ResizableBox} from 'react-resizable';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Select} from '@fluentui/react-components';
+import {CheckmarkRegular as Check,ChevronLeftRegular as ChevronLeft,ChevronRightRegular as ChevronRight,TargetRegular as Crosshair,HandRightRegular as Hand,PointScanRegular as Magnet,FullScreenMaximizeRegular as Maximize,SubtractRegular as Minus,CursorRegular as MousePointer2,ArrowMoveRegular as MoveHorizontal,PenRegular as PenLine,EditRegular as Pencil,AddRegular as Plus,ArrowRedoRegular as Redo2,ArrowCounterclockwiseRegular as RotateCcw,RulerRegular as Ruler,CutRegular as Scissors,DeleteRegular as Trash2,ArrowUndoRegular as Undo2,DismissRegular as X} from '@fluentui/react-icons';
 import {
   createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
   saveTakeoffScaleRegion,updateDrawingMeasurementGeometry
@@ -21,14 +22,16 @@ import {TakeoffMeasurementHoverOverlay} from './TakeoffMeasurementHoverOverlay';
 import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
 import {TakeoffScalePanel} from './TakeoffScalePanel';
+import {TakeoffSheetMetadataEditor} from './TakeoffSheetMetadataEditor';
 import {TakeoffVertexEditor} from './TakeoffVertexEditor';
 import {TakeoffDock,TakeoffDockButton} from './TakeoffDock';
+import {useTakeoffWorkspaceUi} from './useTakeoffWorkspaceUi';
 import {usePdfScaleDetection} from './usePdfScaleDetection';
 import styles from './TakeoffDrawingWorkspace.module.css';
 
-type Tool='select'|'pan'|'calibrate'|'scaleRegion'|'draw'|'cutout'|'edit';
 type Props={
   sidebar?:ReactNode;
+  verificationPane?:ReactNode;
   takeoffSet:any;
   estimate:any;
   pdfUrl:string;
@@ -55,14 +58,13 @@ type RenderBox={width:number;height:number;pdfWidth:number;pdfHeight:number};
 type ResolvedPoint={point:NormalizedPoint;snapped:boolean};
 type ZoomAnchor={x:number;y:number;clientX:number;clientY:number};
 
-const palette=['#426F93','#009966','#8A610B','#B84558','#6F9FC6','#525C57','#E06B74','#6DBB77'];
+const palette=['#426F93','#747E86','#8A610B','#B84558','#6F9FC6','#525C57','#E06B74','#A29678'];
 const MIN_ZOOM=.2;
 const MAX_ZOOM=20;
 const MAX_RENDER_PIXELS=28_000_000;
 const MAX_CANVAS_DIMENSION=16_000;
 const SNAP_PX=12;
 const qty=(n:any,digits=2)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:digits});
-const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 
 function hashColor(value:string){let hash=0;for(let i=0;i<value.length;i++)hash=((hash<<5)-hash+value.charCodeAt(i))|0;return palette[Math.abs(hash)%palette.length];}
 function normalizedPoints(points:any):NormalizedPoint[]{if(!Array.isArray(points))return[];return points.filter((p:any)=>Number.isFinite(Number(p?.x))&&Number.isFinite(Number(p?.y))).map((p:any)=>({x:Number(p.x),y:Number(p.y)}));}
@@ -82,11 +84,24 @@ function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,valu
 export function TakeoffDrawingWorkspace(props:Props){
   const {takeoffSet,pdfUrl,initialSheets,scaleRegions,initialMeasurements,measurementSummaries,assemblies,versions,variables,sections,methodProfiles,locked}=props;
   const mobileReview=Boolean(props.mobileReview);
+  const [dockModel]=useState(()=>Model.fromJson({
+    global:{tabEnableClose:false,tabEnableRename:false,tabEnableFloat:false,tabEnablePopout:false,tabEnableRenderOnDemand:false,tabSetEnableDeleteWhenEmpty:false,tabSetMinWidth:180},
+    borders:[],
+    layout:{type:'row',children:[
+      {type:'tabset',id:'takeoff-scope-tabset',weight:24,children:[{type:'tab',id:'scope-tree',name:'Scope tree',component:'scope-tree'}]},
+      {type:'tabset',id:'takeoff-canvas-tabset',weight:76,minWidth:420,children:[{type:'tab',id:'takeoff-spreadsheet',name:'Takeoff workspace',component:'takeoff-spreadsheet'}]},
+    ]},
+  }));
   const conditionMeasurementIdSet=useMemo(()=>new Set(props.conditionMeasurementIds||[]),[props.conditionMeasurementIds]);
   const router=useRouter();
   const openConditions=useCallback(()=>{if(!mobileReview)window.dispatchEvent(new CustomEvent('carez:open-conditions'));},[mobileReview]);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const viewportRef=useRef<HTMLDivElement|null>(null);
+  const [viewportElement,setViewportElement]=useState<HTMLDivElement|null>(null);
+  const attachViewport=useCallback((node:HTMLDivElement|null)=>{
+    viewportRef.current=node;
+    setViewportElement(node);
+  },[]);
   const paperRef=useRef<HTMLDivElement|null>(null);
   const pdfRef=useRef<any>(null);
   const renderTaskRef=useRef<any>(null);
@@ -95,15 +110,18 @@ export function TakeoffDrawingWorkspace(props:Props){
   const zoomAnchorRef=useRef<ZoomAnchor|null>(null);
   const historyRef=useRef(new GeometryCommandHistory());
   const editOriginalRef=useRef<DrawingGeometry|null>(null);
+  const utilityRef=useRef<HTMLDivElement|null>(null);
 
   const [pdfReady,setPdfReady]=useState(false);
   const [pdfPageCount,setPdfPageCount]=useState(Number(takeoffSet.page_count||initialSheets.length||0));
   const [pageNumber,setPageNumber]=useState(initialSheets[0]?.page_number||1);
-  const [zoom,setZoom]=useState(1);
+  const zoom=useTakeoffWorkspaceUi(state=>state.zoom);
+  const setZoom=useTakeoffWorkspaceUi(state=>state.setZoom);
   const [fitWidth,setFitWidth]=useState(900);
   const [renderBox,setRenderBox]=useState<RenderBox|null>(null);
   const [renderQuality,setRenderQuality]=useState(1);
-  const [tool,setTool]=useState<Tool>('select');
+  const tool=useTakeoffWorkspaceUi(state=>state.tool);
+  const setTool=useTakeoffWorkspaceUi(state=>state.setTool);
   const [draftPoints,setDraftPoints]=useState<NormalizedPoint[]>([]);
   const [hoverPoint,setHoverPoint]=useState<NormalizedPoint|null>(null);
   const [hoverSnapped,setHoverSnapped]=useState(false);
@@ -127,11 +145,18 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [variableValues,setVariableValues]=useState<Record<string,string>>({});
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('Loading PDF plans…');
+  const [pdfLoadError,setPdfLoadError]=useState(false);
+  const [pdfLoadAttempt,setPdfLoadAttempt]=useState(0);
   const [panning,setPanning]=useState(false);
   const [spaceHeld,setSpaceHeld]=useState(false);
-  const [snapEnabled,setSnapEnabled]=useState(true);
-  const [orthoEnabled,setOrthoEnabled]=useState(false);
-  const [inspectorOpen,setInspectorOpen]=useState(false);
+  const snapEnabled=useTakeoffWorkspaceUi(state=>state.snapEnabled);
+  const setSnapEnabled=useTakeoffWorkspaceUi(state=>state.setSnapEnabled);
+  const orthoEnabled=useTakeoffWorkspaceUi(state=>state.orthoEnabled);
+  const setOrthoEnabled=useTakeoffWorkspaceUi(state=>state.setOrthoEnabled);
+  const inspectorOpen=useTakeoffWorkspaceUi(state=>state.inspectorOpen);
+  const setInspectorOpen=useTakeoffWorkspaceUi(state=>state.setInspectorOpen);
+  const [utilityPosition,setUtilityPosition]=useState({x:0,y:0});
+  const [utilitySize,setUtilitySize]=useState({width:340,height:420});
   const [showEmptyToast,setShowEmptyToast]=useState(false);
   const reducedMotion=useReducedMotion();
   useEffect(()=>{
@@ -177,12 +202,10 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedCutoutCount=selectedGeometry?.holes?.length||0;
 
   const summaryMap=useMemo(()=>{
-    const map=new Map<string,{mh:number;cost:number;missing:number;inputHolds:number;priceHolds:number}>();
+    const map=new Map<string,{inputHolds:number}>();
     for(const row of measurementSummaries){
-      const prior=map.get(row.measurement_id)||{mh:0,cost:0,missing:0,inputHolds:0,priceHolds:0};
-      prior.mh+=Number(row.estimated_man_hours||0);prior.cost+=Number(row.direct_cost||0);
-      if(row.pricing_status==='missing_input'){prior.missing+=1;prior.inputHolds+=1;}
-      else if(['missing_price','missing_labor_rate'].includes(row.pricing_status)){prior.missing+=1;prior.priceHolds+=1;}
+      const prior=map.get(row.measurement_id)||{inputHolds:0};
+      if(row.pricing_status==='missing_input')prior.inputHolds+=1;
       map.set(row.measurement_id,prior);
     }
     return map;
@@ -255,6 +278,9 @@ export function TakeoffDrawingWorkspace(props:Props){
     let cancelled=false;
     async function loadPdf(){
       try{
+        setPdfLoadError(false);
+        setPdfReady(false);
+        setRenderBox(null);
         setMessage('Loading PDF plans…');
         const pdfjs=await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc='/pdf.worker.min.mjs';
@@ -268,17 +294,22 @@ export function TakeoffDrawingWorkspace(props:Props){
           for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const viewport=page.getViewport({scale:1});pages.push({pageNumber:i,width:viewport.width,height:viewport.height});page.cleanup();}
           await initializeTakeoffSheets(takeoffSet.id,pages);setMessage('Drawing sheets prepared');router.refresh();
         }
-      }catch(error:any){setMessage(error?.message||'Could not load PDF plans.');}
+      }catch{
+        if(cancelled)return;
+        const loadFailed=!pdfRef.current;
+        setPdfLoadError(loadFailed);
+        setMessage(loadFailed?'Could not load the plan PDF. Check your connection and retry.':'Could not prepare the plan pages. Reopen the takeoff to retry.');
+      }
     }
     void loadPdf();
     return()=>{cancelled=true;renderTaskRef.current?.cancel?.();const pdf=pdfRef.current;pdfRef.current=null;if(pdf)void pdf.destroy?.();};
-  },[pdfUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[pdfUrl,pdfLoadAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{
-    const el=viewportRef.current;if(!el)return;
+    const el=viewportElement;if(!el)return;
     const update=()=>setFitWidth(Math.max(320,el.clientWidth-34));update();
     const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect();
-  },[inspectorOpen]);
+  },[inspectorOpen,viewportElement]);
 
   useEffect(()=>{
     if(!pdfReady||!pdfRef.current||!canvasRef.current)return;
@@ -315,7 +346,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       }catch(error:any){if(error?.name!=='RenderingCancelledException')setMessage(error?.message||'Could not render this PDF page.');}
     }
     void render();return()=>{cancelled=true;renderTaskRef.current?.cancel?.();};
-  },[pdfReady,pageNumber,zoom,fitWidth]);
+  },[pdfReady,pageNumber,zoom,fitWidth,viewportElement]);
 
   useEffect(()=>{
     const anchor=zoomAnchorRef.current;const viewport=viewportRef.current;const paper=paperRef.current;
@@ -337,14 +368,14 @@ export function TakeoffDrawingWorkspace(props:Props){
   },[]);
 
   useEffect(()=>{
-    const viewport=viewportRef.current;if(!viewport)return;
+    const viewport=viewportElement;if(!viewport)return;
     const handleWheel=(event:WheelEvent)=>{
       event.preventDefault();
       setZoomAt(zoom*(event.deltaY<0?1.16:1/1.16),event.clientX,event.clientY);
     };
     viewport.addEventListener('wheel',handleWheel,{passive:false});
     return()=>viewport.removeEventListener('wheel',handleWheel);
-  },[zoom,setZoomAt]);
+  },[zoom,setZoomAt,viewportElement]);
 
   const fitPage=useCallback(()=>{
     if(!renderBox||!viewportRef.current)return;
@@ -541,61 +572,59 @@ export function TakeoffDrawingWorkspace(props:Props){
   const selectedAssemblyRecord:any=selectedVersionRecord?assemblyMap.get(selectedVersionRecord.assembly_id):null;
   const selectedColor=hashColor(selectedAssemblyRecord?.code||selectedMeasurement?.id||'selected');
 
-  return <div className={`${styles.workstation} h-full min-h-0 flex-1 w-full flex overflow-hidden`} data-mobile-review={mobileReview?'true':'false'}>
-  <div className={styles.commandWorkspace}>
-    {props.sidebar}
-    <div className="flex-1 h-full min-w-0 relative bg-[#090A0B] overflow-hidden cursor-crosshair">
+  const canvasPane=<div className="h-full w-full min-w-0 relative overflow-hidden cursor-crosshair">
 
     <section className={`${styles.center} ${styles.commandCanvas} z-0`} inert={props.drawingViewHidden} aria-hidden={props.drawingViewHidden||undefined}>
       {mobileReview&&<div className={styles.toolbar} onKeyDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()}>
         <div className={styles.mobileReviewTools}>
-          <button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand size={16}/><span>Pan</span></button>
+          <Button type="button" className={`${styles.toolButton} ${styles.toolButtonActive}`} title="Pan plan"><Hand fontSize={16}/><span>Pan</span></Button>
         </div>
         <div className={styles.toolbarSpacer}/>
-        <label className={styles.pageSelect}><span>Select Pages</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
+        <label className={styles.pageSelect}><span>Select Pages</span><Select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</Select></label>
         <div className={styles.zoomGroup}>
-          <button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus size={15}/></button>
-          <button type="button" className={styles.zoomLabel} title="Reset zoom" onClick={()=>setZoomAt(1)}>{zoomPercent}%</button>
-          <button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus size={15}/></button>
-          <button type="button" className={styles.iconTool} title="Fit page" onClick={fitPage}><Maximize size={15}/></button>
+          <Button type="button" className={styles.iconTool} title="Zoom out" onClick={()=>setZoomAt(zoom/1.2)}><Minus fontSize={15}/></Button>
+          <Button type="button" className={styles.zoomLabel} title="Reset zoom" onClick={()=>setZoomAt(1)}>{zoomPercent}%</Button>
+          <Button type="button" className={styles.iconTool} title="Zoom in" onClick={()=>setZoomAt(zoom*1.2)}><Plus fontSize={15}/></Button>
+          <Button type="button" className={styles.iconTool} title="Fit page" onClick={fitPage}><Maximize fontSize={15}/></Button>
         </div>
       </div>}
       {!mobileReview&&!props.drawingViewHidden&&<TakeoffDock>
-        <label className={`${styles.pageSelect} shrink-0`}><span>Sheet</span><select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</select></label>
-        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <label className={`${styles.pageSelect} shrink-0`}><span>Sheet</span><Select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</Select></label>
+        <TakeoffSheetMetadataEditor takeoffSetId={takeoffSet.id} sheet={currentSheet} locked={locked||takeoffSet.status!=='active'}/>
+        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
-          <TakeoffDockButton label="Select · V" icon={<MousePointer2 size={16}/>} active={tool==='select'} pressed={tool==='select'} onClick={()=>setTool('select')}/>
-          <TakeoffDockButton label="Pan · H or hold Space" icon={<Hand size={16}/>} active={tool==='pan'} pressed={tool==='pan'} onClick={()=>setTool('pan')}/>
-          <TakeoffDockButton label={tool==='draw'?'Drawing Condition':'Draw Condition'} icon={<PenLine size={16}/>} active={tool==='draw'} pressed={tool==='draw'} disabled={locked} onClick={()=>conditionDrawActive?setTool('draw'):openConditions()}/>
-          <TakeoffDockButton label="Set drawing scale · C" icon={<Ruler size={16}/>} active={tool==='calibrate'} pressed={tool==='calibrate'} disabled={locked} onClick={()=>{setCalibrationPoints([]);setInspectorOpen(true);setTool('calibrate');}}/>
-          <TakeoffDockButton label={locked?'Review Concrete Conditions':'Concrete Conditions · M'} icon={<Crosshair size={16}/>} onClick={openConditions} showLabel/>
-          <TakeoffDockButton label="Edit selected shape · E" icon={<Pencil size={15}/>} active={tool==='edit'} pressed={tool==='edit'} disabled={locked||!selectedGeometry} onClick={beginEdit}/>
-          <TakeoffDockButton label="Add area cutout · K" icon={<Scissors size={15}/>} active={tool==='cutout'} pressed={tool==='cutout'} disabled={locked||selectedGeometry?.type!=='polygon'} onClick={beginCutout}/>
+          <TakeoffDockButton label="Select · V" icon={<MousePointer2 fontSize={16}/>} active={tool==='select'} pressed={tool==='select'} onClick={()=>setTool('select')}/>
+          <TakeoffDockButton label="Pan · H or hold Space" icon={<Hand fontSize={16}/>} active={tool==='pan'} pressed={tool==='pan'} onClick={()=>setTool('pan')}/>
+          <TakeoffDockButton label={tool==='draw'?'Drawing Condition':'Draw Condition'} icon={<PenLine fontSize={16}/>} active={tool==='draw'} pressed={tool==='draw'} disabled={locked} onClick={()=>conditionDrawActive?setTool('draw'):openConditions()}/>
+          <TakeoffDockButton label="Set drawing scale · C" icon={<Ruler fontSize={16}/>} active={tool==='calibrate'} pressed={tool==='calibrate'} disabled={locked} onClick={()=>{setCalibrationPoints([]);setInspectorOpen(true);setTool('calibrate');}}/>
+          <TakeoffDockButton label={locked?'Review Concrete Conditions':'Concrete Conditions · M'} icon={<Crosshair fontSize={16}/>} onClick={openConditions} showLabel/>
+          <TakeoffDockButton label="Edit selected shape · E" icon={<Pencil fontSize={15}/>} active={tool==='edit'} pressed={tool==='edit'} disabled={locked||!selectedGeometry} onClick={beginEdit}/>
+          <TakeoffDockButton label="Add area cutout · K" icon={<Scissors fontSize={15}/>} active={tool==='cutout'} pressed={tool==='cutout'} disabled={locked||selectedGeometry?.type!=='polygon'} onClick={beginCutout}/>
         </div>
-        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
-          <TakeoffDockButton label="Snap to existing vertices · S" icon={<Magnet size={15}/>} active={snapEnabled} pressed={snapEnabled} onClick={()=>setSnapEnabled(value=>!value)}/>
-          <TakeoffDockButton label="Constrain horizontal or vertical · O" icon={<MoveHorizontal size={15}/>} active={orthoEnabled} pressed={orthoEnabled} onClick={()=>setOrthoEnabled(value=>!value)}/>
-          <TakeoffDockButton label="Undo point or geometry · Ctrl/Cmd+Z" icon={<Undo2 size={15}/>} disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}/>
-          <TakeoffDockButton label="Redo geometry · Ctrl/Cmd+Shift+Z" icon={<Redo2 size={15}/>} disabled={busy||!historySnapshot.canRedo} onClick={()=>void redoCommitted()}/>
-          {tool==='scaleRegion'&&<TakeoffDockButton label="Save scale region · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||scaleRegionPoints.length!==2} onClick={()=>void savePendingScaleRegion()}/>}
-          {tool==='draw'&&<TakeoffDockButton label="Finish measurement · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||!draftPoints.length} onClick={()=>void finishDraft()}/>}
-          {tool==='cutout'&&<TakeoffDockButton label="Save cutout · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}/>}
-          {tool==='edit'&&<TakeoffDockButton label="Save shape · Enter" icon={<Check size={15}/>} emphasis showLabel disabled={busy||!editGeometry} onClick={()=>void saveEdit()}/>}
-          {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<TakeoffDockButton label="Cancel active tool · Escape" icon={<X size={15}/>} onClick={cancelTool}/>}
+          <TakeoffDockButton label="Snap to existing vertices · S" icon={<Magnet fontSize={15}/>} active={snapEnabled} pressed={snapEnabled} onClick={()=>setSnapEnabled(value=>!value)}/>
+          <TakeoffDockButton label="Constrain horizontal or vertical · O" icon={<MoveHorizontal fontSize={15}/>} active={orthoEnabled} pressed={orthoEnabled} onClick={()=>setOrthoEnabled(value=>!value)}/>
+          <TakeoffDockButton label="Undo point or geometry · Ctrl/Cmd+Z" icon={<Undo2 fontSize={15}/>} disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}/>
+          <TakeoffDockButton label="Redo geometry · Ctrl/Cmd+Shift+Z" icon={<Redo2 fontSize={15}/>} disabled={busy||!historySnapshot.canRedo} onClick={()=>void redoCommitted()}/>
+          {tool==='scaleRegion'&&<TakeoffDockButton label="Save scale region · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||scaleRegionPoints.length!==2} onClick={()=>void savePendingScaleRegion()}/>}
+          {tool==='draw'&&<TakeoffDockButton label="Finish measurement · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||!draftPoints.length} onClick={()=>void finishDraft()}/>}
+          {tool==='cutout'&&<TakeoffDockButton label="Save cutout · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}/>}
+          {tool==='edit'&&<TakeoffDockButton label="Save shape · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||!editGeometry} onClick={()=>void saveEdit()}/>}
+          {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<TakeoffDockButton label="Cancel active tool · Escape" icon={<X fontSize={15}/>} onClick={cancelTool}/>}
         </div>
-        <span className="h-8 w-px shrink-0 bg-[#D4DBD7] dark:bg-[#343A3F]" aria-hidden="true"/>
+        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
-          <TakeoffDockButton label="Zoom out" icon={<Minus size={15}/>} onClick={()=>setZoomAt(zoom/1.2)}/>
-          <button type="button" className="min-w-12 text-xs font-mono tabular-nums text-[#171B19] dark:text-[#F4F6F5]" title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Reset zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i> HQ</i>}</button>
-          <TakeoffDockButton label="Zoom in" icon={<Plus size={15}/>} onClick={()=>setZoomAt(zoom*1.2)}/>
-          <TakeoffDockButton label="Fit width · 0" icon={<RotateCcw size={15}/>} onClick={()=>setZoomAt(1)}/>
-          <TakeoffDockButton label="Fit page · 1" icon={<Maximize size={15}/>} onClick={fitPage}/>
+          <TakeoffDockButton label="Zoom out" icon={<Minus fontSize={15}/>} onClick={()=>setZoomAt(zoom/1.2)}/>
+          <Button type="button" className="min-w-12 text-xs font-mono tabular-nums text-[#EDEDED]" title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Reset zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i> HQ</i>}</Button>
+          <TakeoffDockButton label="Zoom in" icon={<Plus fontSize={15}/>} onClick={()=>setZoomAt(zoom*1.2)}/>
+          <TakeoffDockButton label="Fit width · 0" icon={<RotateCcw fontSize={15}/>} onClick={()=>setZoomAt(1)}/>
+          <TakeoffDockButton label="Fit page · 1" icon={<Maximize fontSize={15}/>} onClick={fitPage}/>
         </div>
       </TakeoffDock>}
 
-      <div ref={viewportRef} className={styles.canvasViewport} onPointerDownCapture={startViewportPan} onPointerMoveCapture={moveViewportPan} onPointerUpCapture={stopViewportPan} onPointerCancelCapture={stopViewportPan} onClickCapture={event=>{if(mobileReview||tool==='pan'||spaceHeld)event.stopPropagation();}}>
-        {!renderBox&&<div className={styles.loading}>{message}</div>}
+      <div ref={attachViewport} className={styles.canvasViewport} onPointerDownCapture={startViewportPan} onPointerMoveCapture={moveViewportPan} onPointerUpCapture={stopViewportPan} onPointerCancelCapture={stopViewportPan} onClickCapture={event=>{if(mobileReview||tool==='pan'||spaceHeld)event.stopPropagation();}}>
+        {!renderBox&&<div className={styles.loading}><div className="flex flex-col items-center gap-3 px-6 text-center"><p role={pdfLoadError?'alert':'status'}>{message}</p>{pdfLoadError&&<Button type="button" className="rounded border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" onClick={()=>setPdfLoadAttempt(attempt=>attempt+1)}>Retry PDF</Button>}</div></div>}
         <div ref={paperRef} className={styles.paper} style={renderBox?{width:renderBox.width,height:renderBox.height}:{width:1,height:1}}>
           <canvas ref={canvasRef} className={styles.pdfCanvas}/>
           {renderBox&&<svg className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
@@ -637,7 +666,7 @@ export function TakeoffDrawingWorkspace(props:Props){
               {draftPoints.map((point,index)=><circle key={index} cx={point.x*renderBox.pdfWidth} cy={point.y*renderBox.pdfHeight} r="4" fill="#8A610B" stroke="#171B19" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>)}
             </g>}
             {tool==='calibrate'&&draftRenderPoints.length>0&&<g pointerEvents="none">{draftRenderPoints.length>=2&&<line x1={draftRenderPoints[0].x*renderBox.pdfWidth} y1={draftRenderPoints[0].y*renderBox.pdfHeight} x2={draftRenderPoints[1].x*renderBox.pdfWidth} y2={draftRenderPoints[1].y*renderBox.pdfHeight} stroke="#8A610B" strokeWidth="2.5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}{calibrationPoints.map((p,i)=><circle key={i} cx={p.x*renderBox.pdfWidth} cy={p.y*renderBox.pdfHeight} r="5" fill="#8A610B" stroke="#171B19" strokeWidth="2" vectorEffect="non-scaling-stroke"/>)}</g>}
-            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#009966':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
+            {hoverPoint&&(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout')&&<g pointerEvents="none" transform={`translate(${hoverPoint.x*renderBox.pdfWidth} ${hoverPoint.y*renderBox.pdfHeight})`}><circle r={hoverSnapped?7:4.5} fill="none" stroke={hoverSnapped?'#D4BA88':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/><line x1="-12" x2="12" y1="0" y2="0" stroke={hoverSnapped?'#D4BA88':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/><line y1="-12" y2="12" x1="0" x2="0" stroke={hoverSnapped?'#D4BA88':tool==='cutout'?'#8A610B':'#426F93'} strokeWidth="1" vectorEffect="non-scaling-stroke"/></g>}
           </svg>}
         </div>
         {preview&&<div className={`${styles.liveReadout} ${tool==='cutout'?styles.cutoutReadout:''}`}><strong>{formatTakeoffMeasurement(preview.quantity,preview.unit)}</strong>{tool==='cutout'&&Number(preview.cutoutQuantity||0)>0?<span>net · {qty(preview.cutoutQuantity)} SF excluded</span>:preview.perimeterLf>0&&<span>{formatArchitecturalLength(preview.perimeterLf)} perimeter</span>}</div>}
@@ -648,7 +677,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           key={currentSheet?.id||'empty-sheet'}
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-44 right-6 z-[46] max-w-72 rounded-lg border border-[#D4DBD7] bg-white/95 px-4 py-3 text-xs text-[#525C57] shadow-lg backdrop-blur-xl dark:border-[#343A3F] dark:bg-[#181A1B]/95 dark:text-[#B6BEBA]"
+          className="pointer-events-none fixed bottom-36 right-6 z-[46] max-w-72 rounded border border-[#333333] bg-[#111111]/95 px-4 py-3 text-xs text-[#EDEDED] shadow-[0_16px_36px_rgba(0,0,0,0.55)] backdrop-blur-xl"
           initial={reducedMotion?false:{opacity:0,y:18}}
           animate={{opacity:1,y:0}}
           exit={reducedMotion?{opacity:0}:{opacity:0,y:18}}
@@ -658,14 +687,15 @@ export function TakeoffDrawingWorkspace(props:Props){
 
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
     </section>
+    {props.verificationPane}
 
-    {!mobileReview&&<div className={`${styles.canvasHud} absolute bottom-28 right-6 z-40 backdrop-blur-md bg-[#121212]/80 border border-[#343A3F] px-4 py-2 rounded-lg text-[11px] text-[#A1A1AA] cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
-      <button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left font-mono" title="Scale, calibration and selected takeoff controls">
-        <Ruler size={12}/><span className="max-w-32 truncate">{currentScaleRegions.find(region=>region.is_default)?.scale_label||(currentScale?'Regional scale':'Set scale')}</span>
-        {selectedMeasurement?<output className="border-l border-[#343A3F] pl-2 text-[12px] font-semibold text-white" title={selectedMeasurement.name}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</output>:null}
-      </button>
-      {inspectorOpen&&<div id="takeoff-canvas-controls" className={styles.hudControls}>
-        <div className="mb-2 flex items-center justify-between border-b border-[#343A3F] pb-1 text-[10px] uppercase tracking-wider"><span>Canvas controls</span><button type="button" aria-label="Close canvas controls" onClick={()=>setInspectorOpen(false)}><X size={12}/></button></div>
+    {!mobileReview&&<Draggable nodeRef={utilityRef} handle={`.${styles.utilityHandle}`} cancel="button,input,select,textarea,.react-resizable-handle" bounds="parent" defaultPosition={utilityPosition} onStop={(_,data)=>setUtilityPosition({x:data.x,y:data.y})}><div ref={utilityRef} className={`${styles.canvasHud} ${inspectorOpen?styles.floatingUtility:''} absolute bottom-28 right-6 z-40 border border-border bg-surface-raised px-4 py-2 rounded text-[11px] text-muted-foreground cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
+      <div className={styles.utilityHandle} aria-label="Move canvas controls">Canvas controls <span aria-hidden="true">⋮⋮</span></div>
+      <Button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left font-mono" title="Scale, calibration and selected takeoff controls">
+        <Ruler fontSize={12}/><span className="max-w-32 truncate">{currentScaleRegions.find(region=>region.is_default)?.scale_label||(currentScale?'Regional scale':'Set scale')}</span>
+        {selectedMeasurement?<output className="border-l border-border pl-2 text-[12px] font-semibold text-foreground" title={selectedMeasurement.name}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</output>:null}
+      </Button>
+      {inspectorOpen&&<ResizableBox width={utilitySize.width} height={utilitySize.height} minConstraints={[260,240]} maxConstraints={[620,640]} resizeHandles={['se']} onResizeStop={(_,data)=>setUtilitySize(data.size)}><div id="takeoff-canvas-controls" className={styles.hudControls}>
           <TakeoffScalePanel
             regions={currentScaleRegions}
             candidates={visibleScaleCandidates}
@@ -691,34 +721,36 @@ export function TakeoffDrawingWorkspace(props:Props){
           {selectedMeasurement?<div className={`${styles.group} ${styles.selectedGroup}`}>
             <div className={styles.groupTitle}>Selected Takeoff</div><div className={styles.selectedTitle}>{selectedMeasurement.name}</div><div className={styles.selectedQty}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</div>
             {selectedGeometry?.type==='polygon'&&<div className={styles.cutoutSummary}><span><b>{selectedCutoutCount}</b> cutout{selectedCutoutCount===1?'':'s'}</span><span><b>{qty(selectedMeasurement.geometry?.cutout_quantity||0)}</b> SF excluded</span><span><b>{formatArchitecturalLength(selectedMeasurement.geometry?.perimeter_lf||0)}</b> edge</span></div>}
-            {selectedSummary&&<div className={styles.selectedStats}><span><b>{qty(selectedSummary.mh)}</b> MH</span><span><b>{money(selectedSummary.cost)}</b> direct</span></div>}
             {selectedSummary?.inputHolds?<div className={styles.statusWarn}>{selectedSummary.inputHolds} generated line{selectedSummary.inputHolds===1?'':'s'} waiting on required Condition input. Geometry and unaffected quantities are saved.</div>:null}
-            {selectedSummary?.priceHolds?<div className={styles.statusWarn}>{selectedSummary.priceHolds} generated line{selectedSummary.priceHolds===1?'':'s'} still need pricing or a labor rate.</div>:null}
             <div className={styles.statusWarn}>{conditionMeasurementIdSet.has(selectedMeasurement.id)?'Condition-managed takeoff. Plan facts, methods, production, and modules are edited in Concrete Conditions.':'Historical takeoff preserved for lineage. New scope is authored through Concrete Conditions.'}</div>
-            {!locked&&<div className={styles.proActionGrid}>{tool==='edit'?<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void saveEdit()}><Check size={14}/> Save Shape</button><button type="button" className={styles.secondary} onClick={cancelTool}><X size={14}/> Cancel</button></>:<><button type="button" className={styles.secondary} onClick={beginEdit}><Pencil size={14}/> Edit Shape</button>{selectedGeometry?.type==='polygon'&&<button type="button" className={styles.secondary} onClick={beginCutout}><Scissors size={14}/> Add Cutout</button>}{selectedCutoutCount>0&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void removeLastCutout()}><Undo2 size={14}/> Remove Last</button>}</>}</div>}
-            {tool==='cutout'&&preview&&<div className={`${styles.previewCard} ${styles.cutoutPreview}`}><span>Net concrete</span><strong>{qty(preview.quantity)} SF</strong><small>{qty(preview.cutoutQuantity||0)} SF total excluded</small><button type="button" disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}><Scissors size={15}/> Save cutout</button></div>}
-            {!locked&&<button type="button" className={styles.danger} disabled={busy} onClick={()=>void removeSelected()}><Trash2 size={14}/> Delete takeoff</button>}
-          </div>:<div className={styles.group}><div className={styles.groupTitle}>New Takeoff</div><div className={styles.groupHelp}>New measured scope starts from a Concrete Condition so geometry, modules, outputs, and estimate lineage stay together.</div>{!locked&&<button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair size={16}/> Open Concrete Conditions</button>}</div>}
+            {!locked&&<div className={styles.proActionGrid}>{tool==='edit'?<><Button type="button" className={styles.primary} disabled={busy} onClick={()=>void saveEdit()}><Check fontSize={14}/> Save Shape</Button><Button type="button" className={styles.secondary} onClick={cancelTool}><X fontSize={14}/> Cancel</Button></>:<><Button type="button" className={styles.secondary} onClick={beginEdit}><Pencil fontSize={14}/> Edit Shape</Button>{selectedGeometry?.type==='polygon'&&<Button type="button" className={styles.secondary} onClick={beginCutout}><Scissors fontSize={14}/> Add Cutout</Button>}{selectedCutoutCount>0&&<Button type="button" className={styles.secondary} disabled={busy} onClick={()=>void removeLastCutout()}><Undo2 fontSize={14}/> Remove Last</Button>}</>}</div>}
+            {tool==='cutout'&&preview&&<div className={`${styles.previewCard} ${styles.cutoutPreview}`}><span>Net concrete</span><strong>{qty(preview.quantity)} SF</strong><small>{qty(preview.cutoutQuantity||0)} SF total excluded</small><Button type="button" disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}><Scissors fontSize={15}/> Save cutout</Button></div>}
+            {!locked&&<Button type="button" className={styles.danger} disabled={busy} onClick={()=>void removeSelected()}><Trash2 fontSize={14}/> Delete takeoff</Button>}
+          </div>:<div className={styles.group}><div className={styles.groupTitle}>New Takeoff</div><div className={styles.groupHelp}>New measured scope starts from a Concrete Condition so geometry, modules, outputs, and estimate lineage stay together.</div>{!locked&&<Button type="button" className={styles.measurePrimary} onClick={openConditions}><Crosshair fontSize={16}/> Open Concrete Conditions</Button>}</div>}
 
-          <details className={styles.shortcuts}><summary>Keyboard & mouse shortcuts</summary><div className={styles.shortcutGrid}><kbd>Wheel</kbd><span>Zoom at cursor</span><kbd>Space</kbd><span>Temporary pan</span><kbd>M</kbd><span>Open Conditions</span><kbd>E</kbd><span>Edit selected shape</span><kbd>K</kbd><span>Add area cutout</span><kbd>Arrows</kbd><span>Nudge selected · Shift × 10</span><kbd>Ctrl Z</kbd><span>Undo committed geometry</span><kbd>Ctrl ⇧ Z</kbd><span>Redo committed geometry</span><kbd>PgUp/Dn</kbd><span>Previous / next sheet</span><kbd>S / O</kbd><span>Snap / ortho</span><kbd>Enter</kbd><span>Finish or save</span><kbd>Esc</kbd><span>Cancel tool</span></div></details>
-      </div>}
-    </div>}
-  {!mobileReview&&<TakeoffQuantityDock
-    measurements={initialMeasurements}
-    outputs={measurementSummaries}
-    assemblies={assemblies}
-    versions={versions}
-    sections={sections}
-    sheets={initialSheets}
-    currentSheetId={currentSheet?.id || null}
-    selectedMeasurementId={selectedMeasurementId}
-    onOpenMeasurement={measurement=>{
-      const sheet=initialSheets.find((entry:any)=>entry.id===measurement.sheet_id);
-      if(sheet&&Number(sheet.page_number)!==pageNumber)changePage(Number(sheet.page_number));
-      setSelectedMeasurementId(measurement.id);setTool('select');setInspectorOpen(true);
-    }}
-  />}
+          <Accordion collapsible className={styles.shortcuts}><AccordionItem value="shortcuts"><AccordionHeader>Keyboard & mouse shortcuts</AccordionHeader><AccordionPanel><div className={styles.shortcutGrid}><kbd>Wheel</kbd><span>Zoom at cursor</span><kbd>Space</kbd><span>Temporary pan</span><kbd>M</kbd><span>Open Conditions</span><kbd>E</kbd><span>Edit selected shape</span><kbd>K</kbd><span>Add area cutout</span><kbd>Arrows</kbd><span>Nudge selected · Shift × 10</span><kbd>Ctrl Z</kbd><span>Undo committed geometry</span><kbd>Ctrl ⇧ Z</kbd><span>Redo committed geometry</span><kbd>PgUp/Dn</kbd><span>Previous / next sheet</span><kbd>S / O</kbd><span>Snap / ortho</span><kbd>Enter</kbd><span>Finish or save</span><kbd>Esc</kbd><span>Cancel tool</span></div></AccordionPanel></AccordionItem></Accordion>
+      </div></ResizableBox>}
+    </div></Draggable>}
+    {!mobileReview&&<TakeoffQuantityDock
+      measurements={initialMeasurements}
+      outputs={measurementSummaries}
+      assemblies={assemblies}
+      versions={versions}
+      sections={sections}
+      sheets={initialSheets}
+      currentSheetId={currentSheet?.id || null}
+      selectedMeasurementId={selectedMeasurementId}
+      onOpenMeasurement={measurement=>{
+        const sheet=initialSheets.find((entry:any)=>entry.id===measurement.sheet_id);
+        if(sheet&&Number(sheet.page_number)!==pageNumber)changePage(Number(sheet.page_number));
+        setSelectedMeasurementId(measurement.id);setTool('select');setInspectorOpen(true);
+      }}
+    />}
+  </div>;
+
+  return <div className={`${styles.workstation} h-full min-h-0 flex-1 w-full flex overflow-hidden`} data-mobile-review={mobileReview?'true':'false'}>
+  <div className={styles.commandWorkspace}>
+    {mobileReview?canvasPane:<div className={styles.dockingLayout}><Layout model={dockModel} factory={node=>node.getComponent()==='scope-tree'?props.sidebar:canvasPane} supportsPopout={false}/></div>}
     </div>
-  </div>
   </div>;
 }

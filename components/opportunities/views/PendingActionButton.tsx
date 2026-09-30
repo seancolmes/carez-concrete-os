@@ -1,8 +1,8 @@
 'use client';
 
 import {useFormStatus} from 'react-dom';
-import {LoaderCircle} from 'lucide-react';
-import {Button} from '@/components/ui/button';
+import { SpinnerIosRegular as LoaderCircle } from '@fluentui/react-icons';
+import {Button} from '@fluentui/react-components';
 
 export function PendingActionButton({label,pendingLabel,className}:{label:string;pendingLabel:string;className:string}){
   const {pending}=useFormStatus();

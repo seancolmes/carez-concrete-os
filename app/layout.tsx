@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { Fira_Sans, Roboto_Slab, Source_Code_Pro } from 'next/font/google';
-import { CarezAppearanceProvider } from '@/components/carez/appearance-provider';
-import { PourtraceAntProvider } from '@/components/PourtraceAntProvider';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { CarezAppearanceProvider } from '@/components/CarezAppearanceProvider';
 import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import { GatewayTransitionProvider } from '@/components/brand/GatewayTransitionProvider';
+import 'flexlayout-react/style/light.css';
+import 'react-resizable/css/styles.css';
 import './globals.css';
 import './takeoff-v3.css';
 
@@ -40,16 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" suppressHydrationWarning className={`${firaSans.variable} ${robotoSlab.variable} ${sourceCodePro.variable}`}>
+  return <html lang="en" suppressHydrationWarning data-theme="light" className={`${firaSans.variable} ${robotoSlab.variable} ${sourceCodePro.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('pourtrace-landing-boot')==='seen')document.documentElement.dataset.ptBootSeen='true'}catch{}" }} />
       <style>{'html[data-pt-boot-seen="true"] .pt-splash{display:none!important}'}</style>
     </head>
-    <body className={firaSans.className}>
-      <CarezAppearanceProvider>
-        <GatewayTransitionProvider><AntdRegistry><PourtraceAntProvider><TooltipProvider>{children}</TooltipProvider></PourtraceAntProvider></AntdRegistry></GatewayTransitionProvider>
-      </CarezAppearanceProvider>
+    <body>
+      <GatewayTransitionProvider><CarezAppearanceProvider>{children}</CarezAppearanceProvider></GatewayTransitionProvider>
       {showBuildIdentity && <div className="carez-build-identity" aria-label="Non-production build identity">
         {environmentLabel} · {branch || 'detached'} · {shortSha || 'unknown'}
       </div>}

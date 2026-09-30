@@ -19,7 +19,7 @@ export function FieldFootage(){
     void video.play().catch(()=>{});
   },[]);
 
-  return <div className="relative h-full min-h-[310px] w-full overflow-hidden bg-[#121212] max-[760px]:min-h-[240px]" aria-label="Concrete field work footage">
+  return <div className="relative h-full min-h-[310px] w-full overflow-hidden bg-[#0A0A0A] max-[760px]:min-h-[240px]" aria-label="Concrete field work footage">
     <AnimatePresence initial={false}>
       <motion.video
         key={clips[current]}
@@ -38,6 +38,6 @@ export function FieldFootage(){
         onEnded={()=>setCurrent(index=>(index+1)%clips.length)}
       />
     </AnimatePresence>
-    <div className="pointer-events-none absolute inset-0 bg-[#009966]/10 mix-blend-overlay" aria-hidden="true"/>
+    <div className="pointer-events-none absolute inset-0 bg-[#000000]/20" aria-hidden="true"/>
   </div>;
 }

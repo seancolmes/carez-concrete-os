@@ -7,8 +7,6 @@ const shell = readFileSync('components/takeoff/TakeoffConditionWorkflowShell.tsx
 const integratedWorkspace = readFileSync('components/takeoff/IntegratedTakeoffConditionWorkspace.tsx', 'utf8');
 const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx', 'utf8');
 const quantityDock = readFileSync('components/takeoff/TakeoffQuantityDock.tsx', 'utf8');
-const assemblyHistoryPage = readFileSync('app/takeoff/assemblies/page.tsx', 'utf8');
-const assemblyHistoryTable = readFileSync('components/takeoff/LegacyAssemblyAuditTable.tsx', 'utf8');
 const takeoffLanding = readFileSync('app/takeoff/page.tsx', 'utf8');
 const navigation = readFileSync('lib/ui/navigation.ts', 'utf8');
 test('normal Takeoff is permanently Condition-first after P0.5E parity', () => {
@@ -28,17 +26,6 @@ test('Condition-first shell mounts the integrated workstation without Scope Reci
 
 
 
-test('legacy assembly library is read-only compatibility history', () => {
-  assert.match(assemblyHistoryPage, /Compatibility history/i);
-  assert.match(assemblyHistoryPage, /LegacyAssemblyAuditTable/);
-  assert.match(assemblyHistoryTable, /row\.id/);
-  assert.match(assemblyHistoryTable, /version\.id/);
-  assert.match(assemblyHistoryTable, /Versions/);
-  assert.match(assemblyHistoryTable, /Outputs/);
-  assert.match(assemblyHistoryPage, /\.eq\('status','published'\)/);
-  assert.doesNotMatch(assemblyHistoryPage, /updateEstimatingLaborProfile|DialogTrigger|<form|Edit labor cost|Build the first concrete recipe|Create recipe|New revision|formula authoring/i);
-});
-
 test('legacy assembly mutation action modules are retired after dependency cutover', () => {
   assert.equal(existsSync('app/takeoff/[setId]/assemblyActions.ts'), false);
   assert.equal(existsSync('app/takeoff/[setId]/assemblySystemActions.ts'), false);
@@ -46,10 +33,10 @@ test('legacy assembly mutation action modules are retired after dependency cutov
 });
 
 
-test('normal navigation presents legacy assemblies as audit history, not an authoring library', () => {
-  assert.match(takeoffLanding, /Assembly history/);
-  assert.match(assemblyHistoryPage, /Read-only published records retained/);
-  assert.doesNotMatch(takeoffLanding, /Maintain those recipes separately|Open assembly library/);
-  assert.match(navigation, /label:'Assembly history'/);
-  assert.match(navigation, /hint:'Legacy compatibility records'/);
+test('retired review and preview routes are absent from normal navigation', () => {
+  for (const route of ['app/takeoff/assemblies/page.tsx', 'app/takeoff/intelligence/page.tsx', 'app/design-review/page.tsx', 'app/design-reviews/overlays/page.tsx']) {
+    assert.equal(existsSync(route), false);
+  }
+  assert.doesNotMatch(takeoffLanding, /\/takeoff\/assemblies|Assembly history/);
+  assert.doesNotMatch(navigation, /\/takeoff\/(?:assemblies|intelligence)/);
 });

@@ -31,26 +31,30 @@ test('operational presentation helpers exist and keep concepts distinct',async()
 
 test('operating metric composition is source-owned and token based',()=>{
   const metric=read('components/carez/operating-metric.tsx');
-  const index=read('components/carez/index.ts');
+  const project=read('app/projects/[id]/page.tsx');
 
   assert.match(metric,/data-slot=.carez-operating-metric/);
   assert.match(metric,/data-slot=.carez-operating-metric-strip/);
   assert.match(metric,/CarezVisualTone/);
   assert.doesNotMatch(metric,/#[0-9a-fA-F]{3,8}\b/);
   assert.doesNotMatch(metric,/amber-|red-|green-|blue-/);
-  assert.match(index,/operating-metric/);
+  assert.match(project,/from '@\/components\/carez\/operating-metric'/);
+  assert.doesNotMatch(project,/from '@\/components\/carez'/);
 });
 
 
 test('authenticated Overview delegates to the Command Center with summary before the inbox',()=>{
   const page=read('app/page.tsx');
   const surface=read('components/today/TodaySurface.tsx');
+  const pulse=read('components/today/TodayBusinessPulse.tsx');
   assert.match(page,/TodaySurface/);
-  assert.match(surface,/grid-cols-12 gap-6/);
+  assert.match(surface,/lg:grid-cols-12 lg:overflow-hidden/);
   assert.match(surface,/MetricBentoTile/);
   assert.ok(surface.indexOf('Operating summary')<surface.indexOf('Action inbox'));
   assert.match(surface,/Logistics timeline/);
-  assert.match(surface,/Business pulse/);
+  assert.match(surface,/<TodayBusinessPulse/);
+  assert.match(pulse,/Business pulse/);
+  assert.match(pulse,/<TabList selectedValue=\{view\}/);
   assert.match(surface,/Zero inbox/);
   assert.doesNotMatch(page,/\/leads\/|\/proposals\/|\/billing['"]|\/readiness['"]/);
 });
@@ -58,15 +62,16 @@ test('authenticated Overview delegates to the Command Center with summary before
 test('Projects retains a dense expandable keyboard-accessible grid',()=>{
   const board=read('components/projects/JobsOperationsBoard.tsx');
   const page=read('app/projects/page.tsx');
-  assert.match(board,/CarezDataGrid/);
-  assert.match(board,/CarezStatus/);
+  assert.match(board,/from '@fluentui\/react-components'/);
+  assert.match(board,/<Table size="small"/);
+  assert.match(board,/<Badge appearance="outline"/);
+  assert.doesNotMatch(board,/CarezDataGrid|CarezStatus/);
   assert.match(board,/resolveOperationalState/);
   assert.match(board,/resolvePriority/);
-  assert.match(board,/selected=\{selectedRow\}/);
+  assert.match(board,/aria-selected=\{selectedRow\}/);
   assert.match(board,/onDoubleClick/);
   assert.match(board,/event\.key===['"]Enter['"]/);
   assert.match(board,/ChevronDown/);
-  assert.match(board,/hover:bg-\[#EFF2F0\] dark:hover:bg-\[#1E2123\]/);
   assert.match(board,/Open Project Workspace/);
   assert.match(page,/href="\/field\?view=schedule"/);
   assert.match(page,/New direct job/);
@@ -79,19 +84,23 @@ test('Projects selection does not broaden authoritative project context',async()
   assert.deepEqual(navigation.resolveProjectRoute('/projects/project-1'),{projectId:'project-1',workspace:'project-overview',workspaceLabel:'Overview'});
 });
 
-test('Project Overview preserves record, operating, field, cost and commercial authority',()=>{
+test('Project command center preserves record, field, cost and commercial authority in separate tabs',()=>{
   const page=read('app/projects/[id]/page.tsx');
-  for(const component of ['CarezRecordHeader','CarezOperatingMetricStrip','CarezStatus','CarezDataGrid','resolveProjectRecordStatus'])
+  for(const component of ['CarezRecordHeader','CarezOperatingMetricStrip','<Table size="small"','<Badge appearance="outline"','resolveProjectRecordStatus'])
     assert.match(page,new RegExp(component));
-  const sections=['What Needs Your Attention','Operating Position','Field & Production','Cost & Forecast','Commercial & Billing'].map(value=>page.indexOf(value));
+  assert.doesNotMatch(page,/<CarezStatus\b|<CarezDataGrid\b/);
+  assert.match(page,/projectTabs=\['overview','commercial-baseline','scope-specs','activity'\]/);
+  assert.match(page,/<CarezOperatingMetricStrip columns=\{5\}>/);
+  const sections=['What Needs Your Attention','Field & Production','Cost & Forecast','Commercial & Billing'].map(value=>page.indexOf(value));
   assert.ok(sections.every(index=>index>=0));
   assert.deepEqual(sections,[...sections].sort((a,b)=>a-b));
   assert.match(page,/const budgetAvailable=Boolean\(budgetR\.data\)/);
   assert.match(page,/const billingAvailable=Boolean\(billingR\.data\)/);
   assert.match(page,/No authoritative budget snapshot/);
   assert.match(page,/Need Progress/);
-  for(const href of ['/field?view=time-review','/field?view=production','/financials?tab=procurement&view=procurement','/financials?tab=billing&view=billing'])
+  for(const href of ['/field?view=time-review','/field?view=production','/financials?tab=billing&view=billing'])
     assert.ok(page.includes(href),`missing consolidated destination ${href}`);
+  assert.ok(!page.includes('/financials?tab=procurement&view=procurement'),'project commands must not advertise unavailable procurement');
 });
 
 test('current workspaces preserve actionable empty states and distinct numeric authority',()=>{
@@ -110,7 +119,7 @@ test('current workspaces preserve actionable empty states and distinct numeric a
 test('current workspaces keep semantic severity and keyboard interaction',()=>{
   const overview=read('components/today/TodaySurface.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
-  assert.match(overview,/urgent\?'border-l-\[#B84558\]/);
+  assert.match(overview,/urgent\?'border-l-destructive'/);
   assert.match(overview,/motion-safe:animate-pulse/);
   assert.match(projects,/event\.currentTarget!==event\.target/);
   assert.match(projects,/aria-expanded=\{selectedRow\}/);
@@ -119,6 +128,10 @@ test('current workspaces keep semantic severity and keyboard interaction',()=>{
 
 test('workspace screens keep the accepted component system',()=>{
   const sources=[read('components/today/TodaySurface.tsx'),read('components/projects/JobsOperationsBoard.tsx'),read('app/projects/[id]/page.tsx')].join('\n');
+  assert.match(sources,/from '@fluentui\/react-components'/);
+  assert.match(sources,/from '@fluentui\/react-icons'/);
+  assert.doesNotMatch(sources,/from ['"]@\/components\/ui(?:\/|['"])/);
+  assert.doesNotMatch(sources,/from ['"](?:@base-ui\/|@radix-ui\/|lucide-react)/);
   assert.doesNotMatch(sources,/from ['"]@mui\//);
   assert.doesNotMatch(sources,/from ['"]antd/);
   assert.doesNotMatch(sources,/from ['"]chakra-ui/);

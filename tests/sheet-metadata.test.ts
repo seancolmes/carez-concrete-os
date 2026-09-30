@@ -42,6 +42,28 @@ test('title block candidate outranks distracting body references', () => {
   assert.equal(result.title, 'FOUNDATION FRAMING PLAN');
 });
 
+test('cover drawing index entries are not treated as the cover sheet title block', () => {
+  const result = infer(
+    item('INDEX OF', 735, 260), item('DRAWINGS', 830, 260),
+    item('E402', 870, 55), item('ELECTRICAL DETAILS', 755, 82),
+    item('PLANET FITNESS - CENTRALIA, WA', 410, 510),
+  );
+  assert.deepEqual(result, { sheetNumber: null, title: null, confidence: 0 });
+  assert.equal(sheetDisplayLabel({ page_number: 1, sheet_number: result.sheetNumber, title: result.title }), 'PDF Page 1');
+});
+
+test('a normal sheet requires one number and a nearby descriptive title in the title block', () => {
+  const result = infer(item('S101', 875, 45), item('SLAB INFILL PLAN', 750, 80), item('S201', 300, 420));
+  assert.equal(sheetDisplayLabel({ page_number: 11, sheet_number: result.sheetNumber, title: result.title }), 'S101 — SLAB INFILL PLAN');
+  assert.deepEqual(infer(item('G400', 875, 45), item('SCHEDULE', 750, 80)), { sheetNumber: null, title: null, confidence: 0 });
+  assert.deepEqual(infer(item('MAX1', 875, 45), item('1. WALL ASSEMBLY', 750, 80)), { sheetNumber: null, title: null, confidence: 0 });
+});
+
+test('multiple plausible title-block numbers remain unlabelled for human review', () => {
+  const result = infer(item('S101', 870, 45), item('SLAB INFILL PLAN', 750, 80), item('E402', 850, 70));
+  assert.deepEqual(result, { sheetNumber: null, title: null, confidence: 0 });
+});
+
 test('ambiguous body-only text does not invent sheet metadata', () => {
   const result = infer(item('A4', 320, 430), item('SECTION', 330, 410), item('2-6', 500, 300));
   assert.equal(result.sheetNumber, null);

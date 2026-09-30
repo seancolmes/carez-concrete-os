@@ -3,9 +3,7 @@ import {
   selectGeneratedLaborProfile,
   updateGeneratedLaborAssumption,
 } from '@/app/estimates/actions';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
+import { Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Input, Select } from '@fluentui/react-components';
 import { formatTakeoffMeasurement } from '@/lib/takeoff/lengthFormat';
 import {
   getEffectiveManHoursPerUnit,
@@ -154,24 +152,24 @@ export function LaborReview({
           return <div key={output.id} className="grid gap-2 px-3 py-2 md:grid-cols-[minmax(0,2fr)_minmax(90px,.7fr)_minmax(90px,.7fr)_minmax(105px,.8fr)_auto] md:items-center md:gap-3">
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong className="text-sm">{operation}</strong><StatusBadge output={output}/></div><p className="mt-0.5 truncate text-xs text-muted-foreground">{measurement?.name||'Takeoff measurement'}{measurement?.location?` · ${measurement.location}`:''}</p></div>
             <div className="grid grid-cols-3 gap-2 font-mono text-xs tabular-nums md:contents"><span><span className="block text-[11px] text-muted-foreground md:hidden">Quantity</span>{formatTakeoffMeasurement(output.production_quantity,output.production_unit)}</span><span><span className="block text-[11px] text-muted-foreground md:hidden">Est. MH</span>{decimal(output.estimated_man_hours,2)}</span><strong><span className="block font-sans text-[11px] font-normal text-muted-foreground md:hidden">Direct cost</span>{money(output.direct_cost)}</strong></div>
-            <Sheet>
-              <SheetTrigger render={<Button type="button" variant="outline" size="sm" className="w-fit md:justify-self-end"/>}>View / Edit</SheetTrigger>
-              <SheetContent className="overflow-y-auto" style={{width:'100%',maxWidth:'420px'}}>
-                <SheetHeader className="border-b border-border pr-12"><SheetTitle>{operation}</SheetTitle><SheetDescription>{measurement?.name||'Takeoff measurement'}{measurement?.location?` · ${measurement.location}`:''}{measurement?.drawing_reference?` · ${measurement.drawing_reference}`:''}</SheetDescription></SheetHeader>
+            <Dialog>
+              <DialogTrigger><Button type="button" appearance="outline" size="small" className="w-fit md:justify-self-end">View / Edit</Button></DialogTrigger>
+              <DialogSurface className="fixed right-0 top-0 ml-auto h-dvh max-h-dvh w-full max-w-[420px] overflow-y-auto rounded-none">
+                <DialogBody><DialogTitle>{operation}</DialogTitle><DialogContent><p className="border-b border-border pb-3 text-xs text-muted-foreground">{measurement?.name||'Takeoff measurement'}{measurement?.location?` · ${measurement.location}`:''}{measurement?.drawing_reference?` · ${measurement.drawing_reference}`:''}</p>
                 <div className="space-y-5 px-4 pb-6">
                   <dl className="grid grid-cols-2 gap-px border border-border bg-border text-sm"><div className="bg-card p-3"><dt className="text-xs text-muted-foreground">Production quantity</dt><dd className="mt-1 font-mono">{formatTakeoffMeasurement(output.production_quantity,output.production_unit)}</dd></div><div className="bg-card p-3"><dt className="text-xs text-muted-foreground">Estimated MH</dt><dd className="mt-1 font-mono">{decimal(output.estimated_man_hours,2)}</dd></div><div className="bg-card p-3"><dt className="text-xs text-muted-foreground">Burdened rate</dt><dd className="mt-1 font-mono">{money(output.unit_cost)} / HR</dd></div><div className="bg-card p-3"><dt className="text-xs text-muted-foreground">Direct cost</dt><dd className="mt-1 font-mono">{money(output.direct_cost)}</dd></div></dl>
                   <section className="space-y-3"><h3 className="border-l-2 border-primary pl-2 text-sm font-semibold">Production assumption</h3><div className="grid grid-cols-2 gap-3 text-sm"><div><span className="block text-xs text-muted-foreground">Baseline MH / unit</span><strong className="font-mono">{output.baseline_man_hours_per_unit===null||output.baseline_man_hours_per_unit===undefined||output.baseline_man_hours_per_unit===''?'—':decimal(output.baseline_man_hours_per_unit,6)}</strong></div><div><span className="block text-xs text-muted-foreground">Current MH / unit</span><strong className="font-mono">{effectiveMh===null?'—':decimal(effectiveMh,6)}</strong></div></div><p className="text-xs text-muted-foreground">{output.baseline_source||'No baseline source recorded.'}</p>
-                    {!locked&&<form action={updateGeneratedLaborAssumption} className="grid gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><label className="text-xs font-medium" htmlFor={`labor-mh-${output.id}`}>Job MH / unit override</label><div className="flex gap-2"><Input id={`labor-mh-${output.id}`} name="man_hours_per_unit" type="number" min="0" step="0.000001" defaultValue={effectiveMh??''} required className="font-mono"/><Button type="submit" size="sm">Save rate</Button></div></form>}
-                    {hasOverride&&!locked&&<form action={restoreGeneratedLaborAssumption}><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><Button type="submit" variant="outline" size="sm">Restore baseline</Button></form>}
+                    {!locked&&<form action={updateGeneratedLaborAssumption} className="grid gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><label className="text-xs font-medium" htmlFor={`labor-mh-${output.id}`}>Job MH / unit override</label><div className="flex gap-2"><Input appearance="underline" id={`labor-mh-${output.id}`} name="man_hours_per_unit" type="number" min="0" step="0.000001" defaultValue={String(effectiveMh??'')} required className="font-mono"/><Button type="submit" appearance="primary" size="small">Save rate</Button></div></form>}
+                    {hasOverride&&!locked&&<form action={restoreGeneratedLaborAssumption}><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><Button type="submit" appearance="outline" size="small">Restore baseline</Button></form>}
                     {hasOverride&&output.labor_assumption_override_at&&<p className="text-xs text-muted-foreground">Override saved {output.labor_assumption_override_at.slice(0,10)}</p>}
                   </section>
                   <section className="space-y-3 border-t border-border pt-4"><h3 className="border-l-2 border-primary pl-2 text-sm font-semibold">Burdened labor rate</h3><p className="text-xs text-muted-foreground">{output.price_source_label||output.cost_source||(output.pricing_status==='missing_labor_rate'?'Missing labor rate':'No labor rate source')}{output.price_effective_date?` · effective ${output.price_effective_date}`:''}</p>
-                    {!locked&&<form action={selectGeneratedLaborProfile} className="grid gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><label className="text-xs font-medium" htmlFor={`labor-profile-${output.id}`}>Labor profile</label><select id={`labor-profile-${output.id}`} className={selectClass} name="labor_profile_id" defaultValue={selectedProfileId} required><option value="" disabled>Select labor profile</option>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.name} · {money(profile.burdened_hourly_rate)}/HR{profile.is_default?' · default':''}</option>)}</select><Button type="submit" size="sm" className="w-fit">Use rate</Button></form>}
+                    {!locked&&<form action={selectGeneratedLaborProfile} className="grid gap-2"><input type="hidden" name="estimate_id" value={estimateId}/><input type="hidden" name="output_id" value={output.id}/><label className="text-xs font-medium" htmlFor={`labor-profile-${output.id}`}>Labor profile</label><Select appearance="outline" id={`labor-profile-${output.id}`} className={selectClass} name="labor_profile_id" defaultValue={selectedProfileId} required><option value="" disabled>Select labor profile</option>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.name} · {money(profile.burdened_hourly_rate)}/HR{profile.is_default?' · default':''}</option>)}</Select><Button type="submit" appearance="primary" size="small" className="w-fit">Use rate</Button></form>}
                     {output.labor_rate_override_at&&<p className="text-xs text-muted-foreground">Rate source selected {output.labor_rate_override_at.slice(0,10)}</p>}
                   </section>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </div></DialogContent></DialogBody>
+              </DialogSurface>
+            </Dialog>
           </div>;
         })}</div>}
     </div>

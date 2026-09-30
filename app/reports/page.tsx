@@ -1,17 +1,9 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {
-  BarChart3,BriefcaseBusiness,CircleDollarSign,ClipboardCheck,Percent,ReceiptText,Wallet,
-} from 'lucide-react';
+import { DataBarVerticalRegular as BarChart3, BriefcaseRegular as BriefcaseBusiness, MoneyRegular as CircleDollarSign, ClipboardCheckmarkRegular as ClipboardCheck, TextNumberFormatRegular as Percent, ReceiptRegular as ReceiptText, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {AppShell} from '@/components/AppShell';
-import {Badge} from '@/components/ui/badge';
-import {buttonVariants} from '@/components/ui/button';
-import {
-  Empty,EmptyContent,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle,
-} from '@/components/ui/empty';
-import {
-  Table,TableBody,TableCell,TableHead,TableHeader,TableRow,
-} from '@/components/ui/table';
+import {ReportsTabs} from './ReportsTabs';
+import {Badge,Button,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow} from '@fluentui/react-components';
 import {createClient} from '@/lib/supabase/server';
 import {cn} from '@/lib/utils';
 
@@ -31,14 +23,14 @@ function MetricCard({label,value,help,Icon,tone='default'}:{label:string;value:s
 }
 
 function ReportsEmpty({Icon,title,description,href,action}:{Icon:any;title:string;description:string;href:string;action:string}){
-  return <Empty className="min-h-48 border-y bg-muted/20">
-    <EmptyHeader>
-      <EmptyMedia variant="icon"><Icon/></EmptyMedia>
-      <EmptyTitle>{title}</EmptyTitle>
-      <EmptyDescription>{description}</EmptyDescription>
-    </EmptyHeader>
-    <EmptyContent><Link href={href} className={buttonVariants({variant:'outline',size:'sm'})}>{action}</Link></EmptyContent>
-  </Empty>;
+  return <div className="min-h-48 border-y bg-muted/20">
+    <div>
+      <span ><Icon/></span>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
+    <div><Button as="a" href={href} appearance="secondary" size="small">{action}</Button></div>
+  </div>;
 }
 
 function SectionHeading({kicker,title,description}:{kicker:string;title:string;description?:string}){
@@ -81,33 +73,35 @@ export default async function ReportsPage(){
   const ar=(billing||[]).reduce((s:number,x:any)=>s+num(x.outstanding_ar),0);
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
-    <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-col gap-3 lg:h-full">
       <header className="carez-page-heading">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company performance</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Owner reports</h1>
-        <p className="mt-1 max-w-5xl text-sm text-muted-foreground">Job profitability, labor performance, production history, and receivables from the authoritative Carez records already in the system.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Job results, production, and receivables from Carez records.</p>
       </header>
 
-      <section aria-label="Company performance ledger" className="grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+      <section aria-label="Company performance ledger" className="grid shrink-0 divide-y divide-border border border-border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
         <MetricCard label="Completed job revenue" value={money(revenue)} help="Authorized value of jobs marked complete." Icon={CircleDollarSign} tone="success"/>
         <MetricCard label="Completed job cost" value={money(cost)} help="Actual company cost captured against completed work." Icon={ReceiptText}/>
         <MetricCard label="Actual completed margin" value={`${margin.toFixed(1)}%`} help="Revenue left after captured job costs." Icon={Percent} tone={margin>=30?'success':margin>0?'warning':'default'}/>
         <MetricCard label="Customers still owe us" value={money(ar)} help="Outstanding invoices across all jobs." Icon={Wallet} tone={ar>0?'warning':'success'}/>
       </section>
 
+      <ReportsTabs>
+      <div data-report-panel="jobs" className="min-h-0 overflow-auto p-3">
       <section className="space-y-4">
         <SectionHeading kicker="Jobs" title="Job scorecards" description="Estimate and budget against actual performance."/>
         {(projects||[]).length===0?
           <ReportsEmpty Icon={ClipboardCheck} title="No project history yet" description="Completed and active jobs will appear here with budget versus actual performance." href="/projects" action="Open projects"/>:
           <div className="overflow-x-auto border-y border-border">
             <Table>
-              <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Job</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Contract</TableHead><TableHead className="text-right">Actual cost</TableHead><TableHead className="text-right">Budget used</TableHead><TableHead className="text-right">Labor</TableHead><TableHead className="text-right">Customer owes</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHeaderCell>Job</TableHeaderCell><TableHeaderCell>Status</TableHeaderCell><TableHeaderCell className="text-right">Contract</TableHeaderCell><TableHeaderCell className="text-right">Actual cost</TableHeaderCell><TableHeaderCell className="text-right">Budget used</TableHeaderCell><TableHeaderCell className="text-right">Labor</TableHeaderCell><TableHeaderCell className="text-right">Customer owes</TableHeaderCell></TableRow></TableHeader>
               <TableBody>{(projects||[]).map((p:any)=>{
                 const f:any=fMap.get(p.id)||{},b:any=bMap.get(p.id)||{},bill:any=billMap.get(p.id)||{};
                 const budgetUsed=num(b.budget_cost_used_percent);
                 return <TableRow key={p.id}>
                   <TableCell><Link href={`/projects/${p.id}`} className="font-medium hover:text-primary">{p.job_number} — {p.name}</Link></TableCell>
-                  <TableCell><Badge variant={p.status==='active'?'default':'secondary'} className={p.status==='completed'?'bg-success/10 text-success':''}>{titleCase(p.status)}</Badge></TableCell>
+                  <TableCell><Badge appearance={p.status==='active'?'filled':'tint'} className={p.status==='completed'?'bg-success/10 text-success':''}>{titleCase(p.status)}</Badge></TableCell>
                   <TableCell className="text-right font-mono tabular-nums">{money(f.adjusted_contract||p.contract_value)}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">{money(b.actual_total_company_cost)}</TableCell>
                   <TableCell className={cn('text-right font-mono tabular-nums',budgetUsed>=100&&'text-destructive')}>{b.project_id?`${budgetUsed.toFixed(1)}%`:'No baseline'}</TableCell>
@@ -118,14 +112,16 @@ export default async function ReportsPage(){
             </Table>
           </div>}
       </section>
+      </div>
 
+      <div data-report-panel="production" className="min-h-0 overflow-auto p-3">
       <section className="space-y-4">
         <SectionHeading kicker="Production" title="Carez production database" description="Weighted actual production from approved employee task time and verified quantities."/>
         {taskRates.length===0?
           <ReportsEmpty Icon={BarChart3} title="No measured production yet" description="Task clocking and verified quantities will build this automatically." href="/field" action="Open field control"/>:
           <div className="overflow-x-auto border-y border-border">
             <Table>
-              <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHead>Task</TableHead><TableHead className="text-right">Samples</TableHead><TableHead className="text-right">Total built</TableHead><TableHead className="text-right">Total MH</TableHead><TableHead className="text-right">Units / MH</TableHead><TableHead className="text-right">MH / unit</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40"><TableHeaderCell>Task</TableHeaderCell><TableHeaderCell className="text-right">Samples</TableHeaderCell><TableHeaderCell className="text-right">Total built</TableHeaderCell><TableHeaderCell className="text-right">Total MH</TableHeaderCell><TableHeaderCell className="text-right">Units / MH</TableHeaderCell><TableHeaderCell className="text-right">MH / unit</TableHeaderCell></TableRow></TableHeader>
               <TableBody>{taskRates.map(r=><TableRow key={`${r.task}-${r.unit}`}>
                 <TableCell className="font-medium">{r.task}</TableCell>
                 <TableCell className="text-right font-mono tabular-nums">{r.samples}</TableCell>
@@ -137,7 +133,9 @@ export default async function ReportsPage(){
             </Table>
           </div>}
       </section>
+      </div>
 
+      <div data-report-panel="current" className="min-h-0 overflow-auto p-3">
       <section className="space-y-4">
         <SectionHeading kicker="Current work" title="Jobs still running"/>
         {active.length===0?
@@ -147,10 +145,12 @@ export default async function ReportsPage(){
             const used=num(b.budget_cost_used_percent);
             return <article key={p.id} className="grid grid-cols-[1fr_auto] gap-3 px-4 py-4">
                 <div><h3 className="font-medium"><Link href={`/projects/${p.id}`} className="hover:text-primary">{p.job_number} — {p.name}</Link></h3><p className="mt-1 text-xs text-muted-foreground">{num(b.actual_labor_hours).toFixed(1)} labor hr used · {money(bill.outstanding_ar)} customer balance</p></div>
-                <Badge variant={used>=100?'destructive':'secondary'}>{b.project_id?`${used.toFixed(0)}% budget used`:'No budget'}</Badge>
+                <Badge appearance="tint" color={used>=100?'danger':'informative'}>{b.project_id?`${used.toFixed(0)}% budget used`:'No budget'}</Badge>
             </article>;
           })}</div>}
       </section>
+      </div>
+      </ReportsTabs>
     </div>
   </AppShell>;
 }

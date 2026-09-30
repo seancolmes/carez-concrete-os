@@ -32,4 +32,4 @@
 @keyframes verificationArrival{from{opacity:.45}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.issueOverlay,.checks,.filters,.spatialIssue,.focusMarker{animation:none}}
 
-.viewport{position:relative;background:#090A0B}.canvas{z-index:0}.filters{position:absolute;top:76px;right:24px;z-index:40}.checks{top:76px;right:24px;z-index:40}.hint{position:absolute;bottom:0;left:0;right:0;z-index:40;background:#121212d9}
+.viewport{position:relative;background:var(--pt-bg)}.canvas{z-index:0}.filters{position:absolute;top:76px;right:24px;z-index:40}.checks{top:76px;right:24px;z-index:40}.hint{position:absolute;bottom:0;left:0;right:0;z-index:40;background:color-mix(in srgb,var(--pt-surface-1) 85%,transparent)}

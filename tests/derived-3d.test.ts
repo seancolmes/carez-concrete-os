@@ -76,6 +76,37 @@ test('strip footing projects the shared continuous run footprint', () => {
   assert.equal(scene.solids[0].shape.top, 11);
 });
 
+test('self-crossing generated footing footprint holds 3D with a 2D correction hint', () => {
+  const measurement = {
+    id: 'measurement-bent-footing', sheet_id: sheet.id, name: 'Bent footing', raw_quantity: 31, raw_unit: 'LF',
+    geometry: { type: 'polyline', points: [
+      { x: 0.1, y: 0.1 }, { x: 0.25, y: 0.1 }, { x: 0.25, y: 0.1125 }, { x: 0.1, y: 0.1125 },
+    ] },
+  };
+  const savedGeometry = JSON.stringify(measurement.geometry);
+  const scene = buildDerived3DScene({
+    conditions: [{
+      conditionId: 'condition-bent-footing', conditionVersionId: 'version-bent-footing', code: 'FTG-B', name: 'Bent footing',
+      archetypeKey: 'strip_wall_footing', color: '#34d399',
+      planFacts: { width_ft: 2, depth_ft: 1 }, drawingInputs: { elevation_ft: 10, elevation_reference: 'bottom' },
+      roles: [{ roleKey: 'run', measurementId: measurement.id }],
+    }],
+    measurements: [measurement], sheets: [sheet],
+  });
+
+  assert.equal(scene.solids.length, 0);
+  assert.equal(scene.coverage.held, 1);
+  const issue = scene.issues.find(entry => entry.code === 'invalid_geometry');
+  assert.equal(issue?.severity, 'hold');
+  assert.equal(issue?.measurementId, measurement.id);
+  assert.equal(issue?.target, 'drawing');
+  assert.match(issue?.message || '', /linear footing's generated footprint crosses itself/i);
+  assert.match(issue?.message || '', /review the centerline bend or footing width in 2D/i);
+  assert.match(issue?.message || '', /saved LF geometry and quantities remain available/i);
+  assert.equal(JSON.stringify(measurement.geometry), savedGeometry);
+  assert.equal(measurement.raw_quantity, 31);
+});
+
 test('edge linear families use their governed width and depth for verification projection', () => {
   const scene = buildDerived3DScene({
     conditions: [{

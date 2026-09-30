@@ -6,7 +6,7 @@ const workspace = readFileSync('components/takeoff/TakeoffDrawingWorkspace.tsx',
 
 test('2D PDF zoom keeps the current bitmap visible until the replacement render is ready', () => {
   const start = workspace.indexOf('async function render(){');
-  const end = workspace.indexOf('},[pdfReady,pageNumber,zoom,fitWidth]);', start);
+  const end = workspace.indexOf('},[pdfReady,pageNumber,zoom,fitWidth,viewportElement]);', start);
   assert.ok(start >= 0 && end > start);
   const render = workspace.slice(start, end);
 

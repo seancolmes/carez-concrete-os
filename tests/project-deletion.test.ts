@@ -12,7 +12,7 @@ function action({sourceCode=source,actionName='deleteProject',role='owner',signe
   const profileQuery={select(){return this;},eq(){return this;},async single(){return {data:{company_id:company,role},error:null};}};
   const client={auth:{async getUser(){return {data:{user:signedIn?{id:'user-a'}:null}};}},from(table:string){return table==='profiles'?profileQuery:projectQuery;}};
   const exports:Record<string,any>={};
-  vm.runInNewContext(sourceCode,{exports,require(name:string){if(name==='next/cache')return {revalidatePath:(path:string)=>paths.push(path)};if(name==='@/lib/supabase/server')return {createClient:async()=>client};if(name==='next/navigation'||name==='@/lib/takeoff/assemblyEngine.server')return {};throw new Error(name);}});
+  vm.runInNewContext(sourceCode,{exports,require(name:string){if(name==='next/cache')return {revalidatePath:(path:string)=>paths.push(path)};if(name==='@/lib/supabase/server')return {createClient:async()=>client};if(name==='@/lib/estimating/manualEstimateCell')return {manualEstimateCellPatch:()=>{throw new Error('Cell editing is outside deletion tests.');}};if(name==='next/navigation'||name==='@/lib/takeoff/assemblyEngine.server')return {};throw new Error(name);}});
   return {run:exports[actionName] as (id:string)=>Promise<void>,filters,paths,deleted:()=>deleted};
 }
 

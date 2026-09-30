@@ -1,15 +1,7 @@
+import {Badge,Button,Card,CardHeader,Dialog,DialogTitle,DialogTrigger,Input,Label,Table,TableBody,TableCell,TableHeader,TableRow,Textarea,DialogBody,DialogContent,DialogSurface,TableHeaderCell,Select} from '@fluentui/react-components';
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {Clock3,FileClock,HardHat,MapPin,Plus} from 'lucide-react';
-import {Badge} from '@/components/ui/badge';
-import {Button,buttonVariants} from '@/components/ui/button';
-import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
-import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger} from '@/components/ui/dialog';
-import {Empty,EmptyDescription,EmptyHeader,EmptyMedia,EmptyTitle} from '@/components/ui/empty';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
-import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
-import {Textarea} from '@/components/ui/textarea';
+import { ClockRegular as Clock3, DocumentTextClockRegular as FileClock, PersonWrenchRegular as HardHat, LocationRegular as MapPin, AddRegular as Plus } from '@fluentui/react-icons';
 import {createClient} from '@/lib/supabase/server';
 import {createDailyLog,createTimecard} from '@/app/field/actions';
 import {JobsiteLocationSetter} from '@/components/field/JobsiteLocationSetter';
@@ -18,7 +10,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const fieldSelect='h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20';
 
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'}){
-  return <Card className="gap-1 py-3 shadow-none"><CardHeader className="gap-1 px-3"><CardDescription className="text-xs font-medium">{label}</CardDescription><CardTitle className={tone==='success'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-xl font-semibold tracking-tight tabular-nums'}>{value}</CardTitle></CardHeader><CardContent className="hidden px-3 text-xs leading-5 text-muted-foreground sm:block">{help}</CardContent></Card>;
+  return <Card className="gap-1 py-3 shadow-none"><CardHeader className="gap-1 px-3"><p className="text-xs font-medium">{label}</p><h3 className={tone==='success'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-success':tone==='warning'?'font-mono text-xl font-semibold tracking-tight tabular-nums text-warning':'font-mono text-xl font-semibold tracking-tight tabular-nums'}>{value}</h3></CardHeader><div className="hidden px-3 text-xs leading-5 text-muted-foreground sm:block">{help}</div></Card>;
 }
 
 export default async function FieldPage(){
@@ -42,7 +34,7 @@ export default async function FieldPage(){
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
       <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><h1>Field control</h1></div>
-        <div className="flex flex-wrap items-center gap-2"><Link className={buttonVariants({size:'sm'})} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={buttonVariants({variant:'outline',size:'sm'})} href="/crew/access"><HardHat/>Employee access</Link></div>
+        <div className="flex flex-wrap items-center gap-2"><Link className={primaryLinkClass} href="/field/review"><Clock3/>Review time{(waiting||[]).length?` (${(waiting||[]).length})`:''}</Link><Link className={secondaryLinkClass} href="/crew/access"><HardHat/>Employee access</Link></div>
       </header>
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -57,39 +49,42 @@ export default async function FieldPage(){
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="shadow-none">
-          <CardHeader><div className="flex items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><FileClock className="size-4"/></span><div><CardTitle>Daily log</CardTitle><CardDescription className="mt-1">Record completed work and placed concrete.</CardDescription></div></div></CardHeader>
-          <CardContent><Dialog><DialogTrigger render={<Button/>}><Plus/>New daily log</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Daily log</DialogTitle><DialogDescription>Capture what happened, how much concrete was placed, and what affected production.</DialogDescription></DialogHeader>
+          <CardHeader><div className="flex items-start gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary"><FileClock className="size-4"/></span><div><h3>Daily log</h3><p className="mt-1">Record completed work and placed concrete.</p></div></div></CardHeader>
+          <div><Dialog><DialogTrigger><Button appearance="primary"><Plus/>New daily log</Button></DialogTrigger><DialogSurface className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogBody><DialogContent><div><DialogTitle>Daily log</DialogTitle><p>Capture what happened, how much concrete was placed, and what affected production.</p></div>
             <form action={createDailyLog} className="grid gap-4">
-              <div className="grid gap-2"><Label htmlFor="daily-project">Job</Label><select id="daily-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div>
-              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-date">Date</Label><Input id="daily-date" type="date" name="log_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="daily-crew">Crew count</Label><Input id="daily-crew" type="number" min="0" name="crew_count" defaultValue="0"/></div></div>
-              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-cy">Concrete placed (CY)</Label><Input id="daily-cy" type="number" step="0.1" min="0" name="concrete_yards" defaultValue="0"/></div><div className="grid gap-2"><Label htmlFor="daily-weather">Weather</Label><Input id="daily-weather" name="weather" placeholder="Dry, 68°F"/></div></div>
-              <div className="grid gap-2"><Label htmlFor="daily-work">What we got done</Label><Textarea id="daily-work" name="work_completed" rows={4} required/></div>
-              <div className="grid gap-2"><Label htmlFor="daily-delays">Problems / delays</Label><Textarea id="daily-delays" name="delays_issues" rows={3}/></div>
-              <div className="grid gap-2"><Label htmlFor="daily-notes">Notes</Label><Input id="daily-notes" name="notes"/></div>
-              <div><Button type="submit">Save daily log</Button></div>
+              <div className="grid gap-2"><Label htmlFor="daily-project">Job</Label><Select appearance="outline" id="daily-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</Select></div>
+              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-date">Date</Label><Input appearance="underline" id="daily-date" type="date" name="log_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="daily-crew">Crew count</Label><Input appearance="underline" id="daily-crew" type="number" min="0" name="crew_count" defaultValue="0"/></div></div>
+              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="daily-cy">Concrete placed (CY)</Label><Input appearance="underline" id="daily-cy" type="number" step="0.1" min="0" name="concrete_yards" defaultValue="0"/></div><div className="grid gap-2"><Label htmlFor="daily-weather">Weather</Label><Input appearance="underline" id="daily-weather" name="weather" placeholder="Dry, 68°F"/></div></div>
+              <div className="grid gap-2"><Label htmlFor="daily-work">What we got done</Label><Textarea appearance="outline" id="daily-work" name="work_completed" rows={4} required/></div>
+              <div className="grid gap-2"><Label htmlFor="daily-delays">Problems / delays</Label><Textarea appearance="outline" id="daily-delays" name="delays_issues" rows={3}/></div>
+              <div className="grid gap-2"><Label htmlFor="daily-notes">Notes</Label><Input appearance="underline" id="daily-notes" name="notes"/></div>
+              <div><Button type="submit" appearance="primary">Save daily log</Button></div>
             </form>
-          </DialogContent></Dialog></CardContent>
+          </DialogContent></DialogBody></DialogSurface></Dialog></div>
         </Card>
 
         <div className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>Manual time correction</CardTitle><CardDescription>Use only when an employee could not use the GPS clock or owner/manual time must be entered.</CardDescription></CardHeader><CardContent><Dialog><DialogTrigger render={<Button variant="outline"/>}><Plus/>Enter manual time</DialogTrigger><DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>Manual timecard / correction</DialogTitle><DialogDescription>Normal employee time should come through the GPS clock and daily approval workflow.</DialogDescription></DialogHeader><form action={createTimecard} className="grid gap-4">
-            <div className="grid gap-2"><Label htmlFor="manual-project">Job</Label><select id="manual-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</select></div>
-            <div className="grid gap-2"><Label htmlFor="manual-worker">Worker</Label><select id="manual-worker" className={fieldSelect} name="crew_member_id" required defaultValue=""><option value="" disabled>Choose worker</option>{(crew||[]).map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-date">Date</Label><Input id="manual-date" type="date" name="work_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="manual-task">Work type</Label><Input id="manual-task" name="task" defaultValue="General"/></div></div>
-            <div className="grid gap-2"><Label htmlFor="manual-risk">L&I class</Label><select id="manual-risk" className={fieldSelect} name="risk_class_code" defaultValue=""><option value="">Choose class</option>{(riskClasses||[]).map((r:any)=><option key={r.code} value={r.code}>{r.code} — {r.name}</option>)}</select></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-regular">Regular hours</Label><Input id="manual-regular" type="number" step="0.25" min="0" name="regular_hours" defaultValue="8"/></div><div className="grid gap-2"><Label htmlFor="manual-overtime">Overtime hours</Label><Input id="manual-overtime" type="number" step="0.25" min="0" name="overtime_hours" defaultValue="0"/></div></div>
-            <div className="grid gap-2"><Label htmlFor="manual-notes">Reason / notes</Label><Input id="manual-notes" name="notes" placeholder="Phone died, owner time, correction..."/></div>
-            <div className="flex justify-end"><Button type="submit">Save manual time</Button></div>
-          </form></DialogContent></Dialog></CardContent></Card>
+          <Card className="shadow-none"><CardHeader><h3>Manual time correction</h3><p>Use only when an employee could not use the GPS clock or owner/manual time must be entered.</p></CardHeader><div><Dialog><DialogTrigger><Button appearance="outline"><Plus/>Enter manual time</Button></DialogTrigger><DialogSurface className="max-h-[88vh] overflow-y-auto sm:max-w-xl"><DialogBody><DialogContent><div><DialogTitle>Manual timecard / correction</DialogTitle><p>Normal employee time should come through the GPS clock and daily approval workflow.</p></div><form action={createTimecard} className="grid gap-4">
+            <div className="grid gap-2"><Label htmlFor="manual-project">Job</Label><Select appearance="outline" id="manual-project" className={fieldSelect} name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((p:any)=><option key={p.id} value={p.id}>{p.job_number} — {p.name}</option>)}</Select></div>
+            <div className="grid gap-2"><Label htmlFor="manual-worker">Worker</Label><Select appearance="outline" id="manual-worker" className={fieldSelect} name="crew_member_id" required defaultValue=""><option value="" disabled>Choose worker</option>{(crew||[]).map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</Select></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-date">Date</Label><Input appearance="underline" id="manual-date" type="date" name="work_date" defaultValue={today()} required/></div><div className="grid gap-2"><Label htmlFor="manual-task">Work type</Label><Input appearance="underline" id="manual-task" name="task" defaultValue="General"/></div></div>
+            <div className="grid gap-2"><Label htmlFor="manual-risk">L&I class</Label><Select appearance="outline" id="manual-risk" className={fieldSelect} name="risk_class_code" defaultValue=""><option value="">Choose class</option>{(riskClasses||[]).map((r:any)=><option key={r.code} value={r.code}>{r.code} — {r.name}</option>)}</Select></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="manual-regular">Regular hours</Label><Input appearance="underline" id="manual-regular" type="number" step="0.25" min="0" name="regular_hours" defaultValue="8"/></div><div className="grid gap-2"><Label htmlFor="manual-overtime">Overtime hours</Label><Input appearance="underline" id="manual-overtime" type="number" step="0.25" min="0" name="overtime_hours" defaultValue="0"/></div></div>
+            <div className="grid gap-2"><Label htmlFor="manual-notes">Reason / notes</Label><Input appearance="underline" id="manual-notes" name="notes" placeholder="Phone died, owner time, correction..."/></div>
+            <div className="flex justify-end"><Button type="submit" appearance="primary">Save manual time</Button></div>
+          </form></DialogContent></DialogBody></DialogSurface></Dialog></div></Card>
 
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Approved employee time</CardTitle><CardDescription>Most recent approved shift sessions.</CardDescription></CardHeader>{(recentApproved||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><Clock3/></EmptyMedia><EmptyTitle>No approved employee time yet</EmptyTitle><EmptyDescription>Approved shifts will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Worker</TableHead><TableHead>Job</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{(recentApproved||[]).map((s:any)=><TableRow key={s.id}><TableCell className="font-medium">{s.crew_members?.name}</TableCell><TableCell>{s.projects?.job_number} — {s.projects?.name}</TableCell><TableCell className="tabular-nums">{s.work_date}</TableCell><TableCell><Badge variant="secondary" className="bg-success/10 text-success">Approved</Badge></TableCell></TableRow>)}</TableBody></Table>}</Card>
+        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><h3>Approved employee time</h3><p>Most recent approved shift sessions.</p></CardHeader>{(recentApproved||[]).length===0?<div className="min-h-40 border-0"><div><div><Clock3/></div><h3>No approved employee time yet</h3><p>Approved shifts will appear here.</p></div></div>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHeaderCell>Worker</TableHeaderCell><TableHeaderCell>Job</TableHeaderCell><TableHeaderCell>Date</TableHeaderCell><TableHeaderCell>Status</TableHeaderCell></TableRow></TableHeader><TableBody>{(recentApproved||[]).map((s:any)=><TableRow key={s.id}><TableCell className="font-medium">{s.crew_members?.name}</TableCell><TableCell>{s.projects?.job_number} — {s.projects?.name}</TableCell><TableCell className="tabular-nums">{s.work_date}</TableCell><TableCell><Badge appearance="tint" className="bg-success/10 text-success">Approved</Badge></TableCell></TableRow>)}</TableBody></Table>}</Card>
 
-        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><CardTitle>Daily logs</CardTitle><CardDescription>Most recent jobsite records.</CardDescription></CardHeader>{(logs||[]).length===0?<Empty className="min-h-40 border-0"><EmptyHeader><EmptyMedia variant="icon"><FileClock/></EmptyMedia><EmptyTitle>No daily logs yet</EmptyTitle><EmptyDescription>Saved field logs will appear here.</EmptyDescription></EmptyHeader></Empty>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHead>Date</TableHead><TableHead>Job</TableHead><TableHead>Work completed</TableHead><TableHead className="text-right">Concrete</TableHead></TableRow></TableHeader><TableBody>{(logs||[]).map((l:any)=><TableRow key={l.id}><TableCell className="tabular-nums">{l.log_date}</TableCell><TableCell className="font-medium">{l.projects?.job_number||'Job'}</TableCell><TableCell className="max-w-80 truncate text-muted-foreground">{l.work_completed}</TableCell><TableCell className="text-right tabular-nums">{Number(l.concrete_yards||0).toFixed(1)} CY</TableCell></TableRow>)}</TableBody></Table>}</Card>
+        <Card className="gap-0 py-0 shadow-none"><CardHeader className="border-b py-3"><h3>Daily logs</h3><p>Most recent jobsite records.</p></CardHeader>{(logs||[]).length===0?<div className="min-h-40 border-0"><div><div><FileClock/></div><h3>No daily logs yet</h3><p>Saved field logs will appear here.</p></div></div>:<Table><TableHeader><TableRow className="bg-muted/30 hover:bg-muted/30"><TableHeaderCell>Date</TableHeaderCell><TableHeaderCell>Job</TableHeaderCell><TableHeaderCell>Work completed</TableHeaderCell><TableHeaderCell className="text-right">Concrete</TableHeaderCell></TableRow></TableHeader><TableBody>{(logs||[]).map((l:any)=><TableRow key={l.id}><TableCell className="tabular-nums">{l.log_date}</TableCell><TableCell className="font-medium">{l.projects?.job_number||'Job'}</TableCell><TableCell className="max-w-80 truncate text-muted-foreground">{l.work_completed}</TableCell><TableCell className="text-right tabular-nums">{Number(l.concrete_yards||0).toFixed(1)} CY</TableCell></TableRow>)}</TableBody></Table>}</Card>
       </div>
     </div>
   </>;
 }
+
+const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
+const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';

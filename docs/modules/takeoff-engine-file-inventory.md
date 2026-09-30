@@ -2,12 +2,10 @@
 
 Generated for the September 2026 Takeoff workspace review. This lists the Takeoff source trees, related tests, SQL migrations that reference Takeoff or Concrete Condition records, and direct shared runtime dependencies. It does not imply every listed file was changed.
 
-## Folders (11)
+## Folders
 
 - `app/takeoff/`
 - `app/takeoff/[setId]/`
-- `app/takeoff/assemblies/`
-- `app/takeoff/intelligence/`
 - `app/takeoff/plans/`
 - `components/takeoff/`
 - `components/takeoff/3d/`
@@ -16,7 +14,7 @@ Generated for the September 2026 Takeoff workspace review. This lists the Takeof
 - `lib/takeoff/conditions/`
 - `lib/takeoff/conditions/derived3d/`
 
-## Takeoff routes, components, and domain code (99)
+## Takeoff routes, components, and domain code
 
 - `app/takeoff/[setId]/actions.ts`
 - `app/takeoff/[setId]/conditionActions.ts`
@@ -25,9 +23,6 @@ Generated for the September 2026 Takeoff workspace review. This lists the Takeof
 - `app/takeoff/[setId]/sheetMetadataActions.ts`
 - `app/takeoff/[setId]/TakeoffDrawingPage.module.css`
 - `app/takeoff/actions.ts`
-- `app/takeoff/assemblies/AssemblyPage.module.css`
-- `app/takeoff/assemblies/page.tsx`
-- `app/takeoff/intelligence/page.tsx`
 - `app/takeoff/page.tsx`
 - `app/takeoff/plans/page.tsx`
 - `components/takeoff/3d/Takeoff3DControls.tsx`

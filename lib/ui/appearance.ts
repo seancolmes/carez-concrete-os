@@ -7,20 +7,20 @@ export const CAREZ_DENSITY_STORAGE_KEY = 'carez.density';
 export const CAREZ_THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 export function normalizeThemePreference(value: unknown): CarezThemePreference {
-  return value === 'light' || value === 'dark' || value === 'system' ? value : 'system';
-}
-
-export function normalizeDensityPreference(value: unknown): CarezDensityPreference {
-  return value === 'compact' || value === 'comfortable' || value === 'default' ? value : 'default';
+  return value === 'light' || value === 'dark' || value === 'system' ? value : 'light';
 }
 
 export function resolveThemePreference(preference: CarezThemePreference, prefersDark: boolean): CarezResolvedTheme {
   return preference === 'system' ? (prefersDark ? 'dark' : 'light') : preference;
 }
 
+export function normalizeDensityPreference(value: unknown): CarezDensityPreference {
+  return value === 'compact' || value === 'comfortable' || value === 'default' ? value : 'default';
+}
+
 export const CAREZ_APPEARANCE_BOOT_SCRIPT = `(() => {
   const root = document.documentElement;
-  let themePreference = 'system';
+  let themePreference = 'light';
   let densityPreference = 'default';
 
   try {

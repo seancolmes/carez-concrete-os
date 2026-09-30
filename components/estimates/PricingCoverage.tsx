@@ -1,14 +1,7 @@
-import { AlertTriangle, CheckCircle2, CircleDollarSign, FileQuestion, Quote } from 'lucide-react';
-import {
-  createEstimateSupplierQuote,
-  createEstimateSupplierQuoteLine,
-  createEstimateSupplierQuoteSet,
-  selectEstimateSupplierQuoteLine,
-} from '@/app/estimates/actions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { WarningRegular as AlertTriangle, CheckmarkCircleRegular as CheckCircle2, MoneyRegular as CircleDollarSign, DocumentQuestionMarkRegular as FileQuestion } from '@fluentui/react-icons';
+import Link from 'next/link';
+import { selectEstimateSupplierQuoteLine } from '@/app/estimates/actions';
+import { Button, Card, CardHeader } from '@fluentui/react-components';
 import { formatTakeoffMeasurement } from '@/lib/takeoff/lengthFormat';
 import { PricingExceptionGrid, type PricingExceptionRow } from '@/components/estimates/PricingExceptionGrid';
 import {
@@ -80,8 +73,6 @@ const money = (value: unknown) => new Intl.NumberFormat('en-US', {
   currency: 'USD',
 }).format(Number(value || 0));
 
-const selectClass = 'h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50';
-const textareaClass = 'min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-shadow focus:border-ring focus:ring-3 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50';
 
 function CoverageMetric({
   label,
@@ -154,11 +145,6 @@ export function PricingCoverage({
     };
   });
   const summary = getPricingCoverageSummary({ outputs, quoteLines: quoteLinesForCoverage, today });
-  const outputUnits = [...new Set(outputs
-    .filter(output => output.estimate_item_type !== 'labor' && output.production_unit)
-    .map(output => String(output.production_unit).toUpperCase()))].sort();
-  const quoteableOutputs = outputs.filter(output => output.estimate_item_type !== 'labor' && output.generated_estimate_item_id);
-  const quoteSetsSorted = [...quoteSets].sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   const pricingRows = [...outputs].sort((a, b) => {
     const rank = (output: TakeoffOutput) => {
@@ -203,7 +189,7 @@ export function PricingCoverage({
               <form action={selectEstimateSupplierQuoteLine}>
                 <input type="hidden" name="estimate_id" value={estimateId}/>
                 <input type="hidden" name="quote_line_id" value={line.id}/>
-                <Button type="submit" variant="outline" size="sm" disabled={locked || unavailable}>Select quote</Button>
+                <Button type="submit" appearance="outline" size="small" disabled={locked || unavailable}>Select quote</Button>
               </form>}
           </div>;
         })}</div>;
@@ -254,93 +240,13 @@ export function PricingCoverage({
 
     <Card className="pricing-output-region rounded-none border-x-0 bg-transparent shadow-none">
       <CardHeader className="gap-1 pb-2">
-        <CardTitle>Pricing outputs</CardTitle>
+        <h3 className="text-sm font-semibold">Pricing outputs</h3>
       </CardHeader>
-      <CardContent>
+      <div className="px-3 pb-3">
         {exceptionRows.length === 0 ? <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">No generated Takeoff outputs are available for pricing yet.</div> : <PricingExceptionGrid rows={exceptionRows} />}
-      </CardContent>
+      </div>
     </Card>
 
-    <details className="pricing-supplier-section" open={quoteSetsSorted.length>0}>
-      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm font-semibold"><Quote className="size-4"/>Supplier quote sets · {quoteSetsSorted.length}<span className="ml-auto text-xs font-normal text-muted-foreground">{quoteSetsSorted.length?'View supplier pricing':'Open when vendor pricing is needed'}</span></summary>
-    <Card className="rounded-none border-x-0 shadow-none">
-      <CardContent className="space-y-3">
-        {!locked ? <details className="rounded-lg border">
-          <summary className="cursor-pointer list-none px-3 py-3 text-sm font-medium">Create quote set</summary>
-          <form action={createEstimateSupplierQuoteSet} className="grid gap-3 border-t p-3 md:grid-cols-3">
-            <input type="hidden" name="estimate_id" value={estimateId}/>
-            <div className="grid gap-1.5"><Label htmlFor="quote-set-name">Name</Label><Input id="quote-set-name" name="name" required placeholder="Ready-mix · Rebar · Form lumber"/></div>
-            <div className="grid gap-1.5"><Label htmlFor="quote-set-zone">Bid zone</Label><Input id="quote-set-zone" name="bid_zone" placeholder="Building A · Site concrete"/></div>
-            <div className="grid gap-1.5"><Label htmlFor="quote-set-scope">Scope note</Label><Input id="quote-set-scope" name="scope_note" placeholder="4000 psi mix, pump included..."/></div>
-            <div className="md:col-span-3"><Button type="submit" size="sm">Create quote set</Button></div>
-          </form>
-        </details> : null}
-
-        {quoteSetsSorted.length === 0 ? <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">No supplier quote sets yet. Create a set when vendor pricing is needed for this Estimate revision.</div> :
-          quoteSetsSorted.map(quoteSet => {
-            const setQuotes = quotes.filter(quote => quote.quote_set_id === quoteSet.id);
-            return <details key={quoteSet.id} className="rounded-lg border" open={quoteSet.status === 'draft'}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3">
-                <div><div className="text-sm font-medium">{quoteSet.name}</div><div className="mt-0.5 text-xs text-muted-foreground">{[quoteSet.bid_zone, quoteSet.status, `${setQuotes.length} supplier response${setQuotes.length === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
-                <CircleDollarSign className="size-4 text-muted-foreground"/>
-              </summary>
-              <div className="space-y-3 border-t p-3">
-                {quoteSet.scope_note ? <div className="text-xs text-muted-foreground">{quoteSet.scope_note}</div> : null}
-
-                {!locked && quoteSet.status !== 'archived' ? <details className="rounded-md border bg-muted/10">
-                  <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium">Add supplier response</summary>
-                  <form action={createEstimateSupplierQuote} className="grid gap-3 border-t p-3 md:grid-cols-4">
-                    <input type="hidden" name="estimate_id" value={estimateId}/>
-                    <input type="hidden" name="quote_set_id" value={quoteSet.id}/>
-                    <div className="grid gap-1.5"><Label>Supplier</Label><Input name="supplier_name" required placeholder="Supplier name"/></div>
-                    <div className="grid gap-1.5"><Label>Quote / reference</Label><Input name="supplier_quote_number" placeholder="Q-10284"/></div>
-                    <div className="grid gap-1.5"><Label>Quote date</Label><Input name="quote_date" type="date" defaultValue={today} required/></div>
-                    <div className="grid gap-1.5"><Label>Expires</Label><Input name="expires_at" type="date"/></div>
-                    <div className="grid gap-1.5"><Label>Status</Label><select className={selectClass} name="status" defaultValue="received"><option value="requested">Requested</option><option value="received">Received</option><option value="declined">Declined</option></select></div>
-                    <div className="grid gap-1.5 md:col-span-3"><Label>Notes</Label><Input name="notes" placeholder="Delivery, minimum order, exclusions..."/></div>
-                    <div className="md:col-span-4"><Button type="submit" variant="outline" size="sm">Add supplier response</Button></div>
-                  </form>
-                </details> : null}
-
-                {setQuotes.length === 0 ? <div className="text-xs text-muted-foreground">No supplier responses recorded in this set.</div> :
-                  <div className="grid gap-2">{setQuotes.map(quote => {
-                    const lines = quoteLines.filter(line => line.quote_id === quote.id);
-                    const expired = Boolean(quote.expires_at && isPricingQuoteExpired(quote.expires_at, today));
-                    return <div key={quote.id} className={`rounded-md border px-3 py-3 ${expired ? 'border-warning/30 bg-warning/5' : 'bg-background'}`}>
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div><div className="text-sm font-medium">{quote.supplier_name}</div><div className="mt-0.5 text-xs text-muted-foreground">{quote.supplier_quote_number || 'No quote number'} · {quote.quote_date}{quote.expires_at ? ` · expires ${quote.expires_at}` : ''} · {quote.status}</div></div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">{expired ? <><AlertTriangle className="size-3.5 text-warning"/>Expired</> : <>{lines.length} line{lines.length === 1 ? '' : 's'}</>}</div>
-                      </div>
-
-                      {lines.length > 0 ? <div className="mt-3 divide-y rounded-md border">{lines.map(line => {
-                        const output = outputs.find(row => row.id === line.source_takeoff_output_id);
-                        return <div key={line.id} className="grid gap-1 px-2.5 py-2 text-xs md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                          <div><span className="font-medium">{line.description}</span><span className="text-muted-foreground">{output ? ` · ${formatTakeoffMeasurement(output.production_quantity, output.production_unit)}` : ''}{line.source_reference ? ` · ${line.source_reference}` : ''}</span></div>
-                          <div className="font-mono font-semibold tabular-nums">{money(line.quoted_unit_cost)} / {line.quoted_unit}</div>
-                        </div>;
-                      })}</div> : null}
-
-                      {!locked && quote.status !== 'declined' && quoteSet.status !== 'archived' ? <details className="mt-3 rounded-md border">
-                        <summary className="cursor-pointer list-none px-2.5 py-2 text-xs font-medium">Add quoted price line</summary>
-                        <form action={createEstimateSupplierQuoteLine} className="grid gap-3 border-t p-3 md:grid-cols-4">
-                          <input type="hidden" name="estimate_id" value={estimateId}/>
-                          <input type="hidden" name="quote_id" value={quote.id}/>
-                          <div className="grid gap-1.5 md:col-span-2"><Label>Takeoff resource</Label><select className={selectClass} name="output_id" required defaultValue=""><option value="" disabled>Select generated resource</option>{quoteableOutputs.map(output => {const measurement=measurementById.get(output.measurement_id);return <option key={output.id} value={output.id}>{measurement?.name || 'Takeoff'} — {output.label || 'Resource'} — {formatTakeoffMeasurement(output.production_quantity, output.production_unit)}</option>;})}</select></div>
-                          <div className="grid gap-1.5"><Label>Quoted unit</Label><select className={selectClass} name="quoted_unit" required defaultValue={outputUnits[0] || ''}>{outputUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}</select></div>
-                          <div className="grid gap-1.5"><Label>Unit cost</Label><Input name="quoted_unit_cost" type="number" min="0" step="0.0001" required placeholder="0.00"/></div>
-                          <div className="grid gap-1.5 md:col-span-2"><Label>Description override</Label><Input name="description" placeholder="Optional; defaults to Takeoff resource"/></div>
-                          <div className="grid gap-1.5"><Label>Source reference</Label><Input name="source_reference" placeholder="Line 4 · mix code"/></div>
-                          <div className="grid gap-1.5"><Label>Freight / tax / fee notes</Label><Input name="freight_tax_fee_notes" placeholder="Freight included; tax extra"/></div>
-                          <div className="md:col-span-4"><Button type="submit" variant="outline" size="sm">Add price line</Button></div>
-                        </form>
-                      </details> : null}
-                    </div>;
-                  })}</div>}
-              </div>
-            </details>;
-          })}
-      </CardContent>
-    </Card>
-    </details>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#222222] bg-[#0A0A0A] px-4 py-3"><div><h3 className="text-sm font-semibold">Vendor Quotes</h3><p className="mt-1 text-xs text-muted-foreground">{quoteSets.length} quote set{quoteSets.length===1?"":"s"} · supplier entry and links are managed in Bid Intelligence.</p></div><Link href={`/vendor-quotes?estimate=${encodeURIComponent(estimateId)}`} className="rounded-md border border-[#333333] bg-[#111111] px-3 py-2 text-xs font-semibold text-white shadow-[inset_0px_1px_0px_rgba(255,255,255,0.05)]">Open Vendor Quotes</Link></div>
   </section>;
 }

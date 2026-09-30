@@ -68,6 +68,8 @@ For a measurement linked to an active Concrete Condition, the worksheet presents
 
 The **EDGE-style Condition-first estimator workflow** is the estimating UX contract: the estimator works from named concrete Conditions and concrete-native properties/modules into quantities, labor, pricing readiness, worksheet review, and Estimate lineage without being exposed to formula authoring as the normal workflow. EDGE is a workflow benchmark, not Carez's visual theme or underlying data model.
 
+The local ADR-028 workbench separates that flow into **Assembly Setup**, **Tracing Engine**, and **Commercial Recap**. Setup owns physical and productivity inputs; Tracing owns the authoritative PDF, condition roster, and drawing dock; Recap displays saved output and pricing readiness without the drawing. The views are mutually exclusive. Transient tab, tool, zoom, roster, and inspector state may live in Zustand, while drawing geometry, calibration, Condition drafts, and calculated output remain on their existing persistence paths. Recap's Crew Days and labor-direct $/SF inputs convert to the existing man-hours-per-unit field only when their required production quantity, crew parameters, or selected burdened labor rate are available.
+
 Concrete Conditions should be workable in the sequence an estimator uses to understand the physical work:
 
 1. Scope / geometry

@@ -1,14 +1,14 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@fluentui/react-components';
 import styles from './Takeoff3DViewport.module.css';
 
 export function Takeoff3DUnavailable({ onRetry }: { onRetry: () => void }) {
   return <div className={styles.message} role="alert">
     <strong>3D unavailable</strong>
     <span>Your 2D Takeoff and quantities remain available.</span>
-    <Button variant="outline" size="sm" onClick={onRetry}>Retry 3D</Button>
+    <Button appearance="outline" size="small" onClick={onRetry}>Retry 3D</Button>
   </div>;
 }
 
