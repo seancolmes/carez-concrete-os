@@ -16,7 +16,7 @@ export default function SignupPage(){
       <p className="mt-6 max-w-xl text-base leading-7 text-[var(--pt-text-secondary)]">Pourtrace is being prepared for monthly and annual subscriptions. Self-service enrollment is not available yet, so you cannot create a workspace or start a subscription on this page today.</p>
       <div className="mt-8 border-t border-[var(--pt-line)] pt-6">
         <p className="text-sm text-[var(--pt-text-secondary)]">Already have a workspace?</p>
-        <Link href="/login" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--pt-brand)] hover:underline focus-visible:underline"><ArrowLeft fontSize={16} aria-hidden="true"/> Return to sign in</Link>
+        <Link href="/login" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--pt-link)] hover:underline focus-visible:underline"><ArrowLeft fontSize={16} aria-hidden="true"/> Return to sign in</Link>
       </div>
     </section>
   </main>;

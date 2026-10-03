@@ -47,7 +47,7 @@ function phaseTone(value:string){
   if(value==='Subgrade')return 'border-[#A88D56] bg-[#695931]/75 text-[#F4DEB0]';
   if(value==='Footings')return 'border-[#5E9CC4] bg-[#2B5876]/80 text-[#C7E6FA]';
   if(value==='Foundation Walls')return 'border-[#9D82C7] bg-[#594571]/80 text-[#E6D7FB]';
-  if(value==='Slabs on Grade')return 'border-[#48A891] bg-[#205E50]/80 text-[#D2F3E9]';
+  if(value==='Slabs on Grade')return 'border-[#647D8A] bg-[#24343D]/80 text-[#DEE6E9]';
   return 'border-[#697982] bg-[#364148]/80 text-[#DEE6E9]';
 }
 

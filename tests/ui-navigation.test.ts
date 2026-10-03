@@ -35,8 +35,8 @@ test('Estimate review keeps the compatibility route with Review product language
 });
 
 test('primary presentation classifies every destination once with canonical surface routes',()=>{
-  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Overview','Opportunities','Projects','Field','Financials','Administration']);
-  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/overview','/opportunities','/projects','/field','/financials','/settings']);
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.label),['Dashboard','Opportunities','Projects','Field','Financials','Administration']);
+  assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(surface=>surface.href),['/dashboard','/opportunities','/projects','/field','/financials','/settings']);
   const destinationIds=WORKSPACE_PRESENTATION_SURFACES.flatMap(surface=>surface.sections.flatMap(section=>section.destinations.map(destination=>destination.id)));
   assert.equal(new Set(destinationIds).size,destinationIds.length);
   assert.deepEqual([...destinationIds].sort(),NAVIGATION_DESTINATIONS.map(destination=>destination.id).sort());
@@ -91,7 +91,7 @@ test('pin, unpin, reorder, and reset helpers remain bounded and deterministic',(
 
 test('active destination resolution prefers the most specific nested route',()=>{
   assert.equal(resolveActiveDestination('/')?.id,'today');
-  assert.equal(resolveActiveDestination('/overview')?.id,'today');
+  assert.equal(resolveActiveDestination('/dashboard')?.id,'today');
   assert.equal(resolveActiveDestination('/opportunities')?.id,'leads');
   assert.equal(resolveActiveDestination('/estimates/audit/review')?.id,'estimate-audit');
   assert.equal(resolveActiveDestination('/banking/reconcile/session')?.id,'reconcile');

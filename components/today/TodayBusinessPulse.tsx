@@ -1,23 +1,12 @@
-'use client';
+import Link from 'next/link';
+import type {OverviewMetric} from './TodaySurface';
 
-import {useState} from 'react';
-import {ProgressBar,Tab,TabList} from '@fluentui/react-components';
+type Props={metrics:OverviewMetric[];action:{title:string;detail:string;href:string;label:string}|null};
 
-type Props={openLeads:string;openProposals:string;proposalValue:string;nextFollowUp:string;customersOwe:string;expectedIn:string;expectedOut:string;cashNet:string};
-
-export function TodayBusinessPulse({openLeads,openProposals,proposalValue,nextFollowUp,customersOwe,expectedIn,expectedOut,cashNet}:Props){
-  const [view,setView]=useState('pipeline');
-  const leadCount=Number(openLeads)||0,proposalCount=Number(openProposals)||0,maxPipeline=Math.max(leadCount,proposalCount,1);
-  return <section aria-labelledby="today-business-heading" className="surface-card min-w-0 shrink-0 rounded-md p-4 lg:max-h-[48%] lg:overflow-y-auto">
-    <h2 id="today-business-heading" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Business pulse</h2>
-    <TabList selectedValue={view} onTabSelect={(_,data)=>setView(String(data.value))} className="mt-3 w-full">
-      <Tab value="pipeline">Pipeline</Tab><Tab value="cash">Cash</Tab>
-    </TabList>
-    {view==='pipeline'?<div role="tabpanel" aria-label="Pipeline" className="mt-3 space-y-3 text-xs">
-      <div><div className="mb-1 flex justify-between"><span>Open leads</span><span className="font-mono">{openLeads}</span></div><ProgressBar value={leadCount/maxPipeline} aria-label="Open leads"/></div>
-      <div><div className="mb-1 flex justify-between"><span>Proposals out</span><span className="font-mono">{openProposals}</span></div><ProgressBar value={proposalCount/maxPipeline} aria-label="Proposals out"/></div>
-      <div className="flex justify-between gap-3 border-t border-border pt-2"><span className="text-muted-foreground">Proposal value</span><strong className="font-mono">{proposalValue}</strong></div>
-      <p className="text-[11px] text-muted-foreground">Next follow-up: {nextFollowUp}</p>
-    </div>:<dl role="tabpanel" aria-label="Cash" className="mt-3 divide-y divide-border text-xs">{[['Customers owe',customersOwe],['Expected in · 7 days',expectedIn],['Expected out · 7 days',expectedOut],['7-day net',cashNet]].map(([label,value])=><div key={label} className="flex justify-between gap-3 py-2"><dt className="text-muted-foreground">{label}</dt><dd className="font-mono font-semibold">{value}</dd></div>)}</dl>}
+export function TodayBusinessPulse({metrics,action}:Props){
+  return <section aria-labelledby="today-commercial-heading" className="pb-3 lg:min-h-[150px]">
+    <h2 id="today-commercial-heading" className="border-b border-border pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Commercial / financial</h2>
+    <div className="grid grid-cols-2 border-b border-border sm:grid-cols-3 xl:grid-cols-5">{metrics.map((metric,index)=><Link key={metric.label} href={metric.href} className={`min-h-[86px] min-w-0 border-border px-4 py-4 outline-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${index%2===0?'border-r':''} ${index===1||index===3?'sm:border-r':''} ${index===2?'sm:border-r-0 xl:border-r':''} ${index===4?'xl:border-r-0':''} ${index<4?'border-b xl:border-b-0':''} ${index===3?'sm:border-b-0':''}`} aria-label={`${metric.label}: ${metric.value}. ${metric.detail}`}><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{metric.label}</span><strong className="mt-1 block truncate font-mono text-[22px] font-semibold leading-tight tabular-nums">{metric.value}</strong><span className="block truncate text-xs text-muted-foreground">{metric.detail}</span></Link>)}</div>
+    {action?<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Next commercial action</span><p className="mt-1 text-sm font-semibold">{action.title}</p><p className="text-xs text-muted-foreground">{action.detail}</p></div><Link href={action.href} className="text-xs font-semibold hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{action.label} →</Link></div>:<p className="py-3 text-xs text-muted-foreground">No recorded commercial action is due right now.</p>}
   </section>;
 }

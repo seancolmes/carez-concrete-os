@@ -137,7 +137,7 @@ const LABOR_ACTIVITIES=[
 const money=(value:number|string)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
 const quantity=(value:number|string|null,unit:string)=>value===null?'—':`${Number(value).toLocaleString('en-US',{maximumFractionDigits:3})} ${unit}`;
 const humanize=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
-const conditionColor=(key:ConditionArchetypeKey)=>key==='slab_on_grade'?'#426F93':key==='pad_column_footing'?'#8A610B':'#347A46';
+const conditionColor=(key:ConditionArchetypeKey)=>key==='slab_on_grade'?'#426F93':key==='pad_column_footing'?'#8A610B':'#E97832';
 const switchId=(...parts:string[])=>`condition-${parts.join('-').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
 const isArchitecturalDimension=(input:ConditionInputDefinition):input is ConditionInputDefinition&{unit:'FT'|'IN'}=>input.group==='planFacts'&&input.valueType==='number'&&(input.unit==='FT'||input.unit==='IN');
 

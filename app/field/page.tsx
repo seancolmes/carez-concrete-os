@@ -55,7 +55,7 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
-      <header className="relative shrink-0 border border-border bg-card px-4 py-3 pr-40 shadow-sm"><nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/overview">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field</nav><h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Field</h1>
+      <header className="relative shrink-0 border border-border bg-card px-4 py-3 pr-40 shadow-sm"><nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/dashboard">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field</nav><h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Field</h1>
         <NewPourPlanDialog today={today} projects={projectOptions} scopeLinks={scopeLinks} changeOrders={orderOptions}/>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">

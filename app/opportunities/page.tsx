@@ -112,7 +112,7 @@ export default async function OpportunitiesPage({searchParams}:{searchParams:Pro
     <div className="flex min-h-0 w-full flex-col lg:h-full lg:overflow-hidden">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-2.5">
         <div className="min-w-0">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground"><Link href="/overview">Workspace</Link><span aria-hidden="true">/</span><Link href="/opportunities">Bids</Link>{selectedRow?<><span aria-hidden="true">/</span><span className="truncate">{selectedRow.number}</span></>:null}</nav>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground"><Link href="/dashboard">Workspace</Link><span aria-hidden="true">/</span><Link href="/opportunities">Bids</Link>{selectedRow?<><span aria-hidden="true">/</span><span className="truncate">{selectedRow.number}</span></>:null}</nav>
           <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5"><h1 className="truncate text-base font-semibold text-foreground">{selectedRow?.name||'Opportunity workbench'}</h1>{selectedRow?<span className="text-xs text-muted-foreground">{selectedRow.stage}{currentEstimate?' · '+currentEstimate.estimate_number+'-R'+(currentEstimate.version??0):''}</span>:<span className="text-xs text-muted-foreground">Bids, plans, pricing, and proposals</span>}</div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

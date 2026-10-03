@@ -16,28 +16,28 @@ export function FieldFootage(){
     if(!video)return;
     video.defaultMuted=true;
     video.muted=true;
+    if(reduceMotion){video.pause();return;}
     void video.play().catch(()=>{});
-  },[]);
+  },[reduceMotion]);
 
-  return <div className="relative h-full min-h-[310px] w-full overflow-hidden bg-[#0A0A0A] max-[760px]:min-h-[240px]" aria-label="Concrete field work footage">
+  return <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#111416]" aria-hidden="true">
     <AnimatePresence initial={false}>
       <motion.video
         key={clips[current]}
         ref={startVideo}
         src={clips[current]}
-        autoPlay
+        autoPlay={!reduceMotion}
         muted
         playsInline
         preload="auto"
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover grayscale contrast-125"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{filter:'saturate(.82) contrast(1.04)'}}
         initial={{opacity:0}}
         animate={{opacity:1}}
         exit={{opacity:0}}
-        transition={{duration:reduceMotion?0:0.55}}
+        transition={{duration:reduceMotion?0:1.1}}
         onEnded={()=>setCurrent(index=>(index+1)%clips.length)}
       />
     </AnimatePresence>
-    <div className="pointer-events-none absolute inset-0 bg-[#000000]/20" aria-hidden="true"/>
   </div>;
 }

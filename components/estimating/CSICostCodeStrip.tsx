@@ -29,6 +29,6 @@ export function CSICostCodeStrip({code,name,estimated,actual,unit,budget,spent,a
     <span className="shrink-0 border border-[#222222] px-1.5 py-0.5 font-mono text-[10px] text-[#B4B4B4]">[{code}]</span>
     <span className="min-w-0 flex-1 truncate font-medium text-[#EDEDED]">{name}</span>
     <div className="w-24 shrink-0 sm:w-28"><ProgressBar aria-label={`${name}: ${actual} of ${estimated} ${unit}`} value={displayProgress/100} className={animateOnMount?'transition-all duration-700 motion-reduce:duration-0':undefined}/><span className="font-mono text-[10px] text-[#858585]">{actual} / {estimated} {unit}</span></div>
-    <span className={cn('shrink-0 rounded-sm px-2 py-0.5 font-mono text-xs tabular-nums',variance>=0?'bg-[#151D13] text-[#A9C79C]':'bg-[#231616] text-[#E48A8A]')}>{variance>=0?'+':'−'}${Math.abs(variance).toLocaleString('en-US')}</span>
+    <span className={cn('shrink-0 rounded-sm px-2 py-0.5 font-mono text-xs tabular-nums',variance>=0?'bg-[#24343D] text-[#A4BFCC]':'bg-[#231616] text-[#E48A8A]')}>{variance>=0?'+':'−'}${Math.abs(variance).toLocaleString('en-US')}</span>
   </div>;
 }

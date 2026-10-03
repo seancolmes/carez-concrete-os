@@ -21,13 +21,13 @@ export function ConditionFormulaTerminal({outputs, pending=false}: {outputs: Tra
         <AccordionHeader>{output.label}</AccordionHeader><AccordionPanel>
         <code className="mt-1 block whitespace-pre-wrap break-words text-[#A1A1AA]">{tokens.map((token,index)=>
           /^[+\-*/=()]$/.test(token)?<span key={index} className="text-[#8B949E]">{token}</span>:
-          /^\d+(?:\.\d+)?$/.test(token)?<span key={index} className="text-[#3FB950]">{token}</span>:
+          /^\d+(?:\.\d+)?$/.test(token)?<span key={index} className="text-[#E97832]">{token}</span>:
           /^[a-zA-Z_][a-zA-Z_0-9.]*$/.test(token)?<span key={index} className="bg-[#141618] border border-[#25292C] text-[#6CB6FF] px-1 rounded-[2px]">{token}</span>:token
         )}</code>
         <dl className="mt-1 space-y-0.5">{(trace.values||[]).map((value,index)=><div key={`${value.key}-${index}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-          <dt className="break-words text-[#6CB6FF]" title={value.sourceLabel}>{value.key}</dt><dd className="text-[#3FB950]">{String(value.value)}</dd>
+          <dt className="break-words text-[#6CB6FF]" title={value.sourceLabel}>{value.key}</dt><dd className="text-[#E97832]">{String(value.value)}</dd>
         </div>)}</dl>
-        <p className="mt-1 text-white">Derived quantity <span className="text-[#8B949E]">=</span> <span className="text-[#3FB950]">{trace.derivedQuantity===null?'Held':trace.derivedQuantity}</span></p>
+        <p className="mt-1 text-white">Derived quantity <span className="text-[#8B949E]">=</span> <span className="text-[#E97832]">{trace.derivedQuantity===null?'Held':trace.derivedQuantity}</span></p>
         {trace.override?<p className="mt-2 text-[#A1A1AA]">Explicit override: {trace.override.quantity} · {trace.override.reason}</p>:null}
         </AccordionPanel></AccordionItem>;
     })}</Accordion>}

@@ -43,7 +43,7 @@ test('the application supplies a light and dark Fluent provider',()=>{
   assert.match(appearance,/FluentProvider/);
   assert.match(appearance,/webLightTheme/);
   assert.match(appearance,/webDarkTheme/);
-  assert.match(appearance,/theme=\{resolvedTheme===['"]dark['"]\?carezDarkTheme:webLightTheme\}/);
+  assert.match(appearance,/theme=\{resolvedTheme===['"]dark['"]\?carezDarkTheme:carezLightTheme\}/);
 });
 
 test('project context stays within its authoritative route boundary',()=>{

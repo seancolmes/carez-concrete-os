@@ -22,7 +22,7 @@ test('Settings exposes persisted dark, light, and device themes', () => {
   assert.match(provider, /CAREZ_THEME_STORAGE_KEY/);
   assert.match(provider, /FluentProvider/);
   assert.match(provider, /webDarkTheme/);
-  assert.match(provider, /resolvedTheme==='dark'\?carezDarkTheme:webLightTheme/);
+  assert.match(provider, /resolvedTheme==='dark'\?carezDarkTheme:carezLightTheme/);
   assert.match(settings, /AppearanceSettings/);
   assert.match(settings, /title="Appearance"/);
 });

@@ -43,19 +43,16 @@ test('operating metric composition is source-owned and token based',()=>{
 });
 
 
-test('authenticated Overview delegates to the Command Center with summary before the inbox',()=>{
+test('authenticated Dashboard puts company status before actionable work',()=>{
   const page=read('app/page.tsx');
   const surface=read('components/today/TodaySurface.tsx');
-  const pulse=read('components/today/TodayBusinessPulse.tsx');
   assert.match(page,/TodaySurface/);
-  assert.match(surface,/lg:grid-cols-12 lg:overflow-hidden/);
-  assert.match(surface,/MetricBentoTile/);
-  assert.ok(surface.indexOf('Operating summary')<surface.indexOf('Action inbox'));
-  assert.match(surface,/Logistics timeline/);
-  assert.match(surface,/<TodayBusinessPulse/);
-  assert.match(pulse,/Business pulse/);
-  assert.match(pulse,/<TabList selectedValue=\{view\}/);
-  assert.match(surface,/Zero inbox/);
+  assert.match(surface,/Company Command Center/);
+  assert.ok(surface.indexOf('Live company status')<surface.indexOf('Work requiring attention'));
+  assert.match(surface,/DataGrid/);
+  assert.match(surface,/OverlayDrawer/);
+  assert.match(surface,/14-day pour \/ crew outlook/);
+  assert.match(surface,/Clear for now/);
   assert.doesNotMatch(page,/\/leads\/|\/proposals\/|\/billing['"]|\/readiness['"]/);
 });
 
@@ -107,8 +104,8 @@ test('current workspaces preserve actionable empty states and distinct numeric a
   const overview=read('components/today/TodaySurface.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
   const project=read('app/projects/[id]/page.tsx');
-  assert.match(overview,/Zero inbox/);
-  assert.match(overview,/No field operations are scheduled/);
+  assert.match(overview,/Clear for now/);
+  assert.match(overview,/No concrete scheduled in the next 7 days/);
   assert.match(project,/No authoritative budget snapshot/);
   assert.match(projects,/No authoritative budget snapshot/);
   assert.match(projects,/Billing summary unavailable/);
@@ -119,8 +116,8 @@ test('current workspaces preserve actionable empty states and distinct numeric a
 test('current workspaces keep semantic severity and keyboard interaction',()=>{
   const overview=read('components/today/TodaySurface.tsx');
   const projects=read('components/projects/JobsOperationsBoard.tsx');
-  assert.match(overview,/urgent\?'border-l-destructive'/);
-  assert.match(overview,/motion-safe:animate-pulse/);
+  assert.match(overview,/color=\{item\.tone==='danger'\?'danger'/);
+  assert.match(overview,/focus-visible:ring-2/);
   assert.match(projects,/event\.currentTarget!==event\.target/);
   assert.match(projects,/aria-expanded=\{selectedRow\}/);
   assert.match(projects,/event\.preventDefault\(\)/);

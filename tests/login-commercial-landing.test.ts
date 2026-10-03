@@ -10,13 +10,11 @@ import {
 
 test('public landing page connects product story to working sign-in', () => {
   const page = readFileSync('app/login/page.tsx', 'utf8');
-  assert.match(page, /From the drawing to the/);
-  assert.match(page, /id="workflow"/);
-  assert.match(page, /id="capabilities"/);
-  assert.match(page, /id="workspace-access"/);
-  assert.match(page, /<WorkspaceLoginDialog open=\{loginOpen\}/);
-  assert.match(page, /Sign in to your workspace/);
-  assert.match(page, /onClick=\{\(\)=>setLoginOpen\(true\)\}/);
+  assert.match(page, /Run concrete\. Not spreadsheets\./);
+  assert.match(page, /id="platform"/);
+  assert.match(page, /id="capabilities-heading"/);
+  assert.match(page, /<LoginForm idPrefix="landing"\/>/);
+  assert.match(page, /<FieldFootage\/>/);
   assert.doesNotMatch(page, /href="\/(demo|estimating-sandbox)"/);
 });
 
@@ -48,7 +46,7 @@ test('login preserves real Supabase sign-in on the new landing page', () => {
   const loginAction = readFileSync('app/login/actions.ts', 'utf8');
   const handoff = readFileSync('components/brand/GatewayTransitionProvider.tsx', 'utf8');
   assert.match(page, /className=\{styles\.page\}/);
-  assert.match(page, /<LoginForm\s*\/>/);
+  assert.match(page, /<LoginForm idPrefix="landing"\/>/);
   assert.match(loginAction, /supabase\.auth\.signInWithPassword\(\{email,password\}\)/);
   assert.match(loginForm, /signInToWorkspace\(email,password\)/);
   assert.match(loginForm, /if\(result\.error\)/);

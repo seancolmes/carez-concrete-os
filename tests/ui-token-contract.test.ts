@@ -52,7 +52,7 @@ test('light workbench text, status, and control boundaries meet contrast targets
     assert.ok(contrast(token(light,`--status-${state}-fg`),token(light,`--status-${state}-bg`))>=4.5,`${state} status must meet normal-text contrast`);
   }
   assert.ok(contrast(token(light,'--pt-line-strong'),panel)>=3,'panel controls need a visible border');
-  assert.ok(contrast(token(light,'--pt-brand'),panel)>=3,'focus needs a visible outline');
+  assert.ok(contrast(token(light,'--ring'),panel)>=3,'focus needs a visible outline');
 });
 
 test('density and typography contracts are present', () => {

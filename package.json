@@ -17,6 +17,7 @@
     "carez:release-gate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/carez-release-gate.ts"
   },
   "dependencies": {
+    "@fluentui/react-charts": "^9.3.27",
     "@fluentui/react-components": "^9.74.9",
     "@fluentui/react-icons": "^2.0.343",
     "@react-three/drei": "^10.7.8",

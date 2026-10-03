@@ -90,7 +90,7 @@ export type ProjectRouteContext = {
 };
 
 export const NAVIGATION_DESTINATIONS: readonly NavigationDestination[] = [
-  {id:'today',href:'/overview',label:'Overview',hint:'Work and decisions across the company',domain:'today',icon:'home'},
+  {id:'today',href:'/dashboard',label:'Dashboard',hint:'Work and decisions across the company',domain:'today',icon:'home'},
   {id:'reports',href:'/reports',label:'Owner reports',hint:'Company and job reporting',domain:'today',icon:'reports'},
   {id:'leads',href:'/opportunities',label:'Opportunities',hint:'Pursuits and customer follow-up',domain:'preconstruction',icon:'users'},
   {id:'lead-inbox',href:'/leads/inbox',label:'Intake',hint:'Incoming bid opportunities',domain:'preconstruction',icon:'inbox'},
@@ -141,7 +141,7 @@ export const NAVIGATION_COMMAND_GROUPS: readonly NavigationRouteGroup[] = [
 ] as const;
 
 export const WORKSPACE_PRESENTATION_SURFACES: readonly WorkspacePresentationSurface[] = [
-  {id:'today',label:'Overview',href:'/overview',sections:[{id:'today',label:'Overview',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
+  {id:'today',label:'Dashboard',href:'/dashboard',sections:[{id:'today',label:'Dashboard',destinations:[{id:'today',classification:'primary-surface'},{id:'reports',classification:'internal-view'}]}]},
   {id:'preconstruction',label:'Opportunities',href:'/opportunities',sections:[
     {id:'opportunities',label:'Opportunities',destinations:[{id:'leads',classification:'primary-surface'},{id:'lead-inbox',classification:'internal-view'},{id:'bid-intelligence',classification:'internal-view'}]},
     {id:'takeoff',label:'Takeoff',destinations:[{id:'takeoff',classification:'internal-view'}]},

@@ -7,7 +7,7 @@ const shell=readFileSync(new URL('../components/AppShell.tsx',import.meta.url),'
 
 test('top navigation exposes the six primary workspace routes',()=>{
   assert.deepEqual(WORKSPACE_PRESENTATION_SURFACES.map(({label,href})=>[label,href]),[
-    ['Overview','/overview'],['Opportunities','/opportunities'],['Projects','/projects'],['Field','/field'],['Financials','/financials'],['Administration','/settings'],
+    ['Dashboard','/dashboard'],['Opportunities','/opportunities'],['Projects','/projects'],['Field','/field'],['Financials','/financials'],['Administration','/settings'],
   ]);
   assert.match(shell,/aria-label="Primary domains"/);
   assert.match(shell,/<Link key=\{item\.id\} href=\{item\.href\}/);

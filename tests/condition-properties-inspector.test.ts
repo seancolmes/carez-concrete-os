@@ -42,7 +42,7 @@ test('sign in uses Pourtrace identity and does not render the legacy Carez Concr
 
   assert.equal(form.includes('carez-wordmark.png'), false);
   assert.equal(form.includes("from 'next/image'"), false);
-  assert.match(form, /Sign in to Pourtrace/);
+  assert.match(form, /Get back to the job\./);
   assert.match(form, /Show password/);
   assert.match(page, /<AnimatedLogo idPrefix="login-navigation"\/>/);
   assert.match(page, /aria-label="Pourtrace home"/);

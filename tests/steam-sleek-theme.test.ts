@@ -10,17 +10,17 @@ function luminance(value:string){return value.slice(1).match(/../g)!.map(v=>pars
 function contrast(a:string,b:string){const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
 
 test('PourTrace keeps its logo while the Fluent dark workspace uses the approved palette',()=>{
-  assert.equal(hex(root,'pt-logo'),'#009966');
-  assert.equal(hex(root,'pt-brand'),'#5EA27A');
-  assert.equal(hex(root,'pt-bg'),'#121212');
-  assert.equal(hex(root,'pt-surface-1'),'#181A19');
-  assert.equal(hex(root,'pt-surface-2'),'#202321');
-  assert.equal(hex(root,'pt-line'),'#2B302D');
-  assert.equal(hex(root,'pt-text'),'#F2F4F3');
-  assert.equal(hex(root,'pt-text-secondary'),'#B3BBB6');
-  assert.equal(hex(root,'pt-text-muted'),'#7F8A84');
-  assert.equal(hex(root,'pt-info'),'#6C9FD8');
-  assert.equal(hex(root,'pt-warning'),'#E0A84B');
+  assert.equal(hex(root,'pt-logo'),'#E97832');
+  assert.equal(hex(root,'pt-brand'),'#E97832');
+  assert.equal(hex(root,'pt-bg'),'#111416');
+  assert.equal(hex(root,'pt-surface-1'),'#171B1E');
+  assert.equal(hex(root,'pt-surface-2'),'#1D2327');
+  assert.equal(hex(root,'pt-line'),'#343A3E');
+  assert.equal(hex(root,'pt-text'),'#F2F0EA');
+  assert.equal(hex(root,'pt-text-secondary'),'#A8ADB0');
+  assert.equal(hex(root,'pt-text-muted'),'#747C80');
+  assert.equal(hex(root,'pt-info'),'#8FA9B5');
+  assert.equal(hex(root,'pt-warning'),'#B9A98D');
   assert.equal(hex(root,'pt-danger'),'#D96A6A');
   assert.match(root,/color-scheme: dark/);
 });
@@ -37,10 +37,10 @@ test('primary controls, ordinary text, and status pairs meet normal text contras
 });
 
 test('focus and selection have distinct theme roles',()=>{
-  assert.equal(hex(root,'ring'),'#5EA27A');
-  assert.equal(token(root,'pt-brand-muted'),'rgb(94 162 122 / .16)');
-  assert.equal(token(root,'selection-fill'),'#263B2C');
-  assert.equal(token(root,'selection-border'),'#5EA27A');
+  assert.equal(token(root,'ring'),'var(--pt-brand)');
+  assert.equal(token(root,'pt-brand-muted'),'rgb(233 120 50 / .14)');
+  assert.equal(token(root,'selection-fill'),'#39291F');
+  assert.equal(token(root,'selection-border'),'var(--pt-brand)');
   assert.match(css,/\.carez-domain-row\[data-active="true"\]\s*\{[^}]*background:var\(--selection-fill\);[^}]*border-left-color:var\(--selection-border\)/);
   assert.doesNotMatch(root,/--steam-/);
 });

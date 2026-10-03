@@ -3,21 +3,35 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
 const root=new URL('../',import.meta.url);
-const page=readFileSync(new URL('app/page.tsx',root),'utf8');
-const surface=readFileSync(new URL('components/today/TodaySurface.tsx',root),'utf8');
-const pulse=readFileSync(new URL('components/today/TodayBusinessPulse.tsx',root),'utf8');
+const source=(path:string)=>readFileSync(new URL(path,root),'utf8');
+const page=source('app/page.tsx');
+const dashboard=source('components/today/TodaySurface.tsx');
+const appearance=source('components/ThemeSwitch.tsx');
+const navigation=source('lib/ui/navigation.ts');
 
-test('authenticated Overview renders the consolidated Command Center',()=>{
-  assert.match(page,/TodaySurface/);
-  for(const text of ['Operating summary','Action inbox','Logistics timeline'])
-    assert.match(surface,new RegExp(text));
-  assert.match(surface,/<TodayBusinessPulse/);
-  for(const text of ['Business pulse','Pipeline','Cash'])assert.match(pulse,new RegExp(text));
-  assert.match(pulse,/<TabList selectedValue=\{view\}/);
-  assert.ok(surface.indexOf('Operating summary')<surface.indexOf('Action inbox'));
-  assert.match(surface,/lg:grid-cols-12 lg:overflow-hidden/);
-  assert.match(surface,/MetricBentoTile/);
-  assert.match(surface,/Zero inbox/);
-  assert.match(surface,/\/field\?view=schedule/);
-  assert.doesNotMatch(page,/\/leads\/|\/proposals\/|href:'\/billing'|href:'\/cashflow'/);
+test('Dashboard retains recorded quantities, direct navigation, and honest unavailable values',()=>{
+  for(const table of ['change_order_financial_summary','daily_logs','timecards','retainage_available_summary','work_schedule_items'])assert.match(page,new RegExp(`from\\('${table}'\\)`));
+  assert.match(page,/available_to_release/);
+  assert.match(page,/Retainage held/);
+  assert.match(page,/Earned \/ unbilled',value:'—'/);
+  assert.match(page,/unbilled_contract/);
+  assert.match(page,/bid_due/);
+  assert.match(page,/inspection_clear_count/);
+  assert.match(dashboard,/No active jobs yet/);
+  assert.match(dashboard,/No concrete scheduled in the next 7 days/);
+  assert.match(dashboard,/DataGrid/);
+  assert.match(dashboard,/OverlayDrawer/);
+  assert.match(dashboard,/VerticalBarChart/);
+  assert.doesNotMatch(dashboard,/LineChart/);
+  assert.match(dashboard,/ProgressBar/);
+  assert.match(dashboard,/MessageBar/);
+  assert.match(navigation,/href:'\/dashboard',label:'Dashboard'/);
+  assert.match(source('app/overview/page.tsx'),/redirect\('\/dashboard'\)/);
+});
+
+test('global appearance switch uses the existing preference provider',()=>{
+  assert.match(appearance,/useCarezAppearance/);
+  assert.match(appearance,/Switch aria-label="Use dark mode"/);
+  assert.match(appearance,/setThemePreference\(data.checked\?'dark':'light'\)/);
+  assert.match(source('components/AppShell.tsx'),/<ThemeSwitch\/>/);
 });
