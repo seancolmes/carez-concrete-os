@@ -77,8 +77,8 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
       {isVoid&&<div className="invoice-void">VOID</div>}
       <header className="invoice-doc-header">
         <div className="invoice-brand">
-          <img src={invoice.from_logo_path||'/brand/carez-wordmark.png'} alt={invoice.from_name||'Carez Concrete'} />
-          <div className="invoice-company-name">{invoice.from_name||'Carez Concrete'}</div>
+          {invoice.from_logo_path&&<img src={invoice.from_logo_path} alt={invoice.from_name}/>}
+          <div className="invoice-company-name">{invoice.from_name}</div>
           {invoice.from_address_line1&&<div>{invoice.from_address_line1}</div>}
           {invoice.from_address_line2&&<div>{invoice.from_address_line2}</div>}
           {companyCity&&<div>{companyCity}</div>}

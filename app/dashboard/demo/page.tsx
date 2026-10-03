@@ -47,9 +47,9 @@ export default function DashboardDemoPage(){
       {label:'A/R overdue',value:'$18,400',detail:'Past due customer balance',tooltip:'$76,240 total A/R',href:'/financials?tab=billing&view=billing'},
     ],
     activeJobs:[
-      {id:'sample-job-1',number:'2417',name:'Northgate Medical',customer:'Northgate Builders',location:'Sacramento, CA',nextPour:`${shortDate(dateAfter(start,0))} · Level 2 slab`,contract:'$1,820,000',contractValue:1820000,billing:'$624,000',billedPercent:624000/1820000*100,coExposure:'$8,420',coExposureValue:8420,status:'hold'},
-      {id:'sample-job-2',number:'2409',name:'Riverfront Garage',customer:'Riverfront Construction',location:'West Sacramento, CA',nextPour:`${shortDate(dateAfter(start,2))} · Parking deck phase B`,contract:'$1,240,000',contractValue:1240000,billing:'$418,000',billedPercent:418000/1240000*100,coExposure:'$10,000',coExposureValue:10000,status:'ready'},
-      {id:'sample-job-3',number:'2421',name:'Valley Storage',customer:'Valley Development',location:'Elk Grove, CA',nextPour:`${shortDate(dateAfter(start,4))} · South foundations`,contract:'$760,000',contractValue:760000,billing:'$176,000',billedPercent:176000/760000*100,coExposure:'—',coExposureValue:0,status:'planning'},
+      {id:'sample-job-1',number:'2417',name:'Northgate Medical',customer:'Northgate Builders',location:'Sacramento, CA',nextPour:`${shortDate(dateAfter(start,0))} · Level 2 slab`,nextPourDate:dateAfter(start,0),contract:'$1,820,000',contractValue:1820000,billing:'$624,000',billedPercent:624000/1820000*100,coExposure:'$8,420',coExposureValue:8420,status:'hold'},
+      {id:'sample-job-2',number:'2409',name:'Riverfront Garage',customer:'Riverfront Construction',location:'West Sacramento, CA',nextPour:`${shortDate(dateAfter(start,2))} · Parking deck phase B`,nextPourDate:dateAfter(start,2),contract:'$1,240,000',contractValue:1240000,billing:'$418,000',billedPercent:418000/1240000*100,coExposure:'$10,000',coExposureValue:10000,status:'ready'},
+      {id:'sample-job-3',number:'2421',name:'Valley Storage',customer:'Valley Development',location:'Elk Grove, CA',nextPour:`${shortDate(dateAfter(start,4))} · South foundations`,nextPourDate:dateAfter(start,4),contract:'$760,000',contractValue:760000,billing:'$176,000',billedPercent:176000/760000*100,coExposure:'$0',coExposureValue:0,status:'planning'},
     ],
     fieldMetrics:[
       {label:'Concrete placed',value:'428 CY',detail:'Recorded in daily logs',href:'/field?view=production'},

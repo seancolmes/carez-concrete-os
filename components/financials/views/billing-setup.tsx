@@ -14,15 +14,16 @@ export default async function BillingSetupPage(){
  const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
  if(!p?.company_id)redirect('/login');
  if(p.role==='employee')redirect('/employee');
- const [{data:bp},{data:projects}]=await Promise.all([
+ const [{data:bp},{data:projects},{data:company}]=await Promise.all([
   supabase.from('company_billing_profiles').select('*').eq('company_id',p.company_id).maybeSingle(),
-  supabase.from('projects').select('id,job_number,name,sales_tax_rate_percent,sales_tax_exempt,sales_tax_jurisdiction,customers(id,name,contact_name,email,phone,billing_terms,billing_address_line1,billing_address_line2,billing_city,billing_state,billing_postal_code)').in('status',['active','on_hold','completed']).order('job_number')
+  supabase.from('projects').select('id,job_number,name,sales_tax_rate_percent,sales_tax_exempt,sales_tax_jurisdiction,customers(id,name,contact_name,email,phone,billing_terms,billing_address_line1,billing_address_line2,billing_city,billing_state,billing_postal_code)').in('status',['active','on_hold','completed']).order('job_number'),
+  supabase.from('companies').select('name').eq('id',p.company_id).single()
  ]);
 
  return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3">
   <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Billing setup</h1><div className="flex flex-wrap gap-2"><Link className={secondaryLinkClass} href="/billing">Billing</Link><Dialog><DialogTrigger><Button size="small">Company invoice profile</Button></DialogTrigger><DialogSurface className="max-h-[88vh] overflow-y-auto sm:max-w-2xl"><DialogBody><DialogContent><div><DialogTitle>Company invoice profile</DialogTitle><p>Information shown on new customer invoices. Already-issued records keep their snapshot.</p></div><form action={updateCompanyBillingProfile} className="grid gap-4">
 
-   <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="billing-display-name">Business Name</Label><Input appearance="underline" id="billing-display-name" name="display_name" defaultValue={bp?.display_name||'Carez Concrete'} required/></div><div className="grid gap-2"><Label htmlFor="billing-legal-name">Legal Name</Label><Input appearance="underline" id="billing-legal-name" name="legal_name" defaultValue={bp?.legal_name||''}/></div></div>
+   <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="billing-display-name">Business Name</Label><Input appearance="underline" id="billing-display-name" name="display_name" defaultValue={bp?.display_name||company?.name||''} required/></div><div className="grid gap-2"><Label htmlFor="billing-legal-name">Legal Name</Label><Input appearance="underline" id="billing-legal-name" name="legal_name" defaultValue={bp?.legal_name||''}/></div></div>
    <div className="grid gap-2"><Label htmlFor="billing-address">Business Address</Label><Input appearance="underline" id="billing-address" name="address_line1" defaultValue={bp?.address_line1||''}/></div>
    <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="billing-city">City</Label><Input appearance="underline" id="billing-city" name="city" defaultValue={bp?.city||''}/></div><div className="grid gap-2"><Label htmlFor="billing-state">State</Label><Input appearance="underline" id="billing-state" name="state" defaultValue={bp?.state||'WA'}/></div></div>
    <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="billing-zip">ZIP</Label><Input appearance="underline" id="billing-zip" name="postal_code" defaultValue={bp?.postal_code||''}/></div><div className="grid gap-2"><Label htmlFor="billing-phone">Phone</Label><Input appearance="underline" id="billing-phone" name="phone" defaultValue={bp?.phone||''}/></div></div>

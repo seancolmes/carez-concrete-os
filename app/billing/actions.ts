@@ -1,6 +1,7 @@
 'use server';
 import {revalidateFinancialsWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import { createClient } from '@/lib/supabase/server';
+import {companyLogoPublicUrl} from '@/lib/companyBranding';
 
 async function ctx(){
   const supabase=await createClient();
@@ -13,12 +14,22 @@ async function ctx(){
 const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
 const r=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 const addDays=(iso:string,days:number)=>{const d=new Date(`${iso}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);};
+async function companyName(supabase:any,companyId:string){
+  const {data,error}=await supabase.from('companies').select('name').eq('id',companyId).single();
+  if(error||!data?.name)throw new Error('Set up your company before creating billing documents.');
+  return String(data.name);
+}
 
 export async function updateCompanyBillingProfile(fd:FormData){
   const {supabase,companyId}=await ctx();
+  const displayName=String(fd.get('display_name')||'').trim()||await companyName(supabase,companyId);
+  const [{data:current},{data:branding}]=await Promise.all([
+    supabase.from('company_billing_profiles').select('logo_path').eq('company_id',companyId).maybeSingle(),
+    supabase.from('company_branding').select('logo_path').eq('company_id',companyId).maybeSingle(),
+  ]);
   const payload={
     company_id:companyId,
-    display_name:String(fd.get('display_name')||'Carez Concrete').trim()||'Carez Concrete',
+    display_name:displayName,
     legal_name:String(fd.get('legal_name')||'').trim()||null,
     address_line1:String(fd.get('address_line1')||'').trim()||null,
     address_line2:String(fd.get('address_line2')||'').trim()||null,
@@ -30,7 +41,7 @@ export async function updateCompanyBillingProfile(fd:FormData){
     website:String(fd.get('website')||'').trim()||null,
     ubi_number:String(fd.get('ubi_number')||'').trim()||null,
     contractor_license_number:String(fd.get('contractor_license_number')||'').trim()||null,
-    logo_path:'/brand/carez-wordmark.png',
+    logo_path:branding?.logo_path?companyLogoPublicUrl(supabase,branding.logo_path):current?.logo_path&&current.logo_path!=='/brand/carez-wordmark.png'?current.logo_path:null,
     payment_instructions:String(fd.get('payment_instructions')||'').trim()||null,
     invoice_footer:String(fd.get('invoice_footer')||'').trim()||null,
     default_terms_text:String(fd.get('default_terms_text')||'').trim()||null,
@@ -88,17 +99,18 @@ export async function createInvoice(fd:FormData){
   if(numberError||!invoiceNumber)throw new Error(numberError?.message||'Could not create invoice number');
   const issueDate=String(fd.get('issue_date')||new Date().toISOString().slice(0,10));
   const dueDate=String(fd.get('due_date')||'')||addDays(issueDate,Number(billingProfile?.default_due_days||0));
+  const issuerName=billingProfile?.display_name||await companyName(supabase,companyId);
   const {error}=await supabase.from('invoices').insert({
     company_id:companyId,project_id:projectId,customer_id:project.customer_id||null,invoice_number:invoiceNumber,
     invoice_type:String(fd.get('invoice_type')||'progress'),status:'draft',issue_date:issueDate,due_date:dueDate,
     billing_period_start:String(fd.get('billing_period_start')||'')||null,billing_period_end:String(fd.get('billing_period_end')||'')||null,
     po_number:String(fd.get('po_number')||'').trim()||null,
-    from_name:billingProfile?.display_name||'Carez Concrete',from_legal_name:billingProfile?.legal_name||null,
+    from_name:issuerName,from_legal_name:billingProfile?.legal_name||null,
     from_address_line1:billingProfile?.address_line1||null,from_address_line2:billingProfile?.address_line2||null,
     from_city:billingProfile?.city||null,from_state:billingProfile?.state||null,from_postal_code:billingProfile?.postal_code||null,
     from_phone:billingProfile?.phone||null,from_email:billingProfile?.email||null,from_website:billingProfile?.website||null,
     from_ubi_number:billingProfile?.ubi_number||null,from_contractor_license_number:billingProfile?.contractor_license_number||null,
-    from_logo_path:billingProfile?.logo_path||'/brand/carez-wordmark.png',payment_instructions:billingProfile?.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||null,
+    from_logo_path:billingProfile?.logo_path||null,payment_instructions:billingProfile?.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||null,
     bill_to_name:customer?.name||null,bill_to_contact:customer?.contact_name||null,bill_to_email:customer?.email||null,
     bill_to_address_line1:customer?.billing_address_line1||null,bill_to_address_line2:customer?.billing_address_line2||null,
     bill_to_city:customer?.billing_city||null,bill_to_state:customer?.billing_state||null,bill_to_postal_code:customer?.billing_postal_code||null,
@@ -125,15 +137,16 @@ export async function createRetainageRelease(fd:FormData){
   if(numberError||!invoiceNumber)throw new Error(numberError?.message||'Could not create invoice number');
   const issueDate=String(fd.get('issue_date')||new Date().toISOString().slice(0,10));
   const dueDate=String(fd.get('due_date')||'')||addDays(issueDate,Number(billingProfile?.default_due_days||0));
+  const issuerName=billingProfile?.display_name||source.from_name||await companyName(supabase,companyId);
   const {data:newInvoice,error}=await supabase.from('invoices').insert({
     company_id:companyId,project_id:source.project_id,customer_id:source.customer_id,invoice_number:invoiceNumber,
     invoice_type:'retainage_release',status:'draft',issue_date:issueDate,due_date:dueDate,
-    from_name:billingProfile?.display_name||source.from_name||'Carez Concrete',from_legal_name:billingProfile?.legal_name||source.from_legal_name||null,
+    from_name:issuerName,from_legal_name:billingProfile?.legal_name||source.from_legal_name||null,
     from_address_line1:billingProfile?.address_line1||source.from_address_line1||null,from_address_line2:billingProfile?.address_line2||source.from_address_line2||null,
     from_city:billingProfile?.city||source.from_city||null,from_state:billingProfile?.state||source.from_state||null,from_postal_code:billingProfile?.postal_code||source.from_postal_code||null,
     from_phone:billingProfile?.phone||source.from_phone||null,from_email:billingProfile?.email||source.from_email||null,from_website:billingProfile?.website||source.from_website||null,
     from_ubi_number:billingProfile?.ubi_number||source.from_ubi_number||null,from_contractor_license_number:billingProfile?.contractor_license_number||source.from_contractor_license_number||null,
-    from_logo_path:billingProfile?.logo_path||source.from_logo_path||'/brand/carez-wordmark.png',payment_instructions:billingProfile?.payment_instructions||source.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||source.invoice_footer||null,
+    from_logo_path:billingProfile?.logo_path||source.from_logo_path||null,payment_instructions:billingProfile?.payment_instructions||source.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||source.invoice_footer||null,
     bill_to_name:source.bill_to_name,bill_to_contact:source.bill_to_contact,bill_to_email:source.bill_to_email,
     bill_to_address_line1:source.bill_to_address_line1,bill_to_address_line2:source.bill_to_address_line2,bill_to_city:source.bill_to_city,bill_to_state:source.bill_to_state,bill_to_postal_code:source.bill_to_postal_code,
     sales_tax_rate_percent:Number(source.sales_tax_rate_percent||0),sales_tax_exempt:Boolean(source.sales_tax_exempt),sales_tax_jurisdiction:source.sales_tax_jurisdiction,

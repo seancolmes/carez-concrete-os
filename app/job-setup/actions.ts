@@ -79,10 +79,11 @@ export async function waivePaymentMilestone(fd:FormData){
 export async function createMilestoneInvoice(fd:FormData){
   const milestoneId=String(fd.get('milestone_id')||''),projectId=String(fd.get('project_id')||'');if(!milestoneId||!projectId)return;
   const {supabase,user,companyId}=await ctx();
-  const [{data:m},{data:project},{data:billingProfile}]=await Promise.all([
+  const [{data:m},{data:project},{data:billingProfile},{data:company}]=await Promise.all([
     supabase.from('project_payment_milestones').select('*,project_award_records(agreement_number)').eq('id',milestoneId).eq('company_id',companyId).eq('project_id',projectId).single(),
     supabase.from('projects').select('id,customer_id,job_number,name,sales_tax_rate_percent,sales_tax_exempt,sales_tax_jurisdiction').eq('id',projectId).eq('company_id',companyId).single(),
-    supabase.from('company_billing_profiles').select('*').eq('company_id',companyId).maybeSingle()
+    supabase.from('company_billing_profiles').select('*').eq('company_id',companyId).maybeSingle(),
+    supabase.from('companies').select('name').eq('id',companyId).single()
   ]);
   if(!m||!project)throw new Error('Job or payment milestone not found.');
   if(m.waived_at)throw new Error('This payment milestone was waived.');
@@ -95,12 +96,14 @@ export async function createMilestoneInvoice(fd:FormData){
   const issueDate=new Date().toISOString().slice(0,10),dueDate=addDays(issueDate,Number(billingProfile?.default_due_days||0));
   const invoiceType=m.milestone_type==='deposit'?'deposit':m.milestone_type==='final'?'final':'progress';
   const agreementNumber=(m as any).project_award_records?.agreement_number||null;
+  const issuerName=billingProfile?.display_name||company?.name;
+  if(!issuerName)throw new Error('Set up your company before creating an invoice.');
   const {data:invoice,error}=await supabase.from('invoices').insert({
     company_id:companyId,project_id:projectId,customer_id:project.customer_id||null,invoice_number:invoiceNumber,invoice_type:invoiceType,status:'draft',issue_date:issueDate,due_date:dueDate,
-    from_name:billingProfile?.display_name||'Carez Concrete',from_legal_name:billingProfile?.legal_name||null,
+    from_name:issuerName,from_legal_name:billingProfile?.legal_name||null,
     from_address_line1:billingProfile?.address_line1||null,from_address_line2:billingProfile?.address_line2||null,from_city:billingProfile?.city||null,from_state:billingProfile?.state||null,from_postal_code:billingProfile?.postal_code||null,
     from_phone:billingProfile?.phone||null,from_email:billingProfile?.email||null,from_website:billingProfile?.website||null,from_ubi_number:billingProfile?.ubi_number||null,from_contractor_license_number:billingProfile?.contractor_license_number||null,
-    from_logo_path:billingProfile?.logo_path||'/brand/carez-wordmark.png',payment_instructions:billingProfile?.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||null,
+    from_logo_path:billingProfile?.logo_path||null,payment_instructions:billingProfile?.payment_instructions||null,invoice_footer:billingProfile?.invoice_footer||null,
     bill_to_name:customer?.name||null,bill_to_contact:customer?.contact_name||null,bill_to_email:customer?.email||null,bill_to_address_line1:customer?.billing_address_line1||null,bill_to_address_line2:customer?.billing_address_line2||null,
     bill_to_city:customer?.billing_city||null,bill_to_state:customer?.billing_state||null,bill_to_postal_code:customer?.billing_postal_code||null,
     sales_tax_rate_percent:Number(project.sales_tax_rate_percent||0),sales_tax_exempt:Boolean(project.sales_tax_exempt),sales_tax_jurisdiction:project.sales_tax_jurisdiction||null,

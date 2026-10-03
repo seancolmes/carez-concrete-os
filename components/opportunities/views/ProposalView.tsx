@@ -26,7 +26,7 @@ export async function ProposalView({estimateId}:{estimateId:string}){
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();if(!profile?.company_id)redirect('/login');if(profile.role==='employee')redirect('/employee');
   const companyId=profile.company_id;
-  const [{data:e},{data:summary},{data:q},{data:settings},{data:clarifications},{data:options},{data:eLead},{data:project},{data:items},{data:events},{data:billing},{data:customers}]=await Promise.all([
+  const [{data:e},{data:summary},{data:q},{data:settings},{data:clarifications},{data:options},{data:eLead},{data:project},{data:items},{data:events},{data:billing},{data:customers},{data:company}]=await Promise.all([
     supabase.from('estimates').select('*').eq('id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('estimate_financial_summary').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
     supabase.from('proposal_conversion_queue').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
@@ -39,6 +39,7 @@ export async function ProposalView({estimateId}:{estimateId:string}){
     qPromise(supabase,companyId,estimateId),
     supabase.from('company_billing_profiles').select('default_terms_text').eq('company_id',companyId).maybeSingle(),
     supabase.from('customers').select('id,name,email,phone,contact_name').eq('company_id',companyId).eq('active',true).or('email.not.is.null,phone.not.is.null').order('name'),
+    supabase.from('companies').select('name').eq('id',companyId).single(),
   ]);
   if(!e)notFound();
   const {data:releaseData,error:releaseError}=await supabase.rpc('carez_get_estimate_release_readiness',{p_estimate_id:estimateId});
@@ -82,7 +83,7 @@ export async function ProposalView({estimateId}:{estimateId:string}){
   const preview=link?`${link}?preview=1`:'';
   const mailtoAddress=lead?.customer?.email||queue?.customer_email;
   const mailtoName=lead?.customer?.contact_name||lead?.customer?.name||queue?.contact_name||queue?.customer_name||'';
-  const mailto=mailtoAddress?`mailto:${mailtoAddress}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${mailtoName},\n\nI wanted to follow up on ${proposalDisplay} for ${queue?.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\nCarez Concrete`)}`:'';
+  const mailto=mailtoAddress?`mailto:${mailtoAddress}?subject=${encodeURIComponent(`Follow-up: ${proposalDisplay} — ${e.name}`)}&body=${encodeURIComponent(`Hi ${mailtoName},\n\nI wanted to follow up on ${proposalDisplay} for ${queue?.project_name||e.name}. Please let me know if you have any questions or if there is anything you would like us to clarify or revise.\n\nThank you,\n${company?.name||'Your contractor'}`)}`:'';
   const customer=lead?.customer?.name||lead?.customer_name||queue?.customer_name||'Customer';
   const contactName=lead?.customer?.contact_name||lead?.contact_name;
   const contactEmail=lead?.customer?.email||lead?.email;

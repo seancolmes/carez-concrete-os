@@ -3,7 +3,7 @@ import {DeleteEstimateButton} from '@/components/estimates/DeleteEstimateButton'
 import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeftRegular as ArrowLeft,CheckmarkCircleRegular as CheckCircle2,DocumentRegular as FileText,RulerRegular as Ruler,ShieldCheckmarkRegular as ShieldCheck} from '@fluentui/react-icons';
-import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Dialog,DialogBody,DialogContent,DialogSurface,DialogTitle,DialogTrigger,Input,Label,Select} from '@fluentui/react-components';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Dialog,DialogBody,DialogContent,DialogSurface,DialogTitle,DialogTrigger,Input,Label,Select} from '@fluentui/react-components';
 import {EstimateWorksheet} from '@/components/estimates/EstimateWorksheet';
 import {EstimateWorkspaceTabs} from '@/components/estimates/EstimateWorkspaceTabs';
 import {PricingCoverage} from '@/components/estimates/PricingCoverage';
@@ -18,7 +18,7 @@ const num=(n:any)=>Number(n||0);
 const units=['CY','LF','SF','LB','EA','HR','DAY','TON','GAL','LS'];
 const secondaryAction='inline-flex items-center justify-center bg-secondary border border-input text-secondary-foreground text-xs font-medium px-4 py-2 rounded-lg hover:border-[var(--border-strong)] hover:bg-accent shadow-sm transition-all whitespace-nowrap';
 const primaryAction='carez-button-primary text-sm font-medium px-5 py-2.5 rounded-lg border transition-all';
-const masterSection='mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm';
+const masterSection='mb-6 overflow-hidden rounded-sm border border-border bg-card';
 
 export async function WorksheetView({estimateId}:{estimateId:string}){
   const supabase=await createClient();
@@ -103,6 +103,13 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
     if(finding.next_action==='takeoff')return takeoffHref(finding.record_id);
     return auditHref(e.id);
   };
+  const blockerActionLabel=(finding:(typeof blockers)[number])=>{
+    if(finding.next_action==='pricing')return 'Review pricing';
+    if(finding.next_action==='labor')return 'Review labor';
+    if(finding.next_action==='scope'||finding.next_action==='margin')return 'Review scope';
+    if(finding.next_action==='takeoff')return 'Open takeoff';
+    return 'Review';
+  };
 
   return <div className={`${viewStyles.workspace} carez-estimate-workspace flex w-full min-w-0 flex-col gap-4`}>
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -114,7 +121,10 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
     {['accepted','approved'].includes(e.status)&&<div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"><strong>Awarded baseline locked.</strong> Carez preserves this accepted price and scope while the project budget and Work Packages run from the snapshot.</div>}
     {e.status==='superseded'&&<div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>Historical revision.</strong> <span className="text-muted-foreground">A newer revision replaced this one; it remains available for audit.</span></div>}
 
-    {blockers.length>0&&<section className="carez-release-panel px-3 py-2 text-sm" aria-label="Release blockers"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-destructive">{blockers.length} release blocker{blockers.length===1?'':'s'}</strong><Link className={secondaryAction} href={auditHref(e.id)}>Full release review</Link></div><Accordion collapsible defaultOpenItems={['release-blockers']} className="mt-1"><AccordionItem value="release-blockers"><AccordionHeader>Release blockers</AccordionHeader><AccordionPanel><ul className="mt-1 divide-y text-xs">{blockers.map(finding=><li key={finding.finding_key} className="flex flex-wrap items-center justify-between gap-2 py-1.5"><span>{finding.title}</span><Link className={secondaryAction} href={blockerHref(finding)}>{finding.next_action==='pricing'&&finding.record_id&&outputIds.has(finding.record_id)?'Open output':finding.next_action==='labor'?'Labor review':finding.next_action==='takeoff'&&takeoffHref(finding.record_id)!=='/takeoff'?'Open Condition':finding.next_action==='takeoff'?'Takeoff':'Review'}</Link></li>)}</ul></AccordionPanel></AccordionItem></Accordion></section>}
+    {blockers.length>0&&<section className="border-y border-border bg-[var(--pt-surface-1)] px-4 py-3 text-sm" aria-label="Release readiness">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><strong className="text-xs font-bold uppercase tracking-[0.12em]">Release readiness</strong><Badge appearance="outline" color="warning" size="small">{blockers.length} blocker{blockers.length===1?'':'s'}</Badge></div><Link className={secondaryAction} href={auditHref(e.id)}>Review release</Link></div>
+      <ul className="mt-2 divide-y divide-border border-t border-border text-xs">{blockers.map(finding=><li key={finding.finding_key} className="flex flex-wrap items-center justify-between gap-3 py-2"><span className="min-w-0 font-medium">{finding.title}</span><span className="flex shrink-0 items-center gap-3"><span className="text-warning">Needs action</span><Link className="font-semibold text-primary hover:underline" href={blockerHref(finding)}>{blockerActionLabel(finding)}</Link></span></li>)}</ul>
+    </section>}
     {blockers.length===0&&warnings.length>0&&<section className="border border-warning/30 bg-warning/5 px-3 py-2 text-sm" aria-label="Review warnings"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-warning">{warnings.length} review warning{warnings.length===1?'':'s'}</strong><Link className={secondaryAction} href={auditHref(e.id)}>Review warnings</Link></div><Accordion collapsible className="mt-1"><AccordionItem value="review-warnings"><AccordionHeader>Show warning details</AccordionHeader><AccordionPanel><ul className="mt-2 space-y-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">{warnings.map((finding:any)=><li key={finding.finding_key}>{finding.title}</li>)}</ul></AccordionPanel></AccordionItem></Accordion></section>}
 
     <EstimateWorkspaceTabs
@@ -123,7 +133,7 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
       <LedgerMetric label="Customer price" value={money(selectedPrice)} help="Selected for this revision."/>
       <LedgerMetric label="Projected margin" value={`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}%.`} tone={margin<target?'warning':undefined}/>
       <LedgerMetric label="Pricing holds" value={String(holds)} help={holds?'Takeoff outputs require pricing.':'No holds.'} tone={holds?'warning':'success'}/>
-      <LedgerMetric label="Release state" value={readinessStatus} help={`${readiness.blocker_count} blocker(s) · ${readiness.warning_count} warning(s).`} tone={readiness.release_state==='blocked'?'error':readiness.release_state==='review'?'warning':readiness.release_state==='release_ready'?'success':'default'}/>
+      <LedgerMetric label="Release state" value={readinessStatus} help={`${readiness.blocker_count} blocker(s) · ${readiness.warning_count} warning(s).`} tone={readiness.release_state==='blocked'||readiness.release_state==='review'?'warning':readiness.release_state==='release_ready'?'success':'default'}/>
     </section>
     <section className="carez-scope-workspace grid gap-4 xl:grid-cols-[minmax(290px,.72fr)_minmax(0,1.28fr)]">
       <section id="scope-cost" className={`${masterSection} carez-scope-module scroll-mt-6`}><div className="carez-scope-module-header border-b border-border bg-muted px-4 py-3"><div><h2>Scope &amp; cost</h2><p>{(sections||[]).length} scope area{(sections||[]).length===1?'':'s'} · {(items||[]).length} cost lines</p></div></div><div className="carez-scope-rows">{(sections||[]).map((section:any)=>{const rows=itemsBySection.get(section.id)||[];const cost=rows.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0);const takeoffCount=rows.filter((item:any)=>item.source_takeoff_measurement_id).length;return <div className="carez-scope-row" key={section.id}><div><div className="font-medium">{section.name}</div><div className="mt-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">{String(section.scope_type).replaceAll('_',' ')} · {rows.length} cost line{rows.length===1?'':'s'}{takeoffCount?` · ${takeoffCount} from takeoff`:''}</div></div><strong className="font-mono tabular-nums">{money(cost)}</strong></div>;})}{(itemsBySection.get('unassigned')||[]).length>0&&<div className="carez-scope-row"><div><div className="font-medium">Unassigned / General</div><div className="mt-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">{itemsBySection.get('unassigned')!.length} cost lines</div></div><strong className="font-mono tabular-nums">{money(itemsBySection.get('unassigned')!.reduce((sum:number,item:any)=>sum+num(item.direct_cost),0))}</strong></div>}{(sections||[]).length===0&&(itemsBySection.get('unassigned')||[]).length===0&&<p className="px-4 py-5 text-sm leading-relaxed text-muted-foreground">No scope areas yet. Add the first area to organize this estimate.</p>}</div>

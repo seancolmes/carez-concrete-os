@@ -9,7 +9,6 @@ import {
   COMPANY_BRANDING_CHANGED_EVENT,
   COMPANY_LOGO_ACCEPT,
   COMPANY_LOGO_MAX_BYTES,
-  FALLBACK_COMPANY_LOGO,
   companyLogoPublicUrl,
 } from '@/lib/companyBranding';
 
@@ -31,7 +30,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
   };
 
   async function syncCommercialLogo(path:string|null){
-    const logo=path?companyLogoPublicUrl(supabase,path):FALLBACK_COMPANY_LOGO;
+    const logo=companyLogoPublicUrl(supabase,path);
     await supabase.from('company_billing_profiles').update({logo_path:logo,updated_at:new Date().toISOString()}).eq('company_id',companyId);
   }
 
@@ -77,7 +76,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
       if(error)throw error;
       await syncCommercialLogo(null);
       const previous=logoPath;
-      publish(null);setFiles([]);if(fileInputRef.current)fileInputRef.current.value='';setMessage('Using the default Carez logo.');
+      publish(null);setFiles([]);if(fileInputRef.current)fileInputRef.current.value='';setMessage('Company logo removed.');
       if(previous)await supabase.storage.from(COMPANY_BRANDING_BUCKET).remove([previous]);
     }catch(error:any){setMessage(error?.message||'Could not reset company logo.');}
     finally{setBusy(false);}
@@ -85,7 +84,7 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
 
   return <div className="grid gap-4 lg:grid-cols-[minmax(260px,.7fr)_minmax(0,1.3fr)]">
     <div className="flex min-h-36 items-center justify-center rounded-md border border-border bg-white p-5">
-      <img src={preview||FALLBACK_COMPANY_LOGO} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>
+      {preview?<img src={preview} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>:<span className="text-sm text-muted-foreground">No company logo uploaded</span>}
     </div>
     <div className="space-y-3">
       <div className="space-y-2"><input ref={fileInputRef} type="file" className="sr-only" accept={COMPANY_LOGO_ACCEPT} disabled={busy} onChange={event=>setFiles(Array.from(event.target.files||[]).slice(0,1))}/><Button type="button" appearance="outline" disabled={busy} className={`min-h-20 w-full border-dashed ${dragging?'border-primary bg-accent':''}`} icon={<ArrowUploadRegular/>} onClick={()=>fileInputRef.current?.click()} onDragEnter={event=>{event.preventDefault();setDragging(true)}} onDragOver={event=>event.preventDefault()} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);setFiles(Array.from(event.dataTransfer.files||[]).slice(0,1))}}>Choose company logo · PNG, JPEG, or WebP · 5 MB max</Button>{files[0]?<div className="flex items-center justify-between gap-2 text-xs"><span className="truncate">{files[0].name}</span><Button type="button" appearance="subtle" size="small" disabled={busy} onClick={()=>{setFiles([]);if(fileInputRef.current)fileInputRef.current.value=''}}>Remove</Button></div>:null}</div>
@@ -93,10 +92,10 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
       {message?<div role="status" className="text-xs text-muted-foreground">{message}</div>:null}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" appearance="primary" size="small" icon={<Save/>} onClick={()=>void save()} disabled={busy||!files.length}>Use this logo</Button>
-        <Button type="button" appearance="outline" size="small" icon={<RotateCcw/>} onClick={()=>void reset()} disabled={busy||!logoPath}>Use default</Button>
+        <Button type="button" appearance="outline" size="small" icon={<RotateCcw/>} onClick={()=>void reset()} disabled={busy||!logoPath}>Remove logo</Button>
         <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"><ImageIcon className="size-3.5"/>Company-wide branding</span>
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">The current logo is used in the authenticated Carez shell and on newly created customer-facing commercial documents. Already-issued records keep the branding snapshot they were issued with.</p>
+      <p className="text-xs leading-5 text-muted-foreground">The current logo is used in the workspace and on newly created customer-facing commercial documents. Already-issued records keep the branding snapshot they were issued with.</p>
     </div>
   </div>;
 }

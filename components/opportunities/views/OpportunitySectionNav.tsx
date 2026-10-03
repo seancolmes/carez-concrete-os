@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export type OpportunityDetail='scope'|'plans'|'estimates'|'proposals';
 
-const sections:[OpportunityDetail,string][]=[['scope','Scope'],['plans','Plans & Takeoff'],['estimates','Estimates'],['proposals','Proposals']];
+const sections:[OpportunityDetail,string][]=[['scope','Scope'],['plans','Plans & takeoff'],['estimates','Estimate revisions'],['proposals','Issued proposals']];
 
 export function OpportunitySectionNav({active,leadId,estimateId}:{active:OpportunityDetail;leadId:string;estimateId?:string|null}){
   const base=new URLSearchParams({lead:leadId,section:'scope'});
