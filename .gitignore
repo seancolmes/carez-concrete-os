@@ -9,7 +9,10 @@ node_modules/
 *.tsbuildinfo
 public/pdf.worker.min.mjs
 .pnpm-store/
-videos/
+/videos/
+.tmp.driveupload/
+/output/playwright/
+/.codex-remote-attachments/
 
 # Local AI/Codex workstation state (never commit)
 .codex/
