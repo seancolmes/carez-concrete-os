@@ -97,6 +97,8 @@ const activeReason = 'Active V1 execution or commercial runtime contract; source
 const deferredReason = 'Deferred or post-V1 capability; keep visible in the audit but do not block V1 release.';
 
 export const sourceAuthorityManifest: SourceAuthorityEntry[] = [
+  {kind:'function',name:'carez_crew_administration_contract',classification:'I',reason:'Controlled-pilot Crew writes remain blocked until the rate/classification policy and versioned atomic contract are approved and implemented.'},
+  {kind:'function',name:'carez_administer_crew',classification:'I',reason:'Controlled-pilot Crew writes remain blocked; the guarded action has no direct-write fallback. Atomic schema/action qualification is pending the Crew policy decision.'},
   ...activeV1Relations.map(name => ({kind: 'relation' as const, name, classification: 'A' as const, reason: activeReason})),
   ...activeV1Functions.map(name => ({kind: 'function' as const, name, classification: 'A' as const, reason: activeReason})),
   ...deferredRelations.map(name => ({kind: 'relation' as const, name, classification: 'H' as const, reason: deferredReason})),

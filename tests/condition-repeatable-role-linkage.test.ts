@@ -20,6 +20,8 @@ test('drawing a Condition role binds only the newly created matching measurement
   assert.match(workspace, /!pending\.existingMeasurementIds\.has\(String\(measurement\.id\)\)/);
   assert.match(workspace, /conditionMeasurementMatchesRole\(measurement,role,compatibilityAssemblyVersionId\)/);
   assert.match(workspace, /if\(candidates\.length!==1\)return/);
-  assert.match(workspace, /next\[role\.key\]=measurementId/);
+  assert.match(workspace, /setRole\(role\.key,pending\.roleInstanceKey,measurementId,true\)/);
+  assert.match(workspace, /roleInstanceKey:targetKey/);
+  assert.doesNotMatch(workspace, /Object\.fromEntries\(assigned\.map\(role=>\[role\.role_key/);
   assert.match(workspace, /assigned · save & recalculate/);
 });

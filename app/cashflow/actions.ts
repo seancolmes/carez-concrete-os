@@ -1,5 +1,6 @@
 'use server';
 import {revalidateFinancialsWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
+import {assertCompanyExpensePostingAvailable} from '@/lib/financials/companyExpensePilot';
 import { createClient } from '@/lib/supabase/server';
 
 async function ctx(){
@@ -17,6 +18,7 @@ const txt=(v:FormDataEntryValue|null)=>String(v||'').trim()||null;
 export async function addCompanyExpense(fd:FormData){
   const description=String(fd.get('description')||'').trim();if(!description)return;
   const {supabase,user,companyId}=await ctx();
+  assertCompanyExpensePostingAvailable();
   const overheadItemId=txt(fd.get('overhead_item_id'));
   let category=String(fd.get('category')||'Other').trim()||'Other';
   let businessUseRaw=String(fd.get('business_use_percent')||'').trim();
@@ -43,6 +45,7 @@ export async function addCompanyExpense(fd:FormData){
 export async function markCompanyExpensePaid(fd:FormData){
   const id=String(fd.get('expense_id')||'');if(!id)return;
   const {supabase,companyId}=await ctx();
+  assertCompanyExpensePostingAvailable();
   const {data:e}=await supabase.from('company_expenses').select('payment_status').eq('id',id).eq('company_id',companyId).maybeSingle();
   if(!e||e.payment_status!=='unpaid')throw new Error('Only unpaid expenses can be marked paid.');
   const {error}=await supabase.from('company_expenses').update({payment_status:'paid',paid_date:String(fd.get('paid_date')||new Date().toISOString().slice(0,10)),payment_method:txt(fd.get('payment_method')),reference_number:txt(fd.get('reference_number')),updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);
@@ -53,6 +56,7 @@ export async function markCompanyExpensePaid(fd:FormData){
 export async function voidCompanyExpense(fd:FormData){
   const id=String(fd.get('expense_id')||'');if(!id)return;
   const {supabase,companyId}=await ctx();
+  assertCompanyExpensePostingAvailable();
   const {error}=await supabase.from('company_expenses').update({payment_status:'void',updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId).neq('payment_status','void');
   if(error)throw new Error(error.message);
   revalidatePath('/cashflow');revalidatePath('/overhead');revalidatePath('/');

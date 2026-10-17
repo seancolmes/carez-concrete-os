@@ -36,14 +36,15 @@ test('application source imports Fluent instead of removed UI frameworks or shar
   assert.deepEqual(forbidden,[]);
 });
 
-test('the application supplies a light and dark Fluent provider',()=>{
+test('the application supplies one light Fluent theme while preserving SSR integration',()=>{
   const layout=readMaybe('app/layout.tsx');
   const appearance=readMaybe('components/CarezAppearanceProvider.tsx');
   assert.match(layout,/<CarezAppearanceProvider>/);
   assert.match(appearance,/FluentProvider/);
   assert.match(appearance,/webLightTheme/);
-  assert.match(appearance,/webDarkTheme/);
-  assert.match(appearance,/theme=\{resolvedTheme===['"]dark['"]\?carezDarkTheme:carezLightTheme\}/);
+  assert.match(appearance,/SSRProvider/);
+  assert.match(appearance,/theme=\{pourTraceTheme\}/);
+  assert.doesNotMatch(appearance,/webDarkTheme|matchMedia|CAREZ_THEME_STORAGE_KEY/);
 });
 
 test('project context stays within its authoritative route boundary',()=>{

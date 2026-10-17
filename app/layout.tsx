@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Fira_Sans, Roboto_Slab, Source_Code_Pro } from 'next/font/google';
+import { Inter, Source_Code_Pro } from 'next/font/google';
 import { CarezAppearanceProvider } from '@/components/CarezAppearanceProvider';
 import { CAREZ_APPEARANCE_BOOT_SCRIPT } from '@/lib/ui/appearance';
 import { GatewayTransitionProvider } from '@/components/brand/GatewayTransitionProvider';
@@ -8,16 +8,10 @@ import 'react-resizable/css/styles.css';
 import './globals.css';
 import './takeoff-v3.css';
 
-const firaSans = Fira_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-fira-sans',
+  variable: '--font-inter',
   weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-const robotoSlab = Roboto_Slab({
-  subsets: ['latin'],
-  variable: '--font-roboto-slab',
-  weight: ['400', '700'],
   display: 'swap',
 });
 const sourceCodePro = Source_Code_Pro({
@@ -39,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const showBuildIdentity = Boolean(vercelEnvironment && vercelEnvironment !== 'production');
   const environmentLabel = branch === 'staging' ? 'STAGING' : 'PREVIEW';
 
-  return <html lang="en" suppressHydrationWarning data-theme="light" className={`${firaSans.variable} ${robotoSlab.variable} ${sourceCodePro.variable}`}>
+  return <html lang="en" suppressHydrationWarning data-theme="light" style={{colorScheme:'only light'}} className={`${inter.variable} ${sourceCodePro.variable}`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: CAREZ_APPEARANCE_BOOT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('pourtrace-landing-boot')==='seen')document.documentElement.dataset.ptBootSeen='true'}catch{}" }} />

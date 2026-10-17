@@ -51,7 +51,7 @@ export function TakeoffScalePanel({
   const pendingLabel = pendingCandidate?.label || pendingManualLabel;
 
   return <div className={`${styles.group} ${styles.scaleGate}`} onClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>
-    <div className={styles.groupHead}><div><div className={styles.groupTitle}>Drawing Scale</div><div className={styles.groupHelp}>Carez reads vector PDF scale labels. Confirm the proposal before it controls quantities.</div></div><ScanSearch fontSize={17}/></div>
+    <div className={styles.groupHead}><div><div className={styles.groupTitle}>Drawing Scale</div><div className={styles.groupHelp}>PourTrace reads vector PDF scale labels. Confirm the proposal before it controls quantities.</div></div><ScanSearch fontSize={17}/></div>
 
     {regions.length > 0 && <div className={styles.objectList}>{regions.map(region => <div key={region.id} className={styles.scaleReady}>
       <span>{region.is_default ? 'Whole sheet' : 'Scale region'}</span>
@@ -87,7 +87,7 @@ export function TakeoffScalePanel({
     <Accordion collapsible className={styles.advanced}><AccordionItem value="manual-calibration">
       <AccordionHeader><Ruler fontSize={14}/> Manual calibration fallback</AccordionHeader><AccordionPanel>
       <div className={styles.advancedBody}>
-        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><Input appearance="underline" disabled={locked || busy} value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
+        <label className={styles.field}><span>Known dimension</span><div className={styles.inputUnit}><Input appearance="underline" disabled={locked || busy} aria-label="Known calibration dimension in feet" value={knownDistanceFt} onChange={event => onKnownDistanceChange(event.target.value)} inputMode="decimal"/><b>FT</b></div></label>
         <div className={styles.buttonRow}>
           <Button type="button" className={styles.secondary} disabled={locked || busy} onClick={onPickManual}>Pick 2 points</Button>
           <Button type="button" className={styles.primary} disabled={locked || busy || calibrationPointCount !== 2} onClick={onUseManualSheet}>Use whole sheet</Button>

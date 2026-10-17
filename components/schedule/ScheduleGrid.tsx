@@ -2,6 +2,7 @@
 
 import {
   useEffect,useMemo,useRef,useState,useTransition,
+  type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {useRouter} from 'next/navigation';
@@ -10,6 +11,7 @@ import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Chec
 import {deleteScheduleItem,updateScheduleStatus} from '@/app/schedule/actions';
 import {cn} from '@/lib/utils';
 import {ScheduleMatrix} from './ScheduleMatrix';
+import {staffingRisk} from '@/lib/ui/schedule-window';
 
 export type ScheduleGridDay={date:string;label:string;shortLabel:string;isToday:boolean};
 export type ScheduleCrewMember={id:string;name:string;role:string};
@@ -17,6 +19,8 @@ export type AssignedCrew={id:string;name:string};
 
 export type ScheduleGridItem={
   id:string;
+  revision:number|null;
+  readinessUnavailable:boolean;
   projectId:string;
   scheduleDate:string;
   startTime:string|null;
@@ -45,6 +49,7 @@ export type ScheduleGridItem={
   blockingResourceCount:number;
   crewNeeded:number;
   assignedCrew:AssignedCrew[];
+  crewAssignmentsAvailable:boolean;
   crewShort:number;
   notes:string|null;
   openHref:string;
@@ -85,6 +90,7 @@ function readinessBucket(item:ScheduleGridItem):'blocked'|'at_risk'|'ready'|'pla
 function readinessLabel(item:ScheduleGridItem){
   const state=readinessBucket(item);
   if(state==='blocked')return 'Blocked';
+  if(item.readinessUnavailable)return 'Readiness unavailable';
   if(state==='at_risk')return 'At risk';
   if(state==='ready')return 'Ready';
   return 'Planned';
@@ -108,21 +114,22 @@ function statusRank(item:ScheduleGridItem){
 
 function ReadinessBadge({item}:{item:ScheduleGridItem}){
   const state=readinessBucket(item);
-  return <Badge appearance="outline" color={state==='blocked'?'danger':'informative'} className={cn(
-    'h-5 rounded-none px-1.5 font-mono text-[10px] uppercase tracking-[.04em]',
-    state==='ready'&&'border-success/30 bg-success/10 text-success',
-    state==='at_risk'&&'border-warning/30 bg-warning/10 text-warning',
-    state==='planned'&&'text-muted-foreground',
+  return <Badge appearance="outline" className={cn(
+    'h-5 rounded-none px-1.5 tabular-nums text-[10px] uppercase tracking-[.04em]',
+    state==='blocked'&&'!border-destructive/50 !bg-destructive/10 !text-destructive',
+    state==='ready'&&'!border-success/50 !bg-success/10 !text-success',
+    state==='at_risk'&&'!border-warning/50 !bg-warning/10 !text-warning',
+    state==='planned'&&'!border-border !text-muted-foreground',
   )}>{readinessLabel(item)}</Badge>;
 }
 function WorkStatusBadge({item}:{item:ScheduleGridItem}){
   const completed=item.status==='completed';
   const active=['confirmed','in_progress'].includes(item.status);
   return <Badge appearance="outline" className={cn(
-    'h-5 rounded-none px-1.5 font-mono text-[10px]',
-    completed&&'border-success/25 bg-success/8 text-success',
-    active&&'bg-muted text-foreground',
-    !completed&&!active&&'text-muted-foreground',
+    'h-5 rounded-none px-1.5 tabular-nums text-[10px]',
+    completed&&'!border-success/25 !bg-success/8 !text-success',
+    active&&'!bg-muted !text-foreground',
+    !completed&&!active&&'!border-border !text-muted-foreground',
   )}>{statusLabel(item)}</Badge>;
 }
 
@@ -146,10 +153,13 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
   const [selectedIds,setSelectedIds]=useState<Set<string>>(()=>new Set());
   const [widths,setWidths]=useState<Record<ColumnKey,number>>(initialWidths);
   const [pendingId,setPendingId]=useState<string|null>(null);
+  const requestIds=useRef(new Map<string,string>());
+  const [commandError,setCommandError]=useState<string|null>(null);
+  const commandData=(item:ScheduleGridItem,command:string)=>{const key=`${item.id}:${item.revision}:${command}`;let request=requestIds.current.get(key);if(!request){request=crypto.randomUUID();requestIds.current.set(key,request);}const data=new FormData();data.set('request_id',request);data.set('id',item.id);data.set('expected_revision',String(item.revision??''));return data;};
   const [,startTransition]=useTransition();
 
   const types=useMemo(()=>Array.from(new Set(items.map(item=>item.itemType))).sort(),[items]);
-  const todayDate=days.find(day=>day.isToday)?.date||days[0]?.date||null;
+  const todayDate=days.find(day=>day.isToday)?.date||null;
 
   const filteredItems=useMemo(()=>{
     const normalized=query.trim().toLowerCase();
@@ -258,23 +268,23 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
   }
 
   function runStatusAction(item:ScheduleGridItem,nextStatus:string){
-    setPendingId(item.id);
+    setPendingId(item.id);setCommandError(null);
     startTransition(async()=>{
       try{
-        const data=new FormData();data.set('id',item.id);data.set('status',nextStatus);
+        const data=commandData(item,`status:${nextStatus}`);data.set('status',nextStatus);
         await updateScheduleStatus(data);router.refresh();
-      }finally{setPendingId(null);}
+      }catch(error){setCommandError(error instanceof Error?error.message:'The schedule change was not confirmed. Retry the same action.');}finally{setPendingId(null);}
     });
   }
 
   function runDelete(item:ScheduleGridItem){
     if(!window.confirm(`Remove ${item.title} from the schedule?`))return;
-    setPendingId(item.id);
+    setPendingId(item.id);setCommandError(null);
     startTransition(async()=>{
       try{
-        const data=new FormData();data.set('id',item.id);
+        const data=commandData(item,'delete');
         await deleteScheduleItem(data);router.refresh();
-      }finally{setPendingId(null);}
+      }catch(error){setCommandError(error instanceof Error?error.message:'The schedule change was not confirmed. Retry the same action.');}finally{setPendingId(null);}
     });
   }
 
@@ -294,7 +304,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
     return displayItems.filter(item=>{
       if(item.scheduleDate!==date)return false;
       if(row.type==='crew')return item.assignedCrew.some(crew=>crew.id===row.id);
-      if(row.type==='unassigned')return item.itemType==='work'&&(item.assignedCrew.length===0||item.crewShort>0);
+      if(row.type==='unassigned')return item.crewAssignmentsAvailable&&item.itemType==='work'&&(item.assignedCrew.length===0||item.crewShort>0);
       return item.itemType!=='work';
     });
   }
@@ -327,6 +337,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
   </TableHeaderCell>;
 
   const actualToolbar=<div className="w-full space-y-3 border-b border-border pb-3 pt-1">
+    {commandError?<p role="alert" className="text-sm text-destructive">{commandError}</p>:null}
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 lg:gap-x-4">
       <TabList selectedValue={view} onTabSelect={(_,data)=>setView(data.value as ViewMode)} size="small" aria-label="Schedule view">
         <Tab value="work" icon={<Rows3 className="size-3.5"/>}>Work plan</Tab>
@@ -344,9 +355,9 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
         <Option value="all" text="Type: All">Type: All</Option>
         {types.map(type=><Option key={type} value={type} text={titleCase(type)}>{titleCase(type)}</Option>)}
       </Dropdown>
-      <Dropdown size="small" className="w-40" selectedOptions={[rangePreset]} value={{all:'Range: 90-day horizon',today:'Today','7':'Next 7 days',custom:'Custom range'}[rangePreset]} onOptionSelect={(_,data)=>applyRangePreset(data.optionValue||'all')} aria-label="Date range">
-        <Option value="all" text="Range: 90-day horizon">Range: 90-day horizon</Option>
-        <Option value="today" text="Today">Today</Option>
+      <Dropdown size="small" className="w-40" selectedOptions={[rangePreset]} value={{all:todayDate?'Range: 90-day horizon':'Range: saved dates',today:'Today','7':'Next 7 days',custom:'Custom range'}[rangePreset]} onOptionSelect={(_,data)=>applyRangePreset(data.optionValue||'all')} aria-label="Date range">
+        <Option value="all" text={todayDate?"Range: 90-day horizon":"Range: saved dates"}>{todayDate?"Range: 90-day horizon":"Range: saved dates"}</Option>
+        <Option value="today" text="Today" disabled={!todayDate}>Today</Option>
         <Option value="7" text="Next 7 days">Next 7 days</Option>
         {rangePreset==='custom'?<Option value="custom" text="Custom range">Custom range</Option>:null}
       </Dropdown>
@@ -367,7 +378,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
             selected&&'border-y border-primary/70 text-foreground',
           )}>
             <span className="font-medium">{weekday}</span><span>{monthDay}</span>
-            <span className="mt-1 flex items-center gap-1 font-mono text-[10px] tabular-nums"><span className={cn('size-1.5 rounded-full bg-muted-foreground/45',blocked&&'bg-destructive',atRisk&&'bg-warning',!blocked&&!atRisk&&dayItems.length>0&&'bg-success')}/>{dayItems.length}</span>
+            <span className="mt-1 flex items-center gap-1 tabular-nums text-[10px] tabular-nums"><span className={cn('size-1.5 rounded-full bg-muted-foreground/45',blocked&&'bg-destructive',atRisk&&'bg-warning',!blocked&&!atRisk&&dayItems.length>0&&dayItems.every(item=>item.readyToStart===true)&&'bg-success')}/>{dayItems.length}</span>
           </Button>;
         })}
       </div>
@@ -376,7 +387,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
 
   const footer=<>
     <div className="flex items-center gap-3"><span>{displayItems.length} of {items.length} items</span><span className="text-border">|</span><span>{selectedIds.size} selected</span></div>
-    <div className="flex flex-wrap items-center gap-3 font-mono tabular-nums"><span>Blocked <strong className={cn(blockedVisible&&'text-destructive')}>{blockedVisible}</strong></span><span>Crew demand <strong className="text-foreground">{crewDemandVisible}</strong></span><span>Crew short <strong className={cn(crewShortVisible&&'text-destructive')}>{crewShortVisible}</strong></span></div>
+    <div className="flex flex-wrap items-center gap-3 tabular-nums tabular-nums"><span>Blocked <strong className={cn(blockedVisible&&'text-destructive')}>{blockedVisible}</strong></span><span>Crew demand <strong className="text-foreground">{crewDemandVisible}</strong></span><span>Crew short <strong className={cn(crewShortVisible&&'text-destructive')}>{displayItems.every(item=>item.crewAssignmentsAvailable)?crewShortVisible:'Unavailable'}</strong></span></div>
   </>;
 
   return <div
@@ -423,7 +434,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
           <TableCell><span className="text-[11px] text-muted-foreground">{titleCase(item.itemType)}</span></TableCell>
           <TableCell>{item.packageName?<CellStack primary={`${item.packageName}${item.packageLocation?` · ${item.packageLocation}`:''}`} secondary={`${quantity(item.plannedQuantity)} ${item.unit||''}${item.operationStatus?` · ${titleCase(item.operationStatus)}`:''}`}/>:item.pourName?<CellStack primary={item.pourName} secondary={`${quantity(item.pourYards)} CY`}/>:<span className="text-muted-foreground">—</span>}</TableCell>
           <TableCell><div className="flex min-w-0 items-center gap-2"><ReadinessBadge item={item}/><span className="min-w-0 truncate text-[11px] text-muted-foreground">{item.readinessAction||item.warningReasons[0]||''}</span></div></TableCell>
-          <TableCell><CellStack primary={assigned||'Unassigned'} secondary={`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`} className={item.crewShort?'[&>div:last-child]:font-mono [&>div:last-child]:text-destructive':''}/></TableCell>
+          <TableCell><CellStack primary={item.crewAssignmentsAvailable?assigned||'Unassigned':'Assignments unavailable'} secondary={item.crewAssignmentsAvailable?`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`:`Need ${item.crewNeeded} · Assigned count unavailable`} className={item.crewShort?'[&>div:last-child]:tabular-nums [&>div:last-child]:text-destructive':''}/></TableCell>
           <TableCell><WorkStatusBadge item={item}/></TableCell>
           <TableCell className="truncate text-[11px] text-muted-foreground" title={item.notes||item.warningReasons.join(' · ')}>{item.notes||item.warningReasons.join(' · ')||'—'}</TableCell>
           <TableCell className="text-center"><Menu>
@@ -439,17 +450,29 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
       })}</TableBody>
     </Table>:<Table className="table-fixed text-xs" style={{minWidth:Math.max(520,250+visibleDays.length*150),width:Math.max(520,250+visibleDays.length*150)}}>
       <TableHeader><TableRow><TableHeaderCell className="sticky left-0 z-30 w-[170px] bg-muted/95">Crew / resource</TableHeaderCell><TableHeaderCell className="sticky left-[170px] z-30 w-20 bg-muted/95">Role</TableHeaderCell>{visibleDays.map(day=><TableHeaderCell key={day.date} className="w-[150px]"><CellStack primary={day.isToday?'Today':day.shortLabel} secondary={day.label}/></TableHeaderCell>)}</TableRow></TableHeader>
-      <TableBody>{matrixRows.map(row=><TableRow key={row.id} className="group hover:!bg-transparent"><TableCell className="sticky left-0 z-20 w-[170px] bg-background"><CellStack primary={row.name}/></TableCell><TableCell className="sticky left-[170px] z-20 w-20 bg-background text-[11px] text-muted-foreground">{row.role}</TableCell>{visibleDays.map(day=>{const cellItems=matrixItems(row,day.date);return <TableCell key={day.date} className="h-auto min-h-14 border-l border-border/60 align-top"><div className="space-y-1 py-1">{cellItems.length?cellItems.map(item=>{const tone=readinessBucket(item);return <Button appearance="subtle" type="button" key={item.id} onClick={()=>toggleRow(item.id)} onDoubleClick={()=>router.push(item.openHref)} className={cn('block w-full border-l border-border px-2 py-1.5 text-left outline-none transition-all duration-150 hover:border-primary/70 focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',tone==='blocked'&&'border-destructive text-destructive',tone==='at_risk'&&'border-warning text-warning',tone==='ready'&&'border-success')}><div className="truncate font-mono text-[10px] text-muted-foreground">{time(item.startTime)} · {item.jobNumber}</div><div className="mt-0.5 truncate text-[11px] font-medium text-foreground">{item.title}</div></Button>}):<span className="text-muted-foreground/50">—</span>}</div></TableCell>;})}</TableRow>)}</TableBody>
+      <TableBody>{matrixRows.map(row=><TableRow key={row.id} className="group hover:!bg-transparent"><TableCell className="sticky left-0 z-20 w-[170px] bg-background"><CellStack primary={row.name}/></TableCell><TableCell className="sticky left-[170px] z-20 w-20 bg-background text-[11px] text-muted-foreground">{row.role}</TableCell>{visibleDays.map(day=>{const cellItems=matrixItems(row,day.date);return <TableCell key={day.date} className="h-auto min-h-14 border-l border-border/60 align-top"><div className="space-y-1 py-1">{cellItems.length?cellItems.map(item=>{const tone=readinessBucket(item);return <Button appearance="subtle" type="button" key={item.id} onClick={()=>toggleRow(item.id)} onDoubleClick={()=>router.push(item.openHref)} className={cn('block w-full border-l border-border px-2 py-1.5 text-left outline-none transition-all duration-150 hover:border-primary/70 focus-visible:ring-1 focus-visible:ring-primary motion-reduce:transition-none',tone==='blocked'&&'border-destructive text-destructive',tone==='at_risk'&&'border-warning text-warning',tone==='ready'&&'border-success')}><div className="truncate tabular-nums text-[10px] text-muted-foreground">{time(item.startTime)} · {item.jobNumber}</div><div className="mt-0.5 truncate text-[11px] font-medium text-foreground">{item.title}</div></Button>}):<span className="text-muted-foreground/50">—</span>}</div></TableCell>;})}</TableRow>)}</TableBody>
     </Table>}
     </div>
     <div className="flex min-h-9 flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">{footer}</div>
   </div>;
 }
 
-export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];pumpDataAvailable?:boolean}){
+export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true,headerActions,notices}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];pumpDataAvailable?:boolean;headerActions?:ReactNode;notices?:ReactNode}){
   const [registerOpen,setRegisterOpen]=useState(false);
+  const [showAllMobile,setShowAllMobile]=useState(false);
+  const phoneWork=(windowItems:ScheduleGridItem[])=><section aria-labelledby="schedule-phone-list-title" className="min-w-0 border-y border-border md:hidden">
+      <h3 id="schedule-phone-list-title" className="sr-only">Scheduled work</h3>
+      {windowItems.length===0?<p className="border-t border-border py-3 text-sm text-muted-foreground">No work scheduled in this period. Use the period controls for later dates.</p>:<ol className="divide-y divide-border border-t border-border">{(showAllMobile?windowItems:windowItems.slice(0,8)).map(item=><li key={item.id} className="min-w-0 py-3">
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground"><time dateTime={item.scheduleDate}>{days.find(day=>day.date===item.scheduleDate)?.label||item.scheduleDate}</time><span>{item.jobNumber} — {item.projectName}</span></div>
+        <div className="mt-1 flex flex-wrap items-start justify-between gap-2"><strong className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">{item.title}</strong><ReadinessBadge item={item}/></div>
+        {item.readinessAction||item.warningReasons[0]||item.crewShort>0?<p className="mt-1 break-words text-xs text-muted-foreground">{item.readinessAction||item.warningReasons[0]||staffingRisk(item.crewShort)}</p>:null}
+        {!item.crewAssignmentsAvailable?<p className="mt-1 text-xs text-muted-foreground">Crew assignments unavailable.</p>:null}
+        <div className="mt-2 flex items-center justify-between gap-2"><WorkStatusBadge item={item}/><Button as="a" href={item.openHref} appearance="outline" size="small" aria-label={`Open ${item.title}`}>Open work</Button></div>
+      </li>)}</ol>}
+      {windowItems.length>8?<Button appearance="subtle" size="small" className="my-2" onClick={()=>setShowAllMobile(current=>!current)}>{showAllMobile?'Show fewer work blocks':`Show all ${windowItems.length} work blocks`}</Button>:null}
+    </section>;
   return <div className="min-w-0 space-y-3">
-    <ScheduleMatrix days={days} items={items} pumpDataAvailable={pumpDataAvailable}/>
+    <ScheduleMatrix days={days} items={items} pumpDataAvailable={pumpDataAvailable} headerActions={headerActions} notices={notices} renderPhoneWork={phoneWork}/>
     <Accordion collapsible openItems={registerOpen?['register']:[]} onToggle={(_,data)=>setRegisterOpen(data.openItems.includes('register'))} className="border-t border-border pt-2">
       <AccordionItem value="register"><AccordionHeader size="small">Open schedule register and crew detail</AccordionHeader><AccordionPanel>{registerOpen?<ScheduleRegister days={days} items={items} crewMembers={crewMembers}/>:null}</AccordionPanel></AccordionItem>
     </Accordion>

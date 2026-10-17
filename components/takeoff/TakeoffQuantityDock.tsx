@@ -87,6 +87,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
   const [scope, setScope] = useState<'sheet' | 'all'>('sheet');
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(150);
   const [columnWidths, setColumnWidths] = useState<number[]>(DEFAULT_COLUMN_WIDTHS);
   const [conditionAuthorities, setConditionAuthorities] = useState<ConditionWorksheetAuthority[]>([]);
@@ -290,14 +291,14 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     return result;
   },{cy:0,sf:0,lf:0,hasConcrete:false,pending:false,conditions:new Set<string>()});
 
-  return <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 backdrop-blur-xl bg-[#121212]/85 border border-[#343A3F] shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-full px-4 py-2 max-w-[calc(100%-2rem)] text-white cursor-default" aria-label="Takeoff quantity dock" onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setCollapsed(true);event.stopPropagation();}}>
-    <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">CY · installed</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{rollups.hasConcrete?quantity(rollups.cy):'—'}{rollups.pending?' *':''}</output></div>
-    <span className="h-5 w-px shrink-0 bg-[#343A3F]" aria-hidden="true"/>
-    <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">SF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.sf)}</output></div>
-    <span className="h-5 w-px shrink-0 bg-[#343A3F]" aria-hidden="true"/>
-    <div><div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider">LF · measured</div><output className="text-[12px] font-mono tabular-nums font-semibold text-white">{quantity(rollups.lf)}</output></div>
+  return <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-card border border-border shadow-sm rounded-md px-4 py-2 max-w-[calc(100%-2rem)] text-foreground cursor-default" aria-label="Takeoff quantity dock" onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setCollapsed(true);event.stopPropagation();}}>
+    <div><div className="text-[11px] text-muted-foreground uppercase tracking-wider">CY · installed</div><output className="text-[12px] tabular-nums font-semibold text-foreground">{rollups.hasConcrete?quantity(rollups.cy):'—'}{rollups.pending?' *':''}</output></div>
+    <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true"/>
+    <div><div className="text-[11px] text-muted-foreground uppercase tracking-wider">SF · measured</div><output className="text-[12px] tabular-nums font-semibold text-foreground">{quantity(rollups.sf)}</output></div>
+    <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true"/>
+    <div><div className="text-[11px] text-muted-foreground uppercase tracking-wider">LF · measured</div><output className="text-[12px] tabular-nums font-semibold text-foreground">{quantity(rollups.lf)}</output></div>
     <Button type="button" appearance="subtle" size="small" aria-label="Quantity Worksheet" aria-expanded={!collapsed} aria-controls="takeoff-quantity-worksheet" onClick={()=>setCollapsed(value=>!value)}><Table2 fontSize={14}/></Button>
-    {rollups.pending?<span className="absolute -top-4 left-2 whitespace-nowrap text-[9px] text-[#A1A1AA]">* Partial · calculation pending or held</span>:null}
+    {rollups.pending?<span className="absolute -top-4 left-2 whitespace-nowrap text-[11px] text-muted-foreground">* Partial · calculation pending or held</span>:null}
     <section id="takeoff-quantity-worksheet" hidden={collapsed} className={`${styles.dock} ${styles.floatingWorksheet}`} style={{height}} aria-label="Takeoff quantity worksheet" data-resizing={resizing} data-current-sheet-id={currentSheetId || ''}>
 
     {!collapsed && <Button type="button" className={styles.resizeHandle} aria-label="Resize quantity worksheet" title="Drag or use Up / Down arrows to resize" onKeyDown={event => {
@@ -325,7 +326,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
     </header>
 
     <div id="takeoff-quantity-grid" className={styles.grid} role="table" inert={collapsed} aria-hidden={collapsed||undefined} style={{height:height-38,visibility:collapsed?'hidden':undefined}} aria-rowcount={filteredRows.length}>
-      <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={gridStyle}>
+      <div className={`${styles.gridRow} ${styles.gridHeader}`} role="row" style={{...gridStyle,transform:`translateX(${-scrollLeft}px)`}}>
         {COLUMN_LABELS.map((label, index) => <span role="columnheader" key={label}>{label}<Button type="button" className={styles.columnResizeHandle} aria-label={`Resize ${label} column`} title="Drag to resize · double-click to reset" onDoubleClick={event => {
           event.preventDefault(); event.stopPropagation();
           setColumnWidths(current => current.map((width, currentIndex) => currentIndex === index ? DEFAULT_COLUMN_WIDTHS[index] : width));
@@ -337,7 +338,7 @@ export function TakeoffQuantityDock({ measurements, outputs, assemblies, version
           event.currentTarget.setPointerCapture(event.pointerId);
         }} /></span>)}
       </div>
-      <div ref={bodyRef} className={styles.body} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
+      <div ref={bodyRef} className={styles.body} onScroll={event => { setScrollTop(event.currentTarget.scrollTop); setScrollLeft(event.currentTarget.scrollLeft); }}>
         {filteredRows.length === 0 ? <div className={styles.empty}>No measurements match this worksheet view.</div> : <div className={styles.virtual} style={{ height: filteredRows.length * ROW_HEIGHT, minWidth: gridWidth }}>
           <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
             {visibleRows.map((row, index) => <Button type="button" role="row" aria-rowindex={start + index + 2} aria-selected={selectedMeasurementId === row.measurement.id} data-takeoff-measurement-id={row.measurement.id} key={row.measurement.id} className={`${styles.gridRow} ${styles.dataRow} ${selectedMeasurementId === row.measurement.id ? styles.selected : ''}`} style={gridStyle} onClick={() => onOpenMeasurement(row.measurement)}>

@@ -8,8 +8,9 @@ import {getPricingCoverageSummary} from '@/lib/estimating/pricingCoverage';
 import {getLaborReviewSummary} from '@/lib/estimating/laborReview';
 import {acknowledgeEstimateReview} from '@/app/estimates/actions';
 import viewStyles from './opportunity-view.module.css';
+import {estimateMoney,estimateAmount} from '@/lib/estimating/estimateAmount';
 
-const money=(value:unknown)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0));
+const money=(value:unknown)=>estimateMoney(value,0);
 const label=(value:unknown)=>String(value||'—').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
 const releaseStateClass=(state:string)=>state==='release_ready'
   ?'bg-[#111111] border border-[#333333] text-white text-xs font-mono px-2.5 py-1 rounded-md uppercase tracking-wider shadow-[inset_0px_1px_0px_rgba(255,255,255,0.05)]'
@@ -19,6 +20,7 @@ const releaseStateClass=(state:string)=>state==='release_ready'
 const reviewActionClass='bg-[#111111] border border-[#222222] hover:border-[#333333] dark:bg-[#1C1F23] dark:border-[#222222] dark:hover:border-[#333333] text-sm font-medium px-4 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all';
 const secondaryActionClass='inline-flex min-h-8 items-center justify-center rounded-sm border border-border bg-background px-3 text-xs font-medium hover:bg-accent';
 const findingHref=(estimateId:string,action:ReleaseFindingAction)=>{
+  if(action==='overhead')return estimateHref(estimateId,'worksheet','#estimate-overhead-basis');
   if(action==='pricing')return estimateHref(estimateId,'worksheet','#pricing-coverage');
   if(action==='labor')return estimateHref(estimateId,'worksheet','#labor-review');
   if(action==='scope')return estimateHref(estimateId,'worksheet','#scope-cost');
@@ -50,7 +52,7 @@ export async function AuditView({estimateId}:{estimateId?:string}){
     </div>;
   }
 
-  const {data:estimate,error:estimateError}=await supabase.from('estimates').select('id,estimate_number,version,name,status,target_margin_percent,bo_classification,bo_rate_percent,payment_processing_rate_percent').eq('id',estimateId).eq('company_id',companyId).maybeSingle();
+  const {data:estimate,error:estimateError}=await supabase.from('estimates').select('id,estimate_number,version,name,status,target_margin_percent,bo_classification,bo_rate_percent,payment_processing_rate_percent,overhead_rate_snapshot').eq('id',estimateId).eq('company_id',companyId).maybeSingle();
   if(estimateError)throw new Error(estimateError.message);
   if(!estimate)notFound();
   const [readinessResult,summaryResult,sectionsResult,itemsResult,measurementsResult,proposalSettingsResult,billingResult,latestAckResult,quoteSetsResult]=await Promise.all([
@@ -66,6 +68,7 @@ export async function AuditView({estimateId}:{estimateId?:string}){
   ]);
   if(readinessResult.error)throw new Error(readinessResult.error.message);
   const readiness=parseEstimateReleaseReadiness(readinessResult.data);
+  const overheadMissing=estimate.overhead_rate_snapshot==null;
   const summary=summaryResult.data||{};
   const sections=sectionsResult.data||[];
   const items=itemsResult.data||[];
@@ -145,8 +148,8 @@ export async function AuditView({estimateId}:{estimateId?:string}){
   const costRows=[
     ['Direct labor',summary.direct_labor_cost],['Material',summary.material_cost],['Equipment',summary.equipment_cost],
     ['Subcontractor',summary.subcontractor_cost],['Other direct cost',summary.other_direct_cost],['Total direct cost',summary.total_direct_cost],
-    ['Company overhead',summary.overhead_cost],['Revenue / transaction reserves',summary.revenue_cost_reserve],['Base company cost',summary.base_company_cost],
-    ['Recommended sell',summary.recommended_sell_price],['Customer sell',summary.selected_sell_price],['Projected profit',summary.projected_profit],
+    ['Company overhead',overheadMissing?null:summary.overhead_cost],['Revenue / transaction reserves',summary.revenue_cost_reserve],['Base company cost',overheadMissing?null:summary.base_company_cost],
+    ['Recommended sell',overheadMissing?null:summary.recommended_sell_price],['Customer sell',summary.selected_sell_price],['Projected profit',overheadMissing?null:summary.projected_profit],
   ] as const;
 
   return <div className={`${viewStyles.workspace} mx-auto flex w-full max-w-screen-2xl flex-col gap-4`}>
@@ -154,12 +157,12 @@ export async function AuditView({estimateId}:{estimateId?:string}){
 
     <section className="flex flex-wrap items-center justify-between gap-3 border border-border bg-card/70 px-3 py-2" aria-label="Release state"><strong className="text-sm">Release state</strong><div className="flex items-center gap-3"><Badge appearance="outline" className={releaseStateClass(readiness.release_state)}>{releaseStateLabel(readiness.release_state)}</Badge><span className="text-xs text-muted-foreground">{readiness.blocker_count} blockers · {readiness.warning_count} warnings</span></div></section>
 
-    <section className="space-y-2" aria-labelledby="commercial-recap"><ReviewHeading id="commercial-recap" title="Commercial recap"/><div className="grid gap-x-6 border border-border px-3 sm:grid-cols-2 lg:grid-cols-3">{costRows.map(([name,value])=><div key={name} className="flex justify-between gap-3 border-b border-border/70 py-2 text-sm"><span className="text-muted-foreground">{name}</span><strong className="font-mono tabular-nums">{money(value)}</strong></div>)}<Fact label="B&O classification / rate" value={`${label(estimate.bo_classification)} · ${Number(estimate.bo_rate_percent||0).toFixed(3)}%`}/><Fact label="Payment / transaction reserve assumption" value={`${Number(estimate.payment_processing_rate_percent||0).toFixed(3)}%`}/><div className="flex justify-between gap-3 border-b border-border/70 py-2 text-sm"><span className="text-muted-foreground">Projected / target margin</span><strong className="font-mono tabular-nums">{Number(summary.projected_margin_percent||0).toFixed(1)}% / {Number(estimate.target_margin_percent||0).toFixed(1)}%</strong></div></div></section>
+    <section className="space-y-2" aria-labelledby="commercial-recap"><ReviewHeading id="commercial-recap" title="Commercial recap"/><div className="grid gap-x-6 border border-border px-3 sm:grid-cols-2 lg:grid-cols-3">{costRows.map(([name,value])=><div key={name} className="flex justify-between gap-3 border-b border-border/70 py-2 text-sm"><span className="text-muted-foreground">{name}</span><strong className="font-mono tabular-nums">{money(value)}</strong></div>)}<Fact label="B&O classification / rate" value={`${label(estimate.bo_classification)} · ${Number(estimate.bo_rate_percent||0).toFixed(3)}%`}/><Fact label="Payment / transaction reserve assumption" value={`${Number(estimate.payment_processing_rate_percent||0).toFixed(3)}%`}/><div className="flex justify-between gap-3 border-b border-border/70 py-2 text-sm"><span className="text-muted-foreground">Projected / target margin</span><strong className="font-mono tabular-nums">{overheadMissing||estimateAmount(summary.projected_margin_percent)===null?'Unavailable':`${Number(summary.projected_margin_percent).toFixed(1)}%`} / {Number(estimate.target_margin_percent||0).toFixed(1)}%</strong></div></div></section>
 
     <FindingSection title="Blockers" findings={blockers} estimateId={estimateId} severity="blocker"/>
     <FindingSection title="Warnings" findings={warnings} estimateId={estimateId} severity="warning"/>
 
-    {canAcknowledge&&<div className="flex flex-wrap items-center justify-between gap-3 border border-warning/30 bg-warning/5 px-3 py-2"><span className="text-xs text-muted-foreground">The current warning set requires review.</span><Dialog><DialogTrigger><Button appearance="primary" size="small" type="button">Reviewed / proceed</Button></DialogTrigger><DialogSurface><DialogBody><DialogTitle>Acknowledge estimate warnings?</DialogTitle><DialogContent><p className="mb-3 text-sm text-muted-foreground">This applies to the complete warning set for the current commercial state. Review each warning before proceeding.</p><form action={acknowledgeEstimateReview}><input type="hidden" name="estimate_id" value={estimateId}/><Button appearance="primary" size="small" type="submit">Acknowledge warnings</Button></form></DialogContent></DialogBody></DialogSurface></Dialog></div>}
+    {canAcknowledge&&<div className="flex flex-wrap items-center justify-between gap-3 border border-warning/30 bg-warning/5 px-3 py-2"><span className="text-xs text-muted-foreground">The current warning set requires review.</span><Dialog><DialogTrigger><Button appearance="primary" size="small" type="button">Reviewed / proceed</Button></DialogTrigger><DialogSurface className="pt-dialog"><DialogBody><DialogTitle>Acknowledge estimate warnings?</DialogTitle><DialogContent><p className="mb-3 text-sm text-muted-foreground">This applies to the complete warning set for the current commercial state. Review each warning before proceeding.</p><form action={acknowledgeEstimateReview}><input type="hidden" name="estimate_id" value={estimateId}/><Button appearance="primary" size="small" type="submit">Acknowledge warnings</Button></form></DialogContent></DialogBody></DialogSurface></Dialog></div>}
 
     <section className="space-y-2"><ReviewHeading title="Commercial decisions"/>{commercialDecisions.length>0?<ul className="mt-3 divide-y border-y border-border">{commercialDecisions.map(decision=><li key={decision.id} className="py-3"><strong>{decision.label}</strong><span className="block text-sm text-muted-foreground">{decision.detail}</span></li>)}</ul>:<p className="mt-3 text-sm text-muted-foreground">No current commercial decisions require review.</p>}{staleAcknowledgement&&<p className="mt-3 border-y border-warning/40 py-3 text-sm text-warning">A previous review by {latestReviewer?.full_name||latestReviewer?.email||'a team member'}{latestReviewer?.email&&latestReviewer.full_name?` (${latestReviewer.email})`:''} at {formatReviewDate(latestAck?.acknowledged_at||readiness.latest_acknowledged_at)} is stale. Current Estimate review warnings require acknowledgement again.</p>}</section>
 

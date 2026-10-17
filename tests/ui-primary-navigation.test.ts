@@ -18,7 +18,7 @@ test('top navigation exposes the six primary workspace routes',()=>{
 });
 
 test('search button and Cmd+K open the command palette with company-scoped records',()=>{
-  assert.match(shell,/aria-label="Search Pourtrace"/);
+  assert.match(shell,/aria-label="Search PourTrace"/);
   assert.match(shell,/event\.metaKey\|\|event\.ctrlKey/);
   assert.match(shell,/event\.key\.toLowerCase\(\)==='k'/);
   assert.match(shell,/from '@fluentui\/react-components'/);

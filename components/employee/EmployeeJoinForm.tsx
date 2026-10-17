@@ -3,6 +3,7 @@ import {FormEvent,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button,Input,Label} from '@fluentui/react-components';
 import {createClient} from '@/lib/supabase/client';
+import {PASSWORD_MIN_LENGTH,validateNewPassword} from '@/lib/auth/passwordPolicy';
 
 export function EmployeeJoinForm({token,employeeName}:{token:string;employeeName:string}){
  const router=useRouter();
@@ -10,12 +11,16 @@ export function EmployeeJoinForm({token,employeeName}:{token:string;employeeName
  const [password,setPassword]=useState('');
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
- async function submit(e:FormEvent){e.preventDefault();setBusy(true);setMessage('');const supabase=createClient();const {data,error}=await supabase.auth.signUp({email,password,options:{data:{employee_invite_token:token,full_name:employeeName}}});if(error){setMessage(error.message);setBusy(false);return;}if(data.session){router.push('/employee');router.refresh();return;}setMessage('Account created. Check your email if Carez asks you to confirm it, then log in.');setBusy(false);}
+ async function submit(e:FormEvent){
+  e.preventDefault();setBusy(true);setMessage('');
+  try{const supabase=createClient();const {data,error}=await supabase.auth.signUp({email,password:validateNewPassword(password),options:{emailRedirectTo:new URL('/auth/confirm?next=/employee',location.origin).href,data:{employee_invite_token:token,full_name:employeeName}}});if(error)throw error;if(data.session){router.push('/employee');router.refresh();return;}setMessage('Account created. Check your email to confirm it if required, then sign in to PourTrace.');}
+  catch(error){setMessage(error instanceof Error?error.message:'Account creation is unavailable. Try again later.');}finally{setBusy(false);}
+ }
  return <form className="grid gap-4" onSubmit={submit}>
   <div className="grid gap-2"><Label htmlFor="employee-name">Your Name</Label><Input appearance="underline" id="employee-name" value={employeeName} disabled/></div>
   <div className="grid gap-2"><Label htmlFor="employee-email">Email</Label><Input appearance="underline" id="employee-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></div>
-  <div className="grid gap-2"><Label htmlFor="employee-password">Create Password</Label><Input appearance="underline" id="employee-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required autoComplete="new-password"/></div>
+  <div className="grid gap-2"><Label htmlFor="employee-password">Create Password</Label><Input appearance="underline" id="employee-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={1024} required autoComplete="new-password"/></div>
   {message&&<div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm text-muted-foreground">{message}</div>}
-  <Button type="submit" appearance="primary" disabled={busy}>{busy?'Creating account...':'Create My Carez Login'}</Button>
+  <Button type="submit" appearance="primary" disabled={busy}>{busy?'Creating account...':'Create my PourTrace login'}</Button>
  </form>;
 }

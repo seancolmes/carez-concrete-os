@@ -1,3 +1,4 @@
+import {ProcurementForm} from '@/components/financials/ProcurementForm';
 import {Badge,Button,Card,Input,Label,Select} from '@fluentui/react-components';
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
@@ -30,7 +31,7 @@ export default async function VendorsPage(){
     </div>
 
     <section className="grid gap-4 xl:grid-cols-2">
-      <Card><div className="p-4 space-y-4"><div><h2 className="font-semibold">Add Vendor</h2><p className="mt-1 text-sm text-muted-foreground">Enter it once; use it for quotes, POs and bills.</p></div><form action={createVendor} className="grid gap-4">
+      <Card><div className="p-4 space-y-4"><div><h2 className="font-semibold">Add Vendor</h2><p className="mt-1 text-sm text-muted-foreground">Enter it once; use it for quotes, POs and bills.</p></div><ProcurementForm action={createVendor} className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-name">Vendor Name</Label><Input appearance="underline" id="vendor-name" name="name" required/></div><div className="grid gap-2"><Label htmlFor="vendor-type">What Do They Supply?</Label><Select appearance="outline" id="vendor-type" className={selectClass} name="vendor_type">{types.map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></div></div>
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-contact">Contact</Label><Input appearance="underline" id="vendor-contact" name="contact_name"/></div><div className="grid gap-2"><Label htmlFor="vendor-phone">Phone</Label><Input appearance="underline" id="vendor-phone" name="phone"/></div></div>
         <div className="grid gap-2"><Label htmlFor="vendor-email">Email</Label><Input appearance="underline" id="vendor-email" type="email" name="email"/></div>
@@ -40,7 +41,7 @@ export default async function VendorsPage(){
         <div className="grid gap-2"><Label htmlFor="vendor-account">Account #</Label><Input appearance="underline" id="vendor-account" name="account_number"/></div>
         <div className="grid gap-2"><Label htmlFor="vendor-notes">Notes</Label><Input appearance="underline" id="vendor-notes" name="notes"/></div>
         <Button type="submit" className="w-fit">Save Vendor</Button>
-      </form></div></Card>
+      </ProcurementForm></div></Card>
 
       <Card><div className="p-4 space-y-4"><div><h2 className="font-semibold">Vendor Directory</h2><p className="mt-1 text-sm text-muted-foreground">Quick contact list for the field and office.</p></div>{(vendors||[]).length===0?<div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No vendors yet.</div>:<div className="divide-y rounded-lg border border-border">{(vendors||[]).map((v:any)=><div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-start sm:justify-between" key={v.id}><div className="min-w-0"><div className="font-medium">{v.name}</div><div className="mt-1 text-sm text-muted-foreground">{String(v.vendor_type).replaceAll('_',' ')} · {v.contact_name||'No contact'}</div><div className="mt-1 break-words text-sm text-muted-foreground">{v.phone||''}{v.phone&&v.email?' · ':''}{v.email||''}</div></div><Badge appearance="outline" className={v.active?'shrink-0 border-success/30 bg-success/10 text-success':'shrink-0 text-muted-foreground'}>{v.active?'Active':'Inactive'}</Badge></div>)}</div>}</div></Card>
     </section>

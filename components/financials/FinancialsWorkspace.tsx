@@ -40,7 +40,7 @@ export async function FinancialsWorkspace({tab,view}:{tab?:string;view?:string})
   const selected=group.views.find(item=>item[0]===view)?.[0]||group.views.find(item=>availableViews.has(item[0]))?.[0]||group.views[0][0];
   const View=availableViews.has(selected)?(await loaders[selected]()).default:null;
 
-  return <section aria-label="Financial operations workspace" className="surface-card min-w-0 overflow-hidden rounded-xl">
+  return <section aria-label="Financial operations workspace" className="surface-card min-w-0 overflow-hidden rounded-lg">
     <nav aria-label="Financial views" className={styles.navigation}>
       {groups.map(item=>{const available=item.views.filter(([id])=>availableViews.has(id));return available.length?<div key={item.id} className={styles.navigationGroup}>
         <span className={styles.navigationLabel}>{item.label}</span>
@@ -49,6 +49,6 @@ export async function FinancialsWorkspace({tab,view}:{tab?:string;view?:string})
     </nav>
     {View?<>
       <div className="min-w-0 p-3 sm:p-5"><View/></div>
-    </>:<div role="status" className="space-y-2 p-5 text-sm text-muted-foreground"><h2 className="text-base font-semibold text-foreground">{group.label} is not connected yet</h2><p>This workspace needs its source-controlled financial records and summaries before it can show reliable figures.</p><Link className="inline-flex text-primary underline-offset-4 hover:underline" href="/financials?tab=billing&view=billing">Open Billing & Invoices</Link></div>}
+    </>:<div role="status" className="space-y-2 p-5 text-sm text-muted-foreground"><h2 className="text-base font-semibold text-foreground">{group.label} is not connected yet</h2><p>Financial data is unavailable for this view.</p><Link className="inline-flex text-primary underline-offset-4 hover:underline" href="/financials?tab=billing&view=billing">Open Billing & Invoices</Link></div>}
   </section>;
 }

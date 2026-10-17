@@ -4,17 +4,16 @@ import {runInNewContext} from 'node:vm';
 import {
   CAREZ_APPEARANCE_BOOT_SCRIPT,
   CAREZ_DENSITY_STORAGE_KEY,
-  CAREZ_THEME_MEDIA_QUERY,
   CAREZ_THEME_STORAGE_KEY,
   normalizeDensityPreference,
   normalizeThemePreference,
   resolveThemePreference,
 } from '../lib/ui/appearance.ts';
 
-test('theme preference normalizes safely and keeps light as the fresh default', () => {
+test('retired and unknown theme preferences always normalize to light', () => {
   assert.equal(normalizeThemePreference('light'), 'light');
-  assert.equal(normalizeThemePreference('dark'), 'dark');
-  assert.equal(normalizeThemePreference('system'), 'system');
+  assert.equal(normalizeThemePreference('dark'), 'light');
+  assert.equal(normalizeThemePreference('system'), 'light');
   assert.equal(normalizeThemePreference('sepia'), 'light');
   assert.equal(normalizeThemePreference(undefined), 'light');
 });
@@ -27,15 +26,15 @@ test('density preference normalizes safely', () => {
   assert.equal(normalizeDensityPreference(undefined), 'default');
 });
 
-test('theme preferences resolve to the selected or device theme', () => {
-  assert.equal(resolveThemePreference('light',true),'light');
-  assert.equal(resolveThemePreference('dark',false),'dark');
-  assert.equal(resolveThemePreference('system',true),'dark');
-  assert.equal(resolveThemePreference('system',false),'light');
+test('saved preferences cannot activate dark mode under either OS preference', () => {
+  for(const preference of ['light','dark','system',null]){
+    for(const prefersDark of [true,false]) assert.equal(resolveThemePreference(preference,prefersDark),'light');
+  }
 });
 
 function boot(storedTheme:string|null,prefersDark:boolean){
-  let darkClass=false;
+  let darkClass=true;
+  const reads:string[]=[];
   const root={
     dataset:{} as Record<string,string>,
     style:{} as Record<string,string>,
@@ -43,10 +42,10 @@ function boot(storedTheme:string|null,prefersDark:boolean){
   };
   runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{
     document:{documentElement:root},
-    window:{matchMedia:(query:string)=>{assert.equal(query,CAREZ_THEME_MEDIA_QUERY);return {matches:prefersDark};}},
-    localStorage:{getItem:(key:string)=>key===CAREZ_DENSITY_STORAGE_KEY?'compact':key===CAREZ_THEME_STORAGE_KEY?storedTheme:null},
+    window:{matchMedia:()=>({matches:prefersDark})},
+    localStorage:{getItem:(key:string)=>{reads.push(key);return key===CAREZ_DENSITY_STORAGE_KEY?'compact':key===CAREZ_THEME_STORAGE_KEY?storedTheme:null;}},
   });
-  return {root,darkClass};
+  return {root,darkClass,reads};
 }
 
 test('boot keeps light as the fresh default and preserves density', () => {
@@ -54,19 +53,30 @@ test('boot keeps light as the fresh default and preserves density', () => {
   assert.equal(root.dataset.themePreference,'light');
   assert.equal(root.dataset.theme,'light');
   assert.equal(root.dataset.density,'compact');
-  assert.equal(root.style.colorScheme,'light');
+  assert.equal(root.style.colorScheme,'only light');
   assert.equal(darkClass,false);
 });
 
-test('boot restores saved dark before paint even on a light device', () => {
-  const {root,darkClass}=boot('dark',false);
-  assert.equal(root.dataset.themePreference,'dark');
-  assert.equal(root.dataset.theme,'dark');
-  assert.equal(root.style.colorScheme,'dark');
-  assert.equal(darkClass,true);
+test('boot ignores saved dark preferences and removes an obsolete dark class before paint', () => {
+  for(const prefersDark of [false,true]){
+    const {root,darkClass,reads}=boot('dark',prefersDark);
+    assert.equal(root.dataset.themePreference,'light');
+    assert.equal(root.dataset.theme,'light');
+    assert.equal(root.style.colorScheme,'only light');
+    assert.equal(darkClass,false);
+    assert.deepEqual(reads,[CAREZ_DENSITY_STORAGE_KEY]);
+  }
 });
 
-test('boot resolves a saved device setting in both directions', () => {
-  assert.equal(boot('system',true).root.dataset.theme,'dark');
+test('boot stays light with a saved device setting in both directions', () => {
+  assert.equal(boot('system',true).root.dataset.theme,'light');
   assert.equal(boot('system',false).root.dataset.theme,'light');
+});
+
+test('blocked browser storage cannot prevent light prepaint initialization',()=>{
+  const root={dataset:{} as Record<string,string>,style:{} as Record<string,string>,classList:{toggle(){}}};
+  runInNewContext(CAREZ_APPEARANCE_BOOT_SCRIPT,{document:{documentElement:root},localStorage:{getItem(){throw new Error('Storage denied');}}});
+  assert.equal(root.dataset.theme,'light');
+  assert.equal(root.dataset.density,'default');
+  assert.equal(root.style.colorScheme,'only light');
 });

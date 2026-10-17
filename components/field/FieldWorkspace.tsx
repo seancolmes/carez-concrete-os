@@ -40,15 +40,20 @@ export function resolveFieldTab(tab?:string,view?:string):FieldTab{
   return 'dispatch';
 }
 
-export async function FieldWorkspace({tab,view,dispatch}:{tab?:string;view?:string;dispatch:ReactNode}){
+export function resolveFieldView(tab?:string,view?:string){
   const activeTab=resolveFieldTab(tab,view);
   const requestedView=view&&tabViews[activeTab].includes(view)?view:null;
-  const activeView=activeTab==='dispatch'?requestedView:requestedView||defaultView[activeTab];
+  return activeTab==='dispatch'?requestedView:requestedView||defaultView[activeTab];
+}
+
+export async function FieldWorkspace({tab,view,dispatch,scheduleContext}:{tab?:string;view?:string;dispatch:ReactNode;scheduleContext?:ReactNode}){
+  const activeTab=resolveFieldTab(tab,view);
+  const activeView=resolveFieldView(tab,view);
   const View=activeView?(await loaders[activeView as keyof typeof loaders]()).default:null;
 
   return <div className="min-w-0">
-    <FieldTabNav activeTab={activeTab}/>
-    <section aria-label={`${activeTab} workspace`} className="surface-card min-w-0 rounded-xl p-6">
+    {activeView==='schedule'?<div className="pt-field-schedule-navigation">{scheduleContext}<FieldTabNav activeTab={activeTab}/></div>:<FieldTabNav activeTab={activeTab}/>}
+    <section aria-label={`${activeTab} workspace`} className={activeView==='schedule'?'pt-schedule-workspace':'surface-card min-w-0 rounded-lg p-3 sm:p-4'}>
       {View?<View/>:dispatch}
     </section>
   </div>;

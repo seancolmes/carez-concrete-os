@@ -15,8 +15,8 @@ const sections:[WorkbenchSection,string][]=[
 
 export function OpportunityWorkbenchTabs({active,hrefFor}:{active:WorkbenchSection;hrefFor:Record<WorkbenchSection,string>}){
   const router=useRouter();
-  return <nav aria-label="Opportunity workbench" className="min-w-0 overflow-x-auto border-b border-border bg-[var(--pt-surface-1)] px-3">
-    <TabList selectedValue={active} onTabSelect={(_,data)=>router.push(hrefFor[data.value as WorkbenchSection],{scroll:false})} size="small" className="w-max min-w-full gap-1">
+  return <nav aria-label="Opportunity workbench" className="pt-local-navigation min-w-0 px-2">
+    <TabList selectedValue={active} onTabSelect={(_,data)=>router.push(hrefFor[data.value as WorkbenchSection],{scroll:false})} size="small" className="w-full flex-wrap gap-1">
       {sections.map(([key,label])=><Tab key={key} value={key} className="whitespace-nowrap px-3 py-2 text-xs">{label}</Tab>)}
     </TabList>
   </nav>;

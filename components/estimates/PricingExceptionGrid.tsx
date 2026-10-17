@@ -151,7 +151,7 @@ export function PricingExceptionGrid({ rows }: { rows: PricingExceptionRow[] }) 
       </div>
     </div>
     <Dialog open={Boolean(selected)} onOpenChange={(_,data) => { if (!data.open) { setSelectedId(null); handledRequest.current = null; const url = new URL(window.location.href); url.searchParams.delete('pricingOutput'); window.history.replaceState(null, '', url); } }}>
-      <DialogSurface className="max-h-[90vh] overflow-y-auto"><DialogBody><DialogTitle>{selected?.name || 'Pricing output'}</DialogTitle><DialogContent>{selected?.measurement?<p className="text-xs text-muted-foreground">{selected.measurement}</p>:null}
+      <DialogSurface className="pt-dialog max-h-[90vh] overflow-y-auto"><DialogBody><DialogTitle>{selected?.name || 'Pricing output'}</DialogTitle><DialogContent>{selected?.measurement?<p className="text-xs text-muted-foreground">{selected.measurement}</p>:null}
         {selected ? <div className="space-y-5 p-4">
           <div className="grid grid-cols-2 gap-3 border-b pb-4"><div><div className="text-xs text-muted-foreground">Production</div><div className="mt-1 font-mono text-sm font-semibold">{selected.production}</div></div><div><div className="text-xs text-muted-foreground">Status</div><div className="mt-1">{selected.badge}</div></div></div>
           <section><h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current source</h3><div className="mt-2 text-sm">{selected.source || 'No pricing source recorded.'}</div></section>

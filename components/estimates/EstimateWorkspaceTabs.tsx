@@ -38,8 +38,8 @@ export function EstimateWorkspaceTabs({scope,pricing,labor,lines}:{scope:ReactNo
   const content={scope,pricing,labor,lines};
 
   return <div className="min-w-0 space-y-4" aria-label="Estimate workspace">
-    <div className="overflow-x-auto border-b border-border bg-card/70">
-      <TabList aria-label="Pricing views" selectedValue={active} onTabSelect={(_,data)=>select(data.value as WorkspaceTab)} size="small" className="w-max min-w-full">
+    <div className="pt-local-navigation">
+      <TabList aria-label="Pricing views" selectedValue={active} onTabSelect={(_,data)=>select(data.value as WorkspaceTab)} size="small" className="w-full flex-wrap">
         {tabs.map(([value,label])=><Tab key={value} value={value} id={`estimate-tab-${value}`} aria-controls={`estimate-panel-${value}`} className="whitespace-nowrap px-3 py-2 text-xs sm:text-sm">{label}</Tab>)}
       </TabList>
     </div>

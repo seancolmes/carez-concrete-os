@@ -1,4 +1,4 @@
-import {Badge,Button,Dialog,DialogTitle,DialogTrigger,DialogBody,DialogContent,DialogSurface} from '@fluentui/react-components';
+import {Badge,Button,Dialog,DialogTitle,DialogTrigger,DialogBody,DialogContent,DialogSurface,DialogActions} from '@fluentui/react-components';
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {createClient} from '@/lib/supabase/server';
@@ -10,7 +10,7 @@ export default async function CrewAccessPage(){
  if(!user)redirect('/login');
  const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
  if(!profile?.company_id||profile.role==='employee')redirect('/employee');
- const {data:crew}=await supabase.from('crew_members').select('id,name,role,phone,profile_id,active').eq('company_id',profile.company_id).eq('worker_type','employee').order('active',{ascending:false}).order('name');
+ const {data:crew,error:crewError}=await supabase.from('crew_administration_summary').select('id,name,role,phone,profile_id,active').eq('company_id',profile.company_id).eq('worker_type','employee').order('active',{ascending:false}).order('name');
 
  return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4">
   <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3">
@@ -19,7 +19,7 @@ export default async function CrewAccessPage(){
   </header>
 
   <section aria-labelledby="employee-logins" className="space-y-2"><div className="carez-page-heading"><h2 id="employee-logins">Employee logins</h2></div>
-    {(crew||[]).length===0?<div className="border border-border"><div><h3>No W-2 employees yet</h3><p>Add employees in Crew first.</p></div></div>:<div className="divide-y border border-border">{(crew||[]).map((c:any)=><div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2" key={c.id}><div className="min-w-0"><strong className="block truncate text-sm">{c.name}</strong><span className="block truncate text-xs text-muted-foreground">{c.role} · {c.phone||'No phone'} · {c.active?'Active':'Inactive'}</span></div>{c.profile_id?<Badge appearance="outline" className="border-success/30 bg-success/10 text-success">Login connected</Badge>:<Dialog><DialogTrigger><Button appearance="outline" size="small">Create invite</Button></DialogTrigger><DialogSurface><DialogBody><DialogContent><div><DialogTitle>Create login invite</DialogTitle><p>Generate a private Pourtrace access link for {c.name}. Share it only with this employee.</p></div><form action={createEmployeeAccessInvite}><input type="hidden" name="crew_member_id" value={c.id}/><Button type="submit" appearance="primary">Generate invite link</Button></form></DialogContent></DialogBody></DialogSurface></Dialog>}</div>)}</div>}
+    {crewError?<p role="alert" className="p-4 text-sm text-destructive">Employee access records unavailable. No empty roster or invite eligibility has been confirmed.</p>:(crew||[]).length===0?<div className="border border-border"><div><h3>No W-2 employees yet</h3><p>Add employees in Crew first.</p></div></div>:<div className="divide-y border border-border">{(crew||[]).map((c:any)=><div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2" key={c.id}><div className="min-w-0"><strong className="block truncate text-sm">{c.name}</strong><span className="block truncate text-xs text-muted-foreground">{c.role} · {c.phone||'No phone'} · {c.active?'Active':'Inactive'}</span></div>{c.profile_id?<Badge appearance="outline" className="border-success/30 bg-success/10 text-success">Login connected</Badge>:<Dialog><DialogTrigger><Button id={`employee-invite-${c.id}`} appearance="outline" size="small" disabled={!c.active}>Create invite</Button></DialogTrigger><DialogSurface className="pt-dialog" aria-labelledby={`employee-invite-title-${c.id}`}><DialogBody><DialogContent><div><DialogTitle id={`employee-invite-title-${c.id}`}>Create login invite</DialogTitle><p>Generate a private Pourtrace access link for {c.name}. Share it only with this employee.</p></div><form action={createEmployeeAccessInvite}><input type="hidden" name="crew_member_id" value={c.id}/><DialogActions><DialogTrigger action="close"><Button type="button">Cancel</Button></DialogTrigger><Button type="submit" appearance="primary">Generate invite link</Button></DialogActions></form></DialogContent></DialogBody></DialogSurface></Dialog>}</div>)}</div>}
   </section>
  </div></>;
 }

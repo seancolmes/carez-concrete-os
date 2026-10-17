@@ -1,4 +1,6 @@
 'use server';
+import {confirmedChangeOrderApproval} from '@/lib/change-orders/approval';
+import {recordedOverheadSnapshot} from '@/lib/estimating/overheadSnapshot';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { signedChangeOrderCost } from '@/lib/change-orders/contracts';
@@ -22,12 +24,11 @@ export async function createChangeOrder(fd:FormData){
   if(!project_id||!title)return;
   const {supabase}=await ctx();
   const requestedDate=String(fd.get('requested_date')||new Date().toISOString().slice(0,10));
-  const {data:snapshot,error:snapshotError}=await supabase.rpc('capture_overhead_rate_snapshot',{p_effective_date:requestedDate});
-  if(snapshotError)throw new Error(snapshotError.message);
+  const snapshot=await recordedOverheadSnapshot(supabase,requestedDate);
   const {error}=await supabase.rpc('carez_create_change_order',{
     p_project_id:project_id,p_title:title,p_change_type:String(fd.get('change_type')||'additive'),p_requested_date:requestedDate,
     p_description:s(fd,'description'),p_reason:s(fd,'reason'),p_requested_by:s(fd,'requested_by'),
-    p_overhead_snapshot_id:snapshot?.id||null,p_overhead_rate_snapshot:Number(snapshot?.overhead_rate_per_productive_hour||0),
+    p_overhead_snapshot_id:snapshot.id,p_overhead_rate_snapshot:snapshot.overhead_rate_per_productive_hour,
     p_reversal_of_change_order_id:s(fd,'reversal_of_change_order_id')
   });
   if(error)throw new Error(error.message);
@@ -111,8 +112,8 @@ export async function updateChangeOrder(fd:FormData){
 
 export async function approveChangeOrder(fd:FormData){
   const id=String(fd.get('change_order_id')||'');if(!id)return;
-  const {supabase}=await ctx();const {error}=await supabase.rpc('approve_change_order',{p_change_order_id:id});
-  if(error)throw new Error(error.message);refresh();
+  const {supabase}=await ctx();const {data,error}=await supabase.rpc('carez_approve_change_order_v2',{p_change_order_id:id});
+  if(error)throw new Error(error.message);confirmedChangeOrderApproval(data,id);refresh();
 }
 export async function rejectChangeOrder(fd:FormData){
   const id=String(fd.get('change_order_id')||'');if(!id)return;

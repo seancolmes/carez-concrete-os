@@ -1,4 +1,5 @@
 import 'server-only';
+import {calculateStripFootingV6,STRIP_FOOTING_V6_DEFINITION} from './stripFootingV6.ts';
 
 import {
   prepareAssemblyOutputs,
@@ -105,6 +106,7 @@ function storedInputGroups(version: any): ConditionRawInputGroups {
 }
 
 function deployedDefinition(archetypeKey: ConditionArchetypeKey, archetypeVersion: any): ConditionArchetypeDefinition {
+  if(archetypeKey==='strip_wall_footing'&&Number(archetypeVersion.version_no)>=6)return STRIP_FOOTING_V6_DEFINITION;
   if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V4_CONTRACT_VERSION) {
     return STRIP_FOOTING_V4_DEFINITION;
   }
@@ -419,7 +421,9 @@ export async function prepareConcreteConditionPilotPersistence({
     sortOrder: module.sort_order,
   }));
   const versionNo = Number(archetypeVersion.version_no || 0);
-  const calculation = archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V4_CONTRACT_VERSION
+  const calculation = archetypeKey==='strip_wall_footing'&&versionNo>=6
+    ? calculateStripFootingV6({archetypeKey,conditionVersionId,inputs:resolvedInputs,measurementRoles:calculationRoles,modules:calculationModules,outputOverrides})
+    : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V4_CONTRACT_VERSION
     ? calculateStripFootingV4({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
     : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V3_CONTRACT_VERSION
       ? calculateStripFootingV3({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })

@@ -1,18 +1,21 @@
 'use client';
+import {drawingPdfSource} from '@/lib/takeoff/pdfSource';
+
 
 import {useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
+import {fitDrawingPage} from '@/lib/takeoff/viewportFit';
 import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
 import {Layout,Model} from 'flexlayout-react';
 import Draggable from 'react-draggable';
 import {ResizableBox} from 'react-resizable';
-import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Select} from '@fluentui/react-components';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Input,Select} from '@fluentui/react-components';
 import {CheckmarkRegular as Check,ChevronLeftRegular as ChevronLeft,ChevronRightRegular as ChevronRight,TargetRegular as Crosshair,HandRightRegular as Hand,PointScanRegular as Magnet,FullScreenMaximizeRegular as Maximize,SubtractRegular as Minus,CursorRegular as MousePointer2,ArrowMoveRegular as MoveHorizontal,PenRegular as PenLine,EditRegular as Pencil,AddRegular as Plus,ArrowRedoRegular as Redo2,ArrowCounterclockwiseRegular as RotateCcw,RulerRegular as Ruler,CutRegular as Scissors,DeleteRegular as Trash2,ArrowUndoRegular as Undo2,DismissRegular as X} from '@fluentui/react-icons';
 import {
   createDrawingMeasurement,deleteDrawingMeasurement,deleteTakeoffScaleRegion,initializeTakeoffSheets,
   saveTakeoffScaleRegion,updateDrawingMeasurementGeometry
 } from '@/app/takeoff/[setId]/actions';
-import {GeometryCommandHistory,type CommandHistorySnapshot,type GeometryCommandKind} from '@/lib/takeoff/commandHistory';
+import {GeometryCommandHistory,canonicalGeometry,sameGeometry,geometryHistoryKey,type GeometryHistoryScope,type CommandHistorySnapshot,type GeometryCommandKind} from '@/lib/takeoff/commandHistory';
 import {measureDrawingGeometry,roundMeasurement,type DrawingGeometry,type DrawingMeasurement,type NormalizedPoint} from '@/lib/takeoff/geometry';
 import {linearFootprint,parseRenderConfig,resolveDisplayStyle} from '@/lib/takeoff/physicalGeometry';
 import {formatArchitecturalLength,formatTakeoffMeasurement} from '@/lib/takeoff/lengthFormat';
@@ -23,6 +26,7 @@ import {TakeoffQuantityDock} from './TakeoffQuantityDock';
 import {TakeoffScaleOverlay} from './TakeoffScaleOverlay';
 import {TakeoffScalePanel} from './TakeoffScalePanel';
 import {TakeoffSheetMetadataEditor} from './TakeoffSheetMetadataEditor';
+import {pointFromPagePercent} from '@/lib/takeoff/pointEntry';
 import {TakeoffVertexEditor} from './TakeoffVertexEditor';
 import {TakeoffDock,TakeoffDockButton} from './TakeoffDock';
 import {useTakeoffWorkspaceUi} from './useTakeoffWorkspaceUi';
@@ -33,6 +37,7 @@ type Props={
   sidebar?:ReactNode;
   verificationPane?:ReactNode;
   takeoffSet:any;
+  historyScope:GeometryHistoryScope;
   estimate:any;
   pdfUrl:string;
   sourceTitle:string;
@@ -78,7 +83,7 @@ function geometryPath(geometry:DrawingGeometry,width:number,height:number){const
 function copyGeometry(geometry:DrawingGeometry):DrawingGeometry{return{type:geometry.type,points:geometry.points.map(point=>({...point})),...(geometry.holes?.length?{holes:geometry.holes.map(hole=>hole.map(point=>({...point})))}:{})};}
 function shiftGeometry(geometry:DrawingGeometry,dx:number,dy:number):DrawingGeometry{const all=[...geometry.points,...(geometry.holes||[]).flat()];const minX=Math.min(...all.map(point=>point.x)),maxX=Math.max(...all.map(point=>point.x)),minY=Math.min(...all.map(point=>point.y)),maxY=Math.max(...all.map(point=>point.y));const safeDx=Math.max(-minX,Math.min(1-maxX,dx)),safeDy=Math.max(-minY,Math.min(1-maxY,dy));const shift=(point:NormalizedPoint)=>({x:point.x+safeDx,y:point.y+safeDy});return{type:geometry.type,points:geometry.points.map(shift),...(geometry.holes?.length?{holes:geometry.holes.map(hole=>hole.map(shift))}:{})};}
 function physicalFootprint(points:NormalizedPoint[],version:any,values:any,calibration:any,box:any,anchor:any='center',offset:any=0){const config=parseRenderConfig(version?.render_config);const scale=Number(calibration?.ft_per_pdf_unit||calibration?.known_distance_ft/calibration?.pdf_distance);const width=Number(values?.[config?.widthVariable||'']);if(!config||config.mode!=='linear_buffer'||!(scale>0&&width>0))return[];return linearFootprint(points,box.pdfWidth,box.pdfHeight,scale,config.widthUnit==='FT'?width*12:width,anchor,Number(offset||0));}
-function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|null;return Boolean(el&&['INPUT','TEXTAREA','SELECT'].includes(el.tagName));}
+function isTypingTarget(target:EventTarget|null){const el=target as HTMLElement|null;return Boolean(el&&['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(el.tagName));}
 function clampZoom(value:number){return Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,value));}
 
 export function TakeoffDrawingWorkspace(props:Props){
@@ -109,6 +114,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   const initializingRef=useRef(false);
   const zoomAnchorRef=useRef<ZoomAnchor|null>(null);
   const historyRef=useRef(new GeometryCommandHistory());
+  const hydratedHistoryRef=useRef('');
+  const [historyNotice,setHistoryNotice]=useState('');
   const editOriginalRef=useRef<DrawingGeometry|null>(null);
   const utilityRef=useRef<HTMLDivElement|null>(null);
 
@@ -127,6 +134,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   const [hoverSnapped,setHoverSnapped]=useState(false);
   const [calibrationPoints,setCalibrationPoints]=useState<NormalizedPoint[]>([]);
   const [knownDistanceFt,setKnownDistanceFt]=useState('10');
+  const [pointX,setPointX]=useState('50');
+  const [pointY,setPointY]=useState('50');
   const [draftScaleRegionId,setDraftScaleRegionId]=useState<string|null>(null);
   const [scaleRegionPoints,setScaleRegionPoints]=useState<NormalizedPoint[]>([]);
   const [pendingScaleCandidate,setPendingScaleCandidate]=useState<ScaleCandidate|null>(null);
@@ -136,6 +145,20 @@ export function TakeoffDrawingWorkspace(props:Props){
   const setSelectedMeasurementId=useCallback((id:string|null)=>{if(props.onConditionMeasurementSelect)props.onConditionMeasurementSelect(id);else setLocalSelectedMeasurementId(id);},[props.onConditionMeasurementSelect]);
   const [editGeometry,setEditGeometry]=useState<DrawingGeometry|null>(null);
   const [historySnapshot,setHistorySnapshot]=useState<CommandHistorySnapshot>(()=>historyRef.current.snapshot());
+  const historyKey=geometryHistoryKey(props.historyScope);
+  useEffect(()=>{
+    if(hydratedHistoryRef.current===historyKey)return;
+    historyRef.current.clear();hydratedHistoryRef.current=historyKey;
+    try{const saved=localStorage.getItem(historyKey);if(saved)historyRef.current.restore(saved,props.historyScope,initialMeasurements.map(row=>({id:row.id,geometry:row.geometry,updated_at:row.updated_at})));}
+    catch(error:any){historyRef.current.clear();setHistoryNotice(error?.message||'Saved history unavailable.');try{localStorage.removeItem(historyKey);}catch{}}
+    setHistorySnapshot(historyRef.current.snapshot());
+  },[historyKey,props.historyScope,initialMeasurements]);
+  function persistHistory(){
+    setHistorySnapshot(historyRef.current.snapshot());
+    try{localStorage.setItem(historyKey,historyRef.current.serialize(props.historyScope));}
+    catch{setHistoryNotice('History is available for this session only; browser storage is unavailable.');}
+  }
+  function expectedRevision(id:string){const revision=historyRef.current.revision(id)||initialMeasurements.find(row=>row.id===id)?.updated_at;if(!revision)throw new Error('Current drawing revision unavailable. Reload before editing.');return revision;}
   const conditionDrawRef=useRef<{name:string;roleLabel:string}|null>(null);
   const [selectedAssemblyId,setSelectedAssemblyId]=useState<string>('');
   const [conditionDrawActive,setConditionDrawActive]=useState(false);
@@ -284,7 +307,7 @@ export function TakeoffDrawingWorkspace(props:Props){
         setMessage('Loading PDF plans…');
         const pdfjs=await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc='/pdf.worker.min.mjs';
-        const pdf=await pdfjs.getDocument({url:pdfUrl}).promise;
+        const pdf=await pdfjs.getDocument(drawingPdfSource(pdfUrl)).promise;
         if(cancelled){await pdf.destroy();return;}
         pdfRef.current=pdf;setPdfPageCount(pdf.numPages);setPdfReady(true);setMessage(`${pdf.numPages} sheet${pdf.numPages===1?'':'s'} loaded`);
         const sheetComplete=initialSheets.length===pdf.numPages&&initialSheets.every((s:any)=>Number(s.page_width||0)>0&&Number(s.page_height||0)>0);
@@ -380,8 +403,10 @@ export function TakeoffDrawingWorkspace(props:Props){
   const fitPage=useCallback(()=>{
     if(!renderBox||!viewportRef.current)return;
     const viewport=viewportRef.current;const baseWidth=renderBox.width/zoom;const baseHeight=renderBox.height/zoom;
-    const next=Math.min((viewport.clientWidth-36)/baseWidth,(viewport.clientHeight-36)/baseHeight);
-    setZoomAt(next);
+    const css=getComputedStyle(viewport);
+    const next=fitDrawingPage({width:viewport.clientWidth,height:viewport.clientHeight,pageWidth:baseWidth,pageHeight:baseHeight,left:parseFloat(css.paddingLeft)||0,right:parseFloat(css.paddingRight)||0,top:parseFloat(css.paddingTop)||0,bottom:parseFloat(css.paddingBottom)||0});
+    if(next===null)return;
+    zoomAnchorRef.current=null;viewport.scrollTo({left:0,top:0});setZoom(clampZoom(next));
   },[renderBox,zoom,setZoomAt]);
 
   const overlayPoint=useCallback((event:React.PointerEvent<SVGSVGElement>):NormalizedPoint|null=>{
@@ -446,12 +471,21 @@ export function TakeoffDrawingWorkspace(props:Props){
   function beginEdit(){if(!selectedMeasurement)return;beginEditMeasurement(selectedMeasurement);}
   function beginCutout(){if(locked||selectedGeometry?.type!=='polygon')return;setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('cutout');setMessage('Trace the opening inside the selected area, then press Enter.');}
 
+  function acceptGeometryResult(result:Awaited<ReturnType<typeof updateDrawingMeasurementGeometry>>){
+    if(!result.ok){
+      historyRef.current.clear();persistHistory();setHistoryNotice(result.message);
+      setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('select');router.refresh();
+      throw new Error(result.message);
+    }
+    return result;
+  }
   async function commitGeometry(kind:GeometryCommandKind,measurementId:string,before:DrawingGeometry,after:DrawingGeometry,success:string){
     if(locked||busy)return false;setBusy(true);
     try{
-      const result=await updateDrawingMeasurementGeometry({measurementId,takeoffSetId:takeoffSet.id,geometry:after});
-      historyRef.current.record({id:globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`,kind,measurementId,before:copyGeometry(before),after:copyGeometry(after),committedAt:new Date().toISOString()});
-      setHistorySnapshot(historyRef.current.snapshot());setMessage(`${success} · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('select');setSelectedMeasurementId(measurementId);router.refresh();return true;
+      const result=acceptGeometryResult(await updateDrawingMeasurementGeometry({measurementId,takeoffSetId:takeoffSet.id,geometry:canonicalGeometry(after),expectedGeometry:canonicalGeometry(before),expectedUpdatedAt:expectedRevision(measurementId)}));
+      if(!sameGeometry(result.geometry,after))throw new Error('Drawing changed after this save. Reload before editing again.');
+      historyRef.current.record({id:globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`,kind,measurementId,before:copyGeometry(before),after:result.geometry,committedAt:new Date().toISOString()},result.updatedAt);
+      persistHistory();setMessage(`${success} · ${formatTakeoffMeasurement(result.quantity,result.unit)}`);setEditGeometry(null);editOriginalRef.current=null;setDraftPoints([]);setHoverPoint(null);setTool('select');setSelectedMeasurementId(measurementId);router.refresh();return true;
     }catch(error:any){setMessage(error?.message||'Could not update drawing geometry.');return false;}finally{setBusy(false);}
   }
 
@@ -460,8 +494,8 @@ export function TakeoffDrawingWorkspace(props:Props){
   async function removeLastCutout(){if(!selectedMeasurementId||selectedGeometry?.type!=='polygon'||!selectedGeometry.holes?.length)return;const after=copyGeometry(selectedGeometry);after.holes=after.holes?.slice(0,-1);await commitGeometry('RemoveCutoutCommand',selectedMeasurementId,selectedGeometry,after,'Last cutout removed');}
   async function nudgeSelected(dx:number,dy:number){if(!selectedMeasurementId||!selectedGeometry||locked||busy)return;const after=shiftGeometry(selectedGeometry,dx,dy);await commitGeometry('MoveMeasurementCommand',selectedMeasurementId,selectedGeometry,after,'Takeoff nudged');}
 
-  async function undoCommitted(){const command=historyRef.current.undoCandidate();if(!command||locked||busy)return;setBusy(true);try{await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.before});historyRef.current.confirmUndo(command.id);setHistorySnapshot(historyRef.current.snapshot());setSelectedMeasurementId(command.measurementId);setMessage(`Undid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not undo the committed change.');}finally{setBusy(false);}}
-  async function redoCommitted(){const command=historyRef.current.redoCandidate();if(!command||locked||busy)return;setBusy(true);try{await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.after});historyRef.current.confirmRedo(command.id);setHistorySnapshot(historyRef.current.snapshot());setSelectedMeasurementId(command.measurementId);setMessage(`Redid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not redo the committed change.');}finally{setBusy(false);}}
+  async function undoCommitted(){const command=historyRef.current.undoCandidate();if(!command||locked||busy)return;setBusy(true);try{const result=acceptGeometryResult(await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.before,expectedGeometry:command.after,expectedUpdatedAt:expectedRevision(command.measurementId)}));if(!sameGeometry(result.geometry,command.before))throw new Error('Drawing changed after undo. Reload before editing again.');historyRef.current.confirmUndo(command.id);historyRef.current.setRevision(command.measurementId,result.updatedAt);persistHistory();setSelectedMeasurementId(command.measurementId);setMessage(`Undid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not undo the committed change.');}finally{setBusy(false);}}
+  async function redoCommitted(){const command=historyRef.current.redoCandidate();if(!command||locked||busy)return;setBusy(true);try{const result=acceptGeometryResult(await updateDrawingMeasurementGeometry({measurementId:command.measurementId,takeoffSetId:takeoffSet.id,geometry:command.after,expectedGeometry:command.before,expectedUpdatedAt:expectedRevision(command.measurementId)}));if(!sameGeometry(result.geometry,command.after))throw new Error('Drawing changed after redo. Reload before editing again.');historyRef.current.confirmRedo(command.id);historyRef.current.setRevision(command.measurementId,result.updatedAt);persistHistory();setSelectedMeasurementId(command.measurementId);setMessage(`Redid ${command.kind.replace('Command','').replace(/([A-Z])/g,' $1').trim().toLowerCase()}`);router.refresh();}catch(error:any){setMessage(error?.message||'Could not redo the committed change.');}finally{setBusy(false);}}
 
   useEffect(()=>{
     const down=(event:KeyboardEvent)=>{
@@ -513,8 +547,14 @@ export function TakeoffDrawingWorkspace(props:Props){
   },[draftPoints.length,calibrationPoints.length,scaleRegionPoints.length,tool,locked,finishDraft,selectedMeasurementId,selectedGeometry,renderBox,busy,zoom,setZoomAt,fitPage,pageNumber,pdfPageCount,openConditions,props.drawingViewHidden,mobileReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePointerDown(event:React.PointerEvent<SVGSVGElement>){
-    if(locked&&tool!=='select')return;
-    const raw=overlayPoint(event);if(!raw)return;
+    const raw=overlayPoint(event);if(raw)acceptPlanPoint(raw);
+  }
+  function addKeyboardPoint(){
+    try{acceptPlanPoint(pointFromPagePercent(pointX,pointY));}
+    catch(error:any){setMessage(error?.message||'Enter a valid page position.');}
+  }
+  function acceptPlanPoint(raw:NormalizedPoint){
+    if(mobileReview||busy||!renderBox||(locked&&tool!=='select'))return;
     const last=tool==='calibrate'?(calibrationPoints.at(-1)||null):tool==='scaleRegion'?(scaleRegionPoints.at(-1)||null):(draftPoints.at(-1)||null);const resolved=resolvePoint(raw,last);
     if(tool==='calibrate'){setCalibrationPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
     if(tool==='scaleRegion'){setScaleRegionPoints(points=>points.length>=2?[resolved.point]:[...points,resolved.point]);return;}
@@ -591,7 +631,7 @@ export function TakeoffDrawingWorkspace(props:Props){
       {!mobileReview&&!props.drawingViewHidden&&<TakeoffDock>
         <label className={`${styles.pageSelect} shrink-0`}><span>Sheet</span><Select aria-label="Select Pages" value={pageNumber} onChange={event=>changePage(Number(event.target.value))}>{pageEntries.map((sheet:any)=><option key={sheet.page_number} value={sheet.page_number}>{sheetDisplayLabel(sheet)}</option>)}</Select></label>
         <TakeoffSheetMetadataEditor takeoffSetId={takeoffSet.id} sheet={currentSheet} locked={locked||takeoffSet.status!=='active'}/>
-        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
+        <span className="h-8 w-px shrink-0 bg-border" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
           <TakeoffDockButton label="Select · V" icon={<MousePointer2 fontSize={16}/>} active={tool==='select'} pressed={tool==='select'} onClick={()=>setTool('select')}/>
           <TakeoffDockButton label="Pan · H or hold Space" icon={<Hand fontSize={16}/>} active={tool==='pan'} pressed={tool==='pan'} onClick={()=>setTool('pan')}/>
@@ -601,22 +641,22 @@ export function TakeoffDrawingWorkspace(props:Props){
           <TakeoffDockButton label="Edit selected shape · E" icon={<Pencil fontSize={15}/>} active={tool==='edit'} pressed={tool==='edit'} disabled={locked||!selectedGeometry} onClick={beginEdit}/>
           <TakeoffDockButton label="Add area cutout · K" icon={<Scissors fontSize={15}/>} active={tool==='cutout'} pressed={tool==='cutout'} disabled={locked||selectedGeometry?.type!=='polygon'} onClick={beginCutout}/>
         </div>
-        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
+        <span className="h-8 w-px shrink-0 bg-border" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
           <TakeoffDockButton label="Snap to existing vertices · S" icon={<Magnet fontSize={15}/>} active={snapEnabled} pressed={snapEnabled} onClick={()=>setSnapEnabled(value=>!value)}/>
           <TakeoffDockButton label="Constrain horizontal or vertical · O" icon={<MoveHorizontal fontSize={15}/>} active={orthoEnabled} pressed={orthoEnabled} onClick={()=>setOrthoEnabled(value=>!value)}/>
-          <TakeoffDockButton label="Undo point or geometry · Ctrl/Cmd+Z" icon={<Undo2 fontSize={15}/>} disabled={busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}/>
-          <TakeoffDockButton label="Redo geometry · Ctrl/Cmd+Shift+Z" icon={<Redo2 fontSize={15}/>} disabled={busy||!historySnapshot.canRedo} onClick={()=>void redoCommitted()}/>
+          <TakeoffDockButton label="Undo point or geometry · Ctrl/Cmd+Z" icon={<Undo2 fontSize={15}/>} disabled={locked||busy||(!draftPoints.length&&!calibrationPoints.length&&!scaleRegionPoints.length&&!historySnapshot.canUndo)} onClick={()=>{if(tool==='calibrate'&&calibrationPoints.length)setCalibrationPoints(points=>points.slice(0,-1));else if(tool==='scaleRegion'&&scaleRegionPoints.length)setScaleRegionPoints(points=>points.slice(0,-1));else if(draftPoints.length)setDraftPoints(points=>points.slice(0,-1));else void undoCommitted();}}/>
+          <TakeoffDockButton label="Redo geometry · Ctrl/Cmd+Shift+Z" icon={<Redo2 fontSize={15}/>} disabled={locked||busy||!historySnapshot.canRedo} onClick={()=>void redoCommitted()}/>
           {tool==='scaleRegion'&&<TakeoffDockButton label="Save scale region · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||scaleRegionPoints.length!==2} onClick={()=>void savePendingScaleRegion()}/>}
           {tool==='draw'&&<TakeoffDockButton label="Finish measurement · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||!draftPoints.length} onClick={()=>void finishDraft()}/>}
           {tool==='cutout'&&<TakeoffDockButton label="Save cutout · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||draftPoints.length<3} onClick={()=>void finishCutout()}/>}
           {tool==='edit'&&<TakeoffDockButton label="Save shape · Enter" icon={<Check fontSize={15}/>} emphasis showLabel disabled={busy||!editGeometry} onClick={()=>void saveEdit()}/>}
           {(tool==='draw'||tool==='calibrate'||tool==='scaleRegion'||tool==='cutout'||tool==='edit')&&<TakeoffDockButton label="Cancel active tool · Escape" icon={<X fontSize={15}/>} onClick={cancelTool}/>}
         </div>
-        <span className="h-8 w-px shrink-0 bg-[#333333]" aria-hidden="true"/>
+        <span className="h-8 w-px shrink-0 bg-border" aria-hidden="true"/>
         <div className="flex shrink-0 items-center gap-1">
           <TakeoffDockButton label="Zoom out" icon={<Minus fontSize={15}/>} onClick={()=>setZoomAt(zoom/1.2)}/>
-          <Button type="button" className="min-w-12 text-xs font-mono tabular-nums text-[#EDEDED]" title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Reset zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i> HQ</i>}</Button>
+          <Button type="button" className="min-w-12 text-xs tabular-nums text-foreground" title={qualityLimited?'Display zoom exceeds full-resolution render budget. Geometry remains exact.':'Reset zoom'} onClick={()=>setZoomAt(1)}>{zoomPercent}%{qualityLimited&&<i> HQ</i>}</Button>
           <TakeoffDockButton label="Zoom in" icon={<Plus fontSize={15}/>} onClick={()=>setZoomAt(zoom*1.2)}/>
           <TakeoffDockButton label="Fit width · 0" icon={<RotateCcw fontSize={15}/>} onClick={()=>setZoomAt(1)}/>
           <TakeoffDockButton label="Fit page · 1" icon={<Maximize fontSize={15}/>} onClick={fitPage}/>
@@ -626,8 +666,8 @@ export function TakeoffDrawingWorkspace(props:Props){
       <div ref={attachViewport} className={styles.canvasViewport} onPointerDownCapture={startViewportPan} onPointerMoveCapture={moveViewportPan} onPointerUpCapture={stopViewportPan} onPointerCancelCapture={stopViewportPan} onClickCapture={event=>{if(mobileReview||tool==='pan'||spaceHeld)event.stopPropagation();}}>
         {!renderBox&&<div className={styles.loading}><div className="flex flex-col items-center gap-3 px-6 text-center"><p role={pdfLoadError?'alert':'status'}>{message}</p>{pdfLoadError&&<Button type="button" className="rounded border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" onClick={()=>setPdfLoadAttempt(attempt=>attempt+1)}>Retry PDF</Button>}</div></div>}
         <div ref={paperRef} className={styles.paper} style={renderBox?{width:renderBox.width,height:renderBox.height}:{width:1,height:1}}>
-          <canvas ref={canvasRef} className={styles.pdfCanvas}/>
-          {renderBox&&<svg className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
+          <canvas ref={canvasRef} className={styles.pdfCanvas} role="img" aria-label={`Plan drawing: ${sheetDisplayLabel(currentSheet||{page_number:pageNumber})}; page ${pageNumber} of ${pdfPageCount}`}/>
+          {renderBox&&<svg role="group" aria-label="Takeoff geometry; use canvas controls for keyboard point entry" className={`${styles.overlay} ${overlayClass}`} viewBox={`0 0 ${renderBox.pdfWidth} ${renderBox.pdfHeight}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerLeave={()=>{if(!panning){setHoverPoint(null);setHoverSnapped(false);}}} onContextMenu={event=>{event.preventDefault();if(tool==='draw')void finishDraft();if(tool==='cutout')void finishCutout();}}>
             <TakeoffScaleOverlay regions={currentScaleRegions} pendingCandidate={pendingScaleCandidate} regionPoints={scaleRegionPoints} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight}/>
             {currentMeasurements.map((measurement:any)=>{
               if(props.conditionPresentation?.hiddenMeasurementIds.includes(measurement.id))return null;
@@ -654,7 +694,7 @@ export function TakeoffDrawingWorkspace(props:Props){
               onEditMeasurement={beginEditMeasurement}
             />
 
-            {tool==='edit'&&editGeometry&&selectedMeasurement&&<TakeoffVertexEditor geometry={editGeometry} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight} color={selectedColor} onChange={setEditGeometry}/>}
+            {!locked&&tool==='edit'&&editGeometry&&selectedMeasurement&&<TakeoffVertexEditor geometry={editGeometry} pageWidth={renderBox.pdfWidth} pageHeight={renderBox.pdfHeight} color={selectedColor} onChange={setEditGeometry}/>}
 
             {tool==='draw'&&draftRenderPoints.length>0&&<g pointerEvents="none">
               {selectedAssembly?.primary_measurement==='SF'&&draftRenderPoints.length>=2&&<polygon points={draftRenderPoints.map(p=>`${p.x*renderBox.pdfWidth},${p.y*renderBox.pdfHeight}`).join(' ')} fill="rgba(66,111,147,.13)" stroke="#426F93" strokeWidth="2" strokeDasharray="7 5" vectorEffect="non-scaling-stroke"/>}
@@ -677,7 +717,7 @@ export function TakeoffDrawingWorkspace(props:Props){
           key={currentSheet?.id||'empty-sheet'}
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-36 right-6 z-[46] max-w-72 rounded border border-[#333333] bg-[#111111]/95 px-4 py-3 text-xs text-[#EDEDED] shadow-[0_16px_36px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+          className="pointer-events-none fixed bottom-36 right-6 z-[46] max-w-72 rounded border border-border bg-card px-4 py-3 text-xs text-foreground shadow-sm"
           initial={reducedMotion?false:{opacity:0,y:18}}
           animate={{opacity:1,y:0}}
           exit={reducedMotion?{opacity:0}:{opacity:0,y:18}}
@@ -685,17 +725,35 @@ export function TakeoffDrawingWorkspace(props:Props){
         >No takeoffs on this sheet yet. Select a Condition in the roster to start tracing.</motion.div>}
       </AnimatePresence>
 
+      {historyNotice&&<div role="status" className={styles.historyNotice}>{historyNotice}</div>}
       {mobileReview?<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?'Scale set':'Scale required'}</span><span className={styles.mobileReviewStatus}>Review only</span></div>:<div className={styles.statusbar}><span><strong>Page {pageNumber}</strong> / {pdfPageCount||'…'}</span><span className={currentScale?styles.statusOk:styles.statusHold}>{currentScale?`${currentScaleRegions.length||1} scale${(currentScaleRegions.length||1)===1?'':'s'} set`:'Scale required'}</span><span>{snapEnabled?'Snap on':'Snap off'} · {orthoEnabled?'Ortho on':'Ortho off'}</span><span className={styles.statusHint}>{tool==='draw'?'Click points · Enter/right-click to finish':tool==='scaleRegion'?'Pick two opposite region corners · Enter to save':tool==='cutout'?'Trace opening · Enter/right-click to subtract':tool==='edit'?'Drag vertices · Enter to save':'Wheel zoom · Space/middle mouse pan · Arrows nudge selection'}</span><span className={styles.statusMessage}>{message}</span></div>}
     </section>
     {props.verificationPane}
 
-    {!mobileReview&&<Draggable nodeRef={utilityRef} handle={`.${styles.utilityHandle}`} cancel="button,input,select,textarea,.react-resizable-handle" bounds="parent" defaultPosition={utilityPosition} onStop={(_,data)=>setUtilityPosition({x:data.x,y:data.y})}><div ref={utilityRef} className={`${styles.canvasHud} ${inspectorOpen?styles.floatingUtility:''} absolute bottom-28 right-6 z-40 border border-border bg-surface-raised px-4 py-2 rounded text-[11px] text-muted-foreground cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
-      <div className={styles.utilityHandle} aria-label="Move canvas controls">Canvas controls <span aria-hidden="true">⋮⋮</span></div>
-      <Button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left font-mono" title="Scale, calibration and selected takeoff controls">
+    {!mobileReview&&<Draggable nodeRef={utilityRef} handle={`.${styles.utilityHandle}`} cancel="button,input,select,textarea,.react-resizable-handle" bounds="parent" position={utilityPosition} onStop={(_,data)=>setUtilityPosition({x:data.x,y:data.y})}><div ref={utilityRef} className={`${styles.canvasHud} ${inspectorOpen?styles.floatingUtility:''} absolute bottom-28 right-6 z-40 border border-border bg-surface-raised px-4 py-2 rounded text-[11px] text-muted-foreground cursor-default`} onKeyDown={event=>{if(event.key==='Escape')setInspectorOpen(false);event.stopPropagation();}} onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()}>
+      <div className={styles.utilityHandle} tabIndex={0} role="group" aria-label="Move canvas controls with arrow keys; Home resets position" onKeyDown={event=>{const step=event.shiftKey?20:5;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();setUtilityPosition(position=>{
+        if(event.key==='Home')return{x:0,y:0};
+        const panel=utilityRef.current?.getBoundingClientRect();const bounds=utilityRef.current?.parentElement?.getBoundingClientRect();if(!panel||!bounds)return position;
+        const dx=event.key==='ArrowRight'?step:event.key==='ArrowLeft'?-step:0,dy=event.key==='ArrowDown'?step:event.key==='ArrowUp'?-step:0;
+        return{x:position.x+Math.max(bounds.left-panel.left,Math.min(bounds.right-panel.right,dx)),y:position.y+Math.max(bounds.top-panel.top,Math.min(bounds.bottom-panel.bottom,dy))};
+      });}}}>Canvas controls <span aria-hidden="true">⋮⋮</span></div>
+      {inspectorOpen&&<div className={styles.utilityKeyboard}><Button size="small" onClick={()=>{setUtilityPosition({x:0,y:0});setUtilitySize({width:340,height:420});}}>Reset controls</Button><Button size="small" aria-label="Make canvas controls smaller" onClick={()=>setUtilitySize(size=>({width:Math.max(260,size.width-40),height:Math.max(240,size.height-40)}))}>Smaller</Button><Button size="small" aria-label="Make canvas controls larger" onClick={()=>setUtilitySize(size=>({width:Math.min(620,size.width+40),height:Math.min(640,size.height+40)}))}>Larger</Button></div>}
+      <Button type="button" aria-expanded={inspectorOpen} aria-controls="takeoff-canvas-controls" onClick={()=>setInspectorOpen(value=>!value)} className="flex items-center gap-2 text-left" title="Scale, calibration and selected takeoff controls">
         <Ruler fontSize={12}/><span className="max-w-32 truncate">{currentScaleRegions.find(region=>region.is_default)?.scale_label||(currentScale?'Regional scale':'Set scale')}</span>
         {selectedMeasurement?<output className="border-l border-border pl-2 text-[12px] font-semibold text-foreground" title={selectedMeasurement.name}>{formatTakeoffMeasurement(selectedMeasurement.raw_quantity,selectedMeasurement.raw_unit)}</output>:null}
       </Button>
       {inspectorOpen&&<ResizableBox width={utilitySize.width} height={utilitySize.height} minConstraints={[260,240]} maxConstraints={[620,640]} resizeHandles={['se']} onResizeStop={(_,data)=>setUtilitySize(data.size)}><div id="takeoff-canvas-controls" className={styles.hudControls}>
+          {['calibrate','scaleRegion','draw','cutout'].includes(tool)&&<Accordion collapsible className={styles.advanced}><AccordionItem value="point-entry"><AccordionHeader>Keyboard point entry</AccordionHeader><AccordionPanel><div className={styles.advancedBody}>
+            <p className={styles.groupHelp}>Position from the page’s top-left corner. X runs left to right; Y runs top to bottom. The same snap, scale and Condition rules apply.</p>
+            <div className={styles.buttonRow}>
+              <Input appearance="underline" type="number" min={0} max={100} step="any" aria-label="Point X, percent of page width" contentAfter="% X" value={pointX} onChange={(_,data)=>setPointX(data.value)} disabled={locked||busy}/>
+              <Input appearance="underline" type="number" min={0} max={100} step="any" aria-label="Point Y, percent of page height" contentAfter="% Y" value={pointY} onChange={(_,data)=>setPointY(data.value)} disabled={locked||busy}/>
+            </div>
+            <div className={styles.buttonRow}><Button type="button" disabled={locked||busy} onClick={addKeyboardPoint}>Add point</Button>
+              {tool==='draw'&&<Button type="button" disabled={locked||busy||!draftPoints.length} onClick={()=>void finishDraft()}>Finish measurement</Button>}
+              {tool==='cutout'&&<Button type="button" disabled={locked||busy||draftPoints.length<3} onClick={()=>void finishCutout()}>Save cutout</Button>}
+            </div><span role="status">{tool==='calibrate'?calibrationPoints.length:tool==='scaleRegion'?scaleRegionPoints.length:draftPoints.length} points placed</span>
+          </div></AccordionPanel></AccordionItem></Accordion>}
           <TakeoffScalePanel
             regions={currentScaleRegions}
             candidates={visibleScaleCandidates}

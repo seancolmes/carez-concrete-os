@@ -1,33 +1,38 @@
 import { redirect, notFound } from 'next/navigation';
+import {requireTakeoffRead} from '@/lib/takeoff/requiredReads';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { TakeoffConditionWorkflowShell } from '@/components/takeoff/TakeoffConditionWorkflowShell';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
+import { TakeoffDesktopBoundary } from '@/components/takeoff/TakeoffDesktopBoundary';
 import pageStyles from './TakeoffDrawingPage.module.css';
 import { resolveDerived3DSnapshot } from '@/lib/takeoff/conditions/derived3d/resolve.server';
 
+export const maxDuration=300;
 export default async function TakeoffDrawingPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: profile } = await supabase.from('profiles').select('full_name,company_id,role').eq('id', user.id).single();
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('full_name,company_id,role').eq('id', user.id).single();
+  requireTakeoffRead('workspace access',profile,profileError);
   if (!profile?.company_id) redirect('/login');
   if (profile.role === 'employee') redirect('/employee');
   const companyId = profile.company_id;
 
-  const { data: set } = await supabase.from('takeoff_sets').select('*').eq('id', setId).eq('company_id', companyId).maybeSingle();
+  const { data: set, error: setError } = await supabase.from('takeoff_sets').select('*').eq('id', setId).eq('company_id', companyId).maybeSingle();
+  requireTakeoffRead('plan set',set,setError,false);
   if (!set) notFound();
 
   const [
-    { data: estimate }, { data: presentation }, { data: document }, { data: sheets }, { data: scaleRegions }, { data: measurements },
-    { data: assemblies }, { data: versions }, { data: variables }, { data: sections }, { data: riskClasses }, { data: methodProfiles },
+    { data: estimate, error: estimateError }, { data: presentation, error: presentationError }, { data: document, error: documentError }, { data: sheets, error: sheetsError }, { data: scaleRegions, error: scaleRegionsError }, { data: measurements, error: measurementsError },
+    { data: assemblies, error: assembliesError }, { data: versions, error: versionsError }, { data: variables, error: variablesError }, { data: sections, error: sectionsError }, { data: riskClasses, error: riskClassesError }, { data: methodProfiles, error: methodProfilesError },
   ] = await Promise.all([
     supabase.from('estimates').select('id,estimate_number,name,version,status,lead_id').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle(),
     supabase.from('proposal_presentations').select('id,proposal_number,status').eq('estimate_id', set.estimate_id).eq('company_id', companyId).limit(1).maybeSingle(),
-    set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null }),
+    set.source_document_id ? supabase.from('company_documents').select('id,title,storage_path,mime_type').eq('id', set.source_document_id).eq('company_id', companyId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     supabase.from('takeoff_sheets').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('page_number'),
     supabase.from('takeoff_scale_regions').select('*').eq('takeoff_set_id', setId).eq('company_id', companyId).order('is_default', { ascending: false }).order('created_at'),
     supabase.from('takeoff_measurements').select('id,sheet_id,scale_region_id,method_profile_id,estimate_section_id,assembly_version_id,name,location,drawing_reference,raw_quantity,raw_unit,geometry,geometry_anchor,geometry_offset_in,updated_at,status,variables,risk_class_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'active').order('created_at'),
@@ -38,6 +43,18 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     supabase.from('li_risk_classes').select('code,name,employer_rate_per_hour,tax_year').eq('company_id', companyId).eq('active', true).order('code'),
     supabase.from('takeoff_method_profiles').select('id,assembly_version_id,revision_no,name,status,method_inputs,verification_notes,verified_by,verified_at,profile_kind,variant_code').eq('takeoff_set_id', setId).eq('company_id', companyId).eq('status', 'verified').order('revision_no', { ascending: false }),
   ]);
+  requireTakeoffRead('estimate',estimate,estimateError);
+  requireTakeoffRead('presentation',presentation,presentationError,false);
+  requireTakeoffRead('document',document,documentError,Boolean(set.source_document_id));
+  requireTakeoffRead('sheets',sheets,sheetsError);
+  requireTakeoffRead('scaleRegions',scaleRegions,scaleRegionsError);
+  requireTakeoffRead('measurements',measurements,measurementsError);
+  requireTakeoffRead('assemblies',assemblies,assembliesError);
+  requireTakeoffRead('versions',versions,versionsError);
+  requireTakeoffRead('variables',variables,variablesError);
+  requireTakeoffRead('sections',sections,sectionsError);
+  requireTakeoffRead('riskClasses',riskClasses,riskClassesError);
+  requireTakeoffRead('methodProfiles',methodProfiles,methodProfilesError);
   const { data: opportunity } = estimate?.lead_id
     ? await supabase.from('leads').select('id,opportunity_number').eq('id', estimate.lead_id).eq('company_id', companyId).maybeSingle()
     : { data: null };
@@ -45,24 +62,22 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   const measurementIds = (measurements || []).map((m: any) => m.id);
   let summaries: any[] = [];
   if (measurementIds.length) {
-    const { data } = await supabase.from('takeoff_measurement_outputs')
+    const { data, error } = await supabase.from('takeoff_measurement_outputs')
       .select('id,measurement_id,generated_estimate_item_id,component_key,label,estimate_item_type,production_quantity,production_unit,estimated_man_hours,baseline_man_hours_per_unit,job_man_hours_per_unit,unit_cost,cost_source,direct_cost,pricing_status,is_active,resource_behavior,estimate_visible,formula_trace')
       .eq('company_id', companyId)
       .in('measurement_id', measurementIds);
-    summaries = data || [];
+    summaries = requireTakeoffRead('measurement outputs',data,error) || [];
   }
 
-  let pdfUrl: string | null = null;
-  if (document?.storage_path) {
-    const { data } = await supabase.storage.from('carez-documents').createSignedUrl(document.storage_path, 28800);
-    pdfUrl = data?.signedUrl || null;
-  }
+  const pdfUrl=document?.storage_path?`/api/documents/${document.id}/content`:null;
 
-  const locked = Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
+  if (set.source_document_id && !document?.storage_path) throw new Error('Takeoff drawing reference is unavailable.');
+  const locked = set.status !== 'active' || Boolean(presentation) || !estimate || ['accepted', 'approved', 'superseded'].includes(estimate.status);
   const estimateLabel = estimate ? `${estimate.estimate_number}-R${estimate.version}` : 'Estimate';
 
   const workspaceProps = {
     takeoffSet: set,
+    historyScope: {companyId,userId:user.id,takeoffSetId:setId},
     estimate,
     pdfUrl: pdfUrl || '',
     sourceTitle: document?.title || 'Plan set',
@@ -79,13 +94,14 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     locked,
   };
 
-  const { data: conditionSummaries } = await supabase.from('project_condition_summary')
+  const { data: conditionSummaries, error: conditionSummariesError } = await supabase.from('project_condition_summary')
     .select('company_id,condition_id,takeoff_set_id,code,name,condition_version_id,revision_no,version_status,template_version_id,archetype_code,archetype_name,measurement_count,output_count,held_output_count,open_hold_count,direct_cost')
     .eq('company_id', companyId)
     .eq('takeoff_set_id', setId)
     .order('code')
     .order('revision_no', { ascending: false });
 
+  requireTakeoffRead('condition summaries',conditionSummaries,conditionSummariesError);
   const conditionVersionIds = [...new Set((conditionSummaries || [])
     .map((row: any) => row.condition_version_id)
     .filter(Boolean))] as string[];
@@ -107,16 +123,16 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
 
   if (conditionVersionIds.length) {
     const [
-      { data: conditionVersions },
-      { data: conditionTemplateVersions },
-      { data: conditionModules },
-      { data: conditionRoles },
-      { data: conditionOutputs },
-      { data: conditionHolds },
-      { data: conditionReconciliation },
+      { data: conditionVersions, error: conditionVersionsError },
+      { data: conditionTemplateVersions, error: conditionTemplateVersionsError },
+      { data: conditionModules, error: conditionModulesError },
+      { data: conditionRoles, error: conditionRolesError },
+      { data: conditionOutputs, error: conditionOutputsError },
+      { data: conditionHolds, error: conditionHoldsError },
+      { data: conditionReconciliation, error: conditionReconciliationError },
     ] = await Promise.all([
       supabase.from('project_concrete_condition_versions')
-        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at,output_overrides')
+        .select('id,template_version_id,archetype_version_id,status,plan_facts,method_inputs,production_inputs,commercial_inputs,drawing_inputs,input_provenance,updated_at,compatibility_anchor_measurement_id,output_overrides')
         .eq('company_id', companyId)
         .in('id', conditionVersionIds),
       supabase.from('company_condition_template_versions')
@@ -150,12 +166,20 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
         .order('output_key'),
     ]);
 
+    requireTakeoffRead('conditionVersions',conditionVersions,conditionVersionsError);
+    requireTakeoffRead('conditionTemplateVersions',conditionTemplateVersions,conditionTemplateVersionsError);
+    requireTakeoffRead('conditionModules',conditionModules,conditionModulesError);
+    requireTakeoffRead('conditionRoles',conditionRoles,conditionRolesError);
+    requireTakeoffRead('conditionOutputs',conditionOutputs,conditionOutputsError);
+    requireTakeoffRead('conditionHolds',conditionHolds,conditionHoldsError);
+    requireTakeoffRead('conditionReconciliation',conditionReconciliation,conditionReconciliationError);
+    if (conditionVersions?.length !== conditionVersionIds.length || conditionTemplateVersions?.length !== conditionTemplateVersionIds.length) throw new Error('A required Condition revision is unavailable.');
     const archetypeVersionIds = [...new Set((conditionVersions || []).map((row: any) => row.archetype_version_id).filter(Boolean))] as string[];
     let conditionArchetypeVersions: any[] = [];
     if (archetypeVersionIds.length) {
       const { data, error } = await supabase.from('platform_condition_archetype_versions')
         .select('id,version_no,archetype_code_snapshot,status,engine_key')
-        .in('id', archetypeVersionIds);
+        .or(`id.in.(${archetypeVersionIds.join(',')}),and(archetype_code_snapshot.eq.strip_wall_footing,version_no.eq.6,status.eq.published)`);
       if (error) throw new Error(error.message);
       conditionArchetypeVersions = data || [];
     }
@@ -176,6 +200,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
   conditionData.derived3DSnapshot = resolveDerived3DSnapshot(companyId, setId, conditionData, measurements || [], sheets || [], scaleRegions || []);
 
   return <AppShell userName={profile.full_name || user.email || 'Owner'}>
+    <TakeoffDesktopBoundary returnHref={`/opportunities?estimate=${encodeURIComponent(set.estimate_id)}`} returnLabel="Return to estimate">
     <div className="takeoff-app-page">
       <header className={pageStyles.identityStrip}>
         <div className={pageStyles.identity}>
@@ -198,5 +223,6 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
       <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}
     </div>
+    </TakeoffDesktopBoundary>
   </AppShell>;
 }

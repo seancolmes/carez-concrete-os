@@ -45,7 +45,7 @@
 }
 .estimate{
   flex:none;
-  font-family:var(--font-source-code-pro),ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-family:var(--pourtrace-ui-font);
   font-size:11px;
   line-height:1.2;
   font-weight:650;

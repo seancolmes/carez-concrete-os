@@ -1,6 +1,6 @@
 'use client';
 
-import {useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {AddRegular} from '@fluentui/react-icons';
 import {Button,Dialog,DialogBody,DialogContent,DialogSurface,DialogTitle,Field,Input,Menu,MenuButton,MenuItem,MenuList,MenuPopover,MenuTrigger,Select,Textarea} from '@fluentui/react-components';
@@ -16,6 +16,15 @@ export function OpportunityActions({projects}:{projects:{id:string;job_number:st
   const [estimateOpen,setEstimateOpen]=useState(false);
   const [creating,setCreating]=useState(false);
   const [createError,setCreateError]=useState('');
+  const newButtonRef=useRef<HTMLButtonElement>(null);
+  const restoreFocusRef=useRef(false);
+
+  useEffect(()=>{
+    if(!opportunityOpen&&!estimateOpen&&restoreFocusRef.current){
+      restoreFocusRef.current=false;
+      newButtonRef.current?.focus();
+    }
+  },[opportunityOpen,estimateOpen]);
 
   async function submitOpportunity(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
@@ -37,15 +46,15 @@ export function OpportunityActions({projects}:{projects:{id:string;job_number:st
 
   return <>
     <Menu>
-      <MenuTrigger disableButtonEnhancement><MenuButton appearance="primary" size="small" icon={<AddRegular/>}>New</MenuButton></MenuTrigger>
-      <MenuPopover><MenuList>
-        <MenuItem onClick={()=>setOpportunityOpen(true)}>Opportunity</MenuItem>
-        <MenuItem onClick={()=>setEstimateOpen(true)}>Standalone estimate</MenuItem>
+      <MenuTrigger disableButtonEnhancement><MenuButton ref={newButtonRef} id="opportunity-new-trigger" appearance="primary" size="small" icon={<AddRegular/>}>New</MenuButton></MenuTrigger>
+      <MenuPopover><MenuList aria-labelledby="opportunity-new-trigger">
+        <MenuItem onClick={()=>{restoreFocusRef.current=true;setOpportunityOpen(true);}}>Opportunity</MenuItem>
+        <MenuItem onClick={()=>{restoreFocusRef.current=true;setEstimateOpen(true);}}>Standalone estimate</MenuItem>
       </MenuList></MenuPopover>
     </Menu>
 
     <Dialog open={opportunityOpen} onOpenChange={(_,data)=>{setOpportunityOpen(data.open);if(!data.open)setCreateError('');}}>
-      <DialogSurface className="max-h-[90dvh] w-[min(48rem,calc(100vw-2rem))] max-w-none overflow-x-hidden p-0">
+      <DialogSurface className="pt-dialog max-h-[90dvh] w-[min(48rem,calc(100vw-2rem))] overflow-x-hidden p-0">
         <DialogBody className="min-w-0 max-h-[90dvh] overflow-y-auto overflow-x-hidden p-5 sm:p-6">
           <DialogTitle>New opportunity</DialogTitle>
           <DialogContent className="min-w-0">
@@ -90,7 +99,7 @@ export function OpportunityActions({projects}:{projects:{id:string;job_number:st
     </Dialog>
 
     <Dialog open={estimateOpen} onOpenChange={(_,data)=>setEstimateOpen(data.open)}>
-      <DialogSurface className="w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-x-hidden">
+      <DialogSurface className="pt-dialog w-[min(32rem,calc(100vw-2rem))] overflow-x-hidden">
         <DialogBody className="min-w-0"><DialogTitle>Standalone estimate</DialogTitle><DialogContent>
           <p className="mb-3 text-xs text-muted-foreground">Use this when no customer opportunity exists to carry forward.</p>
           <form action={createEstimate} className="grid min-w-0 gap-3">

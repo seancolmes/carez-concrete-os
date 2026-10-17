@@ -1,7 +1,7 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import {AppShell} from '@/components/AppShell';
-import {FieldWorkspace} from '@/components/field/FieldWorkspace';
+import {FieldWorkspace,resolveFieldView} from '@/components/field/FieldWorkspace';
 import {NewPourPlanDialog} from '@/components/field/NewPourPlanDialog';
 import {WorkspaceRecordBoard,type WorkspaceRecordRow} from '@/components/workspace/WorkspaceRecordBoard';
 import {createClient} from '@/lib/supabase/server';
@@ -52,20 +52,20 @@ export default async function FieldPage({searchParams}:{searchParams:Promise<Sea
     return {id:item.id,code:project?.job_number||`S-${item.id.slice(0,8)}`,title:item.title||pour?.name||'Scheduled operation',context:`${project?.name||'Project'} · ${String(item.item_type||'work').replaceAll('_',' ')}`,status,tone:/hold|blocked/i.test(status)?'error' as const:/ready|complete/i.test(status)?'success' as const:'info' as const,date:item.schedule_date,figureLabel:hasPour?'Planned concrete':'Crew required',figure:hasPour?plannedConcrete:crewNeeded,details:[{label:'Scheduled',value:item.schedule_date||'Not set'},{label:'Crew required',value:crewNeeded},...(hasPour?[{label:'Planned concrete',value:plannedConcrete}]:[])],href:hasPour?'/field?view=deliveries':'/field?view=schedule',actionLabel:hasPour?'Open pour activity':'Open schedule'};
   }),...(pours||[]).filter(pour=>!scheduledPourIds.has(pour.id)).map(pour=>{const project=Array.isArray(pour.projects)?pour.projects[0]:pour.projects;const status=String(pour.status||'planning').replaceAll('_',' ');const concrete=pour.expected_concrete_yards==null?'Not set':`${Number(pour.expected_concrete_yards).toLocaleString()} CY`;return{id:`pour:${pour.id}`,code:project?.job_number||'Pour',title:pour.name||'Planned pour',context:`${project?.name||'Project'} · pour plan`,status,tone:/hold|blocked/i.test(status)?'error' as const:/authorized|active|complete/i.test(status)?'success' as const:'info' as const,date:pour.scheduled_date,figureLabel:'Planned concrete',figure:concrete,details:[{label:'Scheduled',value:pour.scheduled_date||'Not set'},{label:'Planned concrete',value:concrete}],href:'/field?view=deliveries',actionLabel:'Open pour activity'};})].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
   const {tab,view}=await searchParams;
+  const isSchedule=resolveFieldView(tab,view)==='schedule';
+  const fieldContext=<header className="pt-context-band shrink-0"><div className="pt-context-identity"><nav aria-label="Breadcrumb"><Link href="/dashboard">Dashboard</Link><span className="ml-2" aria-hidden="true">/</span></nav><h1>Field</h1></div><div className="pt-context-action"><NewPourPlanDialog today={today} projects={projectOptions} scopeLinks={scopeLinks} changeOrders={orderOptions}/></div></header>;
 
   return <AppShell userName={profile.full_name||user.email||'Owner'}>
     <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
-      <header className="relative shrink-0 border border-border bg-card px-4 py-3 pr-40 shadow-sm"><nav aria-label="Breadcrumb" className="text-[11px] font-medium text-muted-foreground"><Link href="/dashboard">Dashboard</Link><span className="mx-1 opacity-50">/</span>Field</nav><h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Field</h1>
-        <NewPourPlanDialog today={today} projects={projectOptions} scopeLinks={scopeLinks} changeOrders={orderOptions}/>
-      </header>
+      {!isSchedule?fieldContext:null}
       <div className="min-h-0 flex-1 overflow-auto">
-      <FieldWorkspace tab={tab} view={view} dispatch={<><section aria-label="Dispatch summary" className="ambient-glow mb-4 grid grid-cols-2 border-y border-border text-xs sm:grid-cols-4">
+      <FieldWorkspace tab={tab} view={view} scheduleContext={isSchedule?fieldContext:undefined} dispatch={<><section aria-label="Dispatch summary" className="ambient-glow mb-4 grid grid-cols-2 border-y border-border text-xs sm:grid-cols-4">
         <div className="flex h-14 min-w-0 flex-col justify-center border-r border-b border-border px-3 sm:border-b-0" title="Authorized pours scheduled today"><span className="truncate text-muted-foreground">Active pours today</span><strong className="font-mono text-base tabular-nums">{activePours??'—'}</strong></div>
         <div className="flex h-14 min-w-0 flex-col justify-center border-b border-border px-3 sm:border-r sm:border-b-0" title="Upcoming work on the dispatch board"><span className="truncate text-muted-foreground">Scheduled operations</span><strong className="font-mono text-base tabular-nums">{scheduleError?'—':(scheduled||[]).length}</strong></div>
         <div className="flex h-14 min-w-0 flex-col justify-center border-r border-border px-3" title={crewError?'Crew roster unavailable':`${present??'—'} of ${(crew||[]).length} active crew recorded today`}><span className="truncate text-muted-foreground">Crew attendance</span><strong className="font-mono text-base tabular-nums">{present??'—'}<span className="ml-1 text-xs font-normal text-muted-foreground">/ {(crew||[]).length}</span></strong></div>
         <div className="flex h-14 min-w-0 flex-col justify-center px-3" title="Concrete entered in today's daily logs"><span className="truncate text-muted-foreground">Cubic yards placed</span><strong className="font-mono text-base tabular-nums">{placed==null?'—':placed.toFixed(2)}<span className="ml-1 text-xs font-normal text-muted-foreground">CY</span></strong></div>
       </section>
-      <WorkspaceRecordBoard title="Dispatch Board" description="Scheduled work and pour plans, ordered by field date." rows={records} empty={scheduleError||poursError||linkedPourError?'The dispatch board is temporarily unavailable.':'No upcoming field operations are scheduled.'}/></>}/>
+      <WorkspaceRecordBoard phoneStackedRows title="Dispatch Board" description="Scheduled work and pour plans, ordered by field date." rows={records} empty={scheduleError||poursError||linkedPourError?'The dispatch board is temporarily unavailable.':'No upcoming field operations are scheduled.'}/></>}/>
       </div>
     </div>
   </AppShell>;

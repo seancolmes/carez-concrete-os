@@ -1,0 +1,27 @@
+begin;
+-- Isolated Auth identities only. No email or password mutation.
+create extension if not exists pgtap with schema extensions;select extensions.no_plan();
+alter table auth.users disable trigger on_auth_user_created;
+insert into auth.users(id,email) values('e8100000-0000-4000-8000-000000000001','issuance@local.invalid');
+alter table auth.users enable trigger on_auth_user_created;
+set local role authenticated;
+select extensions.throws_like($$select public.carez_begin_password_recovery_request(repeat('a',64))$$,'%permission denied%','ordinary sessions cannot register recovery purposes');
+select extensions.throws_like($$select * from public.password_recovery_issuances$$,'%permission denied%','issuance hashes remain private');
+reset role;set local role anon;
+select extensions.throws_like($$select public.carez_claim_password_recovery_token(repeat('b',64))$$,'%permission denied%','anonymous cannot claim issuance authority');
+reset role;
+create temp table recovery_request(id uuid);grant all on recovery_request to service_role;
+set local role service_role;
+insert into recovery_request select public.carez_begin_password_recovery_request(repeat('a',64));
+select extensions.throws_like($$select public.carez_begin_password_recovery_request(repeat('a',64))$$,'%temporarily limited%','recipient throttle is durable before provider call');
+select extensions.throws_like($$select public.carez_claim_password_recovery_token(repeat('b',64))$$,'%not issued here%','unregistered magiclink cannot obtain recovery authority');
+select extensions.lives_ok($$select public.carez_register_password_recovery_token((select id from recovery_request),repeat('b',64),'e8100000-0000-4000-8000-000000000001',clock_timestamp()+interval '14 minutes')$$,'trusted issuance is registered before delivery');
+select extensions.is(public.carez_claim_password_recovery_token(repeat('b',64)),'e8100000-0000-4000-8000-000000000001'::uuid,'explicit confirmation obtains exact issued identity');
+select extensions.throws_like($$select public.carez_claim_password_recovery_token(repeat('b',64))$$,'%already used%','issuance is single use before OTP');
+reset role;
+update public.password_recovery_requests set created_at=clock_timestamp()-interval '61 seconds';
+set local role service_role;
+select extensions.lives_ok($$select public.carez_begin_password_recovery_request(repeat('a',64))$$,'recipient can request another link after throttle window');
+select public.carez_begin_password_recovery_request(encode(extensions.digest(n::text,'sha256'),'hex')) from generate_series(1,28)n;
+select extensions.throws_like($$select public.carez_begin_password_recovery_request(repeat('c',64))$$,'%temporarily limited%','global hourly throttle includes unknown-account requests');
+reset role;select * from extensions.finish();rollback;

@@ -57,9 +57,7 @@ export async function recordInspectionResult(fd:FormData){
     result_notes:notes,waived_reason:status==='waived'?waivedReason:null,updated_by:user.id,updated_at:new Date().toISOString()
   }).eq('id',id).eq('company_id',companyId);
   if(error)throw new Error(error.message);
-  if(status==='failed'&&inspection.required_for_operation_id){
-    await supabase.from('work_schedule_items').update({status:'planned',updated_at:new Date().toISOString()}).eq('company_id',companyId).eq('work_package_operation_id',inspection.required_for_operation_id).eq('item_type','work').eq('status','confirmed');
-  }
+  // The inspection trigger invalidates affected confirmations in this same transaction.
   refresh();
 }
 

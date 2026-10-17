@@ -24,7 +24,9 @@ function command(exe:string,args:string[],input?:string){
   return output;
 }
 function cli(args:string[]){return command(pnpm,['exec','supabase',...args,'--workdir',workspace]);}
-function sql(query:string){return command('docker',['exec','-i',`supabase_db_${id}`,'psql','-X','-U','postgres','-d','postgres','-At','-v','ON_ERROR_STOP=1'],query);}
+// Only this uniquely owned disposable container: historical fixture setup may
+// need Auth-table ownership. Workflow assertions switch to their tested roles.
+function sql(query:string){return command('docker',['exec','-i',`supabase_db_${id}`,'psql','-X','-U','supabase_admin','-d','postgres','-At','-v','ON_ERROR_STOP=1'],query);}
 function phase(check:string,fn:()=>string|void){
   process.stdout.write(`${check}…\n`);
   try {const detail=fn()??'';results.push({check,status:'PASS',detail});console.log(`PASS ${check}`);return true;}

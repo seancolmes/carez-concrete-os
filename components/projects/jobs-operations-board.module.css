@@ -14,7 +14,10 @@
 .statusTabs {
   display: flex;
   min-width: 0;
+  overflow: visible;
   flex-wrap: wrap;
+  grid-column: 1 / -1;
+  grid-row: 2;
   align-items: flex-end;
   gap: 2px;
   padding: 3px 4px 0;
@@ -64,6 +67,8 @@
 .filterControls {
   display: flex;
   min-width: 0;
+  grid-column: 3;
+  grid-row: 1;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -105,7 +110,6 @@
   .toolbar { grid-template-columns: minmax(12rem, 1fr) auto; }
   .search { grid-column: 1; grid-row: 1; }
   .filterControls { grid-column: 2; grid-row: 1; }
-  .statusTabs { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (max-width: 760px) {

@@ -1,4 +1,6 @@
 'use client';
+import {drawingPdfSource} from '@/lib/takeoff/pdfSource';
+
 
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,7 +35,7 @@ export function TakeoffSheetAutoNaming({ takeoffSetId, pdfUrl, initialSheets, lo
       try {
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-        pdf = await pdfjs.getDocument({ url: pdfUrl }).promise;
+        pdf = await pdfjs.getDocument(drawingPdfSource(pdfUrl)).promise;
         const candidates: { pageNumber: number; sheetNumber: string | null; title: string | null }[] = [];
 
         for (const pageNumber of unresolved) {

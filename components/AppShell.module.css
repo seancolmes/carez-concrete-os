@@ -1,0 +1,18 @@
+.header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;min-height:56px;padding:0 20px;border-bottom:1px solid var(--pt-line);background:var(--pt-surface-1);color:var(--pt-text);position:sticky;top:0;z-index:40;flex-shrink:0}
+.brand,.actions,.navigation{display:flex;align-items:center;gap:8px;min-width:0}
+.navigation{gap:3px}
+.navItem{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 12px;border-radius:8px;color:var(--pt-text-secondary);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background 140ms,color 140ms}
+.navItem:hover{background:var(--pt-surface-2);color:var(--pt-brand)}
+.navItemActive{background:var(--status-warning-bg);color:var(--pt-brand)}
+.navItemActive svg{color:var(--pt-amber-text)}
+.navItem:focus-visible,.account:focus-visible{outline:2px solid var(--pt-brand);outline-offset:2px}
+.navItem svg{width:17px;height:17px}
+.mobileTrigger{display:none!important}
+.account{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--pt-line);border-radius:50%;background:var(--pt-surface-2);color:var(--pt-brand);font-size:13px;font-weight:600;text-decoration:none}
+.content:not(:global(.carez-workstation)){padding:16px 20px}
+.dialogHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.dialogList{display:grid;gap:4px;max-height:55dvh;overflow-y:auto;margin-top:12px}
+.dialogLink{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:6px;color:var(--pt-text);text-decoration:none;font-size:14px;font-weight:600}
+.dialogLink:hover,.dialogLink[aria-current=page]{background:var(--selection-fill);color:var(--pt-brand)}
+@media(max-width:1023px){.header{display:flex;justify-content:space-between;gap:12px;padding:0 12px}.navigation{display:none}.mobileTrigger{display:inline-flex!important}.brand{gap:4px}.content:not(:global(.carez-workstation)){padding:12px}.actions{gap:4px}}
+@media(prefers-reduced-motion:reduce){.navItem{transition:none}}

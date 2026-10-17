@@ -88,7 +88,9 @@ test('drawing controls use the bottom dock and empty-sheet guidance expires', ()
   assert.doesNotMatch(drawing, /emptyTelemetry/);
   assert.match(drawing, /window\.setTimeout\(\(\)=>setShowEmptyToast\(false\),4000\)/);
   assert.match(dock, /fixed bottom-8 left-1\/2/);
-  assert.match(dock, /createPortal\(<nav/);
+  assert.match(dock, /return <Portal><nav/);
+  assert.match(dock, /from '@fluentui\/react-components'/);
+  assert.doesNotMatch(dock, /createPortal|document\.body/);
   assert.match(dock, /<Button/);
   assert.doesNotMatch(dock, /animate-pulse|animate-spin/);
 });
@@ -112,15 +114,15 @@ test('R3F exposes Focus, filters and active-sheet partial-model holds without hi
   assert.doesNotMatch(r3fViewport, /sourceQuantities|raw_quantity|production_quantity|direct_cost/);
 });
 
-test('3D and Split share the current authoritative drawing viewport', () => {
+test('2D and 3D share authoritative records without an estimator Split mode', () => {
   const retiredSplitClass = ['derived', 'Overlay', 'Split'].join('');
   assert.doesNotMatch(workspaceStyles, /\.viewModeSwitch button:last-child\{display:none\}/);
   assert.match(workspaceStyles, /\.derivedOverlay3d\{left:0\}/);
   assert.equal(workspaceStyles.includes(retiredSplitClass), false);
-  assert.match(workspaceStyles, /\.splitVerification\{left:50%\}/);
-  assert.match(workstation, /\['2d','split','3d'\]/);
+
+  assert.match(workstation, /\['2d','3d'\]/);
   assert.match(workstation, /drawingViewHidden=\{phase!=='tracing'\|\|\(!mobileReview&&viewMode==='3d'\)\}/);
-  assert.match(workstation, /jumpToDerivedIssue=.*'split'/);
+  assert.match(workstation, /jumpToDerivedIssue=.*'2d'/);
   assert.doesNotMatch(workflowShell, /settleSplitView/);
   assert.doesNotMatch(workflowShell, /requestAnimationFrame/);
 });

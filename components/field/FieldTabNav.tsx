@@ -25,7 +25,7 @@ export function FieldTabNav({activeTab}:{activeTab:FieldTab}){
     router.replace(`${pathname}?${next.toString()}`,{scroll:false});
   }
 
-  return <nav aria-label="Field workspace" className="mb-3 overflow-x-auto border-b border-border bg-card px-2 py-1">
+  return <nav aria-label="Field workspace" className="pt-local-navigation">
     <TabList selectedValue={activeTab} onTabSelect={(_,data)=>selectTab(data.value as FieldTab)}>
       {tabs.map(tab=><Tab key={tab.id} value={tab.id}>{tab.label}</Tab>)}
     </TabList>

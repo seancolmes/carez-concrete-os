@@ -1,9 +1,12 @@
 -- Run only against an isolated local Supabase database as postgres.
 begin;
+-- Privileged fixture identity setup is separate from signup acceptance.
+alter table auth.users disable trigger on_auth_user_created;
 create extension if not exists pgtap with schema extensions;
 
 insert into auth.users(id) values('11111111-1111-4111-8111-111111111111') on conflict do nothing;
-insert into public.companies(id,name) values('22222222-2222-4222-8222-222222222222','Commercial Foundation Test');
+insert into public.companies(id,name,target_margin_percent,planned_productive_hours_annual,owner_compensation_target_annual,owner_planned_field_hours_annual,owner_field_rate) values('22222222-2222-4222-8222-222222222222','Commercial Foundation Test',0,2000,0,0,0);
+update public.companies set operating_timezone='UTC' where id='22222222-2222-4222-8222-222222222222';
 insert into public.profiles(id,company_id,full_name,role)
 values('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','Test Owner','owner');
 insert into auth.users(id) values('abababab-abab-4bab-8bab-abababababab') on conflict do nothing;
@@ -15,11 +18,12 @@ values('20202020-2020-4020-8020-202020202020','22222222-2222-4222-8222-222222222
 insert into public.leads(id,company_id,customer_name,project_name,state)
 values('33333333-3333-4333-8333-333333333333','22222222-2222-4222-8222-222222222222','Test Customer','Test Job','WA');
 insert into public.estimates(id,company_id,estimate_number,name,status,version,proposed_sell_price,lead_id,created_by)
-values('44444444-4444-4444-8444-444444444444','22222222-2222-4222-8222-222222222222','E-TEST','Test Job','ready',1,100,'33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111');
+values('44444444-4444-4444-8444-444444444444','22222222-2222-4222-8222-222222222222','E-TEST','Test Job','draft',1,100,'33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111');
 insert into public.estimate_sections(id,company_id,estimate_id,name,scope_type,sort_order)
 values('55555555-5555-4555-8555-555555555555','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444','Base Scope','base',0);
 insert into public.estimate_items(id,company_id,estimate_id,section_id,item_type,description,quantity,unit,unit_cost,direct_cost,sort_order)
 values('66666666-6666-4666-8666-666666666666','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555','other','Test concrete scope',2,'EA',25,50,0);
+update public.estimates set overhead_snapshot_id=(public.carez_capture_company_overhead(company_id,public.carez_company_calendar_date(company_id,clock_timestamp()))).id,overhead_rate_snapshot=0,status='ready' where id='44444444-4444-4444-8444-444444444444';
 insert into public.proposal_access_tokens(id,company_id,estimate_id,token)
 values('77777777-7777-4777-8777-777777777777','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444','88888888-8888-4888-8888-888888888888');
 alter table public.proposal_presentations disable trigger guard_proposal_release;
@@ -32,7 +36,8 @@ where e.id='44444444-4444-4444-8444-444444444444';
 alter table public.proposal_presentations enable trigger guard_proposal_release;
 
 insert into public.estimates(id,company_id,estimate_number,name,status,version,proposed_sell_price,lead_id,created_by)
-values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','E-OLD','Old Test Job','ready',1,100,'33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111');
+values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','E-OLD','Old Test Job','draft',1,100,'33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111');
+update public.estimates set overhead_snapshot_id=(public.carez_capture_company_overhead(company_id,public.carez_company_calendar_date(company_id,clock_timestamp()))).id,overhead_rate_snapshot=0,status='ready' where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 insert into public.proposal_access_tokens(id,company_id,estimate_id,token)
 values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','22222222-2222-4222-8222-222222222222','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 insert into public.estimates(id,company_id,estimate_number,name,status,version,proposed_sell_price,lead_id,created_by)
@@ -45,13 +50,15 @@ alter table public.proposal_presentations enable trigger capture_proposal_commer
 alter table public.proposal_presentations enable trigger guard_proposal_release;
 
 insert into auth.users(id) values('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee') on conflict do nothing;
-insert into public.companies(id,name) values('ffffffff-ffff-4fff-8fff-ffffffffffff','Other Tenant Test');
+insert into public.companies(id,name,target_margin_percent,planned_productive_hours_annual,owner_compensation_target_annual,owner_planned_field_hours_annual,owner_field_rate) values('ffffffff-ffff-4fff-8fff-ffffffffffff','Other Tenant Test',0,2000,0,0,0);
+update public.companies set operating_timezone='UTC' where id='ffffffff-ffff-4fff-8fff-ffffffffffff';
 insert into public.profiles(id,company_id,full_name,role)
 values('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','ffffffff-ffff-4fff-8fff-ffffffffffff','Other Owner','owner');
 insert into public.leads(id,company_id,customer_name,project_name,state)
 values('12121212-1212-4212-8212-121212121212','ffffffff-ffff-4fff-8fff-ffffffffffff','Other Customer','Other Job','WA');
 insert into public.estimates(id,company_id,estimate_number,name,status,version,proposed_sell_price,lead_id,created_by)
-values('13131313-1313-4313-8313-131313131313','ffffffff-ffff-4fff-8fff-ffffffffffff','E-OTHER','Other Job','ready',1,100,'12121212-1212-4212-8212-121212121212','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+values('13131313-1313-4313-8313-131313131313','ffffffff-ffff-4fff-8fff-ffffffffffff','E-OTHER','Other Job','draft',1,100,'12121212-1212-4212-8212-121212121212','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+update public.estimates set overhead_snapshot_id=(public.carez_capture_company_overhead(company_id,public.carez_company_calendar_date(company_id,clock_timestamp()))).id,overhead_rate_snapshot=0,status='ready' where id='13131313-1313-4313-8313-131313131313';
 insert into public.proposal_access_tokens(id,company_id,estimate_id,token)
 values('14141414-1414-4414-8414-141414141414','ffffffff-ffff-4fff-8fff-ffffffffffff','13131313-1313-4313-8313-131313131313','15151515-1515-4515-8515-151515151515');
 alter table public.proposal_presentations disable trigger guard_proposal_release;
@@ -61,6 +68,7 @@ select '16161616-1616-4616-8616-161616161616',e.company_id,e.id,'14141414-1414-4
 from public.estimates e join public.estimate_financial_summary s on s.estimate_id=e.id where e.id='13131313-1313-4313-8313-131313131313';
 alter table public.proposal_presentations enable trigger guard_proposal_release;
 
+alter table auth.users enable trigger on_auth_user_created;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;
@@ -140,8 +148,8 @@ begin
     (select id from public.commercial_baseline_items where company_id='22222222-2222-4222-8222-222222222222' and baseline_id=v_baseline order by id limit 1));
   perform public.carez_update_change_order(v_co,'{"proposed_sell_price":150,"field_work_status":"not_started"}'::jsonb);
   perform public.carez_transition_change_order(v_co,'submit',null,'external_customer','AUTH-CO-1','Test Customer',now(),'Signed approval','DOC-1',150);
-  v_delta:=public.approve_change_order(v_co);
-  v_replay:=public.approve_change_order(v_co);
+  v_delta:=public.carez_approve_change_order_v2(v_co);
+  v_replay:=public.carez_approve_change_order_v2(v_co);
   if v_delta->>'delta_id' is distinct from v_replay->>'delta_id' or v_replay->>'already_approved'<>'true' then raise exception 'identical approval replay was not idempotent'; end if;
   if (select count(*) from public.approved_commercial_deltas where company_id='22222222-2222-4222-8222-222222222222' and change_order_id=v_co)<>1 then raise exception 'approval created duplicate commercial delta'; end if;
   if (select count(*) from public.approved_commercial_delta_items where company_id='22222222-2222-4222-8222-222222222222' and commercial_delta_id=(v_delta->>'delta_id')::uuid)<>1 then raise exception 'approved delta item lineage missing'; end if;
@@ -162,7 +170,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_deductive,'material','cost','Remaining corrective work',1,'LS',25,25);
   perform public.carez_update_change_order(v_deductive,'{"proposed_sell_price":-75,"field_work_status":"not_started"}'::jsonb);
   perform public.carez_transition_change_order(v_deductive,'submit',null,'external_gc','GC-CO-2','Test GC',now(),'Signed deductive directive',null,-75);
-  v_result_delta:=(public.approve_change_order(v_deductive)->>'delta_id')::uuid;
+  v_result_delta:=(public.carez_approve_change_order_v2(v_deductive)->>'delta_id')::uuid;
   if (select sell_delta from public.approved_commercial_deltas where id=v_result_delta)<>-75
     or (select total_direct_cost_delta from public.approved_commercial_deltas where id=v_result_delta)<>25 then raise exception 'deductive Sell direction was conflated with positive Direct Cost'; end if;
 
@@ -171,7 +179,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_additive_new_scope,'other','cost','New additive scope',1,'LS',5,5);
   perform public.carez_update_change_order(v_additive_new_scope,'{"proposed_sell_price":0,"field_work_status":"not_started"}'::jsonb);
   perform public.carez_transition_change_order(v_additive_new_scope,'submit',null,'external_customer','AUTH-CO-NEW-SCOPE','Test Customer',now(),'Authorized additive zero-Sell scope',null,0);
-  v_result_delta:=(public.approve_change_order(v_additive_new_scope)->>'delta_id')::uuid;
+  v_result_delta:=(public.carez_approve_change_order_v2(v_additive_new_scope)->>'delta_id')::uuid;
   if (select sell_delta from public.approved_commercial_deltas where id=v_result_delta)<>0
     or (select total_direct_cost_delta from public.approved_commercial_deltas where id=v_result_delta)<>5 then raise exception 'additive new scope did not preserve separate cost and zero Sell'; end if;
 
@@ -180,7 +188,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_no_cost,'other','cost','Internal company exposure',1,'LS',40,40);
   perform public.carez_update_change_order(v_no_cost,'{"proposed_sell_price":0,"field_work_status":"directed"}'::jsonb);
   perform public.carez_transition_change_order(v_no_cost,'submit',null,'internal_no_cost',null,null,null,'Internal exposure only',null,0);
-  v_result_delta:=(public.approve_change_order(v_no_cost)->>'delta_id')::uuid;
+  v_result_delta:=(public.carez_approve_change_order_v2(v_no_cost)->>'delta_id')::uuid;
   if (select sell_delta from public.approved_commercial_deltas where id=v_result_delta)<>0
     or (select total_direct_cost_delta from public.approved_commercial_deltas where id=v_result_delta)<>40 then raise exception 'no-cost internal exposure lost its zero Sell / positive cost split'; end if;
   v_reversal:=public.carez_create_change_order(v_project,'Reverse approved additive change','deductive',current_date,'Reverse the approved Sell value','Commercial reversal','Test Customer',null,0,v_co);
@@ -188,7 +196,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_reversal,'material','credit','Reversal cost credit',1,'LS',25,-25);
   perform public.carez_update_change_order(v_reversal,'{"proposed_sell_price":-150,"field_work_status":"not_started"}'::jsonb);
   perform public.carez_transition_change_order(v_reversal,'submit',null,'external_customer','AUTH-CO-REVERSE','Test Customer',now(),'Signed reversal',null,-150);
-  v_result_delta:=(public.approve_change_order(v_reversal)->>'delta_id')::uuid;
+  v_result_delta:=(public.carez_approve_change_order_v2(v_reversal)->>'delta_id')::uuid;
   if (select sell_delta from public.approved_commercial_deltas where id=v_result_delta)<>-150
     or (select total_direct_cost_delta from public.approved_commercial_deltas where id=v_result_delta)<>-25
     or (select reversal_of_change_order_id from public.change_orders where id=v_reversal) is distinct from v_co then raise exception 'reversal Change Order did not append exact linked contra Sell'; end if;
@@ -199,7 +207,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_external_no_cost,'other','cost','No-cost scope cost',2,'LS',5,10);
   perform public.carez_update_change_order(v_external_no_cost,'{"proposed_sell_price":0,"field_work_status":"directed"}'::jsonb);
   perform public.carez_transition_change_order(v_external_no_cost,'submit',null,'external_customer','AUTH-CO-NOCOST','Test Customer',now(),'Authorized no-cost scope',null,0);
-  v_result_delta:=(public.approve_change_order(v_external_no_cost)->>'delta_id')::uuid;
+  v_result_delta:=(public.carez_approve_change_order_v2(v_external_no_cost)->>'delta_id')::uuid;
   if (select sell_delta from public.approved_commercial_deltas where id=v_result_delta)<>0
     or (select total_direct_cost_delta from public.approved_commercial_deltas where id=v_result_delta)<>10 then raise exception 'external no-cost contractual scope did not preserve zero Sell and positive cost'; end if;
 
@@ -209,7 +217,7 @@ begin
   values('22222222-2222-4222-8222-222222222222',v_office_co,'other','cost','Office workflow cost',1,'LS',4,4);
   perform public.carez_update_change_order(v_office_co,'{"proposed_sell_price":0,"field_work_status":"directed"}'::jsonb);
   perform public.carez_transition_change_order(v_office_co,'submit',null,'external_gc','OFFICE-CO-1','Test GC',now(),'Office authorized directive',null,0);
-  perform public.approve_change_order(v_office_co);
+  perform public.carez_approve_change_order_v2(v_office_co);
   if not exists(select 1 from public.change_orders where id=v_office_co and status='approved') then raise exception 'office role could not complete authorized commercial workflow'; end if;
   perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 
@@ -294,7 +302,7 @@ begin
 
   perform set_config('request.jwt.claim.sub','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',true);
   begin
-    perform public.approve_change_order(v_co);
+    perform public.carez_approve_change_order_v2(v_co);
     raise exception 'cross-company owner approved another tenant Change Order';
   exception when raise_exception then
     if sqlerrm<>'Change Order not found.' then raise; end if;
@@ -317,7 +325,7 @@ begin
   if exists(select 1 from public.commercial_baseline_item_references where project_id=v_project) then raise exception 'employee can read baseline commercial pricing evidence'; end if;
   if exists(select 1 from public.approved_commercial_deltas where change_order_id=v_co) then raise exception 'employee can read internal approved commercial delta'; end if;
   begin
-    perform public.approve_change_order(v_co);
+    perform public.carez_approve_change_order_v2(v_co);
     raise exception 'employee approved a commercial Change Order';
   exception when raise_exception then
       if sqlerrm<>'Owner or office approval authority required.' then raise; end if;
@@ -341,28 +349,29 @@ do $conflict$
 declare v_co uuid;
 begin
   select id into v_co from public.change_orders where title='Conflicting approval replay probe';
-  begin perform public.approve_change_order(v_co); raise exception 'conflicting approval replay was accepted';
+  begin perform public.carez_approve_change_order_v2(v_co); raise exception 'conflicting approval replay was accepted';
   exception when raise_exception then if sqlerrm<>'Conflicting approval evidence exists for this Change Order.' then raise; end if; end;
 end
 $conflict$;
 reset role;
-select extensions.plan(17);
+select extensions.plan(18);
 select extensions.ok(not has_function_privilege('anon','public.carez_award_proposal_and_create_project(uuid,timestamptz,text)','EXECUTE'),'anonymous role cannot execute award');
 select extensions.ok(not has_table_privilege('authenticated','public.award_decisions','INSERT'),'authenticated clients cannot insert Award Decisions directly');
 select extensions.ok(not has_table_privilege('authenticated','public.commercial_baselines','UPDATE'),'authenticated clients cannot rewrite a frozen baseline');
 select extensions.ok((select relrowsecurity from pg_class where oid='public.accepted_scope_snapshots'::regclass),'accepted scope snapshots enforce RLS');
 select extensions.ok((select relrowsecurity from pg_class where oid='public.change_orders'::regclass),'Change Orders enforce tenant RLS');
 select extensions.ok(not has_table_privilege('authenticated','public.approved_commercial_deltas','INSERT'),'clients cannot manufacture approved commercial deltas');
-select extensions.ok(not has_function_privilege('anon','public.approve_change_order(uuid)','EXECUTE'),'anonymous role cannot approve a Change Order');
+select extensions.ok(not has_function_privilege('anon','public.carez_approve_change_order_v2(uuid)','EXECUTE'),'anonymous role cannot approve a Change Order');
 select extensions.ok((select bool_and(reloptions @> array['security_invoker=true']) from pg_class where oid in ('public.change_order_financial_summary'::regclass,'public.project_authorized_contract_summary'::regclass,'public.commercial_baseline_item_references'::regclass)),'internal commercial views execute with invoker RLS');
 select extensions.ok(to_regclass('public.approved_change_order_references') is null,'approved_change_order_references view was not removed');
-select extensions.ok((select prosecdef and proconfig @> array['search_path=pg_catalog, public'] from pg_proc where oid='public.carez_list_approved_change_order_references(uuid)'::regprocedure),'approved operational reference RPC is SECURITY DEFINER with a safe search_path');
+select extensions.ok((select prosecdef and exists(select 1 from unnest(proconfig) s where s ~ '^search_path=pg_catalog(, *(public|auth|extensions))*, *pg_temp$') from pg_proc where oid='public.carez_list_approved_change_order_references(uuid)'::regprocedure),'approved operational reference RPC is SECURITY DEFINER with pg_temp explicitly last');
 select extensions.ok((select proargnames[2:7]=array['id','project_id','co_number','title','status','field_work_status'] from pg_proc where oid='public.carez_list_approved_change_order_references(uuid)'::regprocedure),'approved operational reference RPC returns only the six approved fields');
 select extensions.ok(has_function_privilege('authenticated','public.carez_list_approved_change_order_references(uuid)','EXECUTE') and not has_function_privilege('anon','public.carez_list_approved_change_order_references(uuid)','EXECUTE'),'approved operational reference RPC is authenticated-only');
 select extensions.ok(not has_table_privilege('anon','public.change_order_financial_summary','SELECT') and not has_table_privilege('anon','public.project_authorized_contract_summary','SELECT') and not has_table_privilege('anon','public.commercial_baseline_item_references','SELECT'),'anonymous role cannot read commercial views');
 select extensions.ok(not has_table_privilege('anon','public.change_orders','SELECT') and not has_table_privilege('anon','public.change_order_items','SELECT') and not has_table_privilege('anon','public.approved_commercial_deltas','SELECT'),'anonymous role cannot read internal Change Order tables');
 select extensions.ok((select bool_and(not has_table_privilege('authenticated',format('public.%I',views.view_name),'INSERT') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'UPDATE') and not has_table_privilege('authenticated',format('public.%I',views.view_name),'DELETE')) from unnest(array['change_order_financial_summary','project_authorized_contract_summary','commercial_baseline_item_references']) as views(view_name)),'authenticated view grants are read-only');
 select extensions.ok(not has_table_privilege('authenticated','public.approved_commercial_delta_items','INSERT') and not has_table_privilege('authenticated','public.approved_commercial_deltas','UPDATE'),'authenticated clients cannot mutate approved delta evidence');
-select extensions.ok(not has_function_privilege('anon','public.carez_create_change_order(uuid,text,text,date,text,text,text,uuid,numeric,uuid)','EXECUTE') and not has_function_privilege('anon','public.carez_transition_change_order(uuid,text,text,text,text,text,timestamptz,text,text,numeric)','EXECUTE') and not has_function_privilege('anon','public.carez_update_change_order(uuid,jsonb)','EXECUTE') and not has_function_privilege('anon','public.approve_change_order(uuid)','EXECUTE'),'anonymous role cannot invoke commercial Change Order mutations');
+select extensions.ok(not has_function_privilege('anon','public.carez_create_change_order(uuid,text,text,date,text,text,text,uuid,numeric,uuid)','EXECUTE') and not has_function_privilege('anon','public.carez_transition_change_order(uuid,text,text,text,text,text,timestamptz,text,text,numeric)','EXECUTE') and not has_function_privilege('anon','public.carez_update_change_order(uuid,jsonb)','EXECUTE') and not has_function_privilege('anon','public.carez_approve_change_order_v2(uuid)','EXECUTE'),'anonymous role cannot invoke commercial Change Order mutations');
+select extensions.ok(not has_function_privilege('authenticated','public.approve_change_order(uuid)','EXECUTE'),'legacy approval cannot bypass canonical immutable deltas');
 select * from extensions.finish();
 rollback;

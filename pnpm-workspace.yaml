@@ -2,6 +2,9 @@ allowBuilds:
   supabase: true
 overrides:
   postcss: 8.5.26
+  keyborg: 3.498.0
+  sharp: 0.35.5
+  source-map-js: 1.2.2
 patchedDependencies:
   '@fluentui/react-accordion@9.12.4': patches/@fluentui__react-accordion@9.12.4.patch
   '@fluentui/react-nav@9.4.7': patches/@fluentui__react-nav@9.4.7.patch

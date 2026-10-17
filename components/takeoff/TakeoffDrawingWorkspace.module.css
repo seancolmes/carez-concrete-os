@@ -30,9 +30,6 @@
 .cutoutSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}.cutoutSummary span{padding:5px;border:1px solid var(--border);background:color-mix(in oklch,var(--warning) 8%,var(--card));color:var(--muted-foreground);font-size:10px}.cutoutSummary b{display:block;margin-bottom:1px;color:var(--foreground);font-size:10px;font-variant-numeric:tabular-nums}.proActionGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.proActionGrid button{display:flex;align-items:center;justify-content:center;gap:4px}.cutoutPreview{border-color:var(--warning);background:color-mix(in oklch,var(--warning) 8%,var(--card))}
 .shortcuts{padding:6px 7px;border:1px solid var(--border);border-radius:2px;background:var(--card)}.shortcutGrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 6px;padding-top:6px;color:var(--muted-foreground);font-size:10px}.shortcutGrid kbd{min-width:34px;padding:2px 4px;border:1px solid var(--border);border-radius:2px;background:var(--secondary);color:var(--foreground);font:inherit;font-weight:650;text-align:center}
 @media(max-width:1180px){.workspace{grid-template-columns:200px minmax(0,1fr) 292px}.noSheets{grid-template-columns:minmax(0,1fr) 292px}.noInspector{grid-template-columns:200px minmax(0,1fr)}.currentAssembly{display:none}.toolButton span{display:none}.toolButton{padding:0 7px}}
-@media(max-width:900px){.workspace,.noSheets,.noInspector,.noSheets.noInspector{grid-template-columns:minmax(0,1fr)}.sidebar,.inspector{position:absolute;top:0;bottom:0;z-index:35;width:min(82vw,285px);box-shadow:0 18px 50px rgba(0,0,0,.45)}.sidebar{left:0}.inspector{right:0;width:min(88vw,340px)}.toolbar{padding-left:5px;padding-right:5px}.zoomLabel{min-width:52px}.statusHint{display:none}.statusMessage{max-width:48%}}
-@media(max-width:600px){.toolbar{min-height:46px}.toolGroup{gap:2px;padding-right:4px}.toolButton,.iconTool{width:31px;padding:0}.zoomGroup{gap:2px}.zoomLabel{min-width:46px}.statusbar{gap:6px}.statusbar>span:nth-child(3){display:none}.variableGrid{grid-template-columns:1fr}.panelMeta{max-width:200px}}
-
 
 /* Existing measurement-property controls; shared semantic presentation. */
 .inspectorActionStrip{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px;border:1px solid var(--border);background:var(--card)}.inspectorActionStrip div{display:flex;min-width:0;flex-direction:column;gap:1px}.inspectorActionStrip span{color:var(--muted-foreground);font-size:10px;font-weight:650;letter-spacing:.07em}.inspectorActionStrip strong{overflow:hidden;color:var(--foreground);font-size:11px;text-overflow:ellipsis;white-space:nowrap}.inspectorActionStrip small{color:var(--muted-foreground);font-size:10px}.inspectorActionStrip button,.reviewBuildPlan{min-height:27px;border:1px solid var(--primary);border-radius:2px;background:var(--primary);color:var(--primary-foreground);padding:0 8px;font-size:10px;font-weight:650;cursor:pointer}
@@ -42,7 +39,6 @@
 /* Full Build Plan workbench replaces the canvas only while configuring method */
 .buildPlanWorkspace{min-width:0;min-height:0;display:grid;grid-template-rows:55px minmax(0,1fr);background:var(--card);overflow:hidden}.buildPlanWorkspaceHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 13px;border-bottom:1px solid var(--border);background:var(--card)}.buildPlanWorkspaceHeader>div{display:flex;min-width:0;flex-direction:column;gap:2px}.buildPlanWorkspaceHeader span{color:var(--primary);font-size:10px;font-weight:650;letter-spacing:.1em}.buildPlanWorkspaceHeader strong{color:var(--foreground);font-size:11px}.buildPlanWorkspaceHeader small{color:var(--muted-foreground);font-size:10px}.buildPlanWorkspaceHeader button{height:29px;border:1px solid var(--border);border-radius:2px;background:var(--secondary);color:var(--foreground);padding:0 10px;font-size:10px;font-weight:650;cursor:pointer}.buildPlanWorkspaceHeader button:hover{border-color:var(--border);background:var(--muted);color:var(--foreground)}.buildPlanWorkspaceBody{display:grid;grid-template-columns:188px minmax(0,1fr);min-height:0;overflow:hidden}.buildPlanSteps{min-height:0;border-right:1px solid var(--border);background:var(--card);padding:8px;overflow:auto}.buildPlanSteps>div{display:grid;grid-template-columns:24px minmax(0,1fr);gap:7px;align-items:start;padding:8px 5px;border-bottom:1px solid var(--border);color:var(--muted-foreground)}.buildPlanSteps>div>b{display:grid;width:22px;height:22px;place-items:center;border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);font-size:10px}.buildPlanSteps>div>span{display:flex;min-width:0;flex-direction:column;gap:2px}.buildPlanSteps strong{color:var(--foreground);font-size:10px}.buildPlanSteps small{color:var(--muted-foreground);font-size:10px;line-height:1.25}.buildPlanStepActive{background:var(--accent)!important;color:var(--primary)!important}.buildPlanStepActive>b{border-color:var(--primary)!important;background:var(--accent)!important;color:var(--foreground)!important}.buildPlanStepActive strong{color:var(--primary)!important}.buildPlanMain{min-width:0;min-height:0;overflow:auto;padding:14px;background:var(--card)}.buildPlanMain>div{max-width:920px;margin:0 auto;border-color:var(--border);background:var(--card);padding:14px}.buildPlanMain>div>div:first-child strong{font-size:12px}.buildPlanMain>div>section{margin-top:12px}.buildPlanMain>div>section>div:last-child{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1180px){.buildPlanWorkspaceBody{grid-template-columns:155px minmax(0,1fr)}.buildPlanMain{padding:10px}.buildPlanMain>div>section>div:last-child{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:900px){.buildPlanWorkspaceBody{grid-template-columns:1fr}.buildPlanSteps{display:none}.buildPlanMain{padding:8px}.buildPlanMain>div>section>div:last-child{grid-template-columns:1fr}}
 
 /* Issue #35 — Takeoff workstation pane/readability refinement */
 @media(min-width:901px){
@@ -114,47 +110,6 @@
 .measurementShape[data-selected="true"]{filter:drop-shadow(0 0 1px var(--primary))}
 @media(prefers-reduced-motion:reduce){.measurementShape>path,.measurementShape>polygon,.measurementShape>polyline{transition:none}}
 
-
-/* Mobile review mode intentionally omits Takeoff authoring and the persistent worksheet. */
-.mobileReviewTools{display:flex;align-items:center;gap:2px;flex:none}
-.mobilePageGroup{display:flex;align-items:center;gap:2px;flex:none}
-.mobilePageLabel{display:grid;min-width:42px;height:28px;place-items:center;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--foreground);font:650 10px var(--font-source-code-pro),ui-monospace,monospace}
-.mobileReviewStatus{margin-left:auto;color:var(--muted-foreground);font-weight:650}
-@media(max-width:860px){
-  .workstation[data-mobile-review="true"]{height:100%;min-height:0}
-  .workstation[data-mobile-review="true"] .workspace,
-  .workstation[data-mobile-review="true"] .noSheets,
-  .workstation[data-mobile-review="true"] .noInspector,
-  .workstation[data-mobile-review="true"] .noSheets.noInspector{grid-template-columns:minmax(0,1fr);min-height:0}
-  .workstation[data-mobile-review="true"] .center{grid-template-rows:auto minmax(0,1fr) 28px}
-  .workstation[data-mobile-review="true"] .toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;min-height:76px;padding:5px;gap:4px;overflow:visible}
-  .workstation[data-mobile-review="true"] .pageSelect{grid-column:1/-1;grid-row:1;width:100%;max-width:none}
-  .workstation[data-mobile-review="true"] .mobileReviewTools{grid-column:1;grid-row:2}
-  .workstation[data-mobile-review="true"] .toolbarSpacer{grid-column:2;grid-row:2}
-  .workstation[data-mobile-review="true"] .zoomGroup{grid-column:3;grid-row:2}
-  .workstation[data-mobile-review="true"] .toolButton,
-  .workstation[data-mobile-review="true"] .iconTool{height:30px}
-  .workstation[data-mobile-review="true"] .toolButton{width:auto;min-width:60px;padding:0 8px}
-  .workstation[data-mobile-review="true"] .toolButton span{display:inline}
-  .workstation[data-mobile-review="true"] .iconTool{width:32px;padding:0}
-  .workstation[data-mobile-review="true"] .zoomLabel{min-width:48px;height:30px}
-  .workstation[data-mobile-review="true"] .mobilePageLabel{height:30px}
-  .workstation[data-mobile-review="true"] .statusbar{min-height:28px;padding-inline:8px;gap:8px}
-  .workstation[data-mobile-review="true"] .sidebar{bottom:0}
-  .workstation[data-mobile-review="true"] .overlay{cursor:grab}
-  .workstation[data-mobile-review="true"] .overlayPanning{cursor:grabbing}
-}
-@media(max-width:430px){
-  .workstation[data-mobile-review="true"] .toolbar{gap:2px}
-  .workstation[data-mobile-review="true"] .toolbarSpacer{min-width:1px}
-  .workstation[data-mobile-review="true"] .mobilePageLabel{min-width:38px}
-  .workstation[data-mobile-review="true"] .zoomLabel{min-width:44px}
-}
-
-@media(max-width:860px){
-  .workstation>[aria-label="Takeoff quantity worksheet"]{display:none!important}
-}
-
 /* Preconstruction Canvas: continuous technical matrix over the existing authoritative viewport. */
 @media(min-width:861px){
   .workspace{grid-template-columns:minmax(220px,1fr) minmax(420px,2fr) minmax(260px,1fr)!important}
@@ -176,7 +131,6 @@
 .pageSelect select{width:100%;min-width:72px;height:32px;border:0;background:transparent;color:var(--foreground);font:inherit;outline:none;cursor:pointer;text-overflow:ellipsis}
 .pageSelect:focus-within{outline:2px solid var(--ring);outline-offset:1px}
 .pageSelect option{background:var(--card);color:var(--foreground)}
-@media(max-width:860px){.pageSelect{max-width:130px;padding-inline:6px}.pageSelect span{display:none}.pageSelect select{min-width:90px;height:34px}}
 
 .commandWorkspace{position:relative;display:flex;flex:1;width:100%;height:100%;min-height:0;overflow:hidden;background:var(--pt-bg);color:var(--pt-text)}
 .dockingLayout{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
@@ -185,25 +139,28 @@
 .dockingLayout :global(.flexlayout__tabset_content){min-width:0;min-height:0}
 .commandWorkspace .commandCanvas{position:absolute;inset:0;display:flex;min-width:0;height:100%;background:var(--pt-bg)}
 .commandWorkspace .canvasViewport{flex:1;min-height:0;background:var(--pt-bg);padding:58px 16px 128px}
-.commandWorkspace .toolbar{position:absolute;top:42px;left:24px;right:24px;z-index:40;display:flex;flex-wrap:nowrap;max-height:none;overflow-x:auto;border:1px solid var(--pt-line);border-radius:12px;background:color-mix(in srgb,var(--pt-surface-1) 94%,transparent);padding:4px;backdrop-filter:blur(12px)}
+.commandWorkspace .toolbar{position:absolute;top:42px;left:24px;right:24px;z-index:40;display:flex;flex-wrap:nowrap;max-height:none;overflow-x:auto;border:1px solid var(--pt-line);border-radius:8px;background:var(--pt-surface-1);padding:4px}
 .commandWorkspace .toolGroup,.commandWorkspace .zoomGroup{flex:none;flex-wrap:nowrap}
 .commandWorkspace .toolbar :is(button,select){color:var(--pt-text-secondary);background:transparent}
 .commandWorkspace .toolbar button:hover{color:var(--pt-text);background:var(--pt-surface-hover)}
-.commandWorkspace .statusbar{position:absolute;bottom:0;left:0;right:0;z-index:40;background:color-mix(in srgb,var(--pt-surface-1) 85%,transparent);color:var(--pt-text-secondary)}
-@media(max-width:860px){.commandWorkspace .toolbar{top:42px;left:8px;right:8px}.commandWorkspace .canvasViewport{padding:84px 8px 50px}}
+.commandWorkspace .statusbar{position:absolute;bottom:0;left:0;right:0;z-index:40;background:var(--pt-surface-1);color:var(--pt-text-secondary)}
 
 .canvasHud{max-width:calc(100% - 32px)}
-.utilityHandle{display:flex;min-height:22px;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--pt-line);margin-bottom:6px;color:var(--pt-text-secondary);font:600 10px ui-monospace,monospace;cursor:move;user-select:none;touch-action:none}
+.utilityHandle{display:flex;min-height:22px;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--pt-line);margin-bottom:6px;color:var(--pt-text-secondary);font:600 12px var(--pourtrace-ui-font);cursor:move;user-select:none;touch-action:none}
 .utilityHandle span{font-size:15px;line-height:1}
 .floatingUtility{top:88px!important;left:20px!important;right:auto!important;bottom:auto!important;width:max-content;max-width:calc(100% - 40px);padding:8px!important;background:var(--pt-surface-1)!important;color:var(--pt-text)!important}
 .floatingUtility :global(.react-resizable){max-width:calc(100vw - 300px);max-height:calc(100dvh - 210px)}
 .floatingUtility .hudControls{position:relative;top:auto;right:auto;bottom:auto;width:100%;height:100%;max-height:none;overflow:auto;border:0;padding:8px 2px 2px;background:var(--pt-surface-1);box-shadow:none;backdrop-filter:none}
 .floatingUtility :global(.react-resizable-handle){z-index:2}
-.hudControls{position:absolute;right:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 48px));max-height:min(520px,65dvh);overflow:auto;padding:12px;border:1px solid var(--pt-line);border-radius:6px;background:color-mix(in srgb,var(--pt-surface-1) 92%,transparent);backdrop-filter:blur(16px);box-shadow:0 10px 40px rgb(0 0 0 / .22);color:var(--pt-text-secondary)}
+.hudControls{position:absolute;right:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 48px));max-height:min(520px,65dvh);overflow:auto;padding:12px;border:1px solid var(--pt-line);border-radius:6px;background:var(--pt-surface-1);box-shadow:var(--pt-shadow-sm);color:var(--pt-text-secondary)}
 .hudControls .group{padding:8px 0;border:0;border-bottom:1px solid var(--pt-line-soft);background:transparent}
 .hudControls :is(.groupTitle,.groupHelp,.selectedTitle,.statusWarn,.advanced summary){font-size:10px;line-height:1.4}
-.hudControls .selectedQty{font:600 12px ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.hudControls .selectedQty{font:600 13px var(--pourtrace-ui-font);font-variant-numeric:tabular-nums}
 .hudControls :is(button,input){min-height:24px;font-size:10px;padding:3px 6px}
 .hudControls :is(.previewCard,.advancedBody){padding:6px;background:transparent}
 .hudControls .previewCard strong{font-size:12px}
 @media(max-width:1200px){.canvasHud{bottom:112px;right:16px}}
+
+.historyNotice{position:absolute;left:12px;right:12px;bottom:32px;z-index:41;padding:6px 10px;background:var(--pt-surface-1);color:var(--pt-text);border:1px solid var(--pt-line);font-size:11px}
+.utilityHandle:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.utilityKeyboard{display:flex;gap:4px;flex-wrap:wrap;padding-block:4px}

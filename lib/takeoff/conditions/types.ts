@@ -120,6 +120,8 @@ export type ConditionCalculationRequest = {
   measurementRoles: ConditionMeasurementRole[];
   modules?: ConditionModuleConfiguration[];
   outputOverrides?: Record<string, ConditionOutputOverride>;
+  /** Derived only by the opt-in v6 calculator from saved role geometry. */
+  discreteRunBasis?: {measurementId:string;lengthFt:number;closed:boolean}[]|null;
 };
 
 export type ConditionHold = {

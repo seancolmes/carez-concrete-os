@@ -10,6 +10,7 @@ type ConditionRoleChoice={
 };
 
 type Props={
+  label:string;
   value:string;
   choices:ConditionRoleChoice[];
   placeholder:string;
@@ -18,7 +19,7 @@ type Props={
   onChange:(value:string)=>void;
 };
 
-export function ConditionRolePicker({value,choices,placeholder,emptyLabel,disabled=false,onChange}:Props){
+export function ConditionRolePicker({label,value,choices,placeholder,emptyLabel,disabled=false,onChange}:Props){
   const [open,setOpen]=useState(false);
   const [query,setQuery]=useState('');
   const selected=useMemo(()=>choices.find(choice=>choice.id===value)||null,[choices,value]);
@@ -27,7 +28,7 @@ export function ConditionRolePicker({value,choices,placeholder,emptyLabel,disabl
     appearance="underline"
     size="small"
     className="w-full min-w-0"
-    aria-label={placeholder}
+    aria-label={label}
     placeholder={selected?undefined:placeholder}
     disabled={disabled}
     open={open}

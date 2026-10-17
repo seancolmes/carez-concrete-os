@@ -90,3 +90,7 @@ export function projectConditionWorksheet(authority: ConditionWorksheetAuthority
     pricingMissing,
   };
 }
+/** During an unsaved reanchor/unlink, suppress the old projection as well. */
+export function conditionWorksheetAnchors(saved:string|null|undefined,working:string|null|undefined,pending:boolean){
+  return [...new Set([working,...(pending?[saved]:[])].filter((value):value is string=>Boolean(value)))];
+}

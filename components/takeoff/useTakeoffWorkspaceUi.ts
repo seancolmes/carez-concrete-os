@@ -3,7 +3,7 @@
 import {create} from 'zustand';
 
 export type TakeoffPhase='assembly'|'tracing'|'recap';
-export type TakeoffViewMode='2d'|'3d'|'split';
+export type TakeoffViewMode='2d'|'3d';
 export type TakeoffDrawingTool='select'|'pan'|'calibrate'|'scaleRegion'|'draw'|'cutout'|'edit';
 type NextValue<T>=T|((current:T)=>T);
 

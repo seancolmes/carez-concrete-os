@@ -1,4 +1,5 @@
 import { calculateStripFootingV2, STRIP_FOOTING_V2_DEFINITION } from './stripFootingV2.ts';
+import {discreteLocations,DISCRETE_RUN_HOLD} from './discreteRuns.ts';
 import type {
   ConditionArchetypeDefinition,
   ConditionCalculation,
@@ -218,10 +219,21 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
         if (!stock.holds.length && !lap.holds.length) {
           const stockFt = Number(stock.value);
           const lapFt = Number(lap.value) / 12;
-          if (stockFt <= lapFt && run > stockFt) throw new Error(`${label} stock length must exceed lap length.`);
-          const piecesPerLine = run <= stockFt ? 1 : Math.ceil((run - lapFt) / (stockFt - lapFt));
-          lapAdded = Math.max(0, piecesPerLine - 1) * lapFt;
-          stockPieceBase = piecesPerLine * Number(count.value || 0);
+          if('discreteRunBasis' in request){
+            const runs=request.discreteRunBasis;
+            if(!runs)setHolds.push(DISCRETE_RUN_HOLD);
+            else if(runs.some(r=>r.closed))setHolds.push({code:'review_required',message:'Closed footing reinforcing requires an explicit closure/splice quantity and reason. Open-run lap rules do not establish a closed-loop splice basis.'});
+            else for(const r of runs){
+              if(stockFt<=lapFt&&r.lengthFt>stockFt)throw new Error(`${label} stock length must exceed lap length.`);
+              const pieces=r.lengthFt<=stockFt?1:Math.ceil((r.lengthFt-lapFt)/(stockFt-lapFt));
+              lapAdded+=Math.max(0,pieces-1)*lapFt;stockPieceBase+=pieces*Number(count.value||0);
+            }
+          }else{
+            if (stockFt <= lapFt && run > stockFt) throw new Error(`${label} stock length must exceed lap length.`);
+            const piecesPerLine = run <= stockFt ? 1 : Math.ceil((run - lapFt) / (stockFt - lapFt));
+            lapAdded = Math.max(0, piecesPerLine - 1) * lapFt;
+            stockPieceBase = piecesPerLine * Number(count.value || 0);
+          }
           trace.push({ key: `reinforcing.${set.instanceKey || 'default'}.stock_pieces_before_allowance`, value: stockPieceBase });
         }
       }
@@ -233,7 +245,11 @@ function calculateRebar(request: ConditionCalculationRequest): RebarTotals {
       const extras = moduleNumber(set, 'extra_locations', `${label} extra locations`, { integer: true, optional: true });
       setHolds.push(...spacing.holds, ...pieces.holds, ...pieceLength.holds, ...extras.holds);
       trace.push(...spacing.trace, ...pieces.trace, ...pieceLength.trace, ...extras.trace);
-      if (!setHolds.length) length = (Math.ceil(run * 12 / Number(spacing.value)) + 1 + Number(extras.value || 0)) * Number(pieces.value) * Number(pieceLength.value);
+      if (!setHolds.length){
+        const locations='discreteRunBasis' in request?discreteLocations(request.discreteRunBasis??null,Number(spacing.value)/12):Math.ceil(run*12/Number(spacing.value))+1;
+        if(locations===null)setHolds.push(DISCRETE_RUN_HOLD);
+        else length=(locations+Number(extras.value||0))*Number(pieces.value)*Number(pieceLength.value);
+      }
     } else if (kind.value === 'custom') {
       const total = moduleNumber(set, 'custom_total_length_ft', `${label} total length`, { positive: true });
       setHolds.push(...total.holds);

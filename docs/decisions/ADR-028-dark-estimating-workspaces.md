@@ -23,3 +23,7 @@ Nik subsequently chose to support both dark and light workspaces. The dark value
 ## Windows desktop refinement — 2026-09-29
 
 Nik chose a modern Windows desktop direction using the classic-stylesheets demo as an interaction reference: compact tabs, detailed lists, tree views, menus, panels, and dialogs with Windows 11 Fluent light styling. Light is now the first-use workspace preference. Dark remains selectable and uses layered charcoal surfaces rather than pure black. The Command Rail, Domain Deck, contextual Command Bar, and large workspace remain the application frame; specialist workspaces may use contextual desktop controls without adding a permanent sidebar. `DESIGN.md` and `app/globals.css` describe the current palette and control treatment. This refinement supersedes the dark-first palette and button treatment above; browser acceptance remains pending.
+
+## Controlled-pilot presentation clarification — 15 October 2026
+
+The accepted orange/neutral PourTrace semantic tokens supersede earlier green/blue palette examples in this ADR. Preserve light/dark/system behavior. The active Takeoff module contract offers 2D and derived 3D; estimator Split is not exposed. These presentation choices do not change 2D geometry, calculation, or commercial authority.

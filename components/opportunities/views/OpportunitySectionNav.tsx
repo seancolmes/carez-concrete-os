@@ -7,7 +7,7 @@ const sections:[OpportunityDetail,string][]=[['scope','Scope'],['plans','Plans &
 export function OpportunitySectionNav({active,leadId,estimateId}:{active:OpportunityDetail;leadId:string;estimateId?:string|null}){
   const base=new URLSearchParams({lead:leadId,section:'scope'});
   if(estimateId)base.set('estimate',estimateId);
-  return <nav aria-label="Opportunity record views" className="flex w-full items-center gap-1 overflow-x-auto border-b border-border pb-2">
+  return <nav aria-label="Opportunity record views" className="flex w-full flex-wrap items-center gap-1 border-b border-border pb-2">
     {sections.map(([id,label])=>{
       const params=new URLSearchParams(base);
       params.set('detail',id);

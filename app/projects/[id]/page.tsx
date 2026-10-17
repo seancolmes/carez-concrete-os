@@ -9,8 +9,11 @@ import {resolveProjectRecordStatus} from '@/lib/ui/operations';
 import type {CarezStatusTone} from '@/lib/ui/state';
 import {cn} from '@/lib/utils';
 import {DeleteProjectButton} from '@/components/projects/DeleteProjectButton';
+import {ExternalJobRecord} from '@/components/projects/ExternalJobRecord';
+import {projectGoverningHold} from '@/lib/projects/projectReadiness';
 
 const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
+const recordedMoney=(n:any)=>n==null?'Not recorded':money(n);
 const num=(n:any)=>Number(n||0);
 const pct=(n:any)=>`${num(n).toFixed(1)}%`;
 const hrs=(n:any)=>`${num(n).toFixed(1)} hr`;
@@ -35,7 +38,7 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
  const projectR=await supabase.from('projects').select('*,customers(name,contact_name,phone,email)').eq('id',id).eq('company_id',profile.company_id).maybeSingle();
  const p:any=projectR.data;if(!p)notFound();
  // Summary data serves the always-visible command center; detail queries run for the selected tab only.
- const [financialR,budgetR,billingR,commitR,forecastR,prodR,shiftR,coR,pourR,authorizedContractR]=await Promise.all([
+ const [financialR,budgetR,billingR,commitR,forecastR,prodR,shiftR,coR,pourR,authorizedContractR,setupR,workR]=await Promise.all([
   tab==='commercial-baseline'?supabase.from('project_financial_summary').select('*').eq('project_id',id).maybeSingle():Promise.resolve({data:null,error:null}),
   supabase.from('project_budget_actual_summary').select('*').eq('project_id',id).maybeSingle(),
   supabase.from('project_billing_summary').select('*').eq('project_id',id).maybeSingle(),
@@ -45,7 +48,9 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
   tab==='overview'||tab==='activity'?supabase.from('employee_shift_sessions').select('id,status,work_date,clock_in_inside_geofence,clock_out_inside_geofence,crew_members(name)').eq('project_id',id).in('status',['open','submitted']).order('work_date',{ascending:false}):Promise.resolve({data:[],error:null}),
   tab==='overview'||tab==='commercial-baseline'?supabase.from('change_orders').select('id,co_number,title,status,field_work_status,proposed_sell_price,requested_date').eq('project_id',id).in('status',['draft','submitted','approved']).order('requested_date',{ascending:false}):Promise.resolve({data:[],error:null}),
   tab==='overview'||tab==='activity'?supabase.from('pour_plans').select('id,name,scheduled_date,expected_concrete_yards,status').eq('project_id',id).not('status','eq','cancelled').order('scheduled_date',{ascending:true}):Promise.resolve({data:[],error:null}),
-  supabase.from('project_authorized_contract_summary').select('original_contract_value,authorized_contract_value').eq('project_id',id).maybeSingle()
+  supabase.from('project_authorized_contract_summary').select('original_contract_value,authorized_contract_value').eq('project_id',id).maybeSingle(),
+  supabase.from('project_job_readiness_summary').select('award_setup_applies,job_ready,readiness_reason').eq('project_id',id).eq('company_id',profile.company_id).maybeSingle(),
+  supabase.from('project_work_readiness_summary').select('blocked_operation_count,ready_operation_count').eq('project_id',id).eq('company_id',profile.company_id).maybeSingle(),
  ]);
  const [awardR,baselineR]=(tab==='commercial-baseline'||tab==='scope-specs')&&p.award_decision_id?await Promise.all([
   supabase.from('award_decisions').select('id,proposal_revision_id,estimate_id,decided_at').eq('id',p.award_decision_id).eq('company_id',profile.company_id).maybeSingle(),
@@ -64,7 +69,12 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
  const forecastVariance=num(fc.forecast_variance_to_budget);const forecastMargin=num(fc.forecast_margin_at_completion);const targetMargin=num(f.target_margin_percent||p.target_margin_percent);
  const activeCO=cos.filter(c=>c.status!=='approved').length;const approvedCO=cos.filter(c=>c.status==='approved').length;
  const nextPour=pours.find(x=>x.scheduled_date&&new Date(`${x.scheduled_date}T23:59:59`).getTime()>=Date.now())||pours[0];
+ const hold=projectGoverningHold(id,setupR.data,workR.data);
+ const readinessUnavailable=Boolean(setupR.error||workR.error||!setupR.data||!workR.data);
+ const acceptedContract=authorizedContractR.error?'Unavailable':authorizedContractR.data?recordedMoney(authorizedContractR.data.authorized_contract_value):'Not recorded';
  const warnings:ProjectWarning[]=[];
+ if(hold.reason&&hold.href)warnings.push({tone:'watch',title:'Operational hold',copy:hold.reason,href:hold.href,action:hold.action||'Review hold'});
+ if(hold.blockedReason&&hold.blockedHref&&hold.blockedReason!==hold.reason)warnings.push({tone:'watch',title:`${hold.blocked} blocked operation${hold.blocked===1?'':'s'}`,copy:hold.blockedReason,href:hold.blockedHref,action:hold.blockedAction||'Review work plan'});
  if(waiting.length)warnings.push({tone:'watch',title:`${waiting.length} timecard${waiting.length===1?'':'s'} waiting for approval`,copy:'Review employee GPS, hours and tasks before payroll/job cost.',href:'/field?view=time-review',action:'Review Time'});
  if(gpsFlags)warnings.push({tone:'bad',title:`${gpsFlags} open/submitted shift${gpsFlags===1?'':'s'} need GPS review`,copy:'At least one clock-in or clock-out is outside the jobsite radius.',href:'/field?view=time-review',action:'Check GPS'});
  if(num(b.labor_hours_remaining)<0)warnings.push({tone:'bad',title:`Labor is ${Math.abs(num(b.labor_hours_remaining)).toFixed(1)} hours over budget`,copy:'Remaining work needs a production plan before more labor is burned.',href:'/forecast',action:'Review Forecast'});
@@ -83,35 +93,39 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
  ] as const;
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
-  <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-3 text-foreground lg:h-full lg:min-h-0 lg:overflow-hidden">
+  <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-col gap-2 text-foreground lg:h-full lg:min-h-0 lg:overflow-hidden">
    <div className="shrink-0"><CarezRecordHeader
-    eyebrow={<span className="font-mono text-xs font-semibold text-muted-foreground">{p.job_number}</span>}
+    compact
+    className="border-b border-border bg-[var(--pt-surface-1)] px-3 py-2"
+    eyebrow={<span className="font-mono text-[11px] font-semibold text-muted-foreground">Project · {p.job_number||'No job number'}</span>}
     title={p.name}
     description={<>{[p.address,p.city,p.state].filter(Boolean).join(', ')||'Job address not entered'}{p.customers?.name?' · '+p.customers.name:''}</>}
-    status={<Badge appearance="outline" color={projectStatus?statusColor(projectStatus.tone):'informative'}>{projectStatus?.label||String(p.status||'Unknown')}</Badge>}
+    status={<div className="flex flex-wrap items-center gap-1.5"><Badge appearance="outline" color={projectStatus?statusColor(projectStatus.tone):'informative'}>{projectStatus?.label||String(p.status||'Unknown')} lifecycle</Badge>{hold.hardHold?<Badge appearance="outline" color="warning">Operational hold</Badge>:null}{hold.blocked>0?<Badge appearance="outline" color="warning">{hold.blocked} blocked operation{hold.blocked===1?'':'s'}</Badge>:null}{readinessUnavailable?<Badge appearance="outline" color="warning">Readiness unavailable</Badge>:null}</div>}
     actions={<>
-     <Button as="a" appearance="primary" size="small" href="/field?view=time-review">Review Crew Time</Button>
+     {hold.href?<Button as="a" appearance="primary" size="small" href={hold.href}>{hold.action}</Button>:null}
+     {hold.blockedHref&&hold.blockedHref!==hold.href?<Button as="a" appearance="outline" size="small" href={hold.blockedHref}>{hold.blockedAction}</Button>:null}
+     <Button as="a" appearance={hold.href||hold.blockedHref?'outline':'primary'} size="small" href="/field?view=time-review">Review Crew Time</Button>
      <Button as="a" appearance="outline" size="small" href="/field?view=production">Production</Button>
     </>}
    /></div>
 
-   <section aria-label="Project command center" className="shrink-0">
+   <section aria-label="Project reference measures" className="shrink-0">
     <CarezOperatingMetricStrip columns={5}>
-     <CarezOperatingMetric label="Authorized Contract" value={money(authorizedContractR.data?.authorized_contract_value??p.contract_value)} help="Original contract plus approved changes."/>
-     <CarezOperatingMetric label="Forecast Margin" value={forecastAvailable&&fc.project_id?pct(forecastMargin):'Need Progress'} help={forecastAvailable&&fc.project_id?'At completion.':'Update scope progress to build a forecast.'}/>
-     <CarezOperatingMetric label="Forecast Variance" value={forecastAvailable&&fc.project_id?money(forecastVariance):'Unavailable'} help="Against the approved budget." tone={!forecastAvailable||!fc.project_id?'neutral':forecastVariance<0?'error':'neutral'}/>
-     <CarezOperatingMetric label="Budget Used" value={budgetAvailable?pct(budgetUsed):'No Budget'} help={budgetAvailable?`${money(b.actual_total_company_cost)} actual company cost.`:'Approve an estimate to establish the baseline.'} tone={!budgetAvailable?'neutral':budgetUsed>=100?'error':budgetUsed>=85?'warning':'neutral'}/>
-     <CarezOperatingMetric label="Customer Owes Us" value={billingAvailable?money(bill.outstanding_ar):'Unavailable'} help={billingAvailable?`${money(bill.overdue_ar)} past due.`:'Billing summary unavailable.'} tone={!billingAvailable?'neutral':num(bill.overdue_ar)>0?'error':'neutral'}/>
+     <CarezOperatingMetric className="!px-3 !py-2" label="Recorded contract" value={recordedMoney(p.contract_value)} help="Value entered on this project."/>
+     <CarezOperatingMetric className="!px-3 !py-2" label="Accepted baseline + COs" value={acceptedContract} help={authorizedContractR.error?'Could not refresh this measure.':authorizedContractR.data?'Award sell plus approved changes.':'Accepted baseline is not recorded.'} tone={authorizedContractR.data?'neutral':'warning'}/>
+     <CarezOperatingMetric className="!px-3 !py-2" label="Billed to date" value={billingAvailable?recordedMoney(bill.billed_amount):'Unavailable'} help="Non-void customer invoices."/>
+     <CarezOperatingMetric className="!px-3 !py-2" label="Customer balance" value={billingAvailable?recordedMoney(bill.outstanding_ar):'Unavailable'} help={billingAvailable?`${money(bill.overdue_ar)} past due.`:'Billing summary unavailable.'} tone={!billingAvailable?'neutral':num(bill.overdue_ar)>0?'error':'neutral'}/>
+     <CarezOperatingMetric className="!px-3 !py-2" label="Budget used" value={budgetAvailable?pct(budgetUsed):'No budget'} help={budgetAvailable?`${money(b.actual_total_company_cost)} actual company cost.`:'No approved cost baseline.'} tone={!budgetAvailable?'neutral':budgetUsed>=100?'error':budgetUsed>=85?'warning':'neutral'}/>
     </CarezOperatingMetricStrip>
    </section>
 
-   <nav aria-label="Project sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-card px-2 py-1">
-    {projectTabs.map(value=><Button key={value} as="a" href={`/projects/${id}?tab=${value}`} appearance={tab===value?'primary':'subtle'} size="small" aria-current={tab===value?'page':undefined}>
+   <nav aria-label="Project sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-[var(--pt-surface-1)] px-2">
+    {projectTabs.map(value=><Link key={value} href={`/projects/${id}?tab=${value}`} aria-current={tab===value?'page':undefined} className={cn('shrink-0 border-b-2 px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',tab===value?'border-primary text-foreground':'border-transparent text-muted-foreground hover:text-foreground')}>
      {{overview:'Overview','commercial-baseline':'Commercial Baseline','scope-specs':'Scope & Specs',activity:'Activity'}[value]}
-    </Button>)}
+    </Link>)}
    </nav>
 
-   <div className="min-h-0 flex-1 overflow-auto pr-1">
+   <div className="min-h-0 flex-1 overflow-auto px-2 pb-3">
    {(tab==='commercial-baseline'||tab==='scope-specs')&&p.job_spine_id&&<Accordion collapsible className="rounded-lg border border-border bg-card" aria-label="Commercial handoff lineage"><AccordionItem value="lineage"><AccordionHeader size="small">Awarded scope and baseline</AccordionHeader><AccordionPanel><div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2 xl:grid-cols-4">
     <div><p className="text-xs text-muted-foreground">Job Spine</p><p className="mt-1 break-all font-mono text-xs">{p.job_spine_id}</p></div>
     <div><p className="text-xs text-muted-foreground">Awarded Proposal</p><p className="mt-1 text-sm font-medium">{sourceProposal.data?.proposal_number||'No Award Decision'}</p>{awardR.data?.proposal_revision_id&&<Link className="text-xs text-primary underline" href={`/opportunities?estimate=${awardR.data.estimate_id}&tab=proposal`}>Open exact revision</Link>}</div>
@@ -119,12 +133,12 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
     <div><p className="text-xs text-muted-foreground">Frozen Commercial Baseline</p><p className="mt-1 text-sm font-medium">{baselineR.data?`Direct Cost ${money(baselineR.data.total_direct_cost)} · Sell ${money(baselineR.data.total_sell)}`:'Not recorded'}</p></div>
    </div></AccordionPanel></AccordionItem></Accordion>}
 
-   <div className="flex flex-col gap-6">
-    {tab==='overview'&&<section className="space-y-3" aria-labelledby="project-next-action-heading">
-      <div className="border-l-2 border-border bg-card px-4 py-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next project action</div>
-      <h2 id="project-next-action-heading" className="mt-2 text-lg font-semibold tracking-tight">{p.next_action||'No next action entered yet.'}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">The next physical or management action recorded for this project.</p>
+   <div className="flex flex-col gap-4">
+    {tab==='overview'&&<section className="space-y-2" aria-labelledby="project-next-action-heading">
+      <div className={cn('border-l-2 px-3 py-3',hold.hardHold?'border-warning bg-[var(--pt-surface-2)]':'border-border bg-[var(--pt-surface-1)]')}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{hold.hardHold?'Governing operational hold':'Next project action'}</div>
+      <h2 id="project-next-action-heading" className="mt-1 text-base font-semibold tracking-tight">{hold.reason||p.next_action||'No next action entered yet.'}</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{hold.reason?p.next_action?`Recorded next action: ${p.next_action}`:'Resolve the hold before scheduling work.':'The next physical or management action recorded for this project.'}</p>
      </div>
      <div className="flex flex-wrap gap-2" aria-label="Related project work">
       <Button as="a" appearance="outline" size="small" href="/field?view=schedule">Schedule</Button>
@@ -132,17 +146,19 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
       <Button as="a" appearance="outline" size="small" href="/documents">Documents</Button>
      </div>
     </section>}
+    {tab==='overview'&&<ExternalJobRecord projectId={id} companyId={profile.company_id}/>}
     {tab==='overview'&&<section className="space-y-3" aria-labelledby="project-attention-heading">
       <div className="flex items-end justify-between gap-4">
-       <div><h2 id="project-attention-heading" className="text-lg font-semibold tracking-tight">What Needs Your Attention</h2><p className="mt-1 text-sm text-muted-foreground">Payroll, GPS, budget, collections and change-order exceptions for this job.</p></div>
+       <div><h2 id="project-attention-heading" className="text-base font-semibold tracking-tight">What Needs Your Attention</h2><p className="mt-1 text-xs text-muted-foreground">Job and operation readiness, payroll, GPS, budget, collections and change-order exceptions.</p></div>
        <Badge appearance="outline" color={warnings.some(w=>w.tone==='bad')?'danger':warnings.length?'warning':'informative'}>{warnings.length+' item'+(warnings.length===1?'':'s')}</Badge>
       </div>
-      {(shiftR.error||coR.error)&&<MessageBar intent="error"><MessageBarBody><MessageBarTitle>Some alerts are unavailable</MessageBarTitle>Current field activity or change orders could not be loaded for this project.</MessageBarBody></MessageBar>}
-      {warnings.length===0&&!shiftR.error&&!coR.error
-       ?<MessageBar intent="info"><MessageBarBody><MessageBarTitle>Nothing urgent on this job</MessageBarTitle>No payroll, GPS, budget, collections or change-order warnings are showing.</MessageBarBody></MessageBar>
-      :<div className="space-y-2">{warnings.map((warning,index)=><MessageBar key={index} intent={warning.tone==='bad'?'error':'warning'}><MessageBarBody><MessageBarTitle>{warning.title}</MessageBarTitle>
+      {(shiftR.error||coR.error||readinessUnavailable)&&<MessageBar intent="warning" aria-labelledby="project-attention-refresh-title"><MessageBarBody><MessageBarTitle id="project-attention-refresh-title">Some checks could not be refreshed</MessageBarTitle>Review job readiness and current activity before proceeding.</MessageBarBody></MessageBar>}
+      {warnings.length===0&&p.status==='on_hold'&&<MessageBar intent="warning" aria-labelledby="project-attention-lifecycle-title"><MessageBarBody><MessageBarTitle id="project-attention-lifecycle-title">Project lifecycle is on hold</MessageBarTitle>No governing operational hold reason was returned for this project.</MessageBarBody></MessageBar>}
+      {warnings.length===0&&p.status!=='on_hold'&&!shiftR.error&&!coR.error&&!readinessUnavailable
+       ?<MessageBar intent="info" aria-labelledby="project-attention-clear-title"><MessageBarBody><MessageBarTitle id="project-attention-clear-title">No recorded exceptions in these checks</MessageBarTitle>No readiness, payroll, GPS, budget, collections or change-order warning is recorded here.</MessageBarBody></MessageBar>
+      :warnings.length>0?<div className="space-y-2">{warnings.map((warning,index)=><MessageBar key={index} intent={warning.tone==='bad'?'error':'warning'} aria-labelledby={`project-attention-warning-${index}`}><MessageBarBody><MessageBarTitle id={`project-attention-warning-${index}`}>{warning.title}</MessageBarTitle>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><span>{warning.copy}</span><Button as="a" appearance="outline" size="small" href={warning.href}>{warning.action}</Button></div>
-       </MessageBarBody></MessageBar>)}</div>}
+       </MessageBarBody></MessageBar>)}</div>:null}
     </section>}
 
     {tab==='activity'&&<section className="space-y-4" aria-labelledby="project-field-production-heading">
@@ -197,6 +213,39 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
      </div>
     </section>}
 
+    {tab==='commercial-baseline'&&<section className="space-y-3" aria-labelledby="project-commercial-heading">
+     <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Commercial basis</p><h2 id="project-commercial-heading" className="mt-0.5 text-base font-semibold tracking-tight">Commercial & Billing</h2><p className="mt-0.5 text-xs text-muted-foreground">Project record, accepted award, customer invoices, and unpaid balance are distinct measures.</p></div>
+     {authorizedContractR.error?<MessageBar intent="warning" aria-label="Accepted commercial baseline could not be refreshed" aria-labelledby={undefined}><MessageBarBody>Accepted commercial baseline could not be refreshed.</MessageBarBody></MessageBar>:!authorizedContractR.data?<div className="border-l-2 border-warning bg-[var(--pt-surface-2)] px-3 py-2 text-xs"><strong>Accepted baseline not recorded.</strong> The recorded contract value is still shown separately. {hold.href?<Link className="font-semibold text-primary hover:underline" href={hold.href}>{hold.action} →</Link>:null}</div>:null}
+     <div className="grid gap-4 xl:grid-cols-2">
+       <div className="border-y border-border bg-[var(--pt-surface-1)] p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Billing / Collections</h3><p className="mt-0.5 text-xs text-muted-foreground">Invoice totals and payment balance for this job.</p></div><Button as="a" appearance="outline" size="small" href="/financials?tab=billing&view=billing">Billing</Button></div>
+       <div className="mt-3">{!billingAvailable?<MessageBar intent="info" aria-labelledby="project-commercial-billing-title"><MessageBarBody><MessageBarTitle id="project-commercial-billing-title">Billing summary unavailable</MessageBarTitle>No authoritative billing summary is available for this project.</MessageBarBody></MessageBar>:<KeyValueRows rows={[
+        ['Recorded contract value',recordedMoney(p.contract_value)],
+        ['Accepted baseline + approved COs',acceptedContract],
+        ['Billed on non-void invoices',recordedMoney(bill.billed_amount)],
+        ['Unbilled from recorded contract',p.contract_value==null?'Not recorded':recordedMoney(bill.unbilled_contract)],
+        ['Cash collected',recordedMoney(bill.collected_amount)],
+        ['Customer balance',recordedMoney(bill.outstanding_ar)],
+       ]}/>}</div>
+      </div>
+
+       <div className="rounded-md border border-border bg-card p-3">
+       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Change Orders</h3><p className="mt-0.5 text-xs text-muted-foreground">Extra work and approval status.</p></div><Button as="a" appearance="outline" size="small" href="/change-orders">Open COs</Button></div>
+       <div className="mt-3">
+        {coR.error?<MessageBar intent="error" aria-labelledby="project-commercial-co-error-title"><MessageBarBody><MessageBarTitle id="project-commercial-co-error-title">Change orders unavailable</MessageBarTitle>Current change-order data could not be loaded.</MessageBarBody></MessageBar>:cos.length===0?<MessageBar intent="info" aria-labelledby="project-commercial-co-empty-title"><MessageBarBody><MessageBarTitle id="project-commercial-co-empty-title">No active change orders</MessageBarTitle>No draft, submitted, or approved change orders are currently returned for this project.</MessageBarBody></MessageBar>:<div className="divide-y divide-border">{cos.slice(0,5).map(co=><div className="flex items-center justify-between gap-4 py-3" key={co.id}>
+         <div className="min-w-0"><div className="text-sm font-medium">{co.co_number} — {co.title}</div><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge appearance="outline" color={co.status==='approved'?'success':'informative'}>{String(co.status||'Unknown').replace(/_/g,' ')}</Badge><span>field: {co.field_work_status||'not started'}</span></div></div>
+         <strong className="font-mono text-sm font-medium tabular-nums">{money(co.proposed_sell_price)}</strong>
+        </div>)}</div>}
+        {!coR.error?<div className="mt-3 text-xs text-muted-foreground">{approvedCO} approved · {activeCO} still awaiting approval</div>:null}
+       </div>
+      </div>
+     </div>
+     <div className="rounded-md border border-border bg-card p-3">
+      <h3 className="text-sm font-semibold">Commitments</h3>
+      {commitmentAvailable?<KeyValueRows rows={[["Money already ordered",money(commit.open_po_commitments)],["Open purchase orders",String(num(commit.open_po_count))]]}/>:<MessageBar intent="info" aria-labelledby="project-commercial-commitments-title"><MessageBarBody><MessageBarTitle id="project-commercial-commitments-title">Commitment summary unavailable</MessageBarTitle>No current purchase-order summary is available for this project.</MessageBarBody></MessageBar>}
+     </div>
+    </section>}
+
     {tab==='commercial-baseline'&&<section className="space-y-4" aria-labelledby="project-cost-forecast-heading">
      <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Cost</p><h2 id="project-cost-forecast-heading" className="mt-1 text-lg font-semibold tracking-tight">Cost & Forecast</h2><p className="mt-1 text-sm text-muted-foreground">Actual cost against the frozen budget and where the job is headed.</p></div>
      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -204,7 +253,7 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
        <h3 className="text-sm font-semibold">Budget vs Actual</h3>
        <p className="mt-0.5 text-xs text-muted-foreground">What the job has used compared with the authoritative budget.</p>
        <div className="mt-3">
-        {!budgetAvailable?<MessageBar intent="info"><MessageBarBody><MessageBarTitle>No authoritative budget snapshot</MessageBarTitle>Approve an estimate to establish the job-cost baseline.</MessageBarBody></MessageBar>:<div className="overflow-x-auto">
+        {!budgetAvailable?<MessageBar intent="info" aria-labelledby="project-commercial-budget-title"><MessageBarBody><MessageBarTitle id="project-commercial-budget-title">No authoritative budget snapshot</MessageBarTitle>Approve an estimate to establish the job-cost baseline.</MessageBarBody></MessageBar>:<div className="overflow-x-auto">
          <div className="min-w-[34rem]">
           <div className="grid grid-cols-[minmax(0,1fr)_8rem_8rem] border-b border-border px-2 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"><span>Cost</span><span className="text-right">Actual</span><span className="text-right">Budget</span></div>
            {costRows.map(([label,actual,budget],index)=><div key={label} className={cn('grid grid-cols-[minmax(0,1fr)_8rem_8rem] items-center px-2 py-2.5 text-sm',index%2===1&&'bg-muted/40',label==='Total Company Cost'&&'font-semibold')}>
@@ -218,44 +267,13 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
        <div className="rounded-md border border-border bg-card p-3">
        <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Forecast</h3><p className="mt-0.5 text-xs text-muted-foreground">Expected completion position.</p></div><Button as="a" appearance="outline" size="small" href="/forecast">Open Forecast</Button></div>
        <div className="mt-3">
-        {!forecastAvailable||!fc.project_id?<MessageBar intent="info"><MessageBarBody><MessageBarTitle>Need Progress</MessageBarTitle>Update scope progress to build a forecast.</MessageBarBody></MessageBar>:<KeyValueRows rows={[
+        {!forecastAvailable||!fc.project_id?<MessageBar intent="info" aria-labelledby="project-commercial-forecast-title"><MessageBarBody><MessageBarTitle id="project-commercial-forecast-title">Need Progress</MessageBarTitle>Update scope progress to build a forecast.</MessageBarBody></MessageBar>:<KeyValueRows rows={[
          ['Forecast margin',forecastMargin.toFixed(1)+'%'],
          ['Target margin',targetMargin.toFixed(1)+'%'],
          ['Variance to budget',money(forecastVariance)],
         ]}/>}
        </div>
       </div>
-     </div>
-    </section>}
-
-    {tab==='commercial-baseline'&&<section className="space-y-4" aria-labelledby="project-commercial-heading">
-     <div><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Commercial</p><h2 id="project-commercial-heading" className="mt-1 text-lg font-semibold tracking-tight">Commercial & Billing</h2><p className="mt-1 text-sm text-muted-foreground">What is authorized, billed, collected, owed, and still commercially exposed.</p></div>
-     <div className="grid gap-4 xl:grid-cols-2">
-       <div className="rounded-md border border-border bg-card p-3">
-       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Billing / Collections</h3><p className="mt-0.5 text-xs text-muted-foreground">Customer billing and collection position.</p></div><Button as="a" appearance="outline" size="small" href="/financials?tab=billing&view=billing">Billing</Button></div>
-       <div className="mt-3">{!billingAvailable?<MessageBar intent="info"><MessageBarBody><MessageBarTitle>Billing summary unavailable</MessageBarTitle>No authoritative billing summary is available for this project.</MessageBarBody></MessageBar>:<KeyValueRows rows={[
-        ['Authorized Work',money(bill.authorized_contract)],
-        ['Billed',money(bill.billed_contract)],
-        ['Not Yet Billed',money(bill.unbilled_contract)],
-        ['Cash Collected',money(bill.cash_collected)],
-        ['Still Owed',money(bill.outstanding_ar)],
-       ]}/>}</div>
-      </div>
-
-       <div className="rounded-md border border-border bg-card p-3">
-       <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Change Orders</h3><p className="mt-0.5 text-xs text-muted-foreground">Extra work and approval status.</p></div><Button as="a" appearance="outline" size="small" href="/change-orders">Open COs</Button></div>
-       <div className="mt-3">
-        {coR.error?<MessageBar intent="error"><MessageBarBody><MessageBarTitle>Change orders unavailable</MessageBarTitle>Current change-order data could not be loaded.</MessageBarBody></MessageBar>:cos.length===0?<MessageBar intent="info"><MessageBarBody><MessageBarTitle>No active change orders</MessageBarTitle>No draft, submitted, or approved change orders are currently returned for this project.</MessageBarBody></MessageBar>:<div className="divide-y divide-border">{cos.slice(0,5).map(co=><div className="flex items-center justify-between gap-4 py-3" key={co.id}>
-         <div className="min-w-0"><div className="text-sm font-medium">{co.co_number} — {co.title}</div><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge appearance="outline" color={co.status==='approved'?'success':'informative'}>{String(co.status||'Unknown').replace(/_/g,' ')}</Badge><span>field: {co.field_work_status||'not started'}</span></div></div>
-         <strong className="font-mono text-sm font-medium tabular-nums">{money(co.proposed_sell_price)}</strong>
-        </div>)}</div>}
-        {!coR.error?<div className="mt-3 text-xs text-muted-foreground">{approvedCO} approved · {activeCO} still awaiting approval</div>:null}
-       </div>
-      </div>
-     </div>
-     <div className="rounded-md border border-border bg-card p-3">
-      <h3 className="text-sm font-semibold">Commitments</h3>
-      {commitmentAvailable?<KeyValueRows rows={[["Money already ordered",money(commit.open_po_commitments)],["Open purchase orders",String(num(commit.open_po_count))]]}/>:<MessageBar intent="info"><MessageBarBody><MessageBarTitle>Commitment summary unavailable</MessageBarTitle>No current purchase-order summary is available for this project.</MessageBarBody></MessageBar>}
      </div>
     </section>}
 
@@ -276,7 +294,7 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
    </div>
    </div>
 
-   {tab==='commercial-baseline'&&!financialAvailable?<p className="sr-only">Project financial summary unavailable; project contract data remains the fallback for the record header.</p>:null}
+   {tab==='commercial-baseline'&&!financialAvailable?<p className="sr-only">Project forecast summary unavailable.</p>:null}
   </div>
  </AppShell>;
 }

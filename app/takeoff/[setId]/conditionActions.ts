@@ -207,7 +207,7 @@ export async function upgradeProjectConcreteConditionDraftToLatest(input: {
   await editableTakeoffSet(supabase, companyId, takeoffSetId);
 
   const { data: version, error: versionError } = await supabase.from('project_concrete_condition_versions')
-    .select('id,condition_id,status')
+    .select('id,condition_id,status,archetype_version_id')
     .eq('id', conditionVersionId)
     .eq('company_id', companyId)
     .maybeSingle();
@@ -222,7 +222,9 @@ export async function upgradeProjectConcreteConditionDraftToLatest(input: {
   if (conditionError) throw new Error(conditionError.message);
   if (!condition || condition.takeoff_set_id !== takeoffSetId) throw new Error('Condition does not belong to this takeoff set.');
 
-  const { data, error } = await supabase.rpc('carez_upgrade_strip_condition_draft_to_v5', {
+  const {data:contract,error:contractError}=await supabase.from('platform_condition_archetype_versions').select('version_no').eq('id',version.archetype_version_id).maybeSingle();
+  if(contractError||!contract)throw new Error(contractError?.message||'Condition contract unavailable.');
+  const { data, error } = await supabase.rpc(Number(contract.version_no)<5?'carez_upgrade_strip_condition_draft_to_v5':'carez_upgrade_strip_condition_draft_to_v6', {
     p_condition_version_id: conditionVersionId,
   });
   if (error) throw new Error(error.message);

@@ -1,9 +1,14 @@
 node_modules/
 .next/
+/.vercel/
 /.next-before-*/
 /.playwright-cli/
 .env.local
 .env*.local
+.env
+.env.*
+!.env.example
+!.env.*.example
 .DS_Store
 *.log
 *.tsbuildinfo
@@ -12,6 +17,12 @@ public/pdf.worker.min.mjs
 /videos/
 .tmp.driveupload/
 /output/playwright/
+/output/
+/.impeccable/
+/.impeccable/**/*.png
+/.impeccable/**/*.jpg
+/.impeccable/**/*.jpeg
+/.impeccable/**/*.webp
 /.codex-remote-attachments/
 
 # Local AI/Codex workstation state (never commit)

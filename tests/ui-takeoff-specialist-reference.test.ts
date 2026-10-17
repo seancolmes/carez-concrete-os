@@ -10,10 +10,11 @@ test('Takeoff remains outside authoritative Project Context',()=>{
   assert.equal(resolveProjectRoute('/takeoff/set-1'),null);
 });
 
-test('active Takeoff exposes 2D, derived 3D, and Split',()=>{
+test('active Takeoff exposes 2D and derived 3D without estimator Split',()=>{
   const workstation=read(
     'components/takeoff/IntegratedTakeoffConditionWorkspace.tsx',
   );
 
-  assert.match(workstation,/['"]split['"]/);
+  assert.match(workstation,/\['2d','3d'\]/);
+  assert.doesNotMatch(workstation,/\['2d','split','3d'\]/);
 });

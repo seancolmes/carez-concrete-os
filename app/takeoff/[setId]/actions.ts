@@ -1,10 +1,12 @@
 'use server';
 
+import {registerVerifiedSource} from '@/lib/documents/sourceRegistration.server';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { prepareAssemblyOutputs } from '@/lib/takeoff/assemblyEngine.server';
 import { prepareConcreteConditionPilotPersistence } from '@/lib/takeoff/conditions/persistence.server';
 import { persistDrawingMeasurementWithConditions } from '@/lib/takeoff/conditions/measurementPersistence';
+import { geometryMutationConflict } from '@/lib/takeoff/geometryMutation';
 import { measureDrawingGeometry, roundMeasurement, type DrawingGeometry, type NormalizedPoint } from '@/lib/takeoff/geometry';
 import {
   calibrationFromManual,
@@ -54,7 +56,7 @@ type VerifyMethodProfileInput = {
   methodInputs: Record<string, unknown>;
   verificationNotes?: string | null;
 };
-type GeometryUpdateInput = { measurementId: string; takeoffSetId: string; geometry: DrawingGeometry };
+type GeometryUpdateInput = { measurementId: string; takeoffSetId: string; geometry: DrawingGeometry; expectedGeometry: DrawingGeometry; expectedUpdatedAt: string };
 type AssemblyInputUpdate = {
   measurementId: string;
   takeoffSetId: string;
@@ -71,12 +73,15 @@ async function ctx() {
 }
 
 async function editableSet(supabase: any, companyId: string, setId: string) {
-  const { data: set } = await supabase.from('takeoff_sets').select('id,estimate_id,status,source_document_id').eq('id', setId).eq('company_id', companyId).maybeSingle();
+  const { data: set, error: setError } = await supabase.from('takeoff_sets').select('id,estimate_id,status,source_document_id').eq('id', setId).eq('company_id', companyId).maybeSingle();
+  if (setError) throw new Error('Takeoff revision unavailable.');
   if (!set || set.status !== 'active') throw new Error('Active takeoff set not found.');
-  const { data: estimate } = await supabase.from('estimates').select('id,status').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle();
+  const { data: estimate, error: estimateError } = await supabase.from('estimates').select('id,status').eq('id', set.estimate_id).eq('company_id', companyId).maybeSingle();
+  if (estimateError) throw new Error('Estimate revision unavailable.');
   if (!estimate) throw new Error('Estimate not found.');
   if (['accepted', 'approved', 'superseded'].includes(estimate.status)) throw new Error('This estimate revision is locked.');
-  const { count } = await supabase.from('proposal_presentations').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('estimate_id', set.estimate_id);
+  const { count, error: presentationError } = await supabase.from('proposal_presentations').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('estimate_id', set.estimate_id);
+  if (presentationError || count === null) throw new Error('Commercial lock status unavailable.');
   if ((count || 0) > 0) throw new Error('This estimate revision was already issued. Create the next revision before changing takeoff.');
   return set;
 }
@@ -202,9 +207,11 @@ async function recalculateDrawingMeasurement({
   geometry,
   variables,
   scaleRegionId,
+  expected,
 }: {
   supabase: any;
   companyId: string;
+  expected?: {geometry: DrawingGeometry; updatedAt: string};
   measurement: any;
   geometry: DrawingGeometry;
   variables: Record<string, number | string | null | undefined>;
@@ -239,7 +246,8 @@ async function recalculateDrawingMeasurement({
     companyId,
     measurementId: measurement.id,
     persistMeasurement: async () => {
-      const { error } = await supabase.rpc('carez_update_drawing_measurement', {
+      const { error } = await supabase.rpc(expected ? 'carez_update_drawing_measurement_checked' : 'carez_update_drawing_measurement', {
+        ...(expected ? {p_expected_geometry: cleanDrawingGeometry(expected.geometry), p_expected_updated_at: expected.updatedAt} : {}),
         p_measurement_id: measurement.id,
         p_geometry: storedGeometry(geometry, Number(context.sheet.page_number), measured),
         p_raw_quantity: roundMeasurement(measured.quantity, 4),
@@ -248,7 +256,7 @@ async function recalculateDrawingMeasurement({
         p_outputs: engine.prepared,
         p_scale_region_id: context.scaleRegion?.id || null,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw Object.assign(new Error(error.message),{code:error.code});
     },
     recalculateCondition: async conditionVersionId => {
       const prepared = await prepareConcreteConditionPilotPersistence({
@@ -258,7 +266,11 @@ async function recalculateDrawingMeasurement({
       if (error) throw new Error(error.message);
     },
   });
+  const {data: committed,error: committedError} = await supabase.from('takeoff_measurements').select('geometry,updated_at').eq('id',measurement.id).eq('company_id',companyId).single();
+  if (committedError || !committed) throw new Error('Geometry was submitted, but confirmation is unavailable. Reload before editing again.');
   return {
+    geometry: drawingGeometryFromStored(committed.geometry),
+    updatedAt: committed.updated_at as string,
     id: measurement.id,
     quantity: roundMeasurement(measured.quantity),
     unit: context.primaryUnit,
@@ -321,23 +333,17 @@ async function upsertScaleRegion(supabase: any, companyId: string, input: ScaleR
 }
 
 export async function attachPlanToTakeoffSet(fd: FormData) {
-  const setId = String(fd.get('takeoff_set_id') || '');
-  const storagePath = String(fd.get('storage_path') || '').trim();
-  const filename = String(fd.get('source_filename') || '').trim();
-  const mimeType = String(fd.get('mime_type') || '').trim() || 'application/pdf';
-  if (!setId || !storagePath || !filename) throw new Error('PDF plan file is required.');
-  if (mimeType !== 'application/pdf' && !filename.toLowerCase().endsWith('.pdf')) throw new Error('The drawing workspace currently requires PDF plans.');
-
-  const { supabase, companyId } = await ctx();
-  await editableSet(supabase, companyId, setId);
-  const { error } = await supabase.rpc('carez_attach_takeoff_plan', {
-    p_takeoff_set_id: setId,
-    p_storage_path: storagePath,
-    p_source_filename: filename,
-    p_mime_type: mimeType,
-  });
-  if (error) throw new Error(error.message);
+  const setId=String(fd.get('takeoff_set_id')||''),path=String(fd.get('storage_path')||''),filename=String(fd.get('source_filename')||'').trim();
+  if(!setId||!path||!filename)throw new Error('Original PDF plan file is required.');
+  const {supabase,companyId,user}=await ctx();
+  const target=await supabase.from('takeoff_sets').select('id').eq('company_id',companyId).eq('id',setId).maybeSingle();
+  if(target.error||!target.data)throw new Error('Takeoff set unavailable in this company.');
+  const data=await registerVerifiedSource(supabase,user.id,{companyId,path,privateFile:false,format:String(fd.get('storage_format')||'single'),requiresPdf:true,filename,values:{
+    p_project_id:null,p_takeoff_set_id:setId,p_mime:'application/pdf',p_type:'plan',p_title:filename,p_filename:filename,p_source_reference:`Takeoff set ${setId}`,
+    p_revision_label:'Original source',p_supersedes_id:null,p_visibility:'job',
+  }});
   refreshTakeoff(setId);
+  return {unusedPath:data.storage_path!==path?path:null};
 }
 
 export async function initializeTakeoffSheets(setId: string, pages: PageMeta[]) {
@@ -485,7 +491,7 @@ export async function createDrawingMeasurement(input: DrawingInput) {
 }
 
 export async function updateDrawingMeasurementGeometry(input: GeometryUpdateInput) {
-  if (!input?.measurementId || !input.takeoffSetId) throw new Error('Takeoff measurement is required.');
+  if (!input?.measurementId || !input.takeoffSetId || !input.expectedGeometry || !input.expectedUpdatedAt) throw new Error('Current drawing revision is required. Reload before editing.');
   const { supabase, companyId } = await ctx();
   await editableSet(supabase, companyId, input.takeoffSetId);
   const { data: measurement } = await supabase.from('takeoff_measurements')
@@ -495,15 +501,22 @@ export async function updateDrawingMeasurementGeometry(input: GeometryUpdateInpu
     .eq('company_id', companyId)
     .maybeSingle();
   if (!measurement?.sheet_id) throw new Error('Drawing takeoff measurement not found.');
+  try {
   const result = await recalculateDrawingMeasurement({
     supabase,
     companyId,
     measurement,
     geometry: cleanDrawingGeometry(input.geometry),
+    expected: {geometry: input.expectedGeometry, updatedAt: input.expectedUpdatedAt},
     variables: { ...((measurement.variables as any) || {}) },
   });
   refreshTakeoff(input.takeoffSetId);
-  return result;
+  return {ok:true as const,...result};
+  } catch(error) {
+    const conflict=geometryMutationConflict(error);
+    if(conflict)return conflict;
+    throw error;
+  }
 }
 
 export async function updateDrawingMeasurementInputs(input: AssemblyInputUpdate) {

@@ -1,3 +1,4 @@
+import {discreteLocations,DISCRETE_RUN_HOLD} from './discreteRuns.ts';
 import type {
   ConditionArchetypeDefinition,
   ConditionCalculation,
@@ -339,7 +340,9 @@ export function calculateStripFootingV2(request: ConditionCalculationRequest): C
   const stakeSpacing = stakesEnabled ? moduleNumber(formModule, 'stake_spacing_ft', 'Stake spacing', { positive: true }) : { value: 0, holds: [] as ConditionHold[], trace: [] as ConditionTraceValue[] };
   const stakesPerLocation = stakesEnabled ? moduleNumber(formModule, 'stakes_per_location', 'Stakes per location', { positive: true, integer: true }) : { value: 0, holds: [] as ConditionHold[], trace: [] as ConditionTraceValue[] };
   const stakeHolds = [...run.holds, ...formedSides.holds, ...stakeSpacing.holds, ...stakesPerLocation.holds];
-  emit('forms.stakes_ea', { quantity: stakeHolds.length ? null : stakesEnabled && Number(formedSides.value) > 0 ? (Math.ceil(Number(run.value) / Number(stakeSpacing.value)) + 1) * Number(formedSides.value) * Number(stakesPerLocation.value) : 0, holds: stakeHolds, values: [...run.trace, ...formedSides.trace, ...stakeSpacing.trace, ...stakesPerLocation.trace], measurementIds: run.measurementIds });
+  const stakeLocations='discreteRunBasis' in request?discreteLocations(request.discreteRunBasis??null,Number(stakeSpacing.value)):Math.ceil(Number(run.value)/Number(stakeSpacing.value))+1;
+  if(stakesEnabled&&Number(formedSides.value)>0&&stakeLocations===null)stakeHolds.push(DISCRETE_RUN_HOLD);
+  emit('forms.stakes_ea', { quantity: stakeHolds.length ? null : stakesEnabled && Number(formedSides.value) > 0 ? Number(stakeLocations) * Number(formedSides.value) * Number(stakesPerLocation.value) : 0, holds: stakeHolds, values: [...run.trace, ...formedSides.trace, ...stakeSpacing.trace, ...stakesPerLocation.trace], measurementIds: run.measurementIds });
 
   const rebarSets = moduleInstances('reinforcing').filter(module => module.enabled);
   const rebarHolds: ConditionHold[] = [];
@@ -410,7 +413,11 @@ export function calculateStripFootingV2(request: ConditionCalculationRequest): C
       const perLocation = moduleNumber(set, 'per_location', `${set.label} per location`, { positive: true, integer: true });
       const extra = moduleNumber(set, 'extra_count', `${set.label} extra count`, { integer: true, optional: true });
       anchorHolds.push(...spacing.holds, ...perLocation.holds, ...extra.holds); anchorTrace.push(...spacing.trace, ...perLocation.trace, ...extra.trace);
-      if (!spacing.holds.length && !perLocation.holds.length) anchorCount += (Math.ceil(Number(run.value) * 12 / Number(spacing.value)) + 1) * Number(perLocation.value) + Number(extra.value || 0);
+      if (!spacing.holds.length && !perLocation.holds.length){
+        const locations='discreteRunBasis' in request?discreteLocations(request.discreteRunBasis??null,Number(spacing.value)/12):Math.ceil(Number(run.value)*12/Number(spacing.value))+1;
+        if(locations===null)anchorHolds.push(DISCRETE_RUN_HOLD);
+        else anchorCount+=locations*Number(perLocation.value)+Number(extra.value||0);
+      }
     } else if (mode.value === 'fixed_count') {
       const fixed = moduleNumber(set, 'fixed_count', `${set.label} fixed count`, { integer: true });
       anchorHolds.push(...fixed.holds); anchorTrace.push(...fixed.trace); if (!fixed.holds.length) anchorCount += Number(fixed.value);

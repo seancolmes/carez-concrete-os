@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useState,type ReactNode} from 'react';
+import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button,Menu,MenuButton,MenuItem,MenuList,MenuPopover,MenuTrigger} from '@fluentui/react-components';
 
@@ -9,27 +9,39 @@ export type OpportunityTool='intake'|'audit'|'intelligence';
 const tools:[OpportunityTool,string][]=[
   ['intake','Outlook lead intake'],
   ['audit','Estimate release review'],
-  ['intelligence','Bid intelligence'],
+  ['intelligence','Bid intelligence (company-wide)'],
 ];
 
 export function OpportunityToolSwitcher({initialView,panel}:{initialView:OpportunityTool|null;panel:ReactNode}){
   const router=useRouter();
   const [active,setActive]=useState<OpportunityTool|null>(initialView);
+  const triggerRef=useRef<HTMLButtonElement>(null);
+  const focusOnClose=useRef(false);
   useEffect(()=>setActive(initialView),[initialView]);
+  useEffect(()=>{
+    if(active===null&&focusOnClose.current){
+      focusOnClose.current=false;
+      triggerRef.current?.focus();
+    }
+  },[active]);
 
   const select=(next:OpportunityTool|null)=>{
+    focusOnClose.current=next===null;
     setActive(next);
     const params=new URLSearchParams(window.location.search);
     if(next)params.set('view',next);
-    else params.delete('view');
+    else {
+      params.delete('view');
+      params.set('section','activity');
+    }
     const query=params.toString();
     router.replace(`/opportunities${query?`?${query}`:''}`,{scroll:false});
   };
 
   return <div className="mb-4">
     <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-      <Menu><MenuTrigger disableButtonEnhancement><MenuButton appearance="outline" size="small">Related tools</MenuButton></MenuTrigger>
-        <MenuPopover><MenuList>{tools.map(([view,label])=><MenuItem key={view} onClick={()=>select(view)}>{label}</MenuItem>)}</MenuList></MenuPopover>
+      <Menu><MenuTrigger disableButtonEnhancement><MenuButton ref={triggerRef} id="opportunity-related-tools-trigger" appearance="outline" size="small">Related tools</MenuButton></MenuTrigger>
+        <MenuPopover><MenuList aria-labelledby="opportunity-related-tools-trigger">{tools.map(([view,label])=><MenuItem key={view} onClick={()=>select(view)}>{label}</MenuItem>)}</MenuList></MenuPopover>
       </Menu>
       {active?<><span className="text-xs font-medium text-foreground">{tools.find(([key])=>key===active)?.[1]}</span><Button appearance="subtle" size="small" onClick={()=>select(null)}>Close tool</Button></>:null}
     </div>

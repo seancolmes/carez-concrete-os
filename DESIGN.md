@@ -1,56 +1,138 @@
 ---
 name: PourTrace
-description: A light Fluent-inspired desktop estimating workbench with optional charcoal dark surfaces and the approved PourTrace logo.
+description: Light-only contractor workspaces using the supplied QuoteIQ visual system.
 colors:
-  light-canvas: "#F2F5F7"
-  light-surface: "#FFFFFF"
-  dark-canvas: "#182128"
-  dark-surface: "#29343E"
-  graphite: "#17212B"
-  logo-green: "#009966"
-  light-action: "#29485E"
-  dark-action: "#EDEDED"
-  light-link: "#205F85"
-  dark-link: "#BED8EA"
+  navy: "#1A2B55"
+  navy-hover: "#243D73"
+  amber: "#FEBD69"
+  amber-text: "#B26A00"
+  surface: "#FFFFFF"
+  canvas: "#F2F5F9"
+  alternate: "#F1F5F9"
+  border: "#E0E6EF"
+  text: "#232F3E"
+  secondary: "#37475A"
+  muted: "#6B7280"
+  logo: "#E97832"
 typography:
   body:
-    fontFamily: "Segoe UI Variable, Segoe UI, Fira Sans, Arial, sans-serif"
-  display:
-    fontFamily: "Roboto Slab, Georgia, serif"
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "14px"
+    lineHeight: 1.5
+  title:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "20px"
+    fontWeight: 600
+    lineHeight: 1.3
+  label:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "13px"
+    fontWeight: 600
+  work-title:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+  data:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "12px"
+  caption:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "11px"
+  compact-status:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "10px"
   code:
     fontFamily: "Source Code Pro, Cascadia Code, Consolas, monospace"
 rounded:
-  sm: "4px"
-  md: "6px"
+  small: "6px"
+  medium: "8px"
+  large: "10px"
 spacing:
-  micro: "4px"
-  grid: "8px"
+  tight: "4px"
+  small: "8px"
+  gutter: "10px"
+  control: "12px"
+  section: "16px"
+  desktop-inset: "20px"
+components:
+  button-primary:
+    backgroundColor: "{colors.navy}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.medium}"
+  button-primary-hover:
+    backgroundColor: "{colors.navy-hover}"
+  navigation:
+    height: "56px"
+    backgroundColor: "{colors.surface}"
+    typography: "{typography.label}"
+  inline-detail:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.medium}"
+    padding: "16px"
 ---
 
 # PourTrace design system
 
-## Color authority
+## Overview
 
-`app/globals.css` is the token authority. Its `:root` values provide the optional charcoal workspace; `html[data-theme='light']` supplies the first-use pale blue-gray workbench. The approved logo retains `#009966`; green elsewhere signals actual success. Primary buttons use a solid graphite-blue treatment in light mode and a light-neutral treatment in dark mode. Tabs, menus, lists, fields, and dialogs share compact desktop chrome with clear selected and focus states. Blue marks links and information; amber marks attention.
+The user-approved replacement direction is the supplied QuoteIQ presentation: a light contractor work surface, compact horizontal navigation, navy commands, and restrained amber selection. This replaces the previous optional-dark and green design guidance. The orange PourTrace logo remains the identity asset.
 
-| Role | Light | Dark |
-| --- | --- | --- |
-| Workspace | `#F2F5F7` | `#182128` |
-| Panel | `#FFFFFF` | `#29343E` |
-| Raised control | `#F4F7F9` | `#313E48` |
-| Primary text | `#17212B` | `#F2F5F7` |
-| Secondary text | `#4C5C69` | `#C2CED7` |
-| Selection | `#DFEAF3` with `#17212B` text | `#394955` with white text |
-| Link and information | `#205F85` | `#BED8EA` |
-| Control border | `#8293A1` | `#8395A3` |
-| Focus | `#29485E` | `#EDEDED` |
+**Creative North Star: "The working schedule"**
 
-Light status pairs are success `#EAF5EC` / `#27693D`, warning `#FFF3DC` / `#8A5700`, error `#FCECEE` / `#A1333D`, and information `#EAF2F8` / `#245E82`. Dark status pairs use charcoal-tinted panels and brighter status text. Ordinary money values use neutral text; green and red indicate an actual state or variance. Takeoff drawings and charts pair color with labels, line styles, or symbols. The user can save dark or light, or follow the device setting; light is the first-use default.
+**Key Characteristics:**
+- Real records and physical work dominate the available space.
+- Thin lines and quiet surfaces organize controls without decorative metric cards.
+- Clear state, quantity basis, and record context accompany every decision.
 
-## Spatial and type rules
+Implementation status: Nik accepted the shared shell, populated Schedule, and dialog/inline-detail foundation. Coordinated propagation and its local evidence are recorded in output/quoteiq-overhaul-20261016/REVIEW.md. Operational pilot approval remains separate from visual implementation.
 
-Keep the active drawing, record, or decision larger than its controls. The shared command navigation, contextual destination panel, and large task workspace form the operating frame. Avoid decorative gradients, repetitive cards, fake metrics, and permanently open inspectors. Use Segoe UI Variable or Segoe UI for controls and records, Roboto Slab sparingly for page headings, and Source Code Pro for technical content. Existing density tokens set row and control heights without changing hierarchy. Floating surfaces alone need strong shadow; ordinary panels use tonal layers and thin borders.
+## Colors
 
-## Accessibility
+`app/globals.css` owns the normative CSS tokens. `CarezAppearanceProvider.tsx` maps Fluent's one light theme to those tokens. No theme selector, device preference, or saved dark preference may select another theme. Layout prepaint also forces light.
 
-The intended minimum is 4.5:1 for normal text and 3:1 for interface boundaries and focus. Preserve visible focus, text labels, and non-color cues on dense estimating screens and outdoor mobile views. Customer-facing paper documents remain white independently of the workspace preference.
+Navy carries primary actions and focus. Amber carries selected navigation and compact attention accents. Ordinary surfaces stay white or cool gray, with neutral text. Logo orange is preserved rather than becoming the action color.
+
+**The Recorded State Rule.** Success, warning, and error colors communicate a recorded state and accompany words or symbols. The darker semantic warning foreground is used for readable normal text; accent amber text is not a substitute for contrast.
+
+## Typography
+
+Inter is the navigation, heading, form, and record face. The restrained hierarchy uses compact 20px page titles, 13px navigation and controls, and 12–14px schedule content. Tabular figures align quantities, dates, and amounts. Source Code Pro is retained for actual technical data; it is not the operational chrome font.
+
+## Layout
+
+The shared horizontal shell is 56px high. Desktop workspaces use 20px outer insets, reduced to 12px on narrow screens. Related controls share a compact title/action band. Local tabs wrap at phone width rather than forcing page panning.
+
+Schedule groups its identity, scale, displayed range, period navigation and existing actions in one white work surface. Field context and local navigation share a compact desktop row. The exact governing hold reason and job link remain immediately above the grid. Wide desktop uses a 208px identity lane and an ordinary in-flow 208px agenda separated by a 10px gap. Necessary timeline panning stays inside that surface. On phones, full work records precede the confined timeline without repeating the panel's title and count.
+
+Day, Week and Month are timeline scales. Previous, Next and Today navigate bounded windows over already-loaded dates; range labels and record counts describe that window. The full existing register retains its own horizon and filters. Textual staffing risk accompanies schedule status in desktop blocks, the agenda and inline detail. These are functioning controls over existing data, not a copied showcase calendar or a new scheduling authority.
+
+Takeoff is desktop-only at 1024px and wider. Narrow entry shows only a desktop-required message and contextual return link. A desktop workspace that is resized narrow retains its mounted state while its content and Fluent portals are hidden. The return to desktop must restore the full workspace. No mobile Takeoff workstation is supported.
+
+## Elevation & Depth
+
+Ordinary work surfaces use thin borders and tonal separation. Transient dialogs and menus use the shared soft offset shadow. Do not give every section floating-card treatment. No decorative gradients or glass effects.
+
+## Shapes
+
+Internal controls and working containers use the extracted small-to-large radius scale. Account avatars retain their circular identity treatment. Borders are thin; forms remain clearly distinct from read-only record text.
+
+## Components
+
+- **Navigation:** horizontal labeled destinations on desktop, with the selected domain distinguished by amber-tinted fill and navy text. Narrow navigation opens in a centered dialog.
+- **Buttons:** navy primary action, quiet secondary action, visible keyboard focus, semantic disabled state. Preserve supported Fluent behavior and existing accessible IDs.
+- **Fields:** bounded outlined Fluent fields with readable labels. Long native choices cannot enlarge the dialog. Textareas and labels wrap; error messages remain tied to the existing validation.
+- **Status:** compact text with semantic color; never imply clearance from missing or failed reads.
+- **Tables and phone rows:** aligned desktop data; phone lists expose full record identity, labels and actions without page-level panning.
+- **Inline detail:** selection reveals brief record information in the working flow. It does not become a side-panel inspector.
+- **Centered dialogs:** short tasks only, explicit Cancel or Close, internal vertical scrolling, Escape and focus return. Do not use edge-attached surfaces or drawers.
+- **Unavailable states:** preserve independent read failures and known values. Missing schema is unavailable, not a fabricated empty workflow.
+
+## Do's and Don'ts
+
+- **Do** preserve record context, supported URLs, Back, unsaved work and keyboard access.
+- **Do** keep quantity, direct cost, sell, recorded contract and accepted baseline meanings distinct.
+- **Do** reuse shared token, header, field and dialog owners rather than adding another theme layer.
+- **Don't** add drawers, slideovers, sheets or edge-attached forms at any width.
+- **Don't** reactivate dark mode through OS preference, old saved settings, or a second provider.
+- **Don't** recreate mobile Takeoff controls or substitute showcase interactions for real application behavior.
+- **Don't** imply that foundation acceptance establishes completion of the remaining modules.

@@ -47,10 +47,11 @@ test('authenticated Dashboard puts company status before actionable work',()=>{
   const page=read('app/page.tsx');
   const surface=read('components/today/TodaySurface.tsx');
   assert.match(page,/TodaySurface/);
-  assert.match(surface,/Company Command Center/);
+  assert.match(surface,/<h1[^>]*>Dashboard<\/h1>/);
   assert.ok(surface.indexOf('Live company status')<surface.indexOf('Work requiring attention'));
   assert.match(surface,/DataGrid/);
-  assert.match(surface,/OverlayDrawer/);
+  assert.match(surface,/<DialogSurface className="pt-dialog/);
+  assert.doesNotMatch(surface,/OverlayDrawer/);
   assert.match(surface,/14-day pour \/ crew outlook/);
   assert.match(surface,/Clear for now/);
   assert.doesNotMatch(page,/\/leads\/|\/proposals\/|\/billing['"]|\/readiness['"]/);
@@ -88,7 +89,7 @@ test('Project command center preserves record, field, cost and commercial author
   assert.doesNotMatch(page,/<CarezStatus\b|<CarezDataGrid\b/);
   assert.match(page,/projectTabs=\['overview','commercial-baseline','scope-specs','activity'\]/);
   assert.match(page,/<CarezOperatingMetricStrip columns=\{5\}>/);
-  const sections=['What Needs Your Attention','Field & Production','Cost & Forecast','Commercial & Billing'].map(value=>page.indexOf(value));
+  const sections=['What Needs Your Attention','Field & Production','Commercial & Billing','Cost & Forecast'].map(value=>page.indexOf(value));
   assert.ok(sections.every(index=>index>=0));
   assert.deepEqual(sections,[...sections].sort((a,b)=>a-b));
   assert.match(page,/const budgetAvailable=Boolean\(budgetR\.data\)/);
@@ -98,6 +99,58 @@ test('Project command center preserves record, field, cost and commercial author
   for(const href of ['/field?view=time-review','/field?view=production','/financials?tab=billing&view=billing'])
     assert.ok(page.includes(href),`missing consolidated destination ${href}`);
   assert.ok(!page.includes('/financials?tab=procurement&view=procurement'),'project commands must not advertise unavailable procurement');
+});
+
+test('Projects keeps blocked work visible without changing the governing hold',async()=>{
+  const {projectGoverningHold,projectOperationalState}=await import(new URL('lib/projects/projectReadiness.ts',root).href);
+  const agreement=projectGoverningHold('job 1',{award_setup_applies:true,job_ready:false,readiness_reason:'Accepted agreement record is missing.'},{blocked_operation_count:0,ready_operation_count:0});
+  assert.equal(agreement.hardHold,true);
+  assert.equal(agreement.reason,'Accepted agreement record is missing.');
+  assert.equal(agreement.href,'/job-setup/job%201');
+  const setupClear={award_setup_applies:true,job_ready:true};
+  const fullyBlocked=projectGoverningHold('job-2',setupClear,{blocked_operation_count:2,ready_operation_count:0});
+  assert.equal(fullyBlocked.hardHold,true);
+  assert.equal(fullyBlocked.blockedAttention,true);
+  assert.equal(fullyBlocked.activeOperations,2);
+  assert.equal(fullyBlocked.href,'/field?view=work-packages');
+  assert.equal(projectOperationalState('active',fullyBlocked,0),'hold');
+  const mixed=projectGoverningHold('job-3',setupClear,{blocked_operation_count:1,ready_operation_count:1});
+  assert.equal(mixed.hardHold,false,'ready work must not change the hard-hold formula');
+  assert.equal(mixed.blockedAttention,true,'blocked work must still need attention');
+  assert.equal(mixed.reason,null);
+  assert.match(mixed.blockedReason||'',/1 active operation is blocked by readiness checks.*1 is ready/);
+  assert.equal(mixed.blockedHref,'/field?view=work-packages');
+  assert.equal(mixed.activeOperations,2,'only active ready and blocked operations are counted');
+  assert.equal(projectOperationalState('active',mixed,0),'ready');
+  assert.equal(projectOperationalState('active',mixed,1),'planning','an actual in-progress operation has a distinct presentation');
+  const fullyReady=projectGoverningHold('job-4',setupClear,{blocked_operation_count:0,ready_operation_count:1});
+  assert.equal(fullyReady.hardHold,false);
+  assert.equal(fullyReady.blockedAttention,false);
+  assert.equal(fullyReady.blockedReason,null);
+  assert.equal(fullyReady.activeOperations,1);
+  assert.equal(projectOperationalState('active',fullyReady,0),'ready');
+});
+
+test('Projects derives active counts from readiness and in-progress state from recorded operation status',()=>{
+  const page=read('app/projects/page.tsx');
+  const overview=read('app/projects/[id]/page.tsx');
+  const board=read('components/projects/JobsOperationsBoard.tsx');
+  assert.doesNotMatch(page,/wr\.open_operations/);
+  assert.match(page,/openOps=hold\.activeOperations/);
+  assert.match(page,/operation_status','in_progress'/);
+  assert.match(page,/hold\.blockedAttention/);
+  assert.match(page,/holds:activeRows\.filter\(row=>row\.hardHold\)/);
+  assert.match(board,/row\.blockedOperations>0/);
+  assert.match(board,/row\.blockedReason/);
+  assert.match(overview,/hold\.blockedReason&&hold\.blockedHref/);
+});
+
+test('Project commercial display uses billing-view columns and distinguishes an absent baseline',()=>{
+  const page=read('app/projects/[id]/page.tsx');
+  assert.match(page,/bill\.billed_amount/);
+  assert.match(page,/bill\.collected_amount/);
+  assert.match(page,/acceptedContract=authorizedContractR\.error\?'Unavailable':authorizedContractR\.data\?recordedMoney/);
+  assert.doesNotMatch(page,/bill\.authorized_contract|bill\.billed_contract|bill\.cash_collected/);
 });
 
 test('current workspaces preserve actionable empty states and distinct numeric authority',()=>{

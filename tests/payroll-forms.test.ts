@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {payrollCohort,payrollPeriod,payrollRunId} from '../lib/financials/payrollForms.ts';
+function form(){const value=new FormData();for(const [key,input] of Object.entries({period_start:'2026-12-26',period_end:'2027-01-01',pay_date:'2027-01-03',timecard_ids:JSON.stringify(['f1000000-0000-4000-8000-000000000001']),fingerprint:'a'.repeat(64)}))value.set(key,input);return value;}
+test('payroll period keeps pay date distinct from work period across years',()=>{assert.deepEqual(payrollPeriod(form()),{start:'2026-12-26',end:'2027-01-01',payDate:'2027-01-03'});});
+test('payroll dates require explicit valid values',()=>{for(const date of ['', '2027-02-30','2027-13-01','garbage']){const value=form();value.set('pay_date',date);assert.throws(()=>payrollPeriod(value));}const value=form();value.set('period_end','2026-01-01');assert.throws(()=>payrollPeriod(value));});
+test('payroll creation requires exact unique IDs and snapshot fingerprint',()=>{assert.equal(payrollCohort(form()).ids.length,1);for(const input of ['', '[]', 'null', '["foreign"]',JSON.stringify(['f1000000-0000-4000-8000-000000000001','f1000000-0000-4000-8000-000000000001'])]){const value=form();value.set('timecard_ids',input);assert.throws(()=>payrollCohort(value));}const value=form();value.delete('fingerprint');assert.throws(()=>payrollCohort(value));});
+test('a missing run ID cannot be treated as a successful transition',()=>{const value=form();assert.throws(()=>payrollRunId(value));value.set('payroll_run_id','bad');assert.throws(()=>payrollRunId(value));value.set('payroll_run_id','f1000000-0000-4000-8000-000000000001');assert.equal(payrollRunId(value),'f1000000-0000-4000-8000-000000000001');});

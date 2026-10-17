@@ -3,12 +3,14 @@
 import {useMemo,useRef,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 import {attachPlanToTakeoffSet} from '@/app/takeoff/[setId]/actions';
-import {Button,Spinner,Text} from '@fluentui/react-components';
+import {uploadSourceFile,forgetSourceUpload,cleanupUnusedSourceUpload} from '@/lib/documents/uploadSourceFile';
+import {Button,Spinner,Text,ProgressBar} from '@fluentui/react-components';
 
 export function TakeoffPlanUpload({companyId,takeoffSetId}:{companyId:string;takeoffSetId:string}){
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [files,setFiles]=useState<File[]>([]);
+  const [uploadedBytes,setUploadedBytes]=useState(0);
   const fileInputRef=useRef<HTMLInputElement|null>(null);
   const supabase=useMemo(()=>createClient(),[]);
 
@@ -16,23 +18,22 @@ export function TakeoffPlanUpload({companyId,takeoffSetId}:{companyId:string;tak
     const file=files[0];
     if(!file||file.size===0){setMessage('Choose a PDF plan set.');return;}
     if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setMessage('The drawing workspace currently requires PDF plans.');return;}
-    setBusy(true);setMessage('');let path='';
+    setBusy(true);setMessage('');setUploadedBytes(0);
     try{
-      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      path=`${companyId}/plans/${crypto.randomUUID()}-${safe}`;
-      const {error}=await supabase.storage.from('carez-documents').upload(path,file,{contentType:'application/pdf',upsert:false});
-      if(error)throw error;
+      const uploaded=await uploadSourceFile(supabase,file,companyId,false,bytes=>setUploadedBytes(bytes),'application/pdf');
       const meta=new FormData();
       meta.set('takeoff_set_id',takeoffSetId);
-      meta.set('storage_path',path);
+      meta.set('storage_path',uploaded.path);
+      meta.set('storage_format',uploaded.format);
       meta.set('source_filename',file.name);
       meta.set('mime_type','application/pdf');
-      await attachPlanToTakeoffSet(meta);
-      setMessage('Plan set attached. Opening drawing workspace…');
+      const result=await attachPlanToTakeoffSet(meta);
+      forgetSourceUpload(uploaded);
+      const cleaned=await cleanupUnusedSourceUpload(supabase,uploaded,result.unusedPath);
+      setMessage(cleaned?'Plan set attached. Opening drawing workspace…':'Plan attached; unused upload cleanup is pending. Opening drawings…');
       location.reload();
     }catch(error:any){
-      if(path)await supabase.storage.from('carez-documents').remove([path]);
-      setMessage(error?.message||'Plan upload failed.');
+      setMessage(`${error?.message||'Plan upload failed.'} Uploaded bytes remain available for retry; no existing source was replaced.`);
     }finally{setBusy(false);}
   }
 
@@ -43,7 +44,7 @@ export function TakeoffPlanUpload({companyId,takeoffSetId}:{companyId:string;tak
       <Text size={200}>{files[0]?.name||'Or drop a PDF plan set here'}</Text>
     </div>
     <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Revision rule:</strong> after drawing measurements exist, this source PDF cannot be silently replaced. Revised plans should create the next takeoff/estimate revision so quantity deltas remain auditable.</div>
-    {busy?<Spinner size="tiny" label="Uploading plan set"/>:null}
+    {busy?<div className="space-y-2"><ProgressBar value={files[0]?uploadedBytes/files[0].size:0} aria-label="Original plan upload"/><Spinner size="tiny" label={files[0]&&uploadedBytes===files[0].size?'Verifying original PDF bytes':'Uploading plan set'}/></div>:null}
     {message?<div role="status" className="text-xs text-muted-foreground">{message}</div>:null}
     <Button type="button" onClick={()=>void submit()} disabled={busy||!files.length}>{busy?'Uploading…':'Attach PDF + open drawings'}</Button>
   </div>;

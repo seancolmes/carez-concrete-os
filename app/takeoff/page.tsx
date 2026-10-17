@@ -1,5 +1,6 @@
 import {redirect} from 'next/navigation';
 import {WarningRegular as AlertTriangle,CalculatorRegular as Calculator,AddRegular as Plus,RulerRegular as Ruler,ArrowUploadRegular as Upload} from '@fluentui/react-icons';
+import {TakeoffDesktopBoundary} from '@/components/takeoff/TakeoffDesktopBoundary';
 import {AppShell} from '@/components/AppShell';
 import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Input,Select} from '@fluentui/react-components';
 import {createClient} from '@/lib/supabase/server';
@@ -64,7 +65,7 @@ export default async function TakeoffPage(){
   const missingOutputs=(outputs||[]).filter((o:any)=>['missing_price','missing_labor_rate'].includes(o.pricing_status)&&Number(o.production_quantity||o.estimated_man_hours||0)>0);
   const totalDirect=(summaries||[]).reduce((sum:number,row:any)=>sum+Number(row.takeoff_direct_cost||0),0);
 
-  return <AppShell userName={profile.full_name||user.email||'Owner'}>
+  return <AppShell userName={profile.full_name||user.email||'Owner'}><TakeoffDesktopBoundary returnHref="/opportunities" returnLabel="Return to Opportunities">
     <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-col gap-3 lg:h-full">
       <header className="carez-page-heading flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><h1>Concrete takeoff</h1></div>
@@ -132,5 +133,5 @@ export default async function TakeoffPage(){
       </section>
 
     </div>
-  </AppShell>;
+  </TakeoffDesktopBoundary></AppShell>;
 }

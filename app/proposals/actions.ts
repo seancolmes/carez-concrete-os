@@ -3,6 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
+import {proposalSnapshotRead} from '@/lib/estimating/proposalSnapshotReads';
 import {parseEstimateReleaseReadiness} from '@/lib/estimating/releaseReadiness';
 
 async function ctx(){
@@ -19,15 +20,10 @@ const numberValue=(fd:FormData,key:string,fallback=0)=>{const raw=text(fd,key);i
 const dateOnly=(d:Date)=>d.toISOString().slice(0,10);
 const refresh=()=>{for(const p of ['/','/leads','/estimates','/proposals','/bid-intelligence','/opportunities'])revalidatePath(p);};
 
-async function liveProposalExists(supabase:any,companyId:string,estimateId:string){
- const {data}=await supabase.from('proposal_access_tokens').select('id,expires_at').eq('company_id',companyId).eq('estimate_id',estimateId).is('revoked_at',null);
- const now=Date.now();
- return (data||[]).some((x:any)=>!x.expires_at||new Date(x.expires_at).getTime()>now);
-}
-
 async function issuedProposalExists(supabase:any,companyId:string,estimateId:string){
- const {count}=await supabase.from('proposal_presentations').select('id',{count:'exact',head:true}).eq('company_id',companyId).eq('estimate_id',estimateId);
- return (count||0)>0;
+ const {count,error}=await supabase.from('proposal_presentations').select('id',{count:'exact',head:true}).eq('company_id',companyId).eq('estimate_id',estimateId);
+ if(error||count===null)throw new Error('Proposal issue status unavailable.');
+ return count>0;
 }
 
 async function assertRevisionEditable(supabase:any,companyId:string,estimateId:string){
@@ -99,14 +95,17 @@ export async function toggleValueOptionPresented(fd:FormData){
 export async function createProposalLink(fd:FormData){
  const estimateId=text(fd,'estimate_id');if(!estimateId)return;
  const {supabase,user,companyId}=await ctx();
- let {data:e}=await supabase.from('estimates').select('id,company_id,lead_id,project_id,opportunity_number,estimate_number,version,status,name,expected_start_date,updated_at').eq('id',estimateId).eq('company_id',companyId).single();
- if(!e)throw new Error('Estimate not found.');if(e.status!=='ready')throw new Error('Set the estimate to Ready to Send before issuing a customer proposal.');
- if(await liveProposalExists(supabase,companyId,estimateId))throw new Error('This revision already has a live customer proposal.');
- if(await issuedProposalExists(supabase,companyId,estimateId))throw new Error('This revision was already issued. Create a new revision rather than reusing the same proposal number.');
+ let {data:e,error:estimateReadError}=await supabase.from('estimates').select('id,company_id,lead_id,project_id,opportunity_number,estimate_number,version,status,name,expected_start_date,updated_at').eq('id',estimateId).eq('company_id',companyId).single();
+ if(estimateReadError)throw new Error('Estimate unavailable.');if(!e)throw new Error('Estimate not found.');if(e.status!=='ready')throw new Error('Set the estimate to Ready to Send before issuing a customer proposal.');
  let opportunity=e.opportunity_number||String(e.estimate_number||'').replace(/^E-/,'');
  if(!opportunity){const {data:o,error}=await supabase.rpc('next_opportunity_number');if(error||!o)throw new Error(error?.message||'Could not create opportunity number');opportunity=o;const {error:updateError}=await supabase.from('estimates').update({opportunity_number:opportunity,estimate_number:`E-${opportunity}`,updated_at:new Date().toISOString()}).eq('id',estimateId).eq('company_id',companyId);if(updateError)throw new Error(updateError.message);const reread=await supabase.from('estimates').select('id,company_id,lead_id,project_id,opportunity_number,estimate_number,version,status,name,expected_start_date,updated_at').eq('id',estimateId).eq('company_id',companyId).single();e=reread.data;if(!e)throw new Error('Estimate could not be reloaded.');}
- const [{data:summary},{data:sections},{data:items},{data:settings},{data:clarifications},{data:options},{data:company},{data:billing},{data:lead},{data:project},{data:bidProfile}]=await Promise.all([
-  supabase.from('estimate_financial_summary').select('selected_sell_price,recommended_sell_price').eq('estimate_id',estimateId).single(),
+ const {data:sourceFingerprint,error:sourceError}=await supabase.rpc('carez_proposal_source_fingerprint',{p_estimate_id:estimateId});if(sourceError||!sourceFingerprint)throw new Error('Proposal source unavailable. Reload before issuing.');
+ const snapshotEstimateRead=await supabase.from('estimates').select('id,company_id,lead_id,project_id,opportunity_number,estimate_number,version,status,name,expected_start_date,updated_at').eq('id',estimateId).eq('company_id',companyId).single();
+ if(snapshotEstimateRead.error||!snapshotEstimateRead.data)throw new Error('Estimate source unavailable. Reload before issuing.');
+ e=snapshotEstimateRead.data;opportunity=e.opportunity_number||String(e.estimate_number||'').replace(/^E-/,'');
+ if(!opportunity||e.status!=='ready')throw new Error('Estimate source changed. Reload and review before issuing.');
+ const reads=await Promise.all([
+  supabase.from('estimate_financial_summary').select('selected_sell_price,recommended_sell_price').eq('estimate_id',estimateId).eq('company_id',companyId).single(),
   supabase.from('estimate_sections').select('id,name,scope_type,sort_order').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
   supabase.from('estimate_items').select('id,section_id,description,quantity,unit,item_type,sort_order').eq('estimate_id',estimateId).eq('company_id',companyId).order('sort_order'),
   supabase.from('proposal_settings').select('*').eq('estimate_id',estimateId).eq('company_id',companyId).maybeSingle(),
@@ -118,17 +117,27 @@ export async function createProposalLink(fd:FormData){
   e.project_id?supabase.from('projects').select('job_number,name,address,city,state').eq('id',e.project_id).eq('company_id',companyId).maybeSingle():Promise.resolve({data:null}),
   e.lead_id?supabase.from('lead_bid_intelligence').select('bid_type').eq('lead_id',e.lead_id).eq('company_id',companyId).maybeSingle():Promise.resolve({data:null})
  ]);
- const {data:leadCustomer}=lead?.customer_id?await supabase.from('customers').select('id,name,contact_name,email,phone').eq('id',lead.customer_id).eq('company_id',companyId).maybeSingle():{data:null};
+ const names=['Estimate financial summary','Scope areas','Estimate items','Proposal settings','Clarifications','Value options','Company','Company invoice profile','Customer lead','Project','Bid profile'];
+ const checked=reads.map((result:any,index:number)=>proposalSnapshotRead(names[index],result,index===5||index===10));
+ const [summary,sections,items,settings,clarifications,options,company,billing,lead,project,bidProfile]=checked.map(result=>result.data as any);
+ if(checked[10].unavailable&&!settings?.audience_type)throw new Error('Choose and save the Proposal audience before issuing; bid profile is unavailable.');
+ const customerRead=lead?.customer_id?await supabase.from('customers').select('id,name,contact_name,email,phone').eq('id',lead.customer_id).eq('company_id',companyId).maybeSingle():{data:null};
+ const leadCustomer=proposalSnapshotRead('Customer destination',customerRead).data as any;
+ if(lead?.customer_id&&!leadCustomer)throw new Error('Linked Customer destination is missing.');
  const sell=Number(summary?.selected_sell_price||summary?.recommended_sell_price||0);if(!(sell>0))throw new Error('Customer price must be greater than $0 before a proposal can be sent.');if(!(items||[]).length)throw new Error('Add the customer scope before sending this proposal.');
  const audience=settings?.audience_type||(bidProfile?.bid_type==='residential_direct'?'homeowner':'general_contractor'),showQuantities=settings?.show_quantities!==false,validityDays=Math.min(90,Math.max(1,Number(settings?.validity_days||30)));const expires=new Date();expires.setDate(expires.getDate()+validityDays);const proposalNumber=`P-${opportunity}-R${Number(e.version||0)}`;
  const safeItems=(items||[]).map((i:any)=>showQuantities&&i.item_type!=='labor'?{id:i.id,section_id:i.section_id,description:i.description,quantity:Number(i.quantity||0),unit:i.unit,item_type:i.item_type,sort_order:i.sort_order}:{id:i.id,section_id:i.section_id,description:i.description,item_type:i.item_type,sort_order:i.sort_order});
  const safeOptions=(options||[]).map((o:any)=>({id:o.id,name:o.name,customer_description:o.customer_description,price_change:Number(o.sell_price_change||0),option_price:Math.max(0,sell+Number(o.sell_price_change||0)),schedule_days_change:Number(o.schedule_days_change||0),function_quality_note:o.function_quality_note,approval_required:o.approval_required}));
  if(!company?.name)throw new Error('Set up your company before issuing a proposal.');
- const snapshot={proposal_number:proposalNumber,valid_through:expires.toISOString(),audience_type:audience,estimate:{id:e.id,estimate_number:e.estimate_number,version:e.version,name:e.name,expected_start_date:e.expected_start_date},pricing:{base_sell_price:sell},company:{name:company.name,display_name:billing?.display_name||company.name,legal_name:billing?.legal_name||null,address_line1:billing?.address_line1||null,address_line2:billing?.address_line2||null,city:billing?.city||null,state:billing?.state||null,postal_code:billing?.postal_code||null,phone:billing?.phone||null,email:billing?.email||null,website:billing?.website||null,ubi_number:billing?.ubi_number||null,contractor_license_number:billing?.contractor_license_number||null,logo_path:billing?.logo_path||null},lead:lead?{customer_name:leadCustomer?.name||lead.customer_name,contact_name:leadCustomer?.contact_name||lead.contact_name,email:leadCustomer?.email||lead.email,phone:leadCustomer?.phone||lead.phone,project_name:lead.project_name,address:lead.address,city:lead.city,state:lead.state,postal_code:lead.postal_code}:{},project:project?{job_number:project.job_number,name:project.name,address:project.address,city:project.city,state:project.state}:{},content:{executive_summary:settings?.executive_summary||lead?.scope||null,customer_message:settings?.customer_message||null,schedule_summary:settings?.schedule_summary||null,payment_summary:settings?.payment_summary||null,warranty_summary:settings?.warranty_summary||null,why_carez:settings?.why_carez||null,pricing_note:settings?.pricing_note||null,terms_text:settings?.terms_text||billing?.default_terms_text||null,show_quantities:showQuantities},sections:(sections||[]).map((s:any)=>({id:s.id,name:s.name,scope_type:s.scope_type,sort_order:s.sort_order})),items:safeItems,clarifications:(clarifications||[]).map((c:any)=>({id:c.id,category:c.category,text:c.clarification_text,sort_order:c.sort_order})),options:safeOptions};
- const {data:releaseData,error:releaseError}=await supabase.rpc('carez_get_estimate_release_readiness',{p_estimate_id:estimateId});if(releaseError)throw new Error(releaseError.message);const release=parseEstimateReleaseReadiness(releaseData);if(release.release_state!=='release_ready')throw new Error('Complete Estimate Review before issuing this Proposal.');
- const {data:token,error:tokenError}=await supabase.from('proposal_access_tokens').insert({company_id:companyId,estimate_id:estimateId,proposal_number:proposalNumber,expires_at:expires.toISOString()}).select('id,token,expires_at').single();if(tokenError||!token)throw new Error(tokenError?.message||'Could not create proposal link.');
- const {error:presentationError}=await supabase.from('proposal_presentations').insert({company_id:companyId,estimate_id:estimateId,proposal_access_token_id:token.id,lead_id:e.lead_id||null,proposal_number:proposalNumber,audience_type:audience,base_sell_price:sell,source_estimate_updated_at:e.updated_at,snapshot,status:'sent',response_state:'none',created_by:user.id,release_commercial_fingerprint:release.commercial_fingerprint,release_warning_fingerprint:release.warning_fingerprint,release_acknowledgement_id:release.warning_count>0?release.acknowledgement_id:null});if(presentationError){await supabase.from('proposal_access_tokens').update({revoked_at:new Date().toISOString()}).eq('id',token.id);throw new Error(presentationError.message);}
- if(e.lead_id){const now=new Date(),follow=new Date(now);follow.setDate(follow.getDate()+2);await Promise.all([supabase.from('leads').update({status:'proposal_sent',follow_up:dateOnly(follow),updated_at:now.toISOString()}).eq('id',e.lead_id).eq('company_id',companyId),supabase.from('lead_activities').insert({company_id:companyId,lead_id:e.lead_id,activity_type:'proposal',note:`${proposalNumber} sent / ready to share. Follow up if the customer has not responded.`,next_follow_up:dateOnly(follow),created_by:user.id}),supabase.from('lead_bid_intelligence').upsert({company_id:companyId,lead_id:e.lead_id,proposal_sent_at:now.toISOString(),created_by:user.id,updated_at:now.toISOString()},{onConflict:'lead_id'})]);}
+ const snapshot={proposal_number:proposalNumber,valid_through:expires.toISOString(),audience_type:audience,estimate:{id:e.id,estimate_number:e.estimate_number,version:e.version,name:e.name,expected_start_date:e.expected_start_date},pricing:{base_sell_price:sell},company:{name:company.name,display_name:billing?.display_name||company.name,legal_name:billing?.legal_name||null,address_line1:billing?.address_line1||null,address_line2:billing?.address_line2||null,city:billing?.city||null,state:billing?.state||null,postal_code:billing?.postal_code||null,phone:billing?.phone||null,email:billing?.email||null,website:billing?.website||null,ubi_number:billing?.ubi_number||null,contractor_license_number:billing?.contractor_license_number||null,logo_path:billing?.logo_path||null},lead:lead?{customer_name:leadCustomer?.name||lead.customer_name,contact_name:leadCustomer?.contact_name||lead.contact_name,email:leadCustomer?.email||lead.email,phone:leadCustomer?.phone||lead.phone,project_name:lead.project_name,address:lead.address,city:lead.city,state:lead.state,postal_code:lead.postal_code}:{},project:project?{job_number:project.job_number,name:project.name,address:project.address,city:project.city,state:project.state}:{},content:{executive_summary:settings?.executive_summary||lead?.scope||null,customer_message:settings?.customer_message||null,schedule_summary:settings?.schedule_summary||null,payment_summary:settings?.payment_summary||null,warranty_summary:settings?.warranty_summary||null,why_carez:settings?.why_carez||null,pricing_note:settings?.pricing_note||null,terms_text:settings?.terms_text||billing?.default_terms_text||null,show_quantities:showQuantities},sections:(sections||[]).map((s:any)=>({id:s.id,name:s.name,scope_type:s.scope_type,sort_order:s.sort_order})),items:safeItems,clarifications:(clarifications||[]).map((c:any)=>({id:c.id,category:c.category,text:c.clarification_text,sort_order:c.sort_order})),options:safeOptions,omitted_capabilities:checked[5].unavailable?['value_options']:[]};
+ const {data:releaseData,error:releaseError}=await supabase.rpc('carez_get_estimate_release_readiness',{p_estimate_id:estimateId});if(releaseError)throw new Error(releaseError.message);const release=parseEstimateReleaseReadiness(releaseData);if(release.release_state!=='release_ready'&&!(await issuedProposalExists(supabase,companyId,estimateId)))throw new Error('Complete Estimate Review before issuing this Proposal.');
+ const {data:issued,error:issueError}=await supabase.rpc('carez_issue_proposal',{
+  p_estimate_id:estimateId,p_expected_updated_at:e.updated_at,p_proposal_number:proposalNumber,p_audience:audience,
+  p_expires_at:expires.toISOString(),p_snapshot:snapshot,p_commercial_fingerprint:release.commercial_fingerprint,
+  p_expected_source_fingerprint:sourceFingerprint,p_warning_fingerprint:release.warning_fingerprint,p_acknowledgement_id:release.warning_count>0?release.acknowledgement_id:null,
+ });
+ if(issueError||!issued?.presentation_id)throw new Error(issueError?.message||'Proposal issuance was not confirmed.');
+ if(!issued.already_issued&&e.lead_id){const now=new Date();await supabase.from('lead_bid_intelligence').upsert({company_id:companyId,lead_id:e.lead_id,proposal_sent_at:now.toISOString(),created_by:user.id,updated_at:now.toISOString()},{onConflict:'lead_id'});}
  refresh();
 }
 

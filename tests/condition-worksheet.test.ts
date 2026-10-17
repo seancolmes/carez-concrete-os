@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { projectConditionWorksheet } from '../lib/takeoff/conditionWorksheet.ts';
+import { projectConditionWorksheet,conditionWorksheetAnchors } from '../lib/takeoff/conditionWorksheet.ts';
 
 const base = {
   measurementId: 'm1',
@@ -8,6 +8,13 @@ const base = {
   conditionName: 'F1 Strip Footing',
   holds: [],
 };
+
+test('unsaved reanchor and unlink retain pending suppression of the saved compatibility row',()=>{
+  assert.deepEqual(conditionWorksheetAnchors('saved','working',true),['working','saved']);
+  assert.deepEqual(conditionWorksheetAnchors('saved','',true),['saved']);
+  assert.deepEqual(conditionWorksheetAnchors('saved','saved',true),['saved']);
+  assert.deepEqual(conditionWorksheetAnchors('saved','working',false),['working']);
+});
 
 test('Condition worksheet suppresses compatibility quantities before first calculation', () => {
   const projected = projectConditionWorksheet({ ...base, calculated: false, outputs: [] });

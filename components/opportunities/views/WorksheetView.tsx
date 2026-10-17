@@ -3,24 +3,26 @@ import {DeleteEstimateButton} from '@/components/estimates/DeleteEstimateButton'
 import {notFound,redirect} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeftRegular as ArrowLeft,CheckmarkCircleRegular as CheckCircle2,DocumentRegular as FileText,RulerRegular as Ruler,ShieldCheckmarkRegular as ShieldCheck} from '@fluentui/react-icons';
-import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Dialog,DialogBody,DialogContent,DialogSurface,DialogTitle,DialogTrigger,Input,Label,Select} from '@fluentui/react-components';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Input,Label,Select} from '@fluentui/react-components';
 import {EstimateWorksheet} from '@/components/estimates/EstimateWorksheet';
 import {EstimateWorkspaceTabs} from '@/components/estimates/EstimateWorkspaceTabs';
+import {AddExceptionCostDialog,AddScopeAreaDialog} from './EstimateEntryDialogs';
 import {PricingCoverage} from '@/components/estimates/PricingCoverage';
 import {LaborReview} from '@/components/estimates/LaborReview';
 import viewStyles from './opportunity-view.module.css';
 import {createClient} from '@/lib/supabase/server';
-import {addEstimateSection,addEstimateItem,updateEstimatePricing} from '@/app/estimates/actions';
+import {updateEstimatePricing,attachConfiguredEstimateOverhead} from '@/app/estimates/actions';
+import {ProcurementForm} from '@/components/financials/ProcurementForm';
+import {estimateAmount,estimateMoney} from '@/lib/estimating/estimateAmount';
 import {parseEstimateReleaseReadiness,releaseStateLabel} from '@/lib/estimating/releaseReadiness';
 
-const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
+const money=estimateMoney;
 const num=(n:any)=>Number(n||0);
-const units=['CY','LF','SF','LB','EA','HR','DAY','TON','GAL','LS'];
-const secondaryAction='inline-flex items-center justify-center bg-secondary border border-input text-secondary-foreground text-xs font-medium px-4 py-2 rounded-lg hover:border-[var(--border-strong)] hover:bg-accent shadow-sm transition-all whitespace-nowrap';
+const secondaryAction='inline-flex items-center justify-center bg-secondary border border-input text-secondary-foreground text-xs font-medium px-3 py-1.5 rounded-md hover:border-[var(--border-strong)] hover:bg-accent transition-colors whitespace-nowrap';
 const primaryAction='carez-button-primary text-sm font-medium px-5 py-2.5 rounded-lg border transition-all';
 const masterSection='mb-6 overflow-hidden rounded-sm border border-border bg-card';
 
-export async function WorksheetView({estimateId}:{estimateId:string}){
+export async function WorksheetView({estimateId,planning,embedded=false}:{estimateId:string;embedded?:boolean;planning?:{projectId:string;takeoffSetId?:string}}){
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
   const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();if(!p?.company_id)redirect('/login');if(p.role==='employee')redirect('/employee');
@@ -77,9 +79,11 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
   const display=`${e.estimate_number}-R${Number(e.version||0)}`;
   const itemsBySection=new Map<string,any[]>();
   for(const item of items||[]){const key=item.section_id||'unassigned';const rows=itemsBySection.get(key)||[];rows.push(item);itemsBySection.set(key,rows);}
-  const selectedPrice=num(s?.selected_sell_price||s?.recommended_sell_price||e.proposed_sell_price);
-  const recommended=num(s?.recommended_sell_price);
-  const margin=num(s?.projected_margin_percent);
+  const overheadUnconfigured=readiness.blockers.some(finding=>finding.finding_key==='overhead_basis_unconfigured');
+  const selectedPrice=estimateAmount(s?.selected_sell_price);
+  const overheadMissing=e.overhead_rate_snapshot==null;
+  const recommended=overheadMissing?null:estimateAmount(s?.recommended_sell_price);
+  const margin=overheadMissing?null:estimateAmount(s?.projected_margin_percent);
   const target=num(e.target_margin_percent);
   const takeoffObjects=num(takeoff?.active_measurements);
   const holds=num(takeoff?.missing_price_outputs);
@@ -97,13 +101,15 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
     return measurement?.takeoff_set_id?`/takeoff/${encodeURIComponent(measurement.takeoff_set_id)}?measurement=${encodeURIComponent(measurementId)}`:'/takeoff';
   };
   const blockerHref=(finding:(typeof blockers)[number])=>{
+    if(finding.next_action==='overhead')return '#estimate-overhead-basis';
     if(finding.next_action==='pricing')return finding.record_id&&outputIds.has(finding.record_id)?estimateHref(e.id,'worksheet','#pricing-coverage',`pricingOutput=${encodeURIComponent(finding.record_id)}`):estimateHref(e.id,'worksheet','#pricing-coverage');
     if(finding.next_action==='labor')return estimateHref(e.id,'worksheet','#labor-review');
     if(finding.next_action==='scope'||finding.next_action==='margin')return estimateHref(e.id,'worksheet','#scope-cost');
     if(finding.next_action==='takeoff')return takeoffHref(finding.record_id);
-    return auditHref(e.id);
+    return planning?`/projects/${planning.projectId}`:auditHref(e.id);
   };
   const blockerActionLabel=(finding:(typeof blockers)[number])=>{
+    if(finding.next_action==='overhead')return 'Review overhead basis';
     if(finding.next_action==='pricing')return 'Review pricing';
     if(finding.next_action==='labor')return 'Review labor';
     if(finding.next_action==='scope'||finding.next_action==='margin')return 'Review scope';
@@ -112,17 +118,20 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
   };
 
   return <div className={`${viewStyles.workspace} carez-estimate-workspace flex w-full min-w-0 flex-col gap-4`}>
+    {embedded?<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span>{display}</span><Badge appearance="outline">Estimate: {stage}</Badge></div>:<>
     <header className="carez-page-heading flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0"><p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{opportunity&&<><Link className={secondaryAction} href={opportunityHref(opportunity.id)}>Opportunity {opportunity.opportunity_number}</Link><span aria-hidden="true"> · </span></>}{display} · {stage}</p><h1 className="mt-1 truncate text-base font-semibold tracking-tight text-foreground">{e.name}</h1></div>
-      <div className="flex flex-wrap gap-2"><Link className={secondaryAction} href="/opportunities"><ArrowLeft/>Estimates</Link><Link data-role="takeoff-action" className={secondaryAction} href="/takeoff"><Ruler/>Takeoff</Link></div>
+      <div className="flex flex-wrap gap-2"><Link className={secondaryAction} href={planning?`/projects/${planning.projectId}`:'/opportunities'}><ArrowLeft/>{planning?'Back to project':'Estimates'}</Link><Link data-role="takeoff-action" className={secondaryAction} href={planning?.takeoffSetId?`/takeoff/${planning.takeoffSetId}`:'/takeoff'}><Ruler/>Takeoff</Link></div>
     </header>
+    </>}
+    {planning&&<p role="status" className="border-l-2 border-primary py-2 pl-3 text-sm text-muted-foreground">Post-award quantity and cost planning for the existing job. This estimate is not a new bid or an accepted commercial baseline.</p>}
 
     {proposal&&!['accepted','approved','superseded'].includes(e.status)&&<div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>{proposal.proposal_number} is issued.</strong> <span className="text-muted-foreground">This exact estimate revision is read-only. Customer follow-up and the next revision are handled from Proposal.</span></div>}
-    {['accepted','approved'].includes(e.status)&&<div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"><strong>Awarded baseline locked.</strong> Carez preserves this accepted price and scope while the project budget and Work Packages run from the snapshot.</div>}
+    {['accepted','approved'].includes(e.status)&&<div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"><strong>Awarded baseline locked.</strong> Accepted price and scope are preserved in the project baseline.</div>}
     {e.status==='superseded'&&<div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm"><strong>Historical revision.</strong> <span className="text-muted-foreground">A newer revision replaced this one; it remains available for audit.</span></div>}
 
     {blockers.length>0&&<section className="border-y border-border bg-[var(--pt-surface-1)] px-4 py-3 text-sm" aria-label="Release readiness">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><strong className="text-xs font-bold uppercase tracking-[0.12em]">Release readiness</strong><Badge appearance="outline" color="warning" size="small">{blockers.length} blocker{blockers.length===1?'':'s'}</Badge></div><Link className={secondaryAction} href={auditHref(e.id)}>Review release</Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><strong className="text-xs font-bold uppercase tracking-[0.12em]">{planning?'Planning checks':'Release readiness'}</strong><Badge appearance="outline" color="warning" size="small">{blockers.length} blocker{blockers.length===1?'':'s'}</Badge></div><Link className={secondaryAction} href={planning?`/projects/${planning.projectId}`:auditHref(e.id)}>{planning?'Open project':'Review release'}</Link></div>
       <ul className="mt-2 divide-y divide-border border-t border-border text-xs">{blockers.map(finding=><li key={finding.finding_key} className="flex flex-wrap items-center justify-between gap-3 py-2"><span className="min-w-0 font-medium">{finding.title}</span><span className="flex shrink-0 items-center gap-3"><span className="text-warning">Needs action</span><Link className="font-semibold text-primary hover:underline" href={blockerHref(finding)}>{blockerActionLabel(finding)}</Link></span></li>)}</ul>
     </section>}
     {blockers.length===0&&warnings.length>0&&<section className="border border-warning/30 bg-warning/5 px-3 py-2 text-sm" aria-label="Review warnings"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-warning">{warnings.length} review warning{warnings.length===1?'':'s'}</strong><Link className={secondaryAction} href={auditHref(e.id)}>Review warnings</Link></div><Accordion collapsible className="mt-1"><AccordionItem value="review-warnings"><AccordionHeader>Show warning details</AccordionHeader><AccordionPanel><ul className="mt-2 space-y-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">{warnings.map((finding:any)=><li key={finding.finding_key}>{finding.title}</li>)}</ul></AccordionPanel></AccordionItem></Accordion></section>}
@@ -131,7 +140,7 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
       scope={<>
     <section className="carez-scope-ledger grid grid-cols-2 gap-px border border-border bg-border lg:grid-cols-4" aria-label="Commercial estimator ledger">
       <LedgerMetric label="Customer price" value={money(selectedPrice)} help="Selected for this revision."/>
-      <LedgerMetric label="Projected margin" value={`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}%.`} tone={margin<target?'warning':undefined}/>
+      <LedgerMetric label="Projected margin" value={margin===null?'Unavailable':`${margin.toFixed(1)}%`} help={`Target ${target.toFixed(1)}%.`} tone={margin!==null&&margin<target?'warning':undefined}/>
       <LedgerMetric label="Pricing holds" value={String(holds)} help={holds?'Takeoff outputs require pricing.':'No holds.'} tone={holds?'warning':'success'}/>
       <LedgerMetric label="Release state" value={readinessStatus} help={`${readiness.blocker_count} blocker(s) · ${readiness.warning_count} warning(s).`} tone={readiness.release_state==='blocked'||readiness.release_state==='review'?'warning':readiness.release_state==='release_ready'?'success':'default'}/>
     </section>
@@ -142,13 +151,14 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
       </section>
 
       <section id="price-margin" className={`${masterSection} carez-scope-module scroll-mt-6`}><div className="carez-scope-module-header border-b border-border bg-muted px-4 py-3"><div><h2>Price &amp; margin</h2><p>Commercial terms for this revision</p></div>{!locked&&<Button type="submit" form="estimate-price-form" className={primaryAction}>Save Estimate</Button>}</div><form id="estimate-price-form" action={updateEstimatePricing} className="carez-price-form grid gap-3 sm:grid-cols-3"><input type="hidden" name="estimate_id" value={e.id}/>
-        <div className="grid gap-2"><Label htmlFor="customer-price">Customer price</Label><Input appearance="underline" id="customer-price" key={`customer-price-${selectedPrice.toFixed(2)}`} name="proposed_sell_price" type="number" min="0" step="0.01" defaultValue={String(selectedPrice)} disabled={locked}/><p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Recommended: {money(recommended)}</p></div>
+        <div className="grid gap-2"><Label htmlFor="customer-price">Customer price</Label><Input appearance="underline" id="customer-price" key={`customer-price-${selectedPrice??'missing'}`} name="proposed_sell_price" type="number" min="0" step="0.01" defaultValue={String(selectedPrice??e.proposed_sell_price??'')} disabled={locked}/><p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Recommended: {money(recommended)}</p></div>
         <div className="grid gap-2"><Label htmlFor="target-margin">Target profit margin %</Label><Input appearance="underline" id="target-margin" name="target_margin_percent" type="number" min="0" max="100" step="0.1" defaultValue={String(target)} disabled={locked}/></div>
         <div className="grid gap-2"><Label htmlFor="estimate-stage">Estimate stage</Label><Select id="estimate-stage" name="status" defaultValue={e.status} disabled={locked}><option value="draft">Still Pricing</option><option value="ready">Ready for Review</option><option value="declined">Lost / Declined</option>{e.status==='accepted'&&<option value="accepted">Customer Accepted</option>}{e.status==='approved'&&<option value="approved">Approved</option>}{e.status==='superseded'&&<option value="superseded">Superseded</option>}</Select></div>
         <Accordion collapsible className="sm:col-span-2"><AccordionItem value="tax"><AccordionHeader>Tax / transaction assumptions</AccordionHeader><AccordionPanel collapseMotion={{unmountOnExit:false} as any} className="inert:hidden"><div className="grid gap-4 border-t border-border p-3"><div className="grid gap-2"><Label htmlFor="bo-classification">WA B&amp;O type</Label><Select id="bo-classification" name="bo_classification" defaultValue={e.bo_classification} disabled={locked}><option value="retailing">Retailing</option><option value="wholesaling">Wholesaling</option></Select></div><div className="grid gap-2"><Label htmlFor="processing-rate">Card / processing reserve %</Label><Input appearance="underline" id="processing-rate" name="payment_processing_rate_percent" type="number" step="0.01" min="0" defaultValue={String(num(e.payment_processing_rate_percent))} disabled={locked}/></div></div></AccordionPanel></AccordionItem></Accordion>
       </form>
 
-      <div className="carez-price-breakdown" aria-label="Price calculation"><div className="carez-price-breakdown-heading">Price calculation</div>{[['Price',money(selectedPrice)],['Company cost',money(s?.base_company_cost)],['Revenue reserve',money(s?.revenue_cost_reserve)],['Projected profit',money(s?.projected_profit)]].map(([label,value])=><div className="carez-price-breakdown-row" key={label}><span>{label}</span><strong className="font-mono tabular-nums">{value}</strong></div>)}</div>
+      <div id="estimate-overhead-basis" className="scroll-mt-24 border-t border-border px-4 py-3 text-sm"><h3 className="font-semibold">Overhead basis</h3><p className="mt-1 text-muted-foreground">{overheadMissing?'Unconfigured. Quantities and direct costs remain available; missing overhead is not zero. Configure and review the company plan before explicitly attaching its basis.':overheadUnconfigured?'Recorded legacy assumptions remain visible. Their configured input provenance is unavailable; new release requires an explicitly reviewed immutable basis.':'This revision retains its recorded overhead basis. Attaching current assumptions is an explicit pricing change.'}</p>{!locked&&<div className="mt-2 flex flex-wrap items-center gap-3"><Link href="/overhead" className="text-primary underline">Review company plan</Link><ProcurementForm action={attachConfiguredEstimateOverhead}><input type="hidden" name="estimate_id" value={e.id}/><input type="hidden" name="expected_updated_at" value={e.updated_at}/><Button type="submit" appearance="outline" size="small">Attach configured overhead</Button></ProcurementForm></div>}</div>
+      <div className="carez-price-breakdown" aria-label="Price calculation"><div className="carez-price-breakdown-heading">Price calculation</div>{[['Price',money(selectedPrice)],['Company cost',money(overheadMissing?null:s?.base_company_cost)],['Revenue reserve',money(s?.revenue_cost_reserve)],['Projected profit',money(overheadMissing?null:s?.projected_profit)]].map(([label,value])=><div className="carez-price-breakdown-row" key={label}><span>{label}</span><strong className="font-mono tabular-nums">{value}</strong></div>)}</div>
       </section>
     </section></>}
       pricing={<>    <div id="pricing-coverage" className="scroll-mt-48"><PricingCoverage estimateId={e.id} measurements={measurements||[]} outputs={estimateOutputs} quoteSets={quoteSets||[]} quotes={quotes} quoteLines={quoteLines} locked={locked} today={today}/></div></>}
@@ -160,7 +170,7 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
     </section></>}
     />
 
-    {(proposal||e.status==='ready'||['accepted','approved'].includes(e.status))&&<section className="flex flex-col gap-4 border-y border-border py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-base font-semibold">{locked?(proposal?'Customer / revision workflow':'Awarded estimate'):holds?'Resolve takeoff pricing holds':e.status==='ready'?'Review release readiness':'Finish pricing and mark Ready'}</h2><p className="mt-1 max-w-4xl text-sm leading-relaxed text-muted-foreground">{locked?'This revision is preserved exactly as issued/accepted.':holds?'Return to Takeoff and clear current material or labor pricing before this bid can advance.':e.status==='ready'?'Review the current release state, blockers and commercial warnings before Proposal.':'Once scope, price and margin are right, change Estimate Stage to Ready for Review.'}</p>{budget&&<p className="mt-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">Frozen project budget: {budget.label}</p>}</div><div className="flex flex-wrap gap-2">{!locked&&holds>0&&<Link className={secondaryAction} href="/takeoff"><Ruler/>Resolve in Takeoff</Link>}{!locked&&e.status==='ready'&&<Link className={secondaryAction} href={auditHref(e.id)}><ShieldCheck/>Review Estimate</Link>}{!locked&&e.status==='ready'&&<Link className={secondaryAction} href={estimateHref(e.id,'proposal')}><FileText/>Proposal</Link>}{proposal&&<Link className={secondaryAction} href={estimateHref(e.id,'proposal')}><FileText/>Open Proposal</Link>}{['accepted','approved'].includes(e.status)&&e.project_id&&<Link className={secondaryAction} href={`/projects/${e.project_id}`}><CheckCircle2/>Open Job</Link>}</div></section>}
+    {!planning&&(proposal||e.status==='ready'||['accepted','approved'].includes(e.status))&&<section className="flex flex-col gap-4 border-y border-border py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-base font-semibold">{locked?(proposal?'Customer / revision workflow':'Awarded estimate'):holds?'Resolve takeoff pricing holds':e.status==='ready'?'Review release readiness':'Finish pricing and mark Ready'}</h2><p className="mt-1 max-w-4xl text-sm leading-relaxed text-muted-foreground">{locked?'This revision is preserved exactly as issued/accepted.':holds?'Return to Takeoff and clear current material or labor pricing before this bid can advance.':e.status==='ready'?'Review the current release state, blockers and commercial warnings before Proposal.':'Once scope, price and margin are right, change Estimate Stage to Ready for Review.'}</p>{budget&&<p className="mt-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">Frozen project budget: {budget.label}</p>}</div><div className="flex flex-wrap gap-2">{!locked&&holds>0&&<Link className={secondaryAction} href="/takeoff"><Ruler/>Resolve in Takeoff</Link>}{!locked&&e.status==='ready'&&<Link className={secondaryAction} href={auditHref(e.id)}><ShieldCheck/>Review Estimate</Link>}{!locked&&e.status==='ready'&&<Link className={secondaryAction} href={estimateHref(e.id,'proposal')}><FileText/>Proposal</Link>}{proposal&&<Link className={secondaryAction} href={estimateHref(e.id,'proposal')}><FileText/>Open Proposal</Link>}{['accepted','approved'].includes(e.status)&&e.project_id&&<Link className={secondaryAction} href={`/projects/${e.project_id}`}><CheckCircle2/>Open Job</Link>}</div></section>}
     {['owner','office','estimator'].includes(p.role)&&<Accordion collapsible className="rounded-md border border-border p-3"><AccordionItem value="estimate-settings"><AccordionHeader>Estimate Settings</AccordionHeader><AccordionPanel><div className="pt-3"><DeleteEstimateButton estimateId={e.id}/></div></AccordionPanel></AccordionItem></Accordion>}
   </div>;
 }
@@ -168,60 +178,4 @@ export async function WorksheetView({estimateId}:{estimateId:string}){
 function LedgerMetric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'|'error'}){
   const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='error'?'text-destructive':'';
   return <div className="min-w-0 bg-card px-3 py-2"><div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</div><div className={`mt-1 break-words font-mono text-base font-semibold tabular-nums sm:text-lg ${toneClass}`}>{value}</div><div className="mt-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">{help}</div></div>;
-}
-
-function AddScopeAreaDialog({estimateId}:{estimateId:string}){
-  return <Dialog>
-    <DialogTrigger disableButtonEnhancement><Button type="button" appearance="outline" size="small">Add scope area</Button></DialogTrigger>
-    <DialogSurface><DialogBody>
-      <DialogTitle>Add scope area</DialogTitle>
-      <DialogContent>
-        <p className="mb-4 text-sm text-muted-foreground">Add a physical area or assembly to this revision.</p>
-        <form action={addEstimateSection} className="grid gap-4">
-          <input type="hidden" name="estimate_id" value={estimateId}/>
-          <div className="grid gap-2"><Label htmlFor="scope-name">Physical area / assembly</Label><Input appearance="underline" id="scope-name" name="name" required placeholder="Basement Walls · Garage Slab · Driveway"/></div>
-          <div className="grid gap-2"><Label htmlFor="scope-type">Concrete work type</Label><Select id="scope-type" name="scope_type" defaultValue="footing"><option value="footing">Footing</option><option value="wall">Wall</option><option value="flatwork">Flatwork</option><option value="curb">Curb / Sidewalk</option><option value="repair">Repair</option><option value="other">Other</option></Select></div>
-          <Button type="submit" appearance="primary">Add scope area</Button>
-        </form>
-      </DialogContent>
-    </DialogBody></DialogSurface>
-  </Dialog>;
-}
-
-function AddExceptionCostDialog({estimateId,sections,catalog,codes,crew,risk}:{estimateId:string;sections:any[];catalog:any[];codes:any[];crew:any[];risk:any[]}){
-  return <Dialog>
-    <DialogTrigger disableButtonEnhancement><Button type="button" appearance="outline" size="small">Add exception cost</Button></DialogTrigger>
-    <DialogSurface className="max-h-[85dvh] overflow-y-auto"><DialogBody>
-      <DialogTitle>Add cost outside the assembly</DialogTitle>
-      <DialogContent>
-        <p className="mb-4 text-sm text-muted-foreground">Use this for a real cost that the concrete takeoff assembly does not represent.</p>
-        <form action={addEstimateItem} className="grid gap-4">
-          <input type="hidden" name="estimate_id" value={estimateId}/>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2"><Label htmlFor="exception-section">Scope area</Label><Select id="exception-section" name="section_id" defaultValue=""><option value="">Unassigned / general</option>{sections.map(section=><option key={section.id} value={section.id}>{section.name}</option>)}</Select></div>
-            <div className="grid gap-2"><Label htmlFor="exception-type">Cost type</Label><Select id="exception-type" name="item_type" defaultValue="material"><option value="labor">Labor</option><option value="material">Material</option><option value="equipment">Equipment</option><option value="subcontractor">Subcontractor</option><option value="other">Other</option></Select></div>
-          </div>
-          <div className="grid gap-2"><Label htmlFor="exception-description">Description</Label><Input appearance="underline" id="exception-description" name="description" required placeholder="Concrete pump · specialty finish · unusual rental…"/></div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2"><Label htmlFor="exception-catalog">Saved cost item</Label><Select id="exception-catalog" name="catalog_item_id" defaultValue=""><option value="">Custom</option>{catalog.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</Select></div>
-            <div className="grid gap-2"><Label htmlFor="exception-code">Cost code</Label><Select id="exception-code" name="cost_code_id" defaultValue=""><option value="">Automatic / none</option>{codes.map(code=><option key={code.id} value={code.id}>{code.code} — {code.name}</option>)}</Select></div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2"><Label htmlFor="exception-quantity">Quantity</Label><Input appearance="underline" id="exception-quantity" name="quantity" type="number" step="0.01" min="0" defaultValue="1"/></div>
-            <div className="grid gap-2"><Label htmlFor="exception-unit">Unit</Label><Select id="exception-unit" name="unit" defaultValue="LS">{units.map(unit=><option key={unit} value={unit}>{unit}</option>)}</Select></div>
-          </div>
-          <div className="grid gap-2"><Label htmlFor="exception-unit-cost">Unit cost</Label><Input appearance="underline" id="exception-unit-cost" name="unit_cost" type="number" step="0.01" min="0" defaultValue="0"/></div>
-          <Accordion collapsible><AccordionItem value="labor"><AccordionHeader>Labor-only fields</AccordionHeader><AccordionPanel>
-            <div className="grid gap-3">
-              <div className="grid gap-2"><Label htmlFor="exception-worker">Worker</Label><Select id="exception-worker" name="crew_member_id" defaultValue=""><option value="">Not labor</option>{crew.map(worker=><option key={worker.id} value={worker.id}>{worker.name}</option>)}</Select></div>
-              <div className="grid gap-2"><Label htmlFor="exception-risk">L&amp;I work class</Label><Select id="exception-risk" name="risk_class_code" defaultValue="0217-01"><option value="">Owner / not applicable</option>{risk.map(row=><option key={row.code} value={row.code}>{row.code} — {row.name}</option>)}</Select></div>
-              <div className="grid gap-2"><Label htmlFor="exception-task">Labor operation</Label><Select id="exception-task" name="labor_task" defaultValue="General">{['Formwork','Rebar','Placement','Finishing','Strip','Cleanup','Layout','General'].map(task=><option key={task} value={task}>{task}</option>)}</Select></div>
-              <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="exception-regular-hours">Regular hours</Label><Input appearance="underline" id="exception-regular-hours" name="regular_hours" type="number" step="0.25" min="0"/></div><div className="grid gap-2"><Label htmlFor="exception-ot-hours">OT hours</Label><Input appearance="underline" id="exception-ot-hours" name="overtime_hours" type="number" step="0.25" min="0"/></div></div>
-            </div>
-          </AccordionPanel></AccordionItem></Accordion>
-          <Button type="submit" appearance="primary">Add exception cost</Button>
-        </form>
-      </DialogContent>
-    </DialogBody></DialogSurface>
-  </Dialog>;
 }

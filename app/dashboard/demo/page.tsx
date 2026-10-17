@@ -28,7 +28,7 @@ export default function DashboardDemoPage(){
     outlookEnd:shortDate(dateAfter(start,13)),
     attention:[
       {tone:'danger',category:'Inspection hold',subject:'2417 · Northgate Medical',issue:'Level 2 slab inspection hold is recorded.',when:'Today · 6:00 AM',href:'/field?view=readiness',action:'Review hold',urgent:true},
-      {tone:'warning',category:'Change order',subject:'CO-014 · Riverfront Garage',issue:'Added equipment pad awaits approval.',when:'3 days awaiting',href:'/change-orders',action:'Review change order',urgent:true,facts:[{label:'Amount',value:'$8,420'},{label:'Status',value:'Submitted'},{label:'Scope',value:'Equipment pad / site concrete'},{label:'Project',value:'Riverfront Garage'}]},
+      {tone:'warning',category:'Change order',subject:'CO-014 · Riverfront Garage',issue:'Added equipment pad awaits approval.',when:'3 days awaiting',href:'/change-orders',action:'Review change order',urgent:true,facts:[{label:'Selected sell value',value:'$8,420'},{label:'Status',value:'Submitted'},{label:'Scope',value:'Equipment pad / site concrete'},{label:'Project',value:'Riverfront Garage'}]},
       {tone:'info',category:'Billing review',subject:'Valley Storage billing',issue:'Completed work is ready for the October draw.',when:'Due today',href:'/financials?tab=billing&view=billing',action:'Review billing'},
       {tone:'warning',category:'Concrete order',subject:'2417 · Northgate Medical',issue:'Concrete order confirmation is still open.',when:'Before next pour',href:'/field?view=schedule',action:'Review pour'},
       {tone:'info',category:'Proposal follow-up',subject:'Central Warehouse proposal',issue:'Customer follow-up is due this week.',when:'Friday',href:'/opportunities',action:'Open proposal'},
@@ -42,14 +42,14 @@ export default function DashboardDemoPage(){
       {label:'Bids due / 7D',value:'2',detail:'Open opportunities',href:'/opportunities'},
       {label:'Active jobs',value:'3',detail:'$3.82M contract',href:'/projects'},
       {label:'Concrete / 7D',value:'278 CY',detail:'3 pour windows',href:'/field?view=schedule'},
-      {label:'Open CO exposure',value:'$18,420',detail:'3 open · 1 submitted',href:'/change-orders'},
+      {label:'Open CO sell value',value:'$18,420',detail:'3 open · 1 submitted',href:'/change-orders'},
       {label:'Earned / unbilled',value:'—',detail:'Billing progress unavailable',href:'/financials?tab=billing&view=billing'},
       {label:'A/R overdue',value:'$18,400',detail:'Past due customer balance',tooltip:'$76,240 total A/R',href:'/financials?tab=billing&view=billing'},
     ],
     activeJobs:[
-      {id:'sample-job-1',number:'2417',name:'Northgate Medical',customer:'Northgate Builders',location:'Sacramento, CA',nextPour:`${shortDate(dateAfter(start,0))} · Level 2 slab`,nextPourDate:dateAfter(start,0),contract:'$1,820,000',contractValue:1820000,billing:'$624,000',billedPercent:624000/1820000*100,coExposure:'$8,420',coExposureValue:8420,status:'hold'},
-      {id:'sample-job-2',number:'2409',name:'Riverfront Garage',customer:'Riverfront Construction',location:'West Sacramento, CA',nextPour:`${shortDate(dateAfter(start,2))} · Parking deck phase B`,nextPourDate:dateAfter(start,2),contract:'$1,240,000',contractValue:1240000,billing:'$418,000',billedPercent:418000/1240000*100,coExposure:'$10,000',coExposureValue:10000,status:'ready'},
-      {id:'sample-job-3',number:'2421',name:'Valley Storage',customer:'Valley Development',location:'Elk Grove, CA',nextPour:`${shortDate(dateAfter(start,4))} · South foundations`,nextPourDate:dateAfter(start,4),contract:'$760,000',contractValue:760000,billing:'$176,000',billedPercent:176000/760000*100,coExposure:'$0',coExposureValue:0,status:'planning'},
+      {id:'sample-job-1',number:'2417',name:'Northgate Medical',customer:'Northgate Builders',location:'Sacramento, CA',nextPour:`${shortDate(dateAfter(start,0))} · Level 2 slab`,nextPourDate:dateAfter(start,0),contract:'$1,820,000',contractValue:1820000,billing:'$624,000',billedPercent:624000/1820000*100,coExposure:'$8,420',coExposureValue:8420,lifecycle:'active',readiness:'Work hold',readyOperations:0,blockedOperations:1,readinessIncomplete:false},
+      {id:'sample-job-2',number:'2409',name:'Riverfront Garage',customer:'Riverfront Construction',location:'West Sacramento, CA',nextPour:`${shortDate(dateAfter(start,2))} · Parking deck phase B`,nextPourDate:dateAfter(start,2),contract:'$1,240,000',contractValue:1240000,billing:'$418,000',billedPercent:418000/1240000*100,coExposure:'$10,000',coExposureValue:10000,lifecycle:'active',readiness:'Ready',readyOperations:2,blockedOperations:0,readinessIncomplete:false},
+      {id:'sample-job-3',number:'2421',name:'Valley Storage',customer:'Valley Development',location:'Elk Grove, CA',nextPour:`${shortDate(dateAfter(start,4))} · South foundations`,nextPourDate:dateAfter(start,4),contract:'$760,000',contractValue:760000,billing:'$176,000',billedPercent:176000/760000*100,coExposure:'$0',coExposureValue:0,lifecycle:'planning',readiness:'No open physical work',readyOperations:0,blockedOperations:0,readinessIncomplete:false},
     ],
     fieldMetrics:[
       {label:'Concrete placed',value:'428 CY',detail:'Recorded in daily logs',href:'/field?view=production'},
@@ -64,8 +64,8 @@ export default function DashboardDemoPage(){
     commercialMetrics:[
       {label:'Earned / unbilled',value:'—',detail:'Billing progress unavailable',href:'/financials?tab=billing&view=billing'},
       {label:'A/R outstanding',value:'$76,240',detail:'$18,400 overdue',href:'/financials?tab=billing&view=billing'},
-      {label:'Open CO exposure',value:'$18,420',detail:'3 submitted',href:'/change-orders'},
-      {label:'Retainage held',value:'$31,600',detail:'4 projects · unreleased',href:'/financials?tab=billing&view=billing'},
+      {label:'Open CO sell value',value:'$18,420',detail:'3 submitted',href:'/change-orders'},
+      {label:'Retainage available',value:'$31,600',detail:'Available to release · 4 projects',href:'/financials?tab=billing&view=billing'},
       {label:'Contract backlog',value:'$2.60M',detail:'Active unbilled contract',href:'/financials?tab=billing&view=billing'},
       {label:'A/R overdue',value:'$18,400',detail:'Past due customer balance',href:'/financials?tab=billing&view=billing'},
     ],

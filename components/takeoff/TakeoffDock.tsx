@@ -1,8 +1,7 @@
 'use client';
 
 import {useEffect,useState,type MouseEventHandler,type ReactElement,type ReactNode} from 'react';
-import {createPortal} from 'react-dom';
-import {Button,Tooltip} from '@fluentui/react-components';
+import {Button,Tooltip,Portal} from '@fluentui/react-components';
 
 type DockButtonProps={
   label:string;
@@ -33,12 +32,12 @@ export function TakeoffDock({children}: {children:ReactNode}){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);
   if(!mounted)return null;
-  return createPortal(<nav
+  return <Portal><nav
     aria-label="Takeoff drawing tools"
-    className="fixed bottom-8 left-1/2 z-[45] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-2xl border border-[#333333] bg-black/40 p-2 shadow-[0_14px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+    className="fixed bottom-8 left-1/2 z-[45] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-md border border-border bg-surface-raised p-2 text-foreground shadow-lg"
     onKeyDown={event=>event.stopPropagation()}
     onPointerDown={event=>event.stopPropagation()}
     onClick={event=>event.stopPropagation()}
     onDoubleClick={event=>event.stopPropagation()}
-  >{children}</nav>,document.body);
+  >{children}</nav></Portal>;
 }

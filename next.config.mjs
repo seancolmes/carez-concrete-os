@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    webpackMemoryOptimizations: true,
+    optimizePackageImports: ['@fluentui/react-components', '@fluentui/react-icons'],
+  },
   async redirects() {
     return [
       {source:'/leads/inbox',destination:'/opportunities?view=intake',permanent:false},

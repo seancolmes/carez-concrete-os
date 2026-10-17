@@ -1,7 +1,8 @@
 'use client';
 
 import {useId,type ComponentProps,type ReactNode} from 'react';
-import {Input as FluentInput,Radio,RadioGroup} from '@fluentui/react-components';
+import {Button,Input as FluentInput,Radio,RadioGroup} from '@fluentui/react-components';
+import {DismissRegular} from '@fluentui/react-icons';
 import {combineImperialLength,splitImperialLength,type ImperialCanonicalUnit} from '@/lib/ui/imperialLength';
 import editorStyles from './ConditionEditorFields.module.css';
 
@@ -41,6 +42,7 @@ export function InspectorImperialInput({value,canonicalUnit,onValueChange,disabl
   return <div data-inspector-imperial className={editorStyles.imperialFields} aria-invalid={ariaInvalid||undefined}>
     <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step={1} value={hasValue?String(parts.feet):''} onChange={event=>commit(event.target.value,hasValue?parts.inches:'')} disabled={disabled} aria-label={`${ariaLabel} feet`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>ft</span>} className={editorStyles.imperialPart}/>
     <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step="any" value={hasValue?String(parts.inches):''} onChange={event=>commit(hasValue?parts.feet:'',event.target.value)} disabled={disabled} aria-label={`${ariaLabel} inches`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>in</span>} className={editorStyles.imperialPart}/>
+    {hasValue?<Button type="button" appearance="subtle" size="small" icon={<DismissRegular/>} aria-label={`Clear ${ariaLabel}`} title={`Clear ${ariaLabel}`} disabled={disabled} onClick={()=>onValueChange('')} style={{minWidth:28,width:28,padding:0}}/>:null}
   </div>;
 }
 

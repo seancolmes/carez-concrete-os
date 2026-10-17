@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Badge, Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Input, Label, Select, Textarea } from '@fluentui/react-components';
-import { ChangeOrderDrawer } from './ChangeOrderDrawer';
+import { ChangeOrderDetails } from './ChangeOrderDetails';
 import { createClient } from '@/lib/supabase/server';
 import { createChangeOrder,addChangeOrderItem,updateChangeOrder,approveChangeOrder,rejectChangeOrder,returnChangeOrderToDraft,voidChangeOrder,deleteChangeOrderItem } from './actions';
 
@@ -63,7 +63,7 @@ export default async function ChangeOrdersPage(){
       const profitImpact=num(co.projected_profit_impact);
       const typeLabel=co.change_type==='deductive'?'Deductive':co.change_type==='no_cost'?'No Cost':'Additive';
       const statusClass=co.status==='approved'?'border-success/30 bg-success/10 text-success':co.status==='submitted'?'border-warning/30 bg-warning/10 text-warning':co.status==='rejected'?'border-destructive/30 bg-destructive/10 text-destructive':'text-muted-foreground';
-      return <ChangeOrderDrawer key={co.change_order_id} title={`${co.co_number} — ${co.title}`} description={`${project.job_number||'Job'} · ${typeLabel} · ${co.status}`} leading={<><div className="carez-co-row-title">{co.co_number} — {co.title}</div><div className="carez-co-row-description">{project.job_number||'Job'} — {project.name||'Project'} · {typeLabel} · requested {co.requested_date}</div></>} trailing={<><strong className="font-mono tabular-nums">{money(selected)}</strong><Badge appearance="outline" className={statusClass}>{co.status}</Badge></>}><div className="space-y-6 px-4 pb-6">
+      return <ChangeOrderDetails key={co.change_order_id} title={`${co.co_number} — ${co.title}`} description={`${project.job_number||'Job'} · ${typeLabel} · ${co.status}`} leading={<><div className="carez-co-row-title">{co.co_number} — {co.title}</div><div className="carez-co-row-description">{project.job_number||'Job'} — {project.name||'Project'} · {typeLabel} · requested {co.requested_date}</div></>} trailing={<><strong className="font-mono tabular-nums">{money(selected)}</strong><Badge appearance="outline" className={statusClass}>{co.status}</Badge></>}><div className="space-y-6 px-4 pb-6">
 
         <section className="space-y-4"><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Commercial impact</div><h4 className="mt-1 font-semibold">Change Order Economics</h4><p className="mt-1 text-sm text-muted-foreground">Original project budget remains frozen. Approved COs become separate authorized budgets.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-border bg-muted/20 p-3"><div className="text-xs font-medium text-muted-foreground">Direct Cost Impact</div><div className="mt-1 text-lg font-semibold tabular-nums">{money(num(co.total_direct_cost))}</div><div className="mt-1 text-xs text-muted-foreground">Labor {money(num(co.direct_labor_cost))} · Other {money(num(co.total_direct_cost)-num(co.direct_labor_cost))}</div></div>
@@ -110,7 +110,7 @@ export default async function ChangeOrdersPage(){
           </form><form action={voidChangeOrder}><input type="hidden" name="change_order_id" value={co.change_order_id}/><Button type="submit" appearance="secondary" size="small">Void Draft</Button></form>
           </>:co.status==='submitted'?<><div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-3 text-sm"><strong>Submitted and frozen.</strong> Return it to Draft explicitly before editing. Authorization: {co.authorization_kind||'missing'}{co.authorization_reference?` · ${co.authorization_reference}`:''}</div><div className="flex flex-wrap gap-2"><form action={approveChangeOrder}><input type="hidden" name="change_order_id" value={co.change_order_id}/><Button type="submit">Approve & Freeze CO Budget</Button></form><form action={rejectChangeOrder}><input type="hidden" name="change_order_id" value={co.change_order_id}/><Button type="submit" appearance="secondary">Mark Rejected</Button></form><form action={returnChangeOrderToDraft}><input type="hidden" name="change_order_id" value={co.change_order_id}/><Button type="submit" appearance="secondary">Return to Draft</Button></form><form action={voidChangeOrder}><input type="hidden" name="change_order_id" value={co.change_order_id}/><Button type="submit" appearance="secondary">Void</Button></form></div></>:<div className={`rounded-lg border px-3 py-3 text-sm ${co.status==='approved'?'border-success/30 bg-success/10 text-success':'border-warning/30 bg-warning/10 text-warning'}`}><strong>{co.status==='approved'?'Approved and frozen.':'Change order closed.'}</strong> {co.status==='approved'?'Contract value and authorized budget now include this change.':'This change no longer affects the authorized project budget.'}</div>}
         </section>
-      </div></ChangeOrderDrawer>;
+      </div></ChangeOrderDetails>;
     })}</div>}
     </section>
 

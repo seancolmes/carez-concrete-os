@@ -1,4 +1,6 @@
 'use server';
+import {executeProcurementCommand} from '@/lib/financials/procurementCommands';
+import {executeFinancialCommand,financialRequestId,optionalFinancialNumber} from '@/lib/financials/commands';
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 
@@ -41,23 +43,22 @@ export async function matchDocumentToBank(fd:FormData){
  const {error}=await supabase.rpc('link_document_to_bank_transaction',{p_document_id:id,p_bank_transaction_id:bankId});if(error)throw new Error(error.message);revalidatePath('/documents');revalidatePath('/banking/reconcile');
 }
 
-export async function createPoReceiptFromDocument(fd:FormData){
- const id=String(fd.get('id')||''),lineId=String(fd.get('purchase_order_line_id')||''),qty=num(fd.get('quantity_received'));if(!id||!lineId||!qty||qty<=0)return;const {supabase}=await ctx();
- const {error}=await supabase.rpc('link_document_to_po_receipt',{p_document_id:id,p_purchase_order_line_id:lineId,p_quantity_received:qty,p_received_date:String(fd.get('received_date')||new Date().toISOString().slice(0,10)),p_delivery_ticket:txt(fd.get('delivery_ticket')),p_notes:txt(fd.get('notes'))});
- if(error)throw new Error(error.message);revalidatePath('/documents');revalidatePath('/procurement');revalidatePath('/pour-control');
+export async function createPoReceiptFromDocument(form:FormData){
+ const {supabase}=await ctx();await executeProcurementCommand(supabase,form,'document_receipt');
+ for(const path of ['/documents','/procurement','/pour-control','/production/work-packages','/readiness/resources'])revalidatePath(path);
 }
 
 export async function reconcileReceiptToJobCost(fd:FormData){
  const id=String(fd.get('id')||''),bankId=String(fd.get('bank_transaction_id')||''),projectId=String(fd.get('project_id')||''),costCodeId=String(fd.get('cost_code_id')||'');if(!id||!bankId||!projectId||!costCodeId)return;const {supabase}=await ctx();
- const {error}=await supabase.rpc('reconcile_document_receipt_to_job_cost',{p_document_id:id,p_bank_transaction_id:bankId,p_project_id:projectId,p_cost_code_id:costCodeId,p_vendor_id:txt(fd.get('vendor_id')),p_description:txt(fd.get('description')),p_remember_cost_code:fd.get('remember_cost_code')==='on'});
+ const {error}=await executeFinancialCommand(supabase,'reconcile_document_receipt_to_job_cost',{p_document_id:id,p_bank_transaction_id:bankId,p_project_id:projectId,p_cost_code_id:costCodeId,p_vendor_id:txt(fd.get('vendor_id')),p_description:txt(fd.get('description')),p_remember_cost_code:fd.get('remember_cost_code')==='on'},financialRequestId(fd));
  if(error)throw new Error(error.message);revalidatePath('/documents');revalidatePath('/banking/reconcile');revalidatePath('/costs');revalidatePath('/forecast');revalidatePath('/projects');
 }
 
 export async function reconcileReceiptToCompanyExpense(fd:FormData){
  const id=String(fd.get('id')||''),bankId=String(fd.get('bank_transaction_id')||'');if(!id||!bankId)return;const {supabase}=await ctx();
- const businessUse=Math.max(0,Math.min(100,num(fd.get('business_use_percent'))??100));
- const {error}=await supabase.rpc('reconcile_document_receipt_to_company_expense',{p_document_id:id,p_bank_transaction_id:bankId,p_overhead_item_id:txt(fd.get('overhead_item_id')),p_category:String(fd.get('category')||''),p_business_use_percent:businessUse,p_description:txt(fd.get('description'))});
+ const businessUse=optionalFinancialNumber(fd.get('business_use_percent'),{max:100})??100;
+ const {error}=await executeFinancialCommand(supabase,'reconcile_document_receipt_to_company_expense',{p_document_id:id,p_bank_transaction_id:bankId,p_overhead_item_id:txt(fd.get('overhead_item_id')),p_category:String(fd.get('category')||''),p_business_use_percent:businessUse,p_description:txt(fd.get('description'))},financialRequestId(fd));
  if(error)throw new Error(error.message);revalidatePath('/documents');revalidatePath('/banking/reconcile');revalidatePath('/overhead');revalidatePath('/cashflow');
 }
 
-export async function deleteDocument(fd:FormData){const id=String(fd.get('id')||'');if(!id)return;const {supabase,companyId}=await ctx();const {data:doc}=await supabase.from('company_documents').select('storage_path').eq('id',id).eq('company_id',companyId).single();if(doc?.storage_path)await supabase.storage.from('carez-documents').remove([doc.storage_path]);const {error}=await supabase.from('company_documents').delete().eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);revalidatePath('/documents');}
+export async function deleteDocument(fd:FormData){const id=String(fd.get('id')||'');if(!id)return;const {supabase,companyId}=await ctx();const {data:doc,error:readError}=await supabase.from('company_documents').select('storage_path').eq('id',id).eq('company_id',companyId).single();if(readError||!doc)throw new Error('Document unavailable.');const {data:removed,error}=await supabase.from('company_documents').delete().eq('id',id).eq('company_id',companyId).select('id').single();if(error||!removed)throw new Error(error?.message||'Deletion was not confirmed.');if(doc.storage_path){const {error:storageError}=await supabase.storage.from('carez-documents').remove([doc.storage_path]);if(storageError)throw new Error('Record removed; file cleanup is incomplete.');}revalidatePath('/documents');}

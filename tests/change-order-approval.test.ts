@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {confirmedChangeOrderApproval} from '../lib/change-orders/approval.ts';
+const id='c5100000-0000-4000-8000-000000000001',result={change_order_id:id,delta_id:'c5200000-0000-4000-8000-000000000001',source_fingerprint:'a'.repeat(64),already_approved:false};
+test('canonical approval and its idempotent replay require an exact immutable delta identity',()=>{assert.equal(confirmedChangeOrderApproval(result,id).delta_id,result.delta_id);assert.equal(confirmedChangeOrderApproval({...result,already_approved:true},id).already_approved,true);});
+test('legacy UUID, missing data, wrong Change Order and incomplete approval evidence are not successful approvals',()=>{for(const value of [null,result.delta_id,{}, {...result,change_order_id:'other'},{...result,source_fingerprint:null},{...result,delta_id:null},{...result,already_approved:undefined}])assert.throws(()=>confirmedChangeOrderApproval(value,id),/No immutable commercial approval/);});

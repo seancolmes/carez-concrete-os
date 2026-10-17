@@ -239,14 +239,12 @@ export function PricingCoverage({
     </section> : summary.total ? <p className="border-y border-border px-3 py-2 text-xs text-muted-foreground">No pricing holds in the current outputs.{otherStatusCount ? ` ${otherStatusCount} output${otherStatusCount === 1 ? ' has' : 's have'} another status to review.` : ''}</p> : null}
 
     <Card className="pricing-output-region rounded-none border-x-0 bg-transparent shadow-none">
-      <CardHeader className="gap-1 pb-2">
-        <h3 className="text-sm font-semibold">Pricing outputs</h3>
-      </CardHeader>
+      <CardHeader className="gap-1 pb-2" header={<h3 className="text-sm font-semibold">Pricing outputs</h3>}/>
       <div className="px-3 pb-3">
         {exceptionRows.length === 0 ? <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">No generated Takeoff outputs are available for pricing yet.</div> : <PricingExceptionGrid rows={exceptionRows} />}
       </div>
     </Card>
 
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#222222] bg-[#0A0A0A] px-4 py-3"><div><h3 className="text-sm font-semibold">Vendor Quotes</h3><p className="mt-1 text-xs text-muted-foreground">{quoteSets.length} quote set{quoteSets.length===1?"":"s"} · supplier entry and links are managed in Bid Intelligence.</p></div><Link href={`/vendor-quotes?estimate=${encodeURIComponent(estimateId)}`} className="rounded-md border border-[#333333] bg-[#111111] px-3 py-2 text-xs font-semibold text-white shadow-[inset_0px_1px_0px_rgba(255,255,255,0.05)]">Open Vendor Quotes</Link></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3"><div><h3 className="text-sm font-semibold">Vendor Quotes</h3><p className="mt-1 text-xs text-muted-foreground">{quoteSets.length} quote set{quoteSets.length===1?"":"s"} · supplier entry and links are managed in Bid Intelligence.</p></div><Link href={`/vendor-quotes?estimate=${encodeURIComponent(estimateId)}`} className="rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-primary hover:bg-secondary">Open Vendor Quotes</Link></div>
   </section>;
 }

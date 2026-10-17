@@ -14,19 +14,20 @@ export default async function InvitePage({params}:{params:Promise<{token:string}
  const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
  if(!profile?.company_id||profile.role==='employee')redirect('/employee');
  const hash=createHash('sha256').update(token).digest('hex');
- const {data:invite}=await supabase.from('employee_invites').select('employee_name,expires_at,accepted_at').eq('company_id',profile.company_id).eq('token_hash',hash).maybeSingle();
+ const {data:invite,error:inviteError}=await supabase.from('employee_invites').select('employee_name,expires_at,accepted_at').eq('company_id',profile.company_id).eq('token_hash',hash).maybeSingle();
+ if(inviteError)throw new Error('Employee invitation read is unavailable.');
  if(!invite)redirect('/crew/access');
  const path=`/employee/join/${token}`;
 
  return <AppShell userName={profile.full_name||user.email||'Owner'}>
   <div className="flex w-full flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
    <header className="carez-page-heading flex shrink-0 flex-col gap-3 rounded-md border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-    <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crew access</p><h1 className="mt-1 text-lg font-semibold tracking-tight">Employee Invite</h1><p className="mt-1 text-xs text-muted-foreground">Send this private link to {invite.employee_name}. It connects their Carez login to the correct crew record.</p></div>
+    <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crew access</p><h1 className="mt-1 text-lg font-semibold tracking-tight">Employee Invite</h1><p className="mt-1 text-xs text-muted-foreground">Send this private link to {invite.employee_name}. It connects their PourTrace login to the correct crew record.</p></div>
     <Link className={secondaryLinkClass} href="/crew/access">Done</Link>
    </header>
 
    <Card className="shadow-none lg:min-h-0 lg:overflow-y-auto">
-    <CardHeader><h3>{invite.employee_name}</h3><p>Expires {new Date(invite.expires_at).toLocaleString()}</p></CardHeader>
+    <CardHeader header={<h2 className="font-semibold">{invite.employee_name}</h2>} description={`Expires ${new Date(invite.expires_at).toLocaleString()}`}/>
     <div className="p-4">
      {invite.accepted_at?<div className="rounded-lg border border-success/30 bg-success/10 px-3 py-3 text-sm text-success">This invite has already been used.</div>:<InviteLinkBox path={path}/>} 
     </div>

@@ -1,11 +1,27 @@
 # Carez Concrete OS — Current State
 
-Last reconciled: 2026-09-29 (local working tree candidate)
+Last reconciled: 2026-10-16 (local working tree candidate)
 Canonical development / QA line: `staging`  
 Production line: `main`  
 User QA target: stable `staging` Vercel alias
 
-## 2026-09-29 local estimating-workspace candidate
+## 2026-10-16 PourTrace presentation candidate
+
+The current local presentation supersedes the historical theme descriptions below: light only, Inter, compact horizontal navigation, navy actions, restrained amber selection, and white/cool-gray work surfaces. Takeoff requires a desktop at 1024px and wider; unsupported widths retain the requested URL and show a return destination. Short tasks use centered dialogs and brief details use inline expansion; the application drawer implementations are removed.
+
+Nik accepted the shared shell and populated Schedule foundation. Coordinated propagation is implemented across Dashboard, Opportunities, Projects/Job Setup, Field, Financials, and Administration, with authenticated disposable-local-fixture captures at 1904px, 1366px, and 390px. Remote QA and production were not modified. Existing functional corrections and authoritative calculations remain preserved.
+
+Crew browsing now retains known records while worker-profile/rate-history incompatibility disables the affected editors. It does not reconstruct the missing worker contract. Operational pilot remains blocked by external-agreement authority, Field work-date policy, real-device clock qualification, and the unsupported Crew administration contract. Schema-backed unavailable capabilities remain excluded.
+
+Current review, exact source/build identification, screenshot links, and evidence limits: [coordinated overhaul review](../output/quoteiq-overhaul-20261016/REVIEW.md). Prior persistence and commercial-lineage evidence remains in [the functional candidate packet](../output/pilot-completion-20261015/RELEASE-PACKET.md).
+
+## 2026-10-16 operational-pilot preparation
+
+Crew server actions now fail closed on authentication, company/role, input, schema/history and atomic-contract failures; no direct-write fallback remains. The unimplemented Crew atomic RPCs remain release-blocking source contracts pending the rate/classification decision. Seven focused guard tests and fifteen transactional checks of existing database authorization passed; no Crew schema migration or retained record change was applied. Employee clock guidance now correctly requires selecting work after clock-in.
+
+External-agreement policy, Field calendar policy and the minimal Crew transition policy remain human decisions. Actual-phone qualification also needs an authorized trusted-HTTPS staging app and API; local loopback evidence is insufficient. Preparation and exact qualification prerequisites are in [the operational-pilot packet](../output/pilot-closure-20261016/REVIEW.md). The accepted presentation remains unchanged.
+
+## Historical 2026-09-29 local estimating-workspace candidate
 
 ADR-028 supersedes ADR-027 for active application colors in the current uncommitted working tree. Shared semantic tokens now support a dark default plus saved light and device themes; the approved logo remains intact. Opportunities has five task destinations, four mutually exclusive record views, a bounded desktop grid, and a dedicated Takeoff entry; Projects retains four sections. Takeoff has exclusive Setup, Tracing, and Recap views, a transient Zustand UI store, and labor inputs that save MH per unit. A dedicated Vendor Quotes portal and source-controlled supplier-link migration are present locally. Supplier prices remain quote evidence until office selection.
 

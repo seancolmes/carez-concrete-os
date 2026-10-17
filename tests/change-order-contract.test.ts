@@ -47,11 +47,18 @@ test('approved operational references use an authenticated tenant-scoped RPC ins
   assert.match(sql,/grant execute on function public\.carez_list_approved_change_order_references\(uuid\) to authenticated/i);
   assert.doesNotMatch(sql,/create (?:or replace )?view public\.approved_change_order_references/i);
 
-  for(const file of ['app/field/actions.ts','app/pour-control/actions.ts','app/field/page.tsx']) {
+  for(const file of ['app/field/page.tsx']) {
     const source=readFileSync(file,'utf8');
     assert.match(source,/\.rpc\('carez_list_approved_change_order_references'/i);
     assert.doesNotMatch(source,/\.from\('approved_change_order_references'\)/i);
   }
+  // The planning write moved into the tenant-locked command; its association
+  // check must not rely on a separately loaded browser/reference list.
+  const planning=readFileSync('supabase/migrations/20261016134500_verified_pour_planning_commands.sql','utf8');
+  assert.match(planning,/public\.change_orders where company_id=company and project_id=project and id=\(p_values->>'change_order_id'\)::uuid and status='approved'/i);
+  const pourActions=readFileSync('app/pour-control/actions.ts','utf8');
+  assert.match(pourActions,/executePourPlanning\(supabase,fd,'create_plan'\)/);
+  assert.doesNotMatch(pourActions,/\.from\('(?:approved_change_order_references|pour_plans)'\)/i);
   const fixture=readFileSync('tests/fixtures/commercial-foundation-runtime.sql','utf8');
   assert.match(fixture,/carez_list_approved_change_order_references/i);
   assert.match(fixture,/approved_change_order_references view was not removed/i);

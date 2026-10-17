@@ -16,7 +16,7 @@ select extensions.is_empty($q$
   select p.oid::regprocedure::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.prosecdef
     and not exists(select 1 from unnest(p.proconfig) setting where
-      setting ~ '^search_path=pg_catalog, *(public|auth|extensions)(, *(public|auth|extensions|pg_temp))*$'
+      setting ~ '^search_path=pg_catalog(, *(public|auth|extensions))*, *pg_temp$'
       or setting='search_path=""')
 $q$, 'definer functions have explicit safe search paths');
 select extensions.is_empty($q$

@@ -14,7 +14,7 @@ export default async function WorkPackageFinancials(){
  const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
  if(!p?.company_id)redirect('/login');
  if(p.role==='employee')redirect('/employee');
- const {data:rows}=await supabase.from('work_package_financial_summary').select('*').eq('company_id',p.company_id).order('job_number').order('package_name');
+ const {data:rows,error:readError}=await supabase.from('work_package_financial_summary').select('*').eq('company_id',p.company_id).order('job_number').order('package_name');
  const list=rows||[];
  const linked=list.filter((x:any)=>x.source_estimate_item_id);
  const unlinked=list.filter((x:any)=>!x.source_estimate_item_id);
@@ -32,21 +32,21 @@ export default async function WorkPackageFinancials(){
    </header>
 
    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Work package financial summary">
-    <Metric label="Actual Company Cost" value={money(actual)} help="Labor + allocated overhead + procurement + operation-linked costs."/>
-    <Metric label="Current Cost Exposure" value={money(exposure)} help="Actual cost plus open Work Package commitments."/>
-    <Metric label="Completed Over Source Cost" value={String(over.length)} help="Completed operations exceeding their linked estimate item's direct cost." tone={over.length?'destructive':'success'}/>
-    <Metric label="Need Estimate Link" value={String(unlinked.length)} help="Operations without source estimate-item cost for direct comparison." tone={unlinked.length?'warning':'success'}/>
+    <Metric label="Actual Company Cost" value={readError?'Unavailable':money(actual)} help="Labor + allocated overhead + procurement + operation-linked costs."/>
+    <Metric label="Current Cost Exposure" value={readError?'Unavailable':money(exposure)} help="Actual cost plus open Work Package commitments."/>
+    <Metric label="Completed Over Source Cost" value={readError?'Unavailable':String(over.length)} help="Completed operations exceeding their linked estimate item's direct cost." tone={!readError&&over.length?'destructive':!readError?'success':'default'}/>
+    <Metric label="Need Estimate Link" value={readError?'Unavailable':String(unlinked.length)} help="Operations without source estimate-item cost for direct comparison." tone={!readError&&unlinked.length?'warning':!readError?'success':'default'}/>
    </section>
 
    {unlinked.length>0&&<div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm"><strong className="text-warning">{unlinked.length} Work Package operation{unlinked.length===1?' is':'s are'} not linked to a source estimate item.</strong><p className="mt-1 text-muted-foreground">Actual costs still accumulate correctly, but direct estimate-to-actual variance needs a source estimate item before the comparison is reliable.</p></div>}
 
    <section className="space-y-4">
     <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cost + production</p><h2 className="mt-1 text-lg font-semibold">Operation-Level Financial Reality</h2><p className="mt-1 max-w-5xl text-sm text-muted-foreground">Direct estimate cost is compared against direct actual cost. Payroll overhead is shown separately so the comparison does not mix unlike cost bases.</p></div>
-    {list.length===0?<div className="min-h-44 border border-border bg-muted/10"><div><h3>No Work Package financial data yet</h3><p>Costs appear here as crew time is approved and PO lines or project costs are tied to Work Package operations.</p></div></div>:<div className="grid gap-4">{list.map((x:any)=>{
+    {readError?<div className="min-h-44 border border-border bg-muted/10 px-4 py-5"><h3 className="text-sm font-semibold">Work Package financial data unavailable</h3><p className="mt-1 text-sm text-muted-foreground">The operation financial summary could not be loaded. Try again later.</p></div>:list.length===0?<div className="min-h-44 border border-border bg-muted/10"><div><h3>No Work Package financial data yet</h3><p>Costs appear here as crew time is approved and PO lines or project costs are tied to Work Package operations.</p></div></div>:<div className="grid gap-4">{list.map((x:any)=>{
       const overSource=x.financial_status==='over_source_cost';
       const completedOperation=x.operation_status==='completed';
       return <Card className="gap-0 py-0 shadow-none" key={x.operation_id}>
-       <CardHeader className="grid gap-3 border-b py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"><div className="min-w-0"><h3>{x.job_number} — {x.package_name}</h3><p className="mt-1">{x.field_label||x.task_name}{x.location?` · ${x.location}`:''}</p></div><Badge appearance="outline" className={overSource?'border-destructive/30 bg-destructive/10 text-destructive':completedOperation?'border-success/30 bg-success/10 text-success':'border-primary/30 bg-primary/10 text-primary'}>{String(x.financial_status).replaceAll('_',' ')}</Badge></CardHeader>
+       <CardHeader className="border-b py-4" header={<div className="min-w-0"><h3>{x.job_number} — {x.package_name}</h3><p className="mt-1">{x.field_label||x.task_name}{x.location?` · ${x.location}`:''}</p></div>} action={<Badge appearance="outline" className={overSource?'border-destructive/30 bg-destructive/10 text-destructive':completedOperation?'border-success/30 bg-success/10 text-success':'border-primary/30 bg-primary/10 text-primary'}>{String(x.financial_status).replaceAll('_',' ')}</Badge>}/>
        <div className="p-4 space-y-4 py-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MiniMetric label="Production" value={q(x.actual_quantity??x.planned_quantity,x.unit)} detail={`${x.operation_status} · ${q(x.approved_operation_hours,'approved MH')}`} tone="primary"/><MiniMetric label="Source Estimate Direct Cost" value={x.source_estimate_direct_cost==null?'—':money(x.source_estimate_direct_cost)} detail={x.source_estimate_description||'No source estimate item linked'}/><MiniMetric label="Actual Direct Cost" value={money(x.actual_direct_cost_to_date)} detail="Labor + procurement + linked field costs" tone={overSource?'destructive':'default'}/><MiniMetric label="Actual Company Cost" value={money(x.actual_company_cost_to_date)} detail="Includes allocated field overhead"/></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><ValueCell label="Direct Labor" value={money(x.actual_direct_labor_cost)}/><ValueCell label="Allocated Overhead" value={money(x.actual_overhead_cost)}/><ValueCell label="Procurement Actual" value={money(x.procurement_actual_cost)}/><ValueCell label="Open Commitment" value={money(x.open_commitment)}/></div>
@@ -62,7 +62,7 @@ export default async function WorkPackageFinancials(){
 function Metric({label,value,help,tone='default'}:{label:string;value:string;help:string;tone?:'default'|'success'|'warning'|'destructive'}){
  const toneClass=tone==='success'?'text-success':tone==='warning'?'text-warning':tone==='destructive'?'text-destructive':'text-foreground';
  const borderClass=tone==='warning'?'border-warning/30':tone==='destructive'?'border-destructive/30':'';
- return <Card className={`gap-2 py-4 shadow-none ${borderClass}`}><CardHeader className="gap-1 px-4"><p className="text-xs font-medium">{label}</p><h3 className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</h3></CardHeader><div className="p-4 px-4 text-xs leading-5 text-muted-foreground">{help}</div></Card>;
+ return <Card className={`gap-2 py-4 shadow-none ${borderClass}`}><CardHeader className="gap-1 px-4" header={<p className="text-xs font-medium">{label}</p>} description={<h3 className={`font-mono text-2xl font-semibold tracking-tight tabular-nums ${toneClass}`}>{value}</h3>}/><div className="p-4 px-4 text-xs leading-5 text-muted-foreground">{help}</div></Card>;
 }
 
 function MiniMetric({label,value,detail,tone='default'}:{label:string;value:string;detail?:string;tone?:'default'|'primary'|'destructive'}){

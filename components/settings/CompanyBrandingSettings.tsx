@@ -83,8 +83,8 @@ export function CompanyBrandingSettings({companyId,initialLogoPath}:{companyId:s
   }
 
   return <div className="grid gap-4 lg:grid-cols-[minmax(260px,.7fr)_minmax(0,1.3fr)]">
-    <div className="flex min-h-36 items-center justify-center rounded-md border border-border bg-white p-5">
-      {preview?<img src={preview} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>:<span className="text-sm text-muted-foreground">No company logo uploaded</span>}
+    <div className={`flex min-h-36 items-center justify-center rounded-md border border-border p-5 ${preview?'bg-white':'bg-muted'}`}>
+      {preview?<img src={preview} alt="Current company logo" className="max-h-20 max-w-full object-contain"/>:<div className="flex flex-col items-center gap-1 text-center"><ImageIcon className="mb-1 size-5 text-muted-foreground" aria-hidden="true"/><span className="text-sm font-medium text-foreground">No company logo uploaded</span><span className="text-xs text-muted-foreground">Your saved company logo appears here.</span></div>}
     </div>
     <div className="space-y-3">
       <div className="space-y-2"><input ref={fileInputRef} type="file" className="sr-only" accept={COMPANY_LOGO_ACCEPT} disabled={busy} onChange={event=>setFiles(Array.from(event.target.files||[]).slice(0,1))}/><Button type="button" appearance="outline" disabled={busy} className={`min-h-20 w-full border-dashed ${dragging?'border-primary bg-accent':''}`} icon={<ArrowUploadRegular/>} onClick={()=>fileInputRef.current?.click()} onDragEnter={event=>{event.preventDefault();setDragging(true)}} onDragOver={event=>event.preventDefault()} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);setFiles(Array.from(event.dataTransfer.files||[]).slice(0,1))}}>Choose company logo · PNG, JPEG, or WebP · 5 MB max</Button>{files[0]?<div className="flex items-center justify-between gap-2 text-xs"><span className="truncate">{files[0].name}</span><Button type="button" appearance="subtle" size="small" disabled={busy} onClick={()=>{setFiles([]);if(fileInputRef.current)fileInputRef.current.value=''}}>Remove</Button></div>:null}</div>

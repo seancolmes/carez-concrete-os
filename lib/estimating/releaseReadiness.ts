@@ -1,6 +1,6 @@
 export type ReleaseState = 'not_ready' | 'blocked' | 'review' | 'release_ready';
 export type WorkflowState = 'not_ready' | 'review' | 'locked';
-export type ReleaseFindingAction = 'pricing' | 'labor' | 'scope' | 'takeoff' | 'proposal_setup' | 'margin';
+export type ReleaseFindingAction = 'pricing' | 'labor' | 'scope' | 'takeoff' | 'proposal_setup' | 'margin' | 'overhead';
 
 export type ReleaseFinding = {
   finding_key: string;

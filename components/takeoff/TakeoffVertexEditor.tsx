@@ -53,7 +53,7 @@ export function TakeoffVertexEditor({ geometry, pageWidth, pageHeight, color, on
     try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
   };
 
-  const remove = (event: React.MouseEvent<SVGCircleElement>, vertex: VertexRef) => {
+  const remove = (event: React.MouseEvent<SVGCircleElement> | React.KeyboardEvent<SVGCircleElement>, vertex: VertexRef) => {
     event.preventDefault();
     event.stopPropagation();
     const next = copyGeometry(geometry);
@@ -104,6 +104,27 @@ export function TakeoffVertexEditor({ geometry, pageWidth, pageHeight, color, on
       && active?.pointIndex === vertex.pointIndex;
     return <g key={key} transform={`translate(${point.x * pageWidth} ${point.y * pageHeight})`}>
       <circle
+        tabIndex={0}
+        role="button"
+        aria-label={`${vertex.ring==='hole'?`Cutout ${(vertex.holeIndex||0)+1}`:'Shape'} vertex ${vertex.pointIndex+1}; arrow keys move, Shift increases step, Delete removes, Insert adds midpoint after`}
+        onKeyDown={event=>{
+          if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){
+            event.preventDefault();event.stopPropagation();
+            const step=event.shiftKey?10:1;
+            const next=copyGeometry(geometry);
+            const target=vertex.ring==='outer'?next.points:next.holes?.[vertex.holeIndex||0];
+            if(!target)return;
+            target[vertex.pointIndex]={x:clamp(point.x+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0)/pageWidth),y:clamp(point.y+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0)/pageHeight)};
+            onChange(next);
+          }else if(event.key==='Delete'||event.key==='Backspace')remove(event,vertex);
+          else if(event.key==='Insert'&&geometry.type!=='count'){
+            event.preventDefault();event.stopPropagation();const next=copyGeometry(geometry);
+            const ring=vertex.ring==='outer'?next.points:next.holes?.[vertex.holeIndex||0];if(!ring)return;
+            const following=ring[vertex.pointIndex+1]||(geometry.type==='polygon'||vertex.ring==='hole'?ring[0]:null);
+            if(!following)return;
+            ring.splice(vertex.pointIndex+1,0,{x:(point.x+following.x)/2,y:(point.y+following.y)/2});onChange(next);
+          }else if(event.key===' '){event.preventDefault();event.stopPropagation();}
+        }}
         r={isActive ? 8 : 6.5}
         fill={isActive ? '#ffffff' : '#171B19'}
         stroke={color}

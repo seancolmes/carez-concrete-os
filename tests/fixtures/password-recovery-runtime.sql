@@ -1,0 +1,23 @@
+begin;
+-- Service-only receipt boundary. No real account password or email is changed.
+create extension if not exists pgtap with schema extensions;select extensions.no_plan();
+alter table auth.users disable trigger on_auth_user_created;
+insert into auth.users(id,email) values('e7100000-0000-4000-8000-000000000001','synthetic-recovery@example.invalid');
+alter table auth.users enable trigger on_auth_user_created;
+set local role authenticated;
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()+interval '9 minutes')$$,'%permission denied%','ordinary signed-in clients cannot manufacture recovery authority');
+select extensions.throws_like($$select * from public.password_recovery_uses$$,'%permission denied%','ordinary clients cannot inspect private recovery receipts');
+reset role;set local role anon;
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()+interval '9 minutes')$$,'%permission denied%','anonymous clients cannot claim password recovery');
+reset role;set local role service_role;
+select extensions.lives_ok($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()+interval '9 minutes')$$,'verified server context obtains one durable claim');
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()+interval '9 minutes')$$,'%already used%','same recovery cannot reach Auth twice');
+select extensions.throws_like($$select public.carez_finish_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000002',true)$$,'%unavailable%','different session cannot complete the receipt');
+select extensions.lives_ok($$select public.carez_finish_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',false)$$,'uncertain Auth outcome is retained without releasing the claim');
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000001','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()+interval '9 minutes')$$,'%already used%','failed or uncertain writes require a new proof, not a repeated password mutation');
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000002','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001',clock_timestamp()-interval '1 second')$$,'%Verified current%','expired proofs cannot be claimed');
+select extensions.throws_like($$select public.carez_claim_password_recovery('e7300000-0000-4000-8000-000000000002','e7100000-0000-4000-8000-000000000001','e7200000-0000-4000-8000-000000000001','infinity')$$,'%Verified current%','nonfinite expiry is denied');
+select extensions.throws_like($$delete from public.password_recovery_uses$$,'%permission denied%','service caller also uses the governed function instead of erasing receipts');
+reset role;
+select extensions.is((select state from public.password_recovery_uses where nonce='e7300000-0000-4000-8000-000000000001'),'unconfirmed','uncertain outcome remains recorded');
+select * from extensions.finish();rollback;

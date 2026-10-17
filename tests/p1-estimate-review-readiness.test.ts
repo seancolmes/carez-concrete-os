@@ -346,9 +346,15 @@ test('Proposal page and issue action consume authoritative release readiness', (
   assert.match(issue, /carez_get_estimate_release_readiness/);
   assert.match(issue, /parseEstimateReleaseReadiness/);
   assert.match(issue, /release\.release_state!=='release_ready'/);
-  assert.match(issue, /release_commercial_fingerprint:release\.commercial_fingerprint/);
-  assert.match(issue, /release_warning_fingerprint:release\.warning_fingerprint/);
-  assert.match(issue, /release_acknowledgement_id:release\.warning_count>0\?release\.acknowledgement_id:null/);
+  assert.match(issue, /p_commercial_fingerprint:release\.commercial_fingerprint/);
+  assert.match(issue, /rpc\('carez_issue_proposal'/);
+  assert.match(issue, /p_expected_source_fingerprint:sourceFingerprint/);
+  assert.ok(issue.indexOf('carez_proposal_source_fingerprint')<issue.indexOf('const snapshotEstimateRead'));
+  assert.ok(issue.indexOf('const snapshotEstimateRead')<issue.indexOf('const reads=await Promise.all'));
+  assert.match(issue, /e=snapshotEstimateRead\.data;opportunity=e\.opportunity_number/);
+  assert.doesNotMatch(issue, /from\('proposal_access_tokens'\)\.insert/);
+  assert.match(issue, /p_warning_fingerprint:release\.warning_fingerprint/);
+  assert.match(issue, /p_acknowledgement_id:release\.warning_count>0\?release\.acknowledgement_id:null/);
 });
 
 test('P1.4 Proposal Setup links an authoritative Customer destination before award', () => {
@@ -396,7 +402,6 @@ test('P1.4 Proposal Setup links an authoritative Customer destination before awa
   assert.doesNotMatch(page, /queue\.project_name\|\|e\.name/);
   assert.match(page, /<form action=\{linkProposalCustomer\}/);
   assert.match(page, /<form action=\{createProposalCustomer\}/);
-  assert.match(page, /becomes the Proposal destination/);
 });
 
 test('Estimating module documents the implemented P1.4 Review and Proposal release contract', () => {

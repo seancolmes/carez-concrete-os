@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TakeoffConditionWorkflowShell } from '@/components/takeoff/TakeoffConditionWorkflowShell';
 import { TakeoffPlanUpload } from '@/components/takeoff/TakeoffPlanUpload';
 import { TakeoffSheetAutoNaming } from '@/components/takeoff/TakeoffSheetAutoNaming';
+import { TakeoffDesktopBoundary } from '@/components/takeoff/TakeoffDesktopBoundary';
 import pageStyles from '@/app/takeoff/[setId]/TakeoffDrawingPage.module.css';
 import viewStyles from './opportunity-view.module.css';
 import { resolveDerived3DSnapshot } from '@/lib/takeoff/conditions/derived3d/resolve.server';
@@ -177,7 +178,7 @@ export async function TakeoffView({ setId }: { setId: string }) {
 
   conditionData.derived3DSnapshot = resolveDerived3DSnapshot(companyId, setId, conditionData, measurements || [], sheets || [], scaleRegions || []);
 
-  return <>
+  return <TakeoffDesktopBoundary returnHref={estimateHref(set.estimate_id)} returnLabel="Return to estimate">
     <div className={`${viewStyles.takeoff} takeoff-app-page flex flex-col flex-1 min-h-0 overflow-hidden bg-[#090A0B]`}>
       <header className="sr-only">
         <div className={pageStyles.identity}>
@@ -201,5 +202,5 @@ export async function TakeoffView({ setId }: { setId: string }) {
       <TakeoffConditionWorkflowShell setId={setId} workspaceProps={workspaceProps} conditionData={conditionData} />
       </>}
     </div>
-  </>;
+  </TakeoffDesktopBoundary>;
 }

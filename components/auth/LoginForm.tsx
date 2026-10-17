@@ -3,6 +3,7 @@
 import { EyeRegular as Eye, EyeOffRegular as EyeOff } from '@fluentui/react-icons';
 import {Button,Input,Label} from '@fluentui/react-components';
 import {FormEvent,useState} from 'react';
+import Link from 'next/link';
 import {AnimatePresence,motion} from 'framer-motion';
 import {signInToWorkspace} from '@/app/login/actions';
 import {useGatewayTransition} from '@/components/brand/GatewayTransitionProvider';
@@ -66,6 +67,7 @@ export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
         </div>
         {message&&<div role="alert" className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{message}</div>}
         <Button type="submit" appearance="primary" className="mt-1 h-11 w-full" disabled={busy}>{busy?'Signing in...':'Sign in'}</Button>
+        <Link href="/auth/forgot-password" className="text-center text-sm text-primary underline">Forgot your password?</Link>
         <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">Need access? Contact your company&apos;s PourTrace administrator.</p>
       </form></motion.div>}</AnimatePresence>
     </div>

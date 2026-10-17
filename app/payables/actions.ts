@@ -1,6 +1,9 @@
 'use server';
+import {executeFinancialCommand,financialRequestId,optionalFinancialNumber} from '@/lib/financials/commands';
 import {revalidateFinancialsWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import { createClient } from '@/lib/supabase/server';
+
+const command=(client:Parameters<typeof executeFinancialCommand>[0],fd:FormData,name:string,args:Record<string,unknown>)=>executeFinancialCommand(client,name,args,financialRequestId(fd));
 
 async function ctx(){
   const supabase=await createClient();
@@ -10,13 +13,13 @@ async function ctx(){
   if(!profile?.company_id)throw new Error('Company profile missing');
   return {supabase};
 }
-const n=(v:FormDataEntryValue|null)=>{const x=Number(String(v??'0').replace(/[$,% ,]/g,''));return Number.isFinite(x)?x:0;};
+const n=(v:FormDataEntryValue|null)=>optionalFinancialNumber(v)??0;
 
 export async function recordVendorPayment(fd:FormData){
   const billId=String(fd.get('vendor_bill_id')||'');if(!billId)return;
   const {supabase}=await ctx();
   const amount=n(fd.get('amount'));if(amount<=0)throw new Error('Payment amount must be greater than zero.');
-  const {error}=await supabase.rpc('record_vendor_bill_payment',{
+  const {error}=await command(supabase,fd,'record_vendor_bill_payment',{
     p_vendor_bill_id:billId,
     p_payment_date:String(fd.get('payment_date')||new Date().toISOString().slice(0,10)),
     p_amount:amount,
@@ -32,7 +35,7 @@ export async function recordVendorPayment(fd:FormData){
 export async function voidVendorPayment(fd:FormData){
   const id=String(fd.get('vendor_payment_id')||'');if(!id)return;
   const {supabase}=await ctx();
-  const {error}=await supabase.rpc('void_vendor_payment',{p_vendor_payment_id:id});
+  const {error}=await command(supabase,fd,'void_vendor_payment',{p_vendor_payment_id:id});
   if(error)throw new Error(error.message);
   revalidatePath('/payables');revalidatePath('/procurement');revalidatePath('/projects');revalidatePath('/cashflow');revalidatePath('/overhead');revalidatePath('/');
 }

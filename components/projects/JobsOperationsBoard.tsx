@@ -3,11 +3,8 @@
 import Link from 'next/link';
 import {Fragment,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import { ChevronDownRegular as ChevronDown, FilterDismissRegular as FilterX, MoreHorizontalRegular as MoreHorizontal, SearchRegular as Search, OptionsRegular as SlidersHorizontal, CheckmarkCircleRegular as CheckCheck, ShieldErrorRegular as ShieldAlert, PersonWrenchRegular as HardHat, WalletRegular as Wallet, BriefcaseRegular as BriefcaseBusiness, ArrowUpRightRegular as ArrowUpRight, LocationRegular as MapPin, DocumentTextRegular as FileText } from '@fluentui/react-icons';
+import { ChevronDownRegular as ChevronDown, FilterDismissRegular as FilterX, MoreHorizontalRegular as MoreHorizontal, SearchRegular as Search, OptionsRegular as SlidersHorizontal, CheckmarkCircleRegular as CheckCheck, ShieldErrorRegular as ShieldAlert, PersonWrenchRegular as HardHat, BriefcaseRegular as BriefcaseBusiness, ArrowUpRightRegular as ArrowUpRight, DocumentTextRegular as FileText } from '@fluentui/react-icons';
 import {Badge,Button,Dropdown,Input,Menu,MenuDivider,MenuItem,MenuList,MenuPopover,MenuTrigger,Option,ProgressBar,Tab,TabList,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow} from '@fluentui/react-components';
-import {MetricBentoTile} from './MetricBentoTile';
-import {PourWeatherBadge} from '@/components/weather/PourWeatherBadge';
-import {TakeoffThumbnail} from '@/components/takeoff/TakeoffThumbnail';
 import {resolveOperationalState,resolvePriority} from '@/lib/ui/operations';
 import {cn} from '@/lib/utils';
 import styles from './jobs-operations-board.module.css';
@@ -22,7 +19,7 @@ export type JobsBoardRow={
   state:'ready'|'hold'|'planning'|'setup'|'completed';
   nextStep:string;
   scheduleDate:string|null;
-  contractValue:number;
+  contractValue:number|null;
   billedAmount:number;
   budgetUsed:number;
   budgetCost:number;
@@ -42,12 +39,18 @@ export type JobsBoardRow={
   gpsExceptions:number;
   reasons:string[];
   attention:boolean;
+  hardHold:boolean;
   setupHold:boolean;
+  holdHref:string|null;
+  holdAction:string|null;
+  blockedReason:string|null;
+  blockedHref:string|null;
+  blockedAction:string|null;
 };
 
 export type JobsBoardMetrics={ready:number;holds:number;attention:number;fieldJobs:number;activeShifts:number;customersOwe:number;overdue:number;};
 
-const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
+const money=(n:number|null)=>n==null?'Not recorded':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
 const shortDate=(v:string|null)=>v?new Date(`${v.slice(0,10)}T12:00:00`).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
 const titleCase=(v:string)=>String(v||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
 
@@ -107,29 +110,35 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
 
   const grid=<div className="carez-projects-grid min-w-0 overflow-hidden border-y border-border bg-card">
     <div className="border-b border-border px-3 py-2">{toolbar}</div>
+    {filtered.length>0?<div className="divide-y divide-border sm:hidden" aria-label="Project register">{filtered.map(row=>{const state=resolveOperationalState(row.state);const selected=expandedRowId===row.id;return <article key={row.id} className="min-w-0">
+      <div className="space-y-2 p-3"><Link href={`/projects/${row.id}`} className="block break-words text-sm font-semibold text-primary hover:underline">{row.name}</Link><p className="break-words text-xs text-muted-foreground">{row.jobNumber||'No job number'} · {row.customer} · {row.location}</p>
+      <div className="flex flex-wrap items-center gap-2 text-xs"><Badge appearance="outline" color={state?.tone==='error'?'danger':state?.tone==='warning'?'warning':state?.tone==='success'?'success':'informative'}>{state?.label||'Unknown'}</Badge><span>{titleCase(row.projectStatus)} lifecycle</span><span>{row.readyOperations} ready · {row.blockedOperations} blocked</span></div>
+      <p className="break-words text-sm font-medium">{row.nextStep}</p><p className="text-xs text-muted-foreground">{row.activeShifts} active shifts · {row.pendingTimecards} timecards pending · {row.gpsExceptions} GPS exceptions</p>
+      <dl className="grid grid-cols-2 gap-3 border-y border-border py-2 text-xs"><div><dt className="text-muted-foreground">Next field date</dt><dd>{shortDate(row.scheduleDate)}</dd></div><div><dt className="text-muted-foreground">Customer balance</dt><dd className="font-semibold tabular-nums">{row.billingAvailable?money(row.customerOwed):'Unavailable'}</dd></div></dl>
+      <div className="flex flex-wrap gap-2">{row.pendingTimecards>0||row.gpsExceptions>0?<Button as="a" href="/field?view=time-review" size="small" appearance="outline">Review time</Button>:null}<Button type="button" size="small" appearance="outline" aria-expanded={selected} aria-controls={selected?`project-phone-${row.id}`:undefined} onClick={()=>toggleRow(row.id)}>{selected?'Close preview':'Project preview'}</Button><Button as="a" href={`/projects/${row.id}`} size="small" appearance="primary">Open project</Button></div></div>
+      {selected?<div id={`project-phone-${row.id}`}><InlineProjectWorkspace row={row}/></div>:null}
+    </article>;})}</div>:null}
     <div className="min-w-0 overflow-auto">
     {filtered.length===0?<div className="flex min-h-48 flex-col items-center justify-center gap-2 px-4 py-6 text-center">
       {rows.length===0?<BriefcaseBusiness className="size-6 text-muted-foreground"/>:<Search className="size-6 text-muted-foreground"/>}
       <h3 className="text-sm font-semibold">{rows.length===0?'Your next job starts here.':'No jobs match this view'}</h3>
       <p className="max-w-xl text-xs text-muted-foreground">{rows.length===0?'An eligible issued Proposal can be Awarded internally to create or link its Project on the same Job Spine. Customer acceptance alone does not create a Project.':'Try another state, search, or stage to find the work you need.'}</p>
-      {rows.length===0?<Button as="a" href="/proposals" appearance="outline" size="small" icon={<FileText/>}>View proposals <ArrowUpRight/></Button>:<Button type="button" appearance="outline" size="small" onClick={clearFilters}>Reset filters</Button>}
-    </div>:<Table size="small" className="min-w-[1120px] text-xs">
+      {rows.length===0?<Button as="a" href="/opportunities" appearance="outline" size="small" icon={<FileText/>}>View bids and proposals <ArrowUpRight/></Button>:<Button type="button" appearance="outline" size="small" onClick={clearFilters}>Reset filters</Button>}
+    </div>:<Table size="small" className="hidden min-w-[1080px] text-xs sm:table">
       <TableHeader>
         <TableRow>
-          <TableHeaderCell>Job / client</TableHeaderCell>
-          <TableHeaderCell>State</TableHeaderCell>
+          <TableHeaderCell className="w-[28%] min-w-[19rem]">Job / client</TableHeaderCell>
+          <TableHeaderCell>Readiness / lifecycle</TableHeaderCell>
           <TableHeaderCell>Next step</TableHeaderCell>
           <TableHeaderCell>Next date</TableHeaderCell>
           <TableHeaderCell>Field</TableHeaderCell>
           <TableHeaderCell className="min-w-40 text-right">Budget</TableHeaderCell>
           <TableHeaderCell className="text-right">Customers owe</TableHeaderCell>
-          <TableHeaderCell>Priority</TableHeaderCell>
           <TableHeaderCell className="w-20"><span className="sr-only">Actions</span></TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>{filtered.map(row=>{
         const state=resolveOperationalState(row.state);
-        const priority=resolvePriority(priorityKindFor(row));
         const selectedRow=expandedRowId===row.id;
         return <Fragment key={row.id}><TableRow
           aria-selected={selectedRow}
@@ -146,13 +155,13 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
             if(event.key==='Enter')router.push(`/projects/${row.id}`);
           }}
         >
-          <TableCell className="min-w-60">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground">{row.jobNumber||'—'}</span>
-              <div className="min-w-0"><div className="truncate text-xs font-bold">{row.name}</div><div className="truncate text-xs text-muted-foreground">{row.customer}</div><div className="flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin aria-hidden="true" className="size-3 shrink-0"/><span className="truncate">{row.location}</span></div></div>
+          <TableCell className="w-[28%] min-w-[19rem] max-w-[25rem]">
+            <div className="min-w-0">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5"><strong className="min-w-0 break-words text-sm leading-5" title={row.name}>{row.name}</strong><span className="shrink-0 font-mono text-[10px] text-muted-foreground">{row.jobNumber||'No job number'}</span></div>
+              <div className="mt-0.5 truncate text-[11px] text-muted-foreground" title={`${row.customer} · ${row.location}`}>{row.customer} · {row.location}</div>
             </div>
           </TableCell>
-          <TableCell><Badge appearance="outline" color={state?.tone==='error'?'danger':state?.tone==='warning'?'warning':state?.tone==='success'?'success':'informative'}>{state?.label||'Unknown'}</Badge></TableCell>
+          <TableCell><Badge appearance="outline" color={state?.tone==='error'?'danger':state?.tone==='warning'?'warning':state?.tone==='success'?'success':'informative'}>{state?.label||'Unknown'}</Badge>{row.blockedOperations>0?<Badge appearance="outline" color="warning" className="ml-1">{row.blockedOperations} blocked</Badge>:null}<div className="mt-0.5 text-[11px] text-muted-foreground">{titleCase(row.projectStatus)} lifecycle</div></TableCell>
           <TableCell className="min-w-64"><div className="max-w-72 whitespace-normal font-semibold">{row.nextStep}</div>{row.reasons[0]&&row.attention&&row.reasons[0].trim()!==row.nextStep.trim()?<div className="mt-0.5 max-w-72 whitespace-normal text-xs text-muted-foreground">{row.reasons[0]}</div>:null}</TableCell>
           <TableCell><div className="font-medium">{shortDate(row.scheduleDate)}</div><div className="mt-0.5 font-sans text-xs text-muted-foreground">{row.scheduleDate?'Next field date':'Not scheduled'}</div></TableCell>
           <TableCell><div className="inline-flex items-center gap-1 font-semibold"><HardHat aria-hidden="true" className="size-3.5 shrink-0"/><span>{row.activeShifts?`${row.activeShifts} active`:'—'}</span></div><div className="text-xs text-muted-foreground">{row.pendingTimecards?`${row.pendingTimecards} timecard review`:row.gpsExceptions?`${row.gpsExceptions} GPS review`:row.activeShifts?'In the field':'No active shift'}</div></TableCell>
@@ -162,40 +171,43 @@ export function JobsOperationsBoard({rows,metrics}:{rows:JobsBoardRow[];metrics:
           <TableCell className="text-right">
             {row.billingAvailable?<><div className={cn('font-medium',row.overdue>0&&'text-destructive')}>{money(row.customerOwed)}</div><div className="mt-0.5 font-sans text-xs text-muted-foreground">{row.overdue>0?`${money(row.overdue)} late`:'Outstanding A/R'}</div></>:<span className="font-sans text-xs text-muted-foreground">Billing summary unavailable</span>}
           </TableCell>
-          <TableCell><Badge appearance="outline" color={priority?.tone==='error'?'danger':priority?.tone==='warning'?'warning':priority?.tone==='success'?'success':'informative'}>{priority?.label||'Unknown'}</Badge></TableCell>
           <TableCell className="whitespace-nowrap">
             <Button type="button" appearance="subtle" size="small" aria-label={`${selectedRow?'Collapse':'Expand'} ${row.name}`} aria-expanded={selectedRow} className="mr-1 size-7" icon={<ChevronDown aria-hidden="true" className={cn('size-3.5 transition-transform duration-150',selectedRow&&'rotate-180')}/>} onClick={event=>{event.stopPropagation();toggleRow(row.id);}}/>
             <span onClick={event=>event.stopPropagation()} className="inline-flex">
             <Menu>
-              <MenuTrigger disableButtonEnhancement><Button appearance="subtle" size="small" icon={<MoreHorizontal/>} aria-label={`Actions for ${row.name}`}/></MenuTrigger>
+              <MenuTrigger disableButtonEnhancement><Button id={`project-actions-${row.id}`} appearance="subtle" size="small" icon={<MoreHorizontal/>} aria-label={`Actions for ${row.name}`}/></MenuTrigger>
               <MenuPopover><MenuList>
                 <MenuItem onClick={()=>router.push(`/projects/${row.id}`)}>Open job</MenuItem>
-                <MenuItem onClick={()=>router.push('/schedule')}>Schedule</MenuItem>
-                {row.state==='hold'?<MenuItem onClick={()=>router.push('/readiness')}>Clear hold</MenuItem>:null}
-                {row.pendingTimecards>0?<MenuItem onClick={()=>router.push('/field/review')}>Review time</MenuItem>:null}
-                {row.billingAvailable&&row.customerOwed>0?<><MenuDivider/><MenuItem onClick={()=>router.push('/billing')}>Billing</MenuItem></>:null}
+                <MenuItem onClick={()=>router.push('/field?view=schedule')}>Schedule</MenuItem>
+                {row.holdHref?<MenuItem onClick={()=>row.holdHref&&router.push(row.holdHref)}>{row.holdAction}</MenuItem>:null}
+                {row.blockedHref&&row.blockedHref!==row.holdHref?<MenuItem onClick={()=>row.blockedHref&&router.push(row.blockedHref)}>{row.blockedAction}</MenuItem>:null}
+                {row.pendingTimecards>0?<MenuItem onClick={()=>router.push('/field?view=time-review')}>Review time</MenuItem>:null}
+                {row.billingAvailable&&row.customerOwed>0?<><MenuDivider/><MenuItem onClick={()=>router.push('/financials?tab=billing&view=billing')}>Billing</MenuItem></>:null}
               </MenuList></MenuPopover>
             </Menu>
             </span>
           </TableCell>
-        </TableRow>{selectedRow?<tr><td colSpan={9} className="p-0"><InlineProjectWorkspace row={row}/></td></tr>:null}</Fragment>;
+        </TableRow>{selectedRow?<tr><td colSpan={8} className="p-0"><InlineProjectWorkspace row={row}/></td></tr>:null}</Fragment>;
       })}</TableBody>
     </Table>}
     </div>
   </div>;
 
   return <div className="carez-operations-board">
-    <div aria-label="Job operations metrics" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-      <MetricBentoTile title="Current jobs" value={rows.filter(row=>row.state!=='completed').length} icon={<BriefcaseBusiness/>} description="Open jobs across the operation."/>
-      <MetricBentoTile title="Ready to move" value={metrics.ready} icon={<CheckCheck/>} tone={metrics.ready>0?'success':'neutral'} description="Physical operations ready to start."/>
-      <MetricBentoTile title="Hard holds" value={metrics.holds} icon={<ShieldAlert/>} tone={metrics.holds>0?'danger':'neutral'} description={`${metrics.attention} need attention`}/>
-      <MetricBentoTile title="Field active" value={metrics.fieldJobs} icon={<HardHat/>} description={`${metrics.activeShifts} shifts`}/>
-      <Link href="/billing" className="block min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        <MetricBentoTile title="Customers owe" value={metrics.customersOwe} prefix="$" icon={<Wallet/>} tone={metrics.customersOwe>0?'warning':'neutral'} description={metrics.overdue?`${money(metrics.overdue)} overdue`:'No overdue customer balance.'}/>
-      </Link>
-    </div>
+    <section aria-label="Job operations metrics" className="mb-3 grid grid-cols-2 gap-px border-y border-border bg-border md:grid-cols-3 lg:grid-cols-5">
+      <ProjectPulse label="Current jobs" value={String(rows.filter(row=>row.state!=='completed').length)} detail="Open work"/>
+      <ProjectPulse label="Ready to move" value={String(metrics.ready)} detail="Operations ready"/>
+      <ProjectPulse label="Hard holds" value={String(metrics.holds)} detail={`${metrics.attention} need attention`} tone={metrics.holds?'warning':undefined}/>
+      <ProjectPulse label="Field active" value={String(metrics.fieldJobs)} detail={`${metrics.activeShifts} shifts`}/>
+      <ProjectPulse label="Customers owe" value={money(metrics.customersOwe)} detail={metrics.overdue?`${money(metrics.overdue)} overdue`:'No overdue balance'} href="/financials?tab=billing&view=billing"/>
+    </section>
     {grid}
   </div>;
+}
+
+function ProjectPulse({label,value,detail,tone,href}:{label:string;value:string;detail:string;tone?:'warning';href?:string}){
+  const content=<><span className="block text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</span><strong className={cn('mt-1 block font-mono text-xl font-semibold tabular-nums',tone==='warning'&&'text-warning')}>{value}</strong><span className="text-[11px] text-muted-foreground">{detail}</span></>;
+  return href?<Link href={href} className="min-w-0 bg-[var(--pt-surface-1)] px-3 py-2 hover:bg-[var(--pt-surface-2)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring">{content}</Link>:<div className="min-w-0 bg-[var(--pt-surface-1)] px-3 py-2">{content}</div>;
 }
 
 function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
@@ -209,24 +221,28 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
   const hours=(value:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value);
   const currency=(value:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
 
-  return <section aria-label={`${row.name} project workspace`} className="w-[calc(100vw-2rem)] border-y border-border bg-card p-6 text-foreground shadow-inner lg:w-auto">
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+  return <section aria-label={`${row.name} project preview`} className="min-w-0 border-y border-border bg-[var(--pt-surface-1)] p-3 text-foreground">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-2">
       <div className="min-w-0">
-        <div className="font-mono text-[10px] text-muted-foreground">{row.jobNumber||'No job number'}</div>
-        <h2 className="mt-1 text-lg font-bold">{row.name}</h2>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="font-mono text-[10px] text-muted-foreground">{row.jobNumber||'No job number'} · {row.customer}</div>
+        <h2 className="mt-0.5 break-words text-base font-semibold">{row.name}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">{titleCase(row.projectStatus)} lifecycle</span>
           <Badge appearance="outline" color={state?.tone==='error'?'danger':state?.tone==='warning'?'warning':state?.tone==='success'?'success':'informative'}>{state?.label||'Unknown'}</Badge>
           {priority?<Badge appearance="outline" color={priority.tone==='error'?'danger':priority.tone==='warning'?'warning':priority.tone==='success'?'success':'informative'}>{priority.label}</Badge>:null}
-          <span className="text-xs text-muted-foreground">{row.customer}</span>
         </div>
       </div>
-      <PourWeatherBadge/>
+
     </div>
 
-    <div className="grid grid-cols-1 gap-6 pt-4 lg:grid-cols-2">
+    {row.holdHref&&row.reasons[0]?<div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-l-2 border-warning bg-[var(--pt-surface-2)] px-3 py-2 text-xs"><span><strong className="mr-2">Operational hold</strong>{row.reasons[0]}</span><Link href={row.holdHref} className="font-semibold text-primary underline-offset-2 hover:underline">{row.holdAction} →</Link></div>:null}
+    {row.blockedReason&&(!row.holdHref||row.blockedReason!==row.reasons[0])?<div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-l-2 border-warning bg-[var(--pt-surface-2)] px-3 py-2 text-xs"><span><strong className="mr-2">Blocked work</strong>{row.blockedReason}</span>{row.blockedHref?<Link href={row.blockedHref} className="font-semibold text-primary underline-offset-2 hover:underline">{row.blockedAction} →</Link>:null}</div>:null}
+    {row.openOperations>0?<p className="mt-2 text-xs text-muted-foreground">{row.openOperations} active operation{row.openOperations===1?'':'s'} · {row.readyOperations} ready · {row.blockedOperations} blocked</p>:null}
+
+    <div className="grid grid-cols-1 gap-4 pt-3 lg:grid-cols-2">
       <div className="min-w-0 space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plans</h3>
-        <TakeoffThumbnail/>
+        <div className="rounded-md border border-dashed border-border bg-secondary px-3 py-4 text-sm text-muted-foreground"><p>No plan preview is loaded.</p><Link href={`/projects/${row.id}/sources`} className="mt-2 inline-block font-semibold text-primary hover:underline">Open source records →</Link></div>
         <p className="text-xs text-muted-foreground">Next operation: {row.nextStep}</p>
       </div>
 
@@ -242,7 +258,7 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
           {laborProgress===null?<p className="mt-1 text-[10px] text-muted-foreground">No percentage without a labor baseline.</p>:null}
         </div>
         <dl className="divide-y divide-border border-t border-border text-xs">
-          <FinancialLine label="Contract amount" value={money(row.contractValue)}/>
+          <FinancialLine label="Recorded contract value" value={money(row.contractValue)}/>
           <FinancialLine label="Billed" value={row.billingAvailable?money(row.billedAmount):'Not available'}/>
           <FinancialLine label="Customer balance" value={row.billingAvailable?money(row.customerOwed):'Not available'} tone={row.overdue>0?'warning':undefined}/>
           {row.overdue>0?<FinancialLine label="Past due" value={money(row.overdue)} tone="warning"/>:null}
@@ -251,20 +267,19 @@ function InlineProjectWorkspace({row}:{row:JobsBoardRow}){
 
     </div>
 
-    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-2">
       <Button as="a" href={`/projects/${row.id}`} appearance="primary" size="small">Open Project Workspace</Button>
-      {row.state==='hold'?<Button as="a" href="/readiness" appearance="outline" size="small">Clear hold</Button>:null}
-      {row.pendingTimecards>0?<Button as="a" href="/field/review" appearance="outline" size="small">Review time</Button>:null}
+      {row.pendingTimecards>0?<Button as="a" href="/field?view=time-review" appearance="outline" size="small">Review time</Button>:null}
       <Menu>
         <MenuTrigger disableButtonEnhancement><Button appearance="subtle" size="small">More</Button></MenuTrigger>
         <MenuPopover><MenuList>
-          <MenuItem onClick={()=>router.push('/schedule')}>Schedule</MenuItem>
+          <MenuItem onClick={()=>router.push('/field?view=schedule')}>Schedule</MenuItem>
           <MenuItem onClick={()=>router.push('/field')}>Field</MenuItem>
-          <MenuItem onClick={()=>router.push('/billing')}>Billing</MenuItem>
-          <MenuItem onClick={()=>router.push('/cashflow')}>Cashflow</MenuItem>
+          <MenuItem onClick={()=>router.push('/financials?tab=billing&view=billing')}>Billing</MenuItem>
+          <MenuItem onClick={()=>router.push('/financials')}>Cashflow</MenuItem>
           <MenuDivider/>
           <MenuItem onClick={()=>router.push('/takeoff')}>Takeoff</MenuItem>
-          <MenuItem onClick={()=>router.push('/estimates')}>Estimates</MenuItem>
+          <MenuItem onClick={()=>router.push('/opportunities')}>Estimates</MenuItem>
         </MenuList></MenuPopover>
       </Menu>
     </div>

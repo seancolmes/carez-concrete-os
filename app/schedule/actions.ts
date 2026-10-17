@@ -1,35 +1,19 @@
 'use server';
 import {revalidateFieldWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import {createClient} from '@/lib/supabase/server';
-async function ownerContext(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(!profile?.company_id||profile.role==='employee')throw new Error('Owner access required');return{supabase,user,companyId:profile.company_id};}
-const refresh=()=>{for(const p of ['/schedule','/readiness','/readiness/resources','/look-ahead','/projects','/employee','/production','/production/work-packages','/'])revalidatePath(p);};
-export async function createScheduleItem(formData:FormData){
- let projectId=String(formData.get('project_id')||''),title=String(formData.get('title')||'').trim(),productionTaskId=String(formData.get('production_task_id')||'');const scheduleDate=String(formData.get('schedule_date')||''),itemType=String(formData.get('item_type')||'work'),operationId=String(formData.get('work_package_operation_id')||'');if(!projectId||!scheduleDate)return;
- const {supabase,user,companyId}=await ownerContext();
- if(operationId){const {data:op}=await supabase.from('work_package_operations').select('id,production_task_id,field_label,planned_quantity,unit,work_packages!inner(project_id,name,location),production_tasks!inner(name)').eq('id',operationId).eq('company_id',companyId).single();if(!op)throw new Error('Work package operation not found.');const pkg:any=op.work_packages,task:any=op.production_tasks;if(pkg?.project_id!==projectId)throw new Error('The selected work package belongs to a different job.');productionTaskId=op.production_task_id;title=title||op.field_label||`${task?.name||'Work'} — ${pkg?.name||'Work Package'}`;}
- if(!title){if(itemType==='work')throw new Error('Choose a work package or describe what the crew is doing.');return;}
- if(itemType==='work'&&!productionTaskId)throw new Error('Choose a work package operation or the plain-language work the crew will do.');
- if(['work','pour'].includes(itemType)){const {data:readiness}=await supabase.from('project_job_readiness_summary').select('award_setup_applies,job_ready,readiness_reason').eq('project_id',projectId).eq('company_id',companyId).maybeSingle();if(readiness?.award_setup_applies&&!readiness.job_ready)throw new Error(`Job is on setup hold: ${readiness.readiness_reason||'finish Job Setup first'}.`);}
- if(itemType==='inspection'&&operationId){const {error}=await supabase.from('project_inspections').insert({company_id:companyId,project_id:projectId,required_for_operation_id:operationId,title,inspection_type:'general',authority:null,status:'scheduled',requested_at:new Date().toISOString(),scheduled_date:scheduleDate,scheduled_time:String(formData.get('start_time')||'')||null,result_notes:String(formData.get('notes')||'').trim()||null,created_by:user.id,updated_by:user.id});if(error)throw new Error(error.message);refresh();return;}
- const mixDesign=String(formData.get('mix_design')||'').trim();
- const notes=[mixDesign?`Mix design: ${mixDesign}`:'',String(formData.get('notes')||'').trim()].filter(Boolean).join('\n')||null;
- const {data:item,error}=await supabase.from('work_schedule_items').insert({company_id:companyId,project_id:projectId,schedule_date:scheduleDate,item_type:itemType,title,production_task_id:productionTaskId||null,work_package_operation_id:operationId||null,pour_plan_id:String(formData.get('pour_plan_id')||'')||null,start_time:String(formData.get('start_time')||'')||null,end_time:String(formData.get('end_time')||'')||null,crew_needed:Number(formData.get('crew_needed')||0),status:String(formData.get('status')||'planned'),notes,created_by:user.id}).select('id').single();if(error)throw new Error(error.message);
- const crewIds=formData.getAll('crew_member_ids').map(String).filter(Boolean);if(item&&crewIds.length){const {error:assignmentError}=await supabase.from('work_schedule_assignments').insert(crewIds.map(crew_member_id=>({company_id:companyId,schedule_item_id:item.id,crew_member_id})));if(assignmentError)throw new Error(assignmentError.message);}
+import {scheduleCommand,type ScheduleCommand,type ScheduleFormState} from '@/lib/field/scheduleCommand';
+const refresh=()=>{for(const path of ['/schedule','/readiness','/readiness/resources','/look-ahead','/projects','/employee','/production','/production/work-packages','/'])revalidatePath(path);};
+async function execute(form:FormData,command:ScheduleCommand){
+ const {requestId,payload}=scheduleCommand(form,command);
+ const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Sign in before changing the schedule.');
+ const {data,error}=await supabase.rpc('carez_schedule_command_v1',{p_request_id:requestId,p_command:command,p_payload:payload});
+ if(error||!data?.ok||!data?.id)throw new Error(error?.message||'The schedule save was not confirmed. Retry the same request.');
  refresh();
 }
-export async function updateScheduleStatus(formData:FormData){const id=String(formData.get('id')||''),status=String(formData.get('status')||'planned');if(!id)return;const {supabase,companyId}=await ownerContext();const {data:item}=await supabase.from('work_schedule_items').select('id,item_type,inspection_id,work_package_operation_id').eq('id',id).eq('company_id',companyId).single();if(!item)return;if(item.inspection_id)throw new Error('Inspection status is controlled from Work Readiness so the inspection record stays authoritative.');if(item.item_type==='work'&&item.work_package_operation_id&&['confirmed','in_progress'].includes(status)){const {data:r}=await supabase.from('work_package_start_readiness').select('ready_to_start_all,start_next_action').eq('operation_id',item.work_package_operation_id).eq('company_id',companyId).maybeSingle();if(r&&!r.ready_to_start_all)throw new Error(`Work is on hold: ${r.start_next_action||'clear readiness first'}.`);}const {error}=await supabase.from('work_schedule_items').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);refresh();}
-export async function deleteScheduleItem(formData:FormData){const id=String(formData.get('id')||'');if(!id)return;const {supabase,companyId}=await ownerContext();const {data:item}=await supabase.from('work_schedule_items').select('inspection_id').eq('id',id).eq('company_id',companyId).maybeSingle();if(item?.inspection_id){const {error}=await supabase.from('project_inspections').delete().eq('id',item.inspection_id).eq('company_id',companyId);if(error)throw new Error(error.message);}else{const {error}=await supabase.from('work_schedule_items').delete().eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);}refresh();}
-
-export async function rescheduleScheduleItem(formData:FormData){
- const id=String(formData.get('id')||'');
- const date=String(formData.get('schedule_date')||'');
- if(!id||!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(`${date}T12:00:00Z`))||new Date(`${date}T12:00:00Z`).toISOString().slice(0,10)!==date)throw new Error('Choose a valid schedule date.');
- const {supabase,companyId}=await ownerContext();
- const {data:item,error:loadError}=await supabase.from('work_schedule_items').select('id,status,inspection_id,pour_plan_id').eq('id',id).eq('company_id',companyId).single();
- if(loadError||!item)throw new Error('Schedule item not found.');
- if(item.inspection_id||item.pour_plan_id)throw new Error('Move linked inspections or pours from their source record.');
- if(['in_progress','completed','cancelled'].includes(item.status))throw new Error('Active or completed work cannot be moved from this timeline.');
- const {error}=await supabase.from('work_schedule_items').update({schedule_date:date,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);
- if(error)throw new Error(error.message);
- refresh();
+export async function createScheduleItem(_state:ScheduleFormState,form:FormData):Promise<ScheduleFormState>{
+ try{await execute(form,'create');return{status:'saved',message:'Scheduled work and crew assignments saved.'};}
+ catch(error){return{status:'error',message:error instanceof Error?error.message:'Scheduling is unavailable. Retry this same form.'};}
 }
+export async function updateScheduleStatus(form:FormData){await execute(form,'status');}
+export async function deleteScheduleItem(form:FormData){await execute(form,'delete');}
+export async function rescheduleScheduleItem(form:FormData){await execute(form,'reschedule');}

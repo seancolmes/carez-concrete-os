@@ -156,7 +156,7 @@ export const CONDITION_ARCHETYPES: Record<string, ConditionArchetypeDefinition> 
     inputs: [
       numberInput('thickness_in', 'Slab thickness', 'planFacts', 'IN', ['concrete.installed_cy', 'forms.edge_contact_sf']),
       numberInput('reinforcing_lb_per_sf', 'Reinforcing allowance', 'methods', 'LB/SF', ['reinforcing.steel_lb']),
-      numberInput('base_depth_in', 'Base depth', 'planFacts', 'IN', ['slab_systems.base_cy']),
+      numberInput('base_depth_in', 'Base depth', 'planFacts', 'IN', ['slab_systems.base_cy'], 0.000001),
       numberInput('vapor_barrier_waste_pct', 'Vapor barrier waste', 'commercial', '%', ['slab_systems.vapor_barrier_sf']),
       numberInput('place_finish_mh_per_sf', 'Place and finish production rate', 'production', 'MH/SF', ['labor.place_finish_mh']),
       numberInput('form_mh_per_sf', 'Form production rate', 'production', 'MH/SF', ['labor.forms_mh']),

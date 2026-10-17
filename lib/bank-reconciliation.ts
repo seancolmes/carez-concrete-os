@@ -1,3 +1,4 @@
+import {executeFinancialCommand} from './financials/commands';
 type Candidate={company_id:string;bank_transaction_id:string;candidate_type:string;entity_type?:string|null;entity_id?:string|null;rule_id?:string|null;confidence:number;reason:string;proposed_action?:string|null;metadata?:Record<string,any>;status:'active'};
 
 const round=(v:any)=>Math.round(Number(v||0)*100)/100;
@@ -81,10 +82,10 @@ export async function analyzeBankTransactions(supabase:any,companyId:string,{lim
   const byTx=new Map<string,Candidate[]>();for(const c of candidates){if(!byTx.has(c.bank_transaction_id))byTx.set(c.bank_transaction_id,[]);byTx.get(c.bank_transaction_id)!.push(c);}
   for(const t of txs||[]){const list=(byTx.get(t.id)||[]).sort((a,b)=>b.confidence-a.confidence);const top=list[0],second=list[1];if(!top)continue;
     const safeExisting=['existing_customer_payment','existing_vendor_payment','existing_company_expense','existing_payroll'].includes(top.candidate_type);
-    if(safeExisting&&top.confidence>=98&&(!second||second.confidence<95)&&top.entity_id&&top.entity_type){try{const {error}=await supabase.rpc('reconcile_bank_existing',{p_bank_transaction_id:t.id,p_entity_type:top.entity_type,p_entity_id:top.entity_id,p_note:top.reason,p_confidence:top.confidence});if(!error){autoMatched++;continue;}}catch{}}
-    if(top.candidate_type==='internal_transfer'&&top.confidence>=98&&(!second||second.confidence<98)&&top.entity_id){try{const {error}=await supabase.rpc('reconcile_bank_as_transfer',{p_bank_transaction_id:t.id,p_other_bank_transaction_id:top.entity_id});if(!error){autoMatched++;continue;}}catch{}}
+    if(safeExisting&&top.confidence>=98&&(!second||second.confidence<95)&&top.entity_id&&top.entity_type){try{const {error}=await executeFinancialCommand(supabase,'reconcile_bank_existing',{p_bank_transaction_id:t.id,p_entity_type:top.entity_type,p_entity_id:top.entity_id,p_note:top.reason,p_confidence:top.confidence});if(!error){autoMatched++;continue;}}catch{}}
+    if(top.candidate_type==='internal_transfer'&&top.confidence>=98&&(!second||second.confidence<98)&&top.entity_id){try{const {error}=await executeFinancialCommand(supabase,'reconcile_bank_as_transfer',{p_bank_transaction_id:t.id,p_other_bank_transaction_id:top.entity_id});if(!error){autoMatched++;continue;}}catch{}}
     if(top.rule_id&&top.confidence>=97&&top.metadata?.auto_apply&&new Date(t.created_at).getTime()>=new Date(top.metadata?.rule_created_at||0).getTime()){
-      try{const {error}=await supabase.rpc('apply_bank_reconciliation_rule',{p_bank_transaction_id:t.id,p_rule_id:top.rule_id});if(!error)autoApplied++;}catch{}
+      try{const {error}=await executeFinancialCommand(supabase,'apply_bank_reconciliation_rule',{p_bank_transaction_id:t.id,p_rule_id:top.rule_id});if(!error)autoApplied++;}catch{}
     }
   }
   return {analyzed:(txs||[]).length,candidates:candidates.length,autoMatched,autoApplied};

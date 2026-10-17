@@ -1,38 +1,24 @@
 'use client';
 
-import {useEffect,useMemo,useState,useTransition} from 'react';
+import {useEffect,useMemo,useRef,useState,useTransition,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@fluentui/react-components';
-import { WarningRegular as AlertTriangle, ChevronLeftRegular as ChevronLeft, ChevronRightRegular as ChevronRight, CloudOffRegular as CloudOff, ReOrderDotsVerticalRegular as GripVertical } from '@fluentui/react-icons';
+import { ChevronLeftRegular as ChevronLeft, ChevronRightRegular as ChevronRight, CloudOffRegular as CloudOff, ReOrderDotsVerticalRegular as GripVertical } from '@fluentui/react-icons';
 import {rescheduleScheduleItem} from '@/app/schedule/actions';
+import styles from './ScheduleMatrix.module.css';
 import type {ScheduleGridDay,ScheduleGridItem} from './ScheduleGrid';
+import {scheduleWindow,inScheduleWindow,staffingRisk,type ScheduleScale as Scale,type SchedulePeriod as Period} from '@/lib/ui/schedule-window';
 
-type Scale='day'|'week'|'month';
-type Period={key:string;label:string;start:string;end:string};
 type WeatherRisk={date:string;severity:'amber'|'red';summary:string};
 
 const iso=(date:Date)=>date.toISOString().slice(0,10);
 const utc=(date:string)=>new Date(`${date}T12:00:00Z`);
 const addDays=(date:string,amount:number)=>{const next=utc(date);next.setUTCDate(next.getUTCDate()+amount);return iso(next);};
 const dayDelta=(from:string,to:string)=>Math.round((utc(to).getTime()-utc(from).getTime())/86400000);
-const dayLabel=(date:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',timeZone:'UTC'}).format(utc(date));
-const monthLabel=(date:string)=>new Intl.DateTimeFormat('en-US',{month:'short',year:'numeric',timeZone:'UTC'}).format(utc(date));
 const monday=(date:string)=>addDays(date,-((utc(date).getUTCDay()+6)%7));
 const monthStart=(date:string)=>`${date.slice(0,7)}-01`;
 const monthEnd=(date:string)=>{const next=utc(monthStart(date));next.setUTCMonth(next.getUTCMonth()+1);next.setUTCDate(0);return iso(next);};
 const titleCase=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
-
-function periodsFor(scale:Scale,days:ScheduleGridDay[]):Period[]{
-  if(scale==='day')return days.slice(0,14).map(day=>({key:day.date,label:day.label,start:day.date,end:day.date}));
-  const starts=new Set<string>();
-  for(const day of days)starts.add(scale==='week'?monday(day.date):monthStart(day.date));
-  return [...starts].map(start=>({
-    key:start,
-    label:scale==='week'?`${dayLabel(start)} – ${dayLabel(addDays(start,6))}`:monthLabel(start),
-    start,
-    end:scale==='week'?addDays(start,6):monthEnd(start),
-  }));
-}
 
 function phase(item:ScheduleGridItem){
   const source=`${item.packageName||''} ${item.employeeTask||''} ${item.title}`.toLowerCase();
@@ -41,14 +27,6 @@ function phase(item:ScheduleGridItem){
   if(/foundation wall|stem wall|wall/.test(source))return 'Foundation Walls';
   if(/slab|sog/.test(source))return 'Slabs on Grade';
   return titleCase(item.itemType);
-}
-
-function phaseTone(value:string){
-  if(value==='Subgrade')return 'border-[#A88D56] bg-[#695931]/75 text-[#F4DEB0]';
-  if(value==='Footings')return 'border-[#5E9CC4] bg-[#2B5876]/80 text-[#C7E6FA]';
-  if(value==='Foundation Walls')return 'border-[#9D82C7] bg-[#594571]/80 text-[#E6D7FB]';
-  if(value==='Slabs on Grade')return 'border-[#647D8A] bg-[#24343D]/80 text-[#DEE6E9]';
-  return 'border-[#697982] bg-[#364148]/80 text-[#DEE6E9]';
 }
 
 function canMove(item:ScheduleGridItem){
@@ -96,7 +74,7 @@ function periodStats(period:Period,items:ScheduleGridItem[]){
       else if(result==='possible'&&pumpConflict===null)pumpConflict='possible';
     }
   }
-  return {cy:[...pours.values()].reduce((sum,value)=>sum+value,0),knownHours,unsizedCrew,unidentifiedPumps,pumpAssets:pumpAssets.size,crewConflict,pumpConflict,count:current.length};
+  return {crewAvailable:current.every(item=>item.crewAssignmentsAvailable),cy:[...pours.values()].reduce((sum,value)=>sum+value,0),knownHours,unsizedCrew,unidentifiedPumps,pumpAssets:pumpAssets.size,crewConflict,pumpConflict,count:current.length};
 }
 
 function moveDate(item:ScheduleGridItem,period:Period,scale:Scale){
@@ -107,42 +85,46 @@ function moveDate(item:ScheduleGridItem,period:Period,scale:Scale){
   return `${period.start.slice(0,7)}-${String(Math.min(day,last)).padStart(2,'0')}`;
 }
 
-export function ScheduleMatrix({days,items,weatherRisks=[],pumpDataAvailable=true}:{days:ScheduleGridDay[];items:ScheduleGridItem[];weatherRisks?:WeatherRisk[];pumpDataAvailable?:boolean}){
+export function ScheduleMatrix({days,items,weatherRisks=[],pumpDataAvailable=true,headerActions,notices,renderPhoneWork}:{days:ScheduleGridDay[];items:ScheduleGridItem[];weatherRisks?:WeatherRisk[];pumpDataAvailable?:boolean;headerActions?:ReactNode;notices?:ReactNode;renderPhoneWork?:(items:ScheduleGridItem[])=>ReactNode}){
   const router=useRouter();
   const [scale,setScale]=useState<Scale>('day');
+  const [page,setPage]=useState(0);
   const [selectedPeriod,setSelectedPeriod]=useState<string|null>(null);
   const [hoveredPeriod,setHoveredPeriod]=useState<string|null>(null);
   const [selectedItem,setSelectedItem]=useState<string|null>(null);
   const [draggedId,setDraggedId]=useState<string|null>(null);
   const [overrides,setOverrides]=useState<Record<string,string>>({});
   const [pendingId,setPendingId]=useState<string|null>(null);
+  const requestIds=useRef(new Map<string,string>());
   const [error,setError]=useState<string|null>(null);
   const [,startTransition]=useTransition();
   useEffect(()=>setOverrides({}),[items]);
 
   const currentItems=useMemo(()=>items.map(item=>overrides[item.id]?{...item,scheduleDate:overrides[item.id]}:item),[items,overrides]);
-  const periods=useMemo(()=>periodsFor(scale,days),[scale,days]);
+  const window=useMemo(()=>scheduleWindow(days,scale,page),[days,scale,page]);
+  const periods=window.periods;
+  const visibleItems=useMemo(()=>inScheduleWindow(currentItems,window),[currentItems,window]);
   const statsByPeriod=useMemo(()=>new Map(periods.map(period=>[period.key,periodStats(period,currentItems)])),[periods,currentItems]);
   const focus=periods.find(period=>period.key===(hoveredPeriod||selectedPeriod))||periods[0];
   const focusStats=focus?statsByPeriod.get(focus.key):null;
-  const selected=currentItems.find(item=>item.id===selectedItem)||null;
+  const selected=visibleItems.find(item=>item.id===selectedItem)||null;
   const projects=useMemo(()=>{
     const grouped=new Map<string,{id:string;name:string;job:string;phases:string[]}>();
-    for(const item of currentItems){
+    for(const item of visibleItems){
       const current=grouped.get(item.projectId)||{id:item.projectId,name:item.projectName,job:item.jobNumber,phases:[]};
       const itemPhase=phase(item);
       if(!current.phases.includes(itemPhase))current.phases.push(itemPhase);
       grouped.set(item.projectId,current);
     }
     return [...grouped.values()].sort((a,b)=>a.job.localeCompare(b.job));
-  },[currentItems]);
+  },[visibleItems]);
   const itemsByLane=useMemo(()=>{
     const lanes=new Map<string,ScheduleGridItem[]>();
     for(const item of currentItems){const key=`${item.projectId}:${phase(item)}`;lanes.set(key,[...(lanes.get(key)||[]),item]);}
     return lanes;
   },[currentItems]);
-  const colWidth=scale==='day'?126:scale==='week'?174:210;
-  const gridStyle={gridTemplateColumns:`220px repeat(${periods.length}, ${colWidth}px)`,minWidth:220+periods.length*colWidth};
+  const colWidth=scale==='day'?164:scale==='week'?210:260;
+  const gridStyle={gridTemplateColumns:`208px repeat(${periods.length}, ${colWidth}px)`,minWidth:208+periods.length*colWidth};
 
   function move(item:ScheduleGridItem,target:Period,targetScale:Scale=scale){
     if(!canMove(item))return;
@@ -153,7 +135,8 @@ export function ScheduleMatrix({days,items,weatherRisks=[],pumpDataAvailable=tru
     setError(null);
     startTransition(async()=>{
       try{
-        const data=new FormData();data.set('id',item.id);data.set('schedule_date',date);
+        const key=`${item.id}:${item.revision}:${date}`;let request=requestIds.current.get(key);if(!request){request=crypto.randomUUID();requestIds.current.set(key,request);}
+        const data=new FormData();data.set('request_id',request);data.set('expected_revision',String(item.revision??''));data.set('id',item.id);data.set('schedule_date',date);
         await rescheduleScheduleItem(data);
         router.refresh();
       }catch(cause){
@@ -164,42 +147,53 @@ export function ScheduleMatrix({days,items,weatherRisks=[],pumpDataAvailable=tru
   }
 
   function weather(period:Period){return weatherRisks.filter(risk=>risk.date>=period.start&&risk.date<=period.end);}
-  const stripe='bg-[repeating-linear-gradient(135deg,transparent_0px,transparent_6px,rgba(245,158,11,0.13)_6px,rgba(245,158,11,0.13)_8px)]';
-  const severeStripe='bg-[repeating-linear-gradient(135deg,transparent_0px,transparent_6px,rgba(239,68,68,0.16)_6px,rgba(239,68,68,0.16)_8px)]';
-
-  return <div className="ambient-glow min-w-0 text-[11px] text-[#8B949E]">
-    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-1" role="group" aria-label="Timeline scale">{(['day','week','month'] as Scale[]).map(value=><Button appearance="subtle" key={value} type="button" aria-pressed={scale===value} onClick={()=>{setScale(value);setHoveredPeriod(null);setSelectedPeriod(null);}} className={`border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide ${scale===value?'border-[#333333] bg-[#111111] text-white shadow-[inset_0px_1px_0px_rgba(255,255,255,0.05)]':'border-[#222222] bg-[#0A0A0A] text-[#B4B4B4] hover:text-white'}`}>{value}</Button>)}</div>
-      <div className="flex flex-wrap gap-x-3 font-mono text-[10px] uppercase"><span>{items.length} work blocks</span><span>{projects.length} projects</span><span>{days[0]?.label} – {days[days.length-1]?.label}</span></div>
-    </div>
-    <div className="mb-2 flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1 border-y border-[#343A3F] px-2 font-mono text-[10px] uppercase tabular-nums" aria-live="polite">
-      <strong className="text-[#E1E7E3]">{focus?.label||'No period'}</strong>
-      <span className="text-[#EDEDED]">{focusStats?.cy.toFixed(1)||'0.0'} CY linked pours</span>
-      <span>{focusStats?.knownHours.toFixed(1)||'0.0'} known crew h</span>
-      <span>{pumpDataAvailable?`${focusStats?.pumpAssets||0} identified pump assets`:'Pump requirements unavailable'}</span>
-      <span className="flex items-center gap-1 text-[#8B949E]"><CloudOff className="size-3"/> {weatherRisks.length?'Forecast risk overlay':'Forecast unavailable'}</span>
-    </div>
-    {error?<p role="alert" className="mb-2 border border-red-600/60 px-2 py-1 text-[11px] text-red-300">{error}</p>:null}
-    <div className="max-h-[61vh] overflow-auto border border-[#343A3F] bg-[#181A1B]" aria-label="Schedule timeline">
-      <div className="grid sticky top-0 z-20 border-b border-[#343A3F] bg-[#1D2123]" style={gridStyle}>
-        <div className="sticky left-0 z-30 flex h-9 items-center border-r border-[#343A3F] bg-[#1D2123] px-3 font-mono text-[10px] uppercase">Project / concrete phase</div>
-        {periods.map(period=>{const stats=statsByPeriod.get(period.key)!;const risks=weather(period);return <Button appearance="subtle" key={period.key} type="button" aria-pressed={selectedPeriod===period.key} onMouseEnter={()=>setHoveredPeriod(period.key)} onMouseLeave={()=>setHoveredPeriod(null)} onFocus={()=>setHoveredPeriod(period.key)} onClick={()=>setSelectedPeriod(period.key)} title={`${period.label}: ${stats.cy.toFixed(1)} CY${risks.length?` · Weather: ${risks.map(risk=>risk.summary).join(', ')}`:''}`} className={`h-9 min-w-0 border-r border-[#343A3F] px-2 text-left font-mono text-[10px] ${selectedPeriod===period.key?'bg-[#111111] text-white shadow-[inset_0px_1px_0px_rgba(255,255,255,0.05)]':'text-[#B6BEBA] hover:bg-[#25292C]'}`}><span className="block truncate">{period.label}</span><span className="text-[9px] text-[#6F7A80]">{stats.cy.toFixed(0)} CY · {stats.count} blocks</span></Button>;})}
-      </div>
-      {projects.length===0?<div className="p-6 text-[12px] text-[#8B949E]">No scheduled work in this horizon. Use + Schedule Work to place the first block.</div>:projects.map(project=><div key={project.id}>
-        <div className="grid border-b border-[#343A3F] bg-[#202426]" style={gridStyle}><div className="sticky left-0 z-10 col-span-full flex h-7 items-center gap-2 bg-[#202426] px-3 font-mono text-[10px] uppercase"><strong className="text-[#E1E7E3]">{project.job}</strong><span className="truncate">{project.name}</span></div></div>
-        {project.phases.map(projectPhase=><div key={`${project.id}:${projectPhase}`} className="grid border-b border-[#25292C]" style={gridStyle}>
-          <div className="sticky left-0 z-10 flex min-h-10 items-center border-r border-[#343A3F] bg-[#181A1B] px-3 font-medium text-[#B6BEBA]">{projectPhase}</div>
-          {periods.map(period=>{const risks=weather(period);const cellItems=(itemsByLane.get(`${project.id}:${projectPhase}`)||[]).filter(item=>item.scheduleDate>=period.start&&item.scheduleDate<=period.end);return <div key={period.key} onDragOver={event=>{if(draggedId)event.preventDefault();}} onDrop={event=>{event.preventDefault();const id=draggedId||event.dataTransfer.getData('text/plain');const item=currentItems.find(value=>value.id===id);if(item)move(item,period);setDraggedId(null);}} onMouseEnter={()=>setHoveredPeriod(period.key)} onMouseLeave={()=>setHoveredPeriod(null)} className={`min-h-10 min-w-0 border-r border-[#25292C] p-1 ${risks.some(risk=>risk.severity==='red')?severeStripe:risks.length?stripe:''} ${selectedPeriod===period.key?'bg-[#111111]':''}`}>
-            <div className="flex flex-col gap-1">{cellItems.map(item=><Button appearance="subtle" key={item.id} type="button" draggable={canMove(item)&&pendingId!==item.id} onDragStart={event=>{setDraggedId(item.id);event.dataTransfer.setData('text/plain',item.id);event.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDraggedId(null)} onClick={()=>{setSelectedItem(item.id);setSelectedPeriod(period.key);}} title={`${item.title} · ${item.scheduleDate}${canMove(item)?' · drag to reschedule':' · source-controlled date'}`} className={`flex h-6 min-w-0 items-center gap-1 border-l-2 px-1.5 text-left text-[10px] font-medium shadow-sm transition-colors hover:brightness-125 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white ${phaseTone(projectPhase)} ${item.blocked?'!border-red-500 !bg-red-900/60':item.crewShort?'!border-amber-500':''} ${selectedItem===item.id?'outline outline-1 outline-white/70':''} ${canMove(item)?'cursor-grab active:cursor-grabbing':'cursor-pointer'} ${pendingId===item.id?'opacity-50':''}`}><GripVertical className="size-2.5 shrink-0 opacity-50"/><span className="truncate">{item.title}</span>{item.pourYards!==null?<span className="ml-auto shrink-0 font-mono">{item.pourYards.toFixed(0)} CY</span>:null}</Button>)}</div>
-          </div>;})}
+  function changePage(next:number){setPage(next);setSelectedPeriod(null);setHoveredPeriod(null);}
+  const focusItems=focus?currentItems.filter(item=>item.scheduleDate>=focus.start&&item.scheduleDate<=focus.end):[];
+  return <div className={styles.workspace}>
+    <header className={styles.toolbar}>
+      <h2>Schedule</h2>
+      <div className={styles.scales} role="group" aria-label="Timeline scale">{(['day','week','month'] as Scale[]).map(value=><Button key={value} type="button" size="small" appearance={scale===value?'primary':'subtle'} aria-pressed={scale===value} onClick={()=>{setScale(value);changePage(0);}}>{titleCase(value)}</Button>)}</div>
+      <div className={styles.range} aria-live="polite"><strong>{window.label}</strong><span>{visibleItems.length} work block{visibleItems.length===1?'':'s'} · {projects.length} project{projects.length===1?'':'s'}</span></div>
+      <div className={styles.periodControls} role="group" aria-label="Schedule period"><Button type="button" size="small" appearance="subtle" icon={<ChevronLeft/>} disabled={!window.hasPrevious} aria-label="Previous schedule period" onClick={()=>changePage(window.index-1)}/><Button type="button" size="small" appearance="subtle" icon={<ChevronRight/>} disabled={!window.hasNext} aria-label="Next schedule period" onClick={()=>changePage(window.index+1)}/><Button type="button" size="small" appearance="outline" disabled={!window.hasPrevious} onClick={()=>changePage(0)}>{days.some(day=>day.isToday)?'Today':'First loaded period'}</Button></div>
+      {headerActions?<div className={styles.headerActions}>{headerActions}</div>:null}
+    </header>
+    {notices}
+    {error?<p role="alert" className="rounded-md border border-destructive bg-destructive/5 p-3 text-sm text-destructive">{error}</p>:null}
+    <p className="sr-only" role="status" aria-live="polite">{focus&&focusStats?`${focus.label}: ${focusStats.cy.toFixed(1)} CY, ${focusStats.crewAvailable?`${focusStats.knownHours.toFixed(1)} crew hours`:'Crew assignments unavailable'}, ${pumpDataAvailable?`${focusStats.pumpAssets} pump assets`:'pumps unavailable'}.`:''}</p>
+    {renderPhoneWork?.(visibleItems)}
+    <div className={styles.layout}>
+      <div className={styles.timeline} aria-label="Schedule timeline" tabIndex={0}>
+        <div className={`${styles.grid} ${styles.head}`} style={gridStyle}>
+          <div className={styles.lane}>Project / work phase</div>
+          {periods.map(period=>{const stats=statsByPeriod.get(period.key)!;const risks=weather(period);return <Button appearance="subtle" key={period.key} type="button" aria-pressed={selectedPeriod===period.key} onMouseEnter={()=>setHoveredPeriod(period.key)} onMouseLeave={()=>setHoveredPeriod(null)} onFocus={()=>setHoveredPeriod(period.key)} onClick={()=>setSelectedPeriod(period.key)} title={`${period.label}: ${stats.cy.toFixed(1)} CY${risks.length?` · Weather: ${risks.map(risk=>risk.summary).join(', ')}`:''}`} className={`${styles.day} ${selectedPeriod===period.key?styles.daySelected:''}`}><span>{period.label}</span><small>{stats.cy.toFixed(0)} CY · {stats.count} blocks</small></Button>;})}
+        </div>
+        {projects.length===0?<div className={styles.empty}>No scheduled work in this period. Use the period controls to view later loaded dates or Schedule work to place a block.</div>:projects.map(project=><div key={project.id}>
+          <div className={styles.project}><strong>{project.job}</strong>{project.name}</div>
+          {project.phases.map(projectPhase=><div key={`${project.id}:${projectPhase}`} className={`${styles.grid} ${styles.row}`} style={gridStyle}>
+            <div className={styles.lane}>{projectPhase}</div>
+            {periods.map(period=>{const risks=weather(period);const cellItems=(itemsByLane.get(`${project.id}:${projectPhase}`)||[]).filter(item=>item.scheduleDate>=period.start&&item.scheduleDate<=period.end);return <div key={period.key} onDragOver={event=>{if(draggedId)event.preventDefault();}} onDrop={event=>{event.preventDefault();const id=draggedId||event.dataTransfer.getData('text/plain');const item=currentItems.find(value=>value.id===id);if(item)move(item,period);setDraggedId(null);}} onMouseEnter={()=>setHoveredPeriod(period.key)} onMouseLeave={()=>setHoveredPeriod(null)} className={`${styles.cell} ${risks.some(risk=>risk.severity==='red')?styles.severeWeather:risks.length?styles.weather:''}`}>
+              <div className={styles.events}>{cellItems.map(item=><Button appearance="subtle" key={item.id} type="button" draggable={canMove(item)&&pendingId!==item.id} onDragStart={event=>{setDraggedId(item.id);event.dataTransfer.setData('text/plain',item.id);event.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDraggedId(null)} onClick={()=>{setSelectedItem(item.id);setSelectedPeriod(period.key);}} title={`${item.title} · ${item.scheduleDate}${canMove(item)?' · drag to reschedule':' · source-controlled date'}`} className={`${styles.event} ${item.blocked?styles.blocked:''} ${item.crewShort?styles.shortCrew:''} ${selectedItem===item.id?styles.eventSelected:''} ${pendingId===item.id?styles.pending:''}`}><GripVertical className="size-3 shrink-0"/><span className={styles.eventText}><span>{item.title}</span>{staffingRisk(item.crewShort)?<small className={styles.eventRisk}>Staffing risk: {staffingRisk(item.crewShort)}</small>:null}</span>{item.pourYards!==null?<span className={styles.eventQuantity}>{item.pourYards.toFixed(0)} CY</span>:null}</Button>)}</div>
+            </div>;})}
+          </div>)}
         </div>)}
-      </div>)}
-      <div className="grid sticky bottom-0 z-20 border-t border-[#343A3F] bg-[#1D2123]" style={gridStyle}>
-        <div className="sticky left-0 z-30 flex min-h-14 items-center border-r border-[#343A3F] bg-[#1D2123] px-3 font-mono text-[10px] uppercase text-[#E1E7E3]">Allocation ticker</div>
-        {periods.map(period=>{const stats=statsByPeriod.get(period.key)!;const risk=stats.crewConflict==='certain'||stats.pumpConflict==='certain'?'certain':stats.crewConflict||stats.pumpConflict;return <div key={period.key} onMouseEnter={()=>setHoveredPeriod(period.key)} onMouseLeave={()=>setHoveredPeriod(null)} className={`min-h-14 border-r px-2 py-1 font-mono text-[9px] leading-4 ${risk==='certain'?'border-red-500 bg-red-950/30 text-red-300 animate-pulse motion-reduce:animate-none':risk==='possible'||stats.unidentifiedPumps?'border-amber-500 bg-amber-950/25 text-amber-300 animate-pulse motion-reduce:animate-none':'border-[#343A3F] text-[#8B949E]'}`}><div>{stats.knownHours.toFixed(1)} crew h{stats.unsizedCrew?` · ${stats.unsizedCrew} unsized`:''}</div><div>{pumpDataAvailable?`${stats.pumpAssets} pump assets${stats.unidentifiedPumps?` · ${stats.unidentifiedPumps} unidentified`:''}`:'Pumps unavailable'}</div>{stats.crewConflict?<div className="flex items-center gap-1"><AlertTriangle className="size-2.5"/>Crew {stats.crewConflict==='certain'?'double-booked':'possible overlap'}</div>:null}{stats.pumpConflict?<div className="flex items-center gap-1"><AlertTriangle className="size-2.5"/>Pump {stats.pumpConflict==='certain'?'requirement overlap':'possible overlap'}</div>:null}</div>;})}
+        <div className={`${styles.grid} ${styles.footer}`} style={gridStyle}>
+          <div className={styles.lane}>Crew & equipment</div>
+          {periods.map(period=>{const stats=statsByPeriod.get(period.key)!;const risk=stats.crewConflict==='certain'||stats.pumpConflict==='certain'?'certain':stats.crewConflict||stats.pumpConflict;return <div key={period.key} className={`${styles.allocation} ${risk==='certain'?styles.conflict:risk==='possible'||stats.unidentifiedPumps?styles.possibleConflict:''}`}><div>{stats.crewAvailable?`${stats.knownHours.toFixed(1)} crew h`:'Crew assignments unavailable'}{stats.crewAvailable&&stats.unsizedCrew?` · ${stats.unsizedCrew} without times`:''}</div><div>{pumpDataAvailable?`${stats.pumpAssets} pump assets${stats.unidentifiedPumps?` · ${stats.unidentifiedPumps} unidentified`:''}`:'Pumps unavailable'}</div>{stats.crewAvailable&&stats.crewConflict?<div>Crew {stats.crewConflict==='certain'?'double-booked':'possible overlap'}</div>:null}{stats.pumpConflict?<div>Pump {stats.pumpConflict==='certain'?'requirement overlap':'possible overlap'}</div>:null}</div>;})}
+        </div>
       </div>
+      <aside className={styles.agenda} aria-label="Selected period agenda">
+        <h3>{focus?.label||'Schedule'}</h3>
+        <dl className={styles.metrics}><div><dt>Work blocks</dt><dd>{focusStats?.count||0}</dd></div><div><dt>Linked pours</dt><dd>{focusStats?.cy.toFixed(1)||'0.0'} <small>CY</small></dd></div></dl>
+        <div className={styles.agendaList}>{focusItems.length?focusItems.map(item=><Button key={item.id} type="button" appearance="subtle" aria-pressed={selectedItem===item.id} className={styles.agendaItem} onClick={()=>setSelectedItem(item.id)}><span>{item.startTime||'Time not set'} · {item.jobNumber}</span><strong>{item.title}</strong><span>Schedule: {titleCase(item.status)}</span>{item.readinessUnavailable&&!item.blocked?<span className={styles.risk}>Readiness unavailable</span>:null}{item.blocked?<span className={styles.risk}>Readiness hold{item.readinessAction?`: ${item.readinessAction}`:''}</span>:null}{staffingRisk(item.crewShort)?<span className={styles.risk}>Staffing risk: {staffingRisk(item.crewShort)}</span>:null}</Button>):<p className="text-sm text-muted-foreground">No work in this period.</p>}</div>
+        <p className={styles.guidance}><CloudOff className="inline size-3"/> {weatherRisks.length?'Forecast risk overlay':'Forecast unavailable'}</p>
+      </aside>
     </div>
-    {selected?<div className="edge-lit-border mt-2 flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[11px]"><div className="min-w-0"><strong className="text-[#E1E7E3]">{selected.title}</strong><span className="ml-2 font-mono">{selected.jobNumber} · {selected.scheduleDate} · {selected.status}</span><div className="truncate text-[#8B949E]">{selected.assignedCrew.length?selected.assignedCrew.map(member=>member.name).join(', '):'Crew unassigned'}{selected.notes?` · ${selected.notes.replaceAll('\n',' · ')}`:''}</div></div><div className="flex items-center gap-2">{canMove(selected)?<><Button appearance="subtle" type="button" aria-label="Move work one day earlier" onClick={()=>move(selected,{key:'previous',label:'Previous day',start:addDays(selected.scheduleDate,-1),end:addDays(selected.scheduleDate,-1)},'day')} className="border border-[#343A3F] p-1 hover:text-white"><ChevronLeft className="size-3.5"/></Button><Button appearance="subtle" type="button" aria-label="Move work one day later" onClick={()=>move(selected,{key:'next',label:'Next day',start:addDays(selected.scheduleDate,1),end:addDays(selected.scheduleDate,1)},'day')} className="border border-[#343A3F] p-1 hover:text-white"><ChevronRight className="size-3.5"/></Button></>:<span title="Linked or active work must be rescheduled from its source record">Source-controlled date</span>}<Button as="a" href={selected.openHref} appearance="subtle" size="small">Open work</Button></div></div>:null}
-    <p className="mt-2 font-mono text-[10px] text-[#6F7A80]">Crew hours use assigned people with known time windows. Pump conflicts use identified equipment requirements. Forecast stripes appear only when forecast data is connected.</p>
+    {selected?<section className={`pt-inline-detail ${styles.detail}`} aria-label="Selected work detail">
+      <h3>{selected.title}</h3><p>{selected.jobNumber} — {selected.projectName} · {selected.scheduleDate} · {titleCase(selected.status)}</p>
+      <p>{!selected.crewAssignmentsAvailable?'Crew assignments unavailable':selected.assignedCrew.length?selected.assignedCrew.map(member=>member.name).join(', '):'Crew unassigned'}{selected.notes?` · ${selected.notes.replaceAll('\n',' · ')}`:''}</p>{staffingRisk(selected.crewShort)?<p className={styles.risk}>Staffing risk: {staffingRisk(selected.crewShort)}</p>:null}
+      {selected.readinessAction?<p><strong>{selected.blocked?'Hold: ':''}</strong>{selected.readinessAction}</p>:null}
+      <div className={styles.detailActions}>{canMove(selected)?<><Button appearance="outline" type="button" icon={<ChevronLeft/>} aria-label="Move work one day earlier" onClick={()=>move(selected,{key:'previous',label:'Previous day',start:addDays(selected.scheduleDate,-1),end:addDays(selected.scheduleDate,-1)},'day')}/><Button appearance="outline" type="button" icon={<ChevronRight/>} aria-label="Move work one day later" onClick={()=>move(selected,{key:'next',label:'Next day',start:addDays(selected.scheduleDate,1),end:addDays(selected.scheduleDate,1)},'day')}/></>:<span>Source-controlled date</span>}<Button as="a" href={selected.openHref} appearance="primary">Open work</Button></div>
+    </section>:null}
+    <details className="pt-help"><summary>Schedule calculations</summary><p>Crew hours use assigned people with known time windows. Pump conflicts use identified equipment requirements. Forecast indicators require connected forecast data.</p></details>
   </div>;
 }
