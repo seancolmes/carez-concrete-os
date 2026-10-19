@@ -29,7 +29,7 @@ export default async function SchedulePage(){
       return timedFieldRead('schedule.items',()=>query);
     },
     ()=>Promise.all([
-    timedFieldRead('schedule.assignments',()=>supabase.from('work_schedule_assignments').select('schedule_item_id,crew_member_id,crew_members(name)').eq('company_id',profile.company_id)),
+    timedFieldRead('schedule.assignments',()=>supabase.from('work_schedule_assignments').select('schedule_item_id,crew_member_id,crew_members:crew_members!work_schedule_assignments_crew_member_id_fkey(name)').eq('company_id',profile.company_id)),
     timedFieldRead('schedule.projects',()=>supabase.from('projects').select('id,job_number,name').eq('company_id',profile.company_id).in('status',['active','on_hold']).order('job_number')),
     timedFieldRead('schedule.crew',()=>supabase.from('crew_members').select('id,name,role').eq('company_id',profile.company_id).eq('active',true).order('name')),
     timedFieldRead('schedule.tasks',()=>supabase.from('production_tasks').select('id,name,category,production_unit').eq('company_id',profile.company_id).eq('active',true).order('sort_order')),
