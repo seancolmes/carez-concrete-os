@@ -15,7 +15,9 @@ type WorkReadiness={
 const count=(value:number|null|undefined)=>Number(value||0);
 
 export function projectGoverningHold(projectId:string,setup:JobSetupReadiness|null|undefined,work:WorkReadiness|null|undefined){
-  const setupHold=Boolean(setup?.award_setup_applies&&!setup.job_ready);
+  // Deployed external intakes can be held without an internal award workflow.
+  // job_ready is authoritative; award_setup_applies describes that workflow only.
+  const setupHold=setup?.job_ready===false||Boolean(setup?.award_setup_applies&&!setup.job_ready);
   const blocked=count(work?.blocked_operation_count??work?.blocked_operations);
   const ready=count(work?.ready_operation_count??work?.ready_operations);
   const failed=count(work?.failed_inspection_operations);

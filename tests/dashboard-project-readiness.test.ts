@@ -17,6 +17,29 @@ test('a setup hold retains its authoritative reason and job-specific destination
   assert.equal(showDashboardPlanningPrompt('active',readiness,false),false);
 });
 
+test('production external intake hold remains governing without internal award setup',()=>{
+  const external={award_setup_applies:false,job_ready:false,readiness_reason:'External agreement owner verification is required.'};
+  const readiness=dashboardProjectReadiness(projectId,external,work(1,0));
+  assert.equal(readiness.setupHold,true);
+  assert.equal(readiness.hardHold,true);
+  assert.equal(readiness.readyCount,1);
+  assert.deepEqual(actions(readiness,true).map(item=>({kind:item.kind,issue:item.issue,href:item.href})),[
+    {kind:'job_setup',issue:external.readiness_reason,href:'/job-setup/qa-job-001'},
+  ]);
+  assert.equal(showDashboardPlanningPrompt('active',readiness,true),false);
+  const missingWork=dashboardProjectReadiness(projectId,external,null);
+  assert.equal(missingWork.incomplete,true);
+  assert.equal(missingWork.setupHold,true);
+  assert.equal(actions(missingWork)[0].issue,external.readiness_reason);
+});
+
+test('explicitly cleared external readiness stays clear; missing reads do not invent a hold',()=>{
+  const cleared=dashboardProjectReadiness(projectId,{award_setup_applies:false,job_ready:true,readiness_reason:'Job setup is complete.'},work(1,0));
+  assert.equal(cleared.setupHold,false);assert.equal(cleared.readinessLabel,'Ready');
+  const missing=dashboardProjectReadiness(projectId,null,work(0,0));
+  assert.equal(missing.incomplete,true);assert.equal(missing.setupHold,false);assert.deepEqual(actions(missing),[]);
+});
+
 test('scheduled work and a linked operation hold do not hide the governing setup hold',()=>{
   const readiness=dashboardProjectReadiness(projectId,heldSetup,work(1,1));
   assert.equal(readiness.readyCount,1);
