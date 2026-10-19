@@ -7,6 +7,7 @@ import {getPourForecasts,pourForecastKey} from '@/lib/weather/pourForecast';
 import {dashboardProjectAttention,dashboardProjectReadiness,showDashboardPlanningPrompt} from '@/lib/dashboard/projectReadiness';
 import {dashboardReceivables} from '@/lib/dashboard/receivables';
 import {dashboardOperationReadModel} from '@/lib/dashboard/operationReadiness';
+import {dashboardPlanningAction} from '@/lib/dashboard/displayState';
 
 const money=(n:unknown)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
 const num=(n:unknown)=>Number(n||0);
@@ -29,7 +30,7 @@ export default async function HomePage(){
 
   const companyId=profile.company_id,start=today(),weekEnd=addDays(start,6),outlookEnd=addDays(start,13);
   const [
-    {data:projects,error:projectsError},{data:jobSetup,error:jobSetupError},{data:workReady,error:workReadyError},{data:billing,error:billingError},{data:invoices,error:invoicesError},{data:shifts,error:shiftsError},
+    {data:projects,error:projectsError},{data:jobSetup,error:jobSetupError},{data:workReady,error:workReadyError},{data:billing,error:billingError},{data:invoices,error:invoicesError},{data:shifts,error:shiftsError},{data:crewRoster,error:crewRosterError},
     {data:schedule,error:scheduleError},{data:pours,error:poursError},{data:operationReady,error:operationReadyError},{data:proposals,error:proposalsError},{data:leads,error:leadsError},
     {data:changeOrders,error:changeOrdersError},{data:dailyLogs,error:dailyLogsError},{data:timecards,error:timecardsError},{data:retainage,error:retainageError},{data:recentPours,error:recentPoursError}
   ]=await Promise.all([
@@ -39,6 +40,7 @@ export default async function HomePage(){
     supabase.from('project_billing_summary').select('*').eq('company_id',companyId),
     supabase.from('invoice_financial_summary').select('collection_status,balance_due').eq('company_id',companyId),
     supabase.from('employee_shift_sessions').select('status').eq('company_id',companyId).in('status',['active','open','submitted']),
+    supabase.from('crew_members').select('id').eq('company_id',companyId).eq('active',true).eq('is_owner',false),
     supabase.from('work_schedule_items').select('id,project_id,title,schedule_date,start_time,status,item_type,crew_needed,pour_plan_id,work_package_operation_id,projects(id,job_number,name,city,state)').eq('company_id',companyId).gte('schedule_date',start).lte('schedule_date',outlookEnd).neq('status','cancelled').order('schedule_date').order('start_time'),
     supabase.from('pour_plans').select('id,project_id,name,scheduled_date,status,expected_concrete_yards,projects(id,job_number,name,city,state)').eq('company_id',companyId).gte('scheduled_date',start).lte('scheduled_date',outlookEnd).neq('status','cancelled').order('scheduled_date'),
     supabase.from('work_package_start_readiness').select('operation_id,ready_to_start_all,start_next_action,inspection_clear_count,inspection_count').eq('company_id',companyId),
@@ -173,10 +175,13 @@ export default async function HomePage(){
       scheduleItems={scheduleItems}
       scheduleUnavailable={Boolean(scheduleError)}
       pourDataUnavailable={Boolean(poursError)}
-      planningJobs={planningJobs.map(row=>({id:String(row.project.id),project:`${row.project.job_number} · ${row.project.name}`,nextAction:row.project.next_action||'Plan next work',held:false,href:'/projects/'+row.project.id}))}
+      planningJobs={planningJobs.map(row=>({id:String(row.project.id),project:`${row.project.job_number} · ${row.project.name}`,nextAction:dashboardPlanningAction(row.project.next_action,jobSetupError?null:setupMap.get(row.project.id)?.job_ready),held:false,href:'/projects/'+row.project.id}))}
       operationalMetrics={[
+        {label:'Active crew',value:crewRosterError?'—':String((crewRoster||[]).length),detail:crewRosterError?'Unavailable':'Crew directory',href:'/field?tab=crew&view=crew'},
+        {label:'Crew on clock',value:shiftsError?'—':String((shifts||[]).filter(row=>['active','open'].includes(row.status)).length),detail:shiftsError?'Unavailable':'Open shifts',href:'/field?view=time-review'},
+        {label:'Time to review',value:shiftsError?'—':String(timeReview),detail:shiftsError?'Unavailable':'Submitted shifts',href:'/field?view=time-review'},
         {label:'Bids due / 7D',value:leadsError?'—':String(dueLeads.length),detail:leadsError?'Unavailable':'Open opportunities',href:'/opportunities'},
-        {label:'Active jobs',value:projectsError?'—':String(projectJobs.length),detail:projectsError?'Unavailable':`${money(projectJobs.reduce((sum,row)=>sum+num(row.project.contract_value),0))} contract`,href:'/projects'},
+        {label:'Active jobs',value:projectsError?'—':String(projectJobs.length),detail:projectsError?'Unavailable':'Current jobs',href:'/projects'},
         {label:'Concrete / 7D',value:poursError||scheduleError||(!knownWeekPours.length&&weekPours.length)?'—':`${knownWeekPours.reduce((sum,pour)=>sum+num(pour.yards),0).toLocaleString()} CY`,detail:poursError||scheduleError?'Unavailable':`${weekPours.length} pour windows${knownWeekPours.length<weekPours.length?' · some CY missing':''}`,href:'/field?view=schedule'},
         {label:'Open CO sell value',value:changeOrdersError?'—':money(openOrderValue),detail:changeOrdersError?'Unavailable':`${openOrders.length} open · ${submittedOrders.length} submitted`,href:'/change-orders'},
         {label:'Earned / unbilled',value:'—',detail:'Billing progress unavailable',href:'/financials?tab=billing&view=billing'},

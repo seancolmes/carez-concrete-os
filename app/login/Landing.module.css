@@ -129,13 +129,19 @@
   backdrop-filter: blur(18px);
 }
 .loginPanel :global(label) { color: var(--landing-ink); }
-.loginPanel :global(.fui-Input) { border-color: #475056; background: #171B1E; color: var(--landing-ink); }
-.loginPanel :global(input) { color: var(--landing-ink); }
-.loginPanel :global(input::placeholder) { color: #747C80; }
-.loginPanel :global(.fui-Input) :global(button) { background: transparent; color: var(--landing-ink); }
-.loginPanel :global(.fui-Input) :global(button svg) { color: var(--landing-ink); }
+.loginPanel :global(.fui-Input) { border-color: #8895A8; background: #FFFFFF; color: #000000; }
+.loginPanel :global(input) { color: #000000; -webkit-text-fill-color: #000000; caret-color: #000000; }
+.loginPanel :global(input::placeholder) { color: #64748B; -webkit-text-fill-color: #64748B; opacity: 1; }
+.loginPanel :global(input:autofill),
+.loginPanel :global(input:-webkit-autofill) { color: #000000; -webkit-text-fill-color: #000000; box-shadow: 0 0 0 1000px #FFFFFF inset; caret-color: #000000; }
+.loginPanel :global(.fui-Input) :global(button) { background: transparent; color: #1A2B55; }
+.loginPanel :global(.fui-Input) :global(button svg) { color: #1A2B55; }
 .loginPanel :global(.fui-Input) :global(button:hover),
-.loginPanel :global(.fui-Input) :global(button:focus-visible) { background: #2B302D; }
+.loginPanel :global(.fui-Input) :global(button:focus-visible) { background: #EAF0F7; }
+.loginPanel :global(a) { color: #FFD2AE; text-underline-offset: 3px; }
+.loginPanel :global(a:hover) { color: #FFFFFF; }
+.loginPanel :global(a:focus-visible) { outline: 2px solid #FEBD69; outline-offset: 4px; }
+.loginPanel :global([data-login-eyebrow]) { color: #FEBD69; }
 .loginPanel :global(.text-muted-foreground) { color: var(--landing-muted); }
 .loginPanel :global(form [type=submit]) {
   width: 100%;

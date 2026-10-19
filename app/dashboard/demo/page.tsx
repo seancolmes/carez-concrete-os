@@ -39,6 +39,9 @@ export default function DashboardDemoPage(){
     pourDataUnavailable:false,
     planningJobs:[],
     operationalMetrics:[
+      {label:'Active crew',value:'12',detail:'Illustrative crew directory',href:'/field?tab=crew&view=crew'},
+      {label:'Crew on clock',value:'8',detail:'Illustrative open shifts',href:'/field?view=time-review'},
+      {label:'Time to review',value:'3',detail:'Illustrative submitted shifts',href:'/field?view=time-review'},
       {label:'Bids due / 7D',value:'2',detail:'Open opportunities',href:'/opportunities'},
       {label:'Active jobs',value:'3',detail:'$3.82M contract',href:'/projects'},
       {label:'Concrete / 7D',value:'278 CY',detail:'3 pour windows',href:'/field?view=schedule'},

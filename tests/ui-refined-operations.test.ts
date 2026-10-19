@@ -48,7 +48,7 @@ test('authenticated Dashboard puts company status before actionable work',()=>{
   const surface=read('components/today/TodaySurface.tsx');
   assert.match(page,/TodaySurface/);
   assert.match(surface,/<h1[^>]*>Dashboard<\/h1>/);
-  assert.ok(surface.indexOf('Live company status')<surface.indexOf('Work requiring attention'));
+  assert.ok(surface.indexOf('Live company status')<surface.indexOf('title="Next actions"'));
   assert.match(surface,/DataGrid/);
   assert.match(surface,/<DialogSurface className="pt-dialog/);
   assert.doesNotMatch(surface,/OverlayDrawer/);

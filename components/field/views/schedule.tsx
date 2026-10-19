@@ -1,12 +1,14 @@
 import {Button,Input,Select,Textarea,Checkbox} from '@fluentui/react-components';
-import {redirect} from 'next/navigation';
 import Link from 'next/link';
 import { WarningRegular as AlertTriangle } from '@fluentui/react-icons';
 import {ScheduleGrid,type AssignedCrew,type ScheduleCrewMember,type ScheduleGridDay,type ScheduleGridItem} from '@/components/schedule/ScheduleGrid';
 import {ScheduleHeaderActions} from '@/components/schedule/ScheduleHeaderActions';
-import {createClient} from '@/lib/supabase/server';
 import {randomUUID} from 'node:crypto';
 import {scheduleReadiness} from '@/lib/field/scheduleCommand';
+import {getFieldContext} from '@/lib/field/workspaceContext.server';
+import {timedFieldRead} from '@/lib/field/readTiming';
+import {loadScheduleReadSets} from '@/lib/field/scheduleReads';
+import {projectGoverningHold} from '@/lib/projects/projectReadiness';
 
 const addDays=(date:string,days:number)=>{const value=new Date(`${date}T12:00:00Z`);value.setUTCDate(value.getUTCDate()+days);return value.toISOString().slice(0,10);};
 const formatDay=(value:string)=>new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${value}T12:00:00Z`));
@@ -17,37 +19,36 @@ function FormField({label,help,children}:{label:string;help?:string;children:Rea
 }
 
 export default async function SchedulePage(){
-  const supabase=await createClient();
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)redirect('/login');
-
-  const {data:profile}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
-  if(!profile?.company_id)redirect('/login');
-  if(profile.role==='employee')redirect('/employee');
-
-  const {data:calendarDate,error:calendarError}=await supabase.rpc('carez_company_calendar_date',{p_company:profile.company_id,p_at:new Date().toISOString()});
+  const {supabase,profile}=await getFieldContext();
+  const [calendarRead,{data:items,error:itemsError},relatedReads]=await loadScheduleReadSets(
+    ()=>timedFieldRead('schedule.calendar',()=>supabase.rpc('carez_company_calendar_date',{p_company:profile.company_id,p_at:new Date().toISOString()})),
+    calendar=>{
+      const from=!calendar.error&&typeof calendar.data==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(calendar.data)?calendar.data:null;
+      let query=supabase.from('work_schedule_items').select('*,projects(job_number,name,address,city),production_tasks(name,production_unit),work_package_operations(planned_quantity,unit,status,field_label,work_packages(name,location))').eq('company_id',profile.company_id).neq('status','cancelled').order('schedule_date').order('start_time');
+      if(from)query=query.gte('schedule_date',from).lte('schedule_date',addDays(from,89));
+      return timedFieldRead('schedule.items',()=>query);
+    },
+    ()=>Promise.all([
+    timedFieldRead('schedule.assignments',()=>supabase.from('work_schedule_assignments').select('schedule_item_id,crew_member_id,crew_members(name)').eq('company_id',profile.company_id)),
+    timedFieldRead('schedule.projects',()=>supabase.from('projects').select('id,job_number,name').eq('company_id',profile.company_id).in('status',['active','on_hold']).order('job_number')),
+    timedFieldRead('schedule.crew',()=>supabase.from('crew_members').select('id,name,role').eq('company_id',profile.company_id).eq('active',true).order('name')),
+    timedFieldRead('schedule.tasks',()=>supabase.from('production_tasks').select('id,name,category,production_unit').eq('company_id',profile.company_id).eq('active',true).order('sort_order')),
+    timedFieldRead('schedule.pours',()=>supabase.from('pour_plans').select('id,project_id,name,scheduled_date,expected_concrete_yards,status').eq('company_id',profile.company_id).order('scheduled_date')),
+    timedFieldRead('schedule.job-readiness',()=>supabase.from('project_job_readiness_summary').select('project_id,award_setup_applies,job_ready,readiness_reason').eq('company_id',profile.company_id)),
+    timedFieldRead('schedule.operations',()=>supabase.from('work_package_operation_progress').select('*').eq('company_id',profile.company_id).in('operation_status',['planned','in_progress','on_hold']).order('job_number').order('package_name').order('sequence')),
+    timedFieldRead('schedule.operation-readiness',()=>supabase.from('work_package_start_readiness').select('operation_id,ready_to_start_all,start_readiness_status,start_next_action,all_blocking_reasons,all_warning_reasons,blocking_resource_count,resource_warning_count').eq('company_id',profile.company_id)),
+    timedFieldRead('schedule.equipment',()=>supabase.from('work_package_resource_requirements').select('work_package_operation_id,label,equipment_asset_id').eq('company_id',profile.company_id).eq('resource_type','equipment').is('waived_at',null)),
+    ]),
+  );
+  const {data:calendarDate,error:calendarError}=calendarRead;
   const start=!calendarError&&typeof calendarDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(calendarDate)?calendarDate:null;
-  const end=start?addDays(start,89):null;
-  let itemQuery=supabase.from('work_schedule_items').select('*,projects(job_number,name,address,city),production_tasks(name,production_unit),work_package_operations(planned_quantity,unit,status,field_label,work_packages(name,location))').eq('company_id',profile.company_id).neq('status','cancelled').order('schedule_date').order('start_time');
-  if(start&&end)itemQuery=itemQuery.gte('schedule_date',start).lte('schedule_date',end);
-  const [{data:items,error:itemsError},{data:assignments,error:assignmentsError},{data:projects,error:projectsError},{data:crew,error:crewError},{data:tasks,error:tasksError},{data:pours,error:poursError},{data:jobReadiness,error:jobReadinessError},{data:operations,error:operationsError},{data:operationReadiness,error:operationReadinessError},{data:equipmentRequirements,error:equipmentRequirementsError}]=await Promise.all([
-    itemQuery,
-    supabase.from('work_schedule_assignments').select('schedule_item_id,crew_member_id,crew_members(name)').eq('company_id',profile.company_id),
-    supabase.from('projects').select('id,job_number,name').eq('company_id',profile.company_id).in('status',['active','on_hold']).order('job_number'),
-    supabase.from('crew_members').select('id,name,role').eq('company_id',profile.company_id).eq('active',true).order('name'),
-    supabase.from('production_tasks').select('id,name,category,production_unit').eq('company_id',profile.company_id).eq('active',true).order('sort_order'),
-    supabase.from('pour_plans').select('id,project_id,name,scheduled_date,expected_concrete_yards,status').eq('company_id',profile.company_id).order('scheduled_date'),
-    supabase.from('project_job_readiness_summary').select('project_id,award_setup_applies,job_ready,readiness_reason').eq('company_id',profile.company_id),
-    supabase.from('work_package_operation_progress').select('*').eq('company_id',profile.company_id).in('operation_status',['planned','in_progress','on_hold']).order('job_number').order('package_name').order('sequence'),
-    supabase.from('work_package_start_readiness').select('operation_id,ready_to_start_all,start_readiness_status,start_next_action,all_blocking_reasons,all_warning_reasons,blocking_resource_count,resource_warning_count').eq('company_id',profile.company_id),
-    supabase.from('work_package_resource_requirements').select('work_package_operation_id,label,equipment_asset_id').eq('company_id',profile.company_id).eq('resource_type','equipment').is('waived_at',null),
-  ]);
+  const [{data:assignments,error:assignmentsError},{data:projects,error:projectsError},{data:crew,error:crewError},{data:tasks,error:tasksError},{data:pours,error:poursError},{data:jobReadiness,error:jobReadinessError},{data:operations,error:operationsError},{data:operationReadiness,error:operationReadinessError},{data:equipmentRequirements,error:equipmentRequirementsError}]=relatedReads;
 
   const projectReadinessMap=new Map((jobReadiness||[]).map((row:any)=>[row.project_id,row]));
   const operationReadinessMap=new Map((operationReadiness||[]).map((row:any)=>[row.operation_id,row]));
   const pourMap=new Map((pours||[]).map((row:any)=>[row.id,row]));
   const selectablePours=(pours||[]).filter((row:any)=>row.status!=='cancelled');
-  const heldProjects=(projects||[]).filter((project:any)=>{const readiness:any=projectReadinessMap.get(project.id);return readiness?.award_setup_applies&&!readiness?.job_ready;});
+  const heldProjects=(projects||[]).filter((project:any)=>projectGoverningHold(project.id,projectReadinessMap.get(project.id),null).setupHold);
 
   const assignmentMap=new Map<string,AssignedCrew[]>();
   for(const assignment of assignments||[]){

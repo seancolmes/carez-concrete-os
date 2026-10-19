@@ -4,9 +4,9 @@ import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Button,Dialog,Dia
 
 type Option={id:string;label:string};
 
-export function NewPourPlanDialog({today,projects,scopeLinks,changeOrders}:{today:string;projects:Option[];scopeLinks:Option[];changeOrders:Option[]}){
+export function NewPourPlanDialog({today,projects,scopeLinks,changeOrders,appearance='primary'}:{today:string;projects:Option[];scopeLinks:Option[];changeOrders:Option[];appearance?:'primary'|'outline'}){
   return <Dialog>
-    <DialogTrigger><Button appearance="primary" className="absolute right-0 top-0">+ New Pour Plan</Button></DialogTrigger>
+    <DialogTrigger><Button appearance={appearance}>New pour plan</Button></DialogTrigger>
     <DialogSurface className="max-h-[90vh] overflow-y-auto sm:max-w-lg"><DialogBody><DialogTitle>New pour plan</DialogTitle><DialogContent><p className="mb-3 text-sm text-muted-foreground">Set the job, date and expected concrete for dispatch.</p>
       <ProcurementForm action={createPourPlan} className="grid gap-3">
         <div className="grid gap-1"><Label htmlFor="new-pour-project">Project</Label><Select appearance="outline" id="new-pour-project" name="project_id" required defaultValue="" className="h-9 w-full border border-input bg-background px-2 text-sm"><option value="" disabled>Select project</option>{projects.map(project=><option key={project.id} value={project.id}>{project.label}</option>)}</Select></div>

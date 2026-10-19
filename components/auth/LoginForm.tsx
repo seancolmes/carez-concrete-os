@@ -43,7 +43,7 @@ export function LoginForm({idPrefix='workspace'}:{idPrefix?:string}){
 
   return <div className="w-full max-w-md">
     <div className="space-y-4">
-      <div className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--pt-brand)]">Workspace sign in</div>
+      <div data-login-eyebrow className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--pt-brand)]">Workspace sign in</div>
       <div>
         <h2 className="font-sans text-3xl font-semibold tracking-tight">Get back to the job.</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Sign in to your PourTrace workspace.</p>
