@@ -185,7 +185,10 @@ test('3D elevation reference exposes governed choices required by projection', (
 test('Condition contract version is visible and an older editable Strip draft has a governed latest-contract upgrade action', () => {
   assert.match(workstation, /Contract v\{contractVersion\}/);
   assert.match(workstation, /Upgrade to v\{latestContractVersion\}/);
-  assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v5/);
-  assert.match(conditionActions, /carez_ensure_strip_footing_v5_template/);
+  assert.match(conditionActions, /carez_upgrade_strip_condition_draft_to_v7/);
+  assert.match(conditionActions, /carez_ensure_strip_footing_v7_template/);
+  assert.match(conditionActions, /p_request_id:input\.requestId,p_condition_version_id:conditionVersionId,p_expected_updated_at:input\.expectedUpdatedAt/);
+  assert.match(conditionActions, /p_reason:input\.reason,p_acknowledge_price_removal:input\.acknowledgePriceRemoval===true/);
+  assert.match(workstation, /latestContractVersion===7&&\(!upgradeReason\.trim\(\)\|\|!upgradeAcknowledged\)/);
   assert.match(workstation, /Verified Condition history is never changed/);
 });

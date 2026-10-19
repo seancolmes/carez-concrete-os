@@ -20,9 +20,11 @@ test('Strip v5 migration publishes physical form-board schema without mutating v
   assert.match(migration, /carez_upgrade_strip_condition_draft_to_v5/);
 });
 
-test('new and upgraded Strip Conditions route to v5', () => {
-  assert.match(actions, /carez_ensure_strip_footing_v5_template/);
-  assert.match(actions, /carez_upgrade_strip_condition_draft_to_v5/);
+test('new Strip Conditions use v7 while legacy drafts retain the governed v5 and v6 upgrade path', () => {
+  assert.match(actions, /carez_ensure_strip_footing_v7_template/);
+  assert.match(actions, /Number\(contract\.version_no\)===6\?await supabase\.rpc\('carez_upgrade_strip_condition_draft_to_v7'/);
+  assert.match(actions, /Number\(contract\.version_no\)<5\?'carez_upgrade_strip_condition_draft_to_v5':'carez_upgrade_strip_condition_draft_to_v6'/);
+  assert.match(actions, /p_reason:input\.reason,p_acknowledge_price_removal:input\.acknowledgePriceRemoval===true/);
   assert.doesNotMatch(actions, /carez_upgrade_strip_condition_draft_to_v4/);
 });
 
