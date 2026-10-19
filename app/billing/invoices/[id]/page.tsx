@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PrintButton } from './PrintButton';
+import {financialMoney as money,financialNumber as num} from '@/lib/financials/amount';
+import {invoiceDocumentState} from '@/lib/billing/invoiceDocument';
 
-const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
-const num=(v:any)=>Number(v||0);
+const decimal=(value:unknown,digits=2)=>num(value)?.toFixed(digits)??'Unavailable';
 const line=(parts:(string|null|undefined)[])=>parts.filter(Boolean).join(', ');
 
 export default async function InvoiceDocument({params}:{params:Promise<{id:string}>}){
@@ -14,25 +15,28 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
   const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();
   if(!profile?.company_id)notFound();
   const companyId=profile.company_id;
-  const [{data:invoice},{data:summary},{data:lines}]=await Promise.all([
+  const [invoiceRead,summaryRead,linesRead]=await Promise.all([
     supabase.from('invoices').select('*').eq('id',id).eq('company_id',companyId).maybeSingle(),
-    supabase.from('invoice_financial_summary').select('*').eq('invoice_id',id).maybeSingle(),
-    supabase.from('invoice_lines').select('*').eq('invoice_id',id).order('sort_order')
+    supabase.from('invoice_financial_summary').select('*').eq('company_id',companyId).eq('invoice_id',id).maybeSingle(),
+    supabase.from('invoice_lines').select('*',{count:'exact'}).eq('company_id',companyId).eq('invoice_id',id).order('sort_order')
   ]);
-  if(!invoice||!summary)notFound();
-  const {data:project}=await supabase.from('projects').select('job_number,name,address,city,state').eq('id',invoice.project_id).maybeSingle();
+  if(invoiceRead.error)return <main className="mx-auto max-w-3xl space-y-3 p-6"><h1 className="text-lg font-semibold">Invoice unavailable</h1><p role="status">The invoice could not be loaded. This is not a confirmed missing record.</p><Link href="/financials?tab=billing&view=invoices" className={secondaryLinkClass}>Back to Invoices</Link></main>;
+  if(!invoiceRead.data)notFound();
+  const invoice=invoiceRead.data,summary=summaryRead.error?null:summaryRead.data,lines=linesRead.error?null:linesRead.data;
+  const state=invoiceDocumentState(summaryRead,linesRead);
+  const {data:project,error:projectError}=await supabase.from('projects').select('job_number,name,address,city,state').eq('company_id',companyId).eq('id',invoice.project_id).maybeSingle();
   const companyCity=line([invoice.from_city,invoice.from_state,invoice.from_postal_code]);
   const billCity=line([invoice.bill_to_city,invoice.bill_to_state,invoice.bill_to_postal_code]);
   const projectLocation=line([project?.address,project?.city,project?.state]);
   const isRetainage=invoice.invoice_type==='retainage_release';
   const isVoid=invoice.status==='void';
 
-  return <div className="invoice-screen">
+  return <div className={`invoice-screen${state.canPrint?'':' invoice-incomplete'}`}>
     <style>{`
-      .invoice-screen{min-height:100vh;background:#000000;padding:30px;color:#EDEDED;font-family:"Fira Sans",Arial,sans-serif}
-      .invoice-actions{width:min(900px,100%);margin:0 auto 16px;display:flex;justify-content:flex-end;gap:10px}
-      .invoice-actions a{border:1px solid #333333;background:#111111;color:#EDEDED;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-      .invoice-document{position:relative;width:min(900px,100%);min-height:1100px;margin:0 auto;background:#fff;color:#171B19;padding:52px 58px 40px;box-shadow:0 28px 80px rgba(0,0,0,.38);border-radius:4px;overflow:hidden}
+      .invoice-screen{min-height:100vh;background:var(--background);padding:30px;color:var(--foreground);font-family:inherit}
+      .invoice-actions{width:min(900px,100%);margin:0 auto 16px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+      .invoice-read-status{width:min(900px,100%);margin:0 auto 16px;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--muted);color:var(--foreground);font-size:13px}
+      .invoice-document{position:relative;width:min(900px,100%);min-height:1100px;margin:0 auto;background:#fff;color:#232F3E;padding:52px 58px 40px;border:1px solid #E0E6EF;box-shadow:0 4px 18px rgba(26,43,85,.07);border-radius:8px;overflow:hidden;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
       .invoice-document:before{content:'';position:absolute;left:0;top:0;right:0;height:5px;background:#222222}
       .invoice-doc-header{display:flex;justify-content:space-between;gap:40px;align-items:flex-start;padding-bottom:28px;border-bottom:2px solid #D4DBD7}
       .invoice-brand{font-size:12px;line-height:1.55;color:#525C57;max-width:55%}
@@ -71,8 +75,10 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
       @media(max-width:720px){.invoice-screen{padding:12px}.invoice-document{padding:34px 24px;min-height:0}.invoice-doc-header{display:grid}.invoice-doc-title{justify-items:start;text-align:left}.invoice-info-grid{grid-template-columns:1fr}.invoice-totals-wrap{grid-template-columns:1fr}.invoice-table{font-size:10px}.invoice-table th,.invoice-table td{padding:8px 5px}.invoice-actions{justify-content:stretch}.invoice-actions>*{flex:1}}
       @page{size:letter;margin:.35in}
       @media print{html,body{background:#fff!important;color-scheme:light}.invoice-screen{padding:0;background:#fff}.invoice-actions{display:none!important}.invoice-document{width:100%;min-height:0;padding:20px 24px;box-shadow:none;border-radius:0}.invoice-document:before{height:5px}.invoice-doc-header{padding-bottom:18px}.invoice-info-grid{padding:18px 0}.invoice-brand img{width:185px}.invoice-totals-wrap{margin-top:18px}.invoice-footer{margin-top:28px}}
+      @media print{.invoice-incomplete .invoice-document{display:none!important}}
     `}</style>
-    <div className="invoice-actions"><Link className={secondaryLinkClass} href="/billing">Back to Billing</Link><PrintButton/></div>
+    <div className="invoice-actions"><Link className={secondaryLinkClass} href="/financials?tab=billing&view=invoices">Back to Invoices</Link>{state.canPrint&&<PrintButton/>}</div>
+    {!state.canPrint&&<p role="status" className="invoice-read-status">{summaryRead.error?'Financial summary unavailable. ':!summary?'Financial summary missing. ':!state.summaryComplete?'Financial amounts or posted-payment basis need review. ':''}{!state.linesComplete?'Complete billing lines unavailable. ':''}Print / Save PDF is unavailable until the required records are loaded.</p>}
     <article className="invoice-document">
       {isVoid&&<div className="invoice-void">VOID</div>}
       <header className="invoice-doc-header">
@@ -89,7 +95,7 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
         <div className="invoice-doc-title">
           <div>{isRetainage?'RETAINAGE RELEASE':'INVOICE'}</div>
           <strong>{invoice.invoice_number}</strong>
-          <span className="invoice-status-label">{String(summary.collection_status||invoice.status).replaceAll('_',' ')}</span>
+          <span className="invoice-status-label">{String(summary?.collection_status||invoice.status).replaceAll('_',' ')}</span>
         </div>
       </header>
 
@@ -105,7 +111,7 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
         </div>
         <div>
           <div className="invoice-small-label">PROJECT</div>
-          <strong>{project?.job_number||'Project'} — {project?.name||''}</strong>
+          <strong>{project?.job_number||'Project'} — {project?.name||(projectError?'Job unavailable':'Job record missing')}</strong>
           {projectLocation&&<div>{projectLocation}</div>}
           {invoice.po_number&&<div>PO / Ref: {invoice.po_number}</div>}
           {(invoice.billing_period_start||invoice.billing_period_end)&&<div>Billing Period: {invoice.billing_period_start||'—'} to {invoice.billing_period_end||'—'}</div>}
@@ -119,7 +125,7 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
 
       <table className="invoice-table">
         <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Unit Price</th><th>Amount</th></tr></thead>
-        <tbody>{(lines||[]).map((l:any)=><tr key={l.id}><td><strong>{l.description}</strong>{l.notes&&<div className="invoice-line-note">{l.notes}</div>}</td><td>{num(l.quantity).toFixed(2)}</td><td>{l.unit}</td><td>{money(num(l.unit_price))}</td><td>{money(num(l.line_amount))}</td></tr>)}</tbody>
+        <tbody>{(lines||[]).map((l:any)=><tr key={l.id}><td><strong>{l.description}</strong>{l.notes&&<div className="invoice-line-note">{l.notes}</div>}</td><td>{decimal(l.quantity)}</td><td>{l.unit}</td><td>{money(l.unit_price)}</td><td>{money(l.line_amount)}</td></tr>)}</tbody>
       </table>
 
       <section className="invoice-totals-wrap">
@@ -129,12 +135,12 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
           {invoice.payment_instructions&&<div><div className="invoice-small-label">PAYMENT / REMITTANCE</div><div className="invoice-prewrap">{invoice.payment_instructions}</div></div>}
         </div>
         <div className="invoice-totals">
-          <div><span>Subtotal</span><strong>{money(num(summary.subtotal))}</strong></div>
-          <div><span>Sales Tax{!isRetainage&&!invoice.sales_tax_exempt&&num(invoice.sales_tax_rate_percent)>0?` (${num(invoice.sales_tax_rate_percent).toFixed(3)}%)`:''}</span><strong>{money(num(summary.sales_tax))}</strong></div>
-          {num(summary.retainage_held)>0&&<div><span>Retainage Withheld ({num(invoice.retainage_percent).toFixed(1)}%)</span><strong>-{money(num(summary.retainage_held))}</strong></div>}
-          <div className="invoice-total-line"><span>Invoice Total</span><strong>{money(num(summary.invoice_total))}</strong></div>
-          {num(summary.amount_paid)>0&&<div><span>Payments Applied</span><strong>-{money(num(summary.amount_paid))}</strong></div>}
-          <div className="invoice-balance-line"><span>Balance Due</span><strong>{money(num(summary.balance_due))}</strong></div>
+          <div><span>Subtotal</span><strong>{money(summary?.subtotal)}</strong></div>
+          <div><span>Sales Tax{!isRetainage&&!invoice.sales_tax_exempt&&(num(invoice.sales_tax_rate_percent)??0)>0?` (${decimal(invoice.sales_tax_rate_percent,3)}%)`:''}</span><strong>{money(summary?.sales_tax)}</strong></div>
+          {(num(summary?.retainage_held)??0)>0&&<div><span>Retainage Withheld ({decimal(invoice.retainage_percent,1)}%)</span><strong>-{money(summary?.retainage_held)}</strong></div>}
+          <div className="invoice-total-line"><span>Invoice Total</span><strong>{money(summary?.invoice_total)}</strong></div>
+          {(num(summary?.amount_paid)??0)>0&&<div><span>Posted Payments Applied</span><strong>-{money(summary?.amount_paid)}</strong></div>}
+          <div className="invoice-balance-line"><span>Balance Due</span><strong>{money(summary?.balance_due)}</strong></div>
         </div>
       </section>
 
@@ -143,5 +149,4 @@ export default async function InvoiceDocument({params}:{params:Promise<{id:strin
   </div>;
 }
 
-const primaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90';
 const secondaryLinkClass='inline-flex min-h-8 items-center justify-center gap-1 rounded-sm border border-border bg-background px-3 text-xs font-semibold hover:bg-accent';

@@ -28,3 +28,9 @@ export function combineImperialLength(feetValue: string | number, inchesValue: s
   const totalInches = finite(feetValue) * 12 + finite(inchesValue);
   return roundCanonical(canonicalUnit === 'FT' ? totalInches / 12 : totalInches);
 }
+
+/** A cleared field is an unfinished edit, not an explicit zero dimension. */
+export function imperialEntryValue(feet: string, inches: string, unit: ImperialCanonicalUnit, changed: 'feet' | 'inches') {
+  if ((changed === 'feet' ? feet : inches) === '') return '';
+  return String(combineImperialLength(feet, inches, unit));
+}

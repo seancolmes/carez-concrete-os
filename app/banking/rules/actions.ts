@@ -2,13 +2,15 @@
 import {revalidateFinancialsWorkspace as revalidatePath} from '@/lib/ui/revalidateUnifiedWorkspace';
 import { createClient } from '@/lib/supabase/server';
 import { analyzeBankTransactions } from '@/lib/bank-reconciliation';
+import {bankRuleBusinessUse} from '@/lib/banking/rules';
 
 async function ctx(){
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)throw new Error('Not signed in');
-  const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();
-  if(!profile?.company_id)throw new Error('Company profile missing');
+  const {data:profile,error}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();
+  if(error||!profile?.company_id)throw new Error('Company access unavailable');
+  if(!['owner','office'].includes(profile.role))throw new Error('Owner or office authority required.');
   return {supabase,companyId:profile.company_id};
 }
 
@@ -19,8 +21,9 @@ const normalizePattern=(v:string)=>v.toLowerCase().replace(/[^a-z0-9]+/g,' ').tr
 
 async function validateCompanyId(supabase:any,companyId:string,table:string,id:string|null){
   if(!id)return null;
-  const {data}=await supabase.from(table).select('id').eq('id',id).eq('company_id',companyId).maybeSingle();
-  if(!data)throw new Error('Selected record does not belong to this Carez company.');
+  const {data,error}=await supabase.from(table).select('id').eq('id',id).eq('company_id',companyId).maybeSingle();
+  if(error)throw new Error('Selected record is unavailable. No rule update was submitted.');
+  if(!data)throw new Error('Selected record does not belong to this company.');
   return id;
 }
 
@@ -32,8 +35,7 @@ export async function updateBankRule(fd:FormData){
   const direction=String(fd.get('direction')||'outflow');
   const actionType=String(fd.get('action_type')||'company_expense');
   const categoryPrimary=nullable(fd.get('category_primary'));
-  const businessRaw=Number(fd.get('business_use_percent')||100);
-  const businessUse=Number.isFinite(businessRaw)?Math.max(0,Math.min(100,businessRaw)):100;
+  const businessUse=bankRuleBusinessUse(fd.get('business_use_percent'),actionType);
   const active=truthy(fd.get('active'));
   let autoApply=truthy(fd.get('auto_apply'));
   if(!name||!pattern)throw new Error('Rule name and merchant pattern are required.');
@@ -53,14 +55,14 @@ export async function updateBankRule(fd:FormData){
     overheadItemId=null;
   }else{overheadItemId=null;costCodeId=null;vendorId=null;}
 
-  const {error}=await supabase.from('bank_reconciliation_rules').update({
+  const {data:saved,error}=await supabase.from('bank_reconciliation_rules').update({
     name,merchant_pattern:pattern,direction,category_primary:categoryPrimary,action_type:actionType,
     overhead_item_id:overheadItemId,expense_category:actionType==='company_expense'?nullable(fd.get('expense_category')):null,
     cost_code_id:costCodeId,vendor_id:vendorId,business_use_percent:actionType==='company_expense'?businessUse:100,
     auto_apply:autoApply,active,updated_at:new Date().toISOString()
-  }).eq('id',id).eq('company_id',companyId);
-  if(error)throw new Error(error.message);
-  try{await analyzeBankTransactions(supabase,companyId);}catch{}
+  }).eq('id',id).eq('company_id',companyId).select('id').single();
+  if(error||saved?.id!==id)throw new Error(error?.message||'Rule update was not confirmed.');
+  try{await analyzeBankTransactions(supabase,companyId);}catch{refresh();throw new Error('Rule saved. Feed analysis was not completed; open Reconcile and analyze after a complete bank refresh.');}
   refresh();
 }
 
@@ -68,11 +70,12 @@ export async function setBankRuleState(fd:FormData){
   const id=String(fd.get('rule_id')||''),field=String(fd.get('field')||''),value=String(fd.get('value')||'')==='true';
   if(!id||!['active','auto_apply'].includes(field))return;
   const {supabase,companyId}=await ctx();
-  const {data:rule}=await supabase.from('bank_reconciliation_rules').select('id,action_type').eq('id',id).eq('company_id',companyId).maybeSingle();
+  const {data:rule,error:readError}=await supabase.from('bank_reconciliation_rules').select('id,action_type').eq('id',id).eq('company_id',companyId).maybeSingle();
+  if(readError)throw new Error('Bank rule is unavailable. No update was submitted.');
   if(!rule)throw new Error('Bank rule not found.');
   if(field==='auto_apply'&&value&&rule.action_type==='job_cost')throw new Error('Job-cost rules require a project selection and cannot auto-post.');
-  const {error}=await supabase.from('bank_reconciliation_rules').update({[field]:value,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);
-  if(error)throw new Error(error.message);
-  try{await analyzeBankTransactions(supabase,companyId);}catch{}
+  const {data:saved,error}=await supabase.from('bank_reconciliation_rules').update({[field]:value,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId).select('id').single();
+  if(error||saved?.id!==id)throw new Error(error?.message||'Rule update was not confirmed.');
+  try{await analyzeBankTransactions(supabase,companyId);}catch{refresh();throw new Error('Rule saved. Feed analysis was not completed; open Reconcile and analyze after a complete bank refresh.');}
   refresh();
 }

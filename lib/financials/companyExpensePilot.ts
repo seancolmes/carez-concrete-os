@@ -1,5 +1,5 @@
-export const companyExpensePostingEnabled=false;
-export const companyExpensePilotNotice='Company expense posting is unavailable in this controlled pilot. Existing records remain available for review; expense inclusion and tenant-policy contracts require separate qualification.';
+export const companyExpensePostingEnabled=true;
+export const companyExpensePilotNotice='Record company-wide operating costs here. Bank-linked expenses and vendor-payment fees stay with their originating workflows.';
 export function assertCompanyExpensePostingAvailable():void{if(!companyExpensePostingEnabled)throw new Error(companyExpensePilotNotice);}
 export function companyExpenseAmount(value:unknown,failed:boolean):number|'Unavailable'|'Not recorded'{
  if(failed)return 'Unavailable';

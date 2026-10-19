@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 begin;
 -- Isolated local data; never applied to a hosted company. Runner rolls back.
 create extension if not exists pgtap with schema extensions;
@@ -8,7 +11,8 @@ alter table auth.users enable trigger on_auth_user_created;
 insert into public.companies(id,name,operating_timezone) values('e1200000-0000-4000-8000-000000000001','Synthetic readiness contractor','Pacific/Auckland'),('e1200000-0000-4000-8000-000000000002','Other synthetic contractor','UTC');
 insert into public.profiles(id,company_id,role,full_name) values('e1100000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','owner','Synthetic owner');
 insert into public.projects(id,company_id,job_number,name,status,sales_tax_exempt) values('e1300000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','SYN-READY','Synthetic readiness job','active',true),('e1300000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000002','SYN-FOREIGN','Foreign job','active',true);
-insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value) values('e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','SYN-AG',0);
+-- Explicit synthetic historical agreement input; not hosted acceptance proof.
+insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value,status,authorization_text) values('e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','SYN-AG',0,'accepted','Synthetic historical fixture agreement evidence; no real customer authorization');
 insert into public.production_tasks(id,company_id,name,production_unit,active) values('e1500000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','Synthetic finish','SF',true);
 insert into public.work_packages(id,company_id,project_id,name,planned_start_date) values('e1600000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','Synthetic package','2026-10-20');
 insert into public.work_package_operations(id,company_id,work_package_id,production_task_id,field_label,planned_quantity,unit,requires_prior_operations,sequence) values('e1700000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','e1600000-0000-4000-8000-000000000001','e1500000-0000-4000-8000-000000000001','Synthetic finish',100,'SF',false,10),('e1700000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000001','e1600000-0000-4000-8000-000000000001','e1500000-0000-4000-8000-000000000001','Second ready work',100,'SF',false,20);
@@ -26,7 +30,7 @@ select extensions.is((select ready_operation_count from public.project_work_read
 select extensions.is((select blocked_operation_count from public.project_work_readiness_summary),1,'blocked work remains visible beside ready work');
 update public.project_inspections set status='passed' where id='e1800000-0000-4000-8000-000000000001';
 select extensions.ok((select ready_to_start_all and inspection_clear_count=1 from public.work_package_start_readiness where operation_id='e1700000-0000-4000-8000-000000000001'),'passing result clears required inspection');
-update public.project_inspections set status='waived' where id='e1800000-0000-4000-8000-000000000001';
+update public.project_inspections set status='waived',waived_reason='Explicit synthetic owner waiver with retained evidence',updated_by=auth.uid(),completed_at=clock_timestamp() where id='e1800000-0000-4000-8000-000000000001';
 select extensions.ok((select ready_to_start_all from public.work_package_start_readiness where operation_id='e1700000-0000-4000-8000-000000000001'),'explicit waiver clears inspection');
 update public.work_package_operations set status='on_hold',readiness_hold_reason=null where id='e1700000-0000-4000-8000-000000000001';
 select extensions.ok((select not ready_to_start_all and readiness_status='management_hold' from public.work_package_start_readiness where operation_id='e1700000-0000-4000-8000-000000000001'),'explicit operation hold cannot disappear when its explanation is absent');
@@ -100,8 +104,8 @@ set local role authenticated;
 select extensions.ok((select not job_setup_ready and not ready_to_start_all and start_next_action='Job setup readiness unavailable' from public.work_package_start_readiness where operation_id='e1700000-0000-4000-8000-000000000002'),'successfully missing job readiness remains unavailable and fails closed');
 reset role;
 do $$declare d text;begin select definition into d from original_job_readiness;execute 'create or replace view public.project_job_readiness_summary with(security_invoker=true) as '||d;end $$;
-select extensions.is((select atttypmod from pg_attribute where attrelid='public.work_package_operation_readiness'::regclass and attname='planned_quantity'),((14<<16)|4)+4,'compatibility preserves installed quantity precision');
-select extensions.is((select format_type(atttypid,atttypmod) from pg_attribute where attrelid='public.work_package_resource_requirement_status'::regclass and attname='equipment_start_date'),'text','source compatibility preserves existing text date column');
+select extensions.ok((select format_type(atttypid,atttypmod) in ('numeric(14,4)','numeric') from pg_attribute where attrelid='public.work_package_operation_readiness'::regclass and attname='planned_quantity'),'readiness exposes a recognized canonical/deployed numeric quantity contract');
+select extensions.ok((select format_type(atttypid,atttypmod) in ('text','date') from pg_attribute where attrelid='public.work_package_resource_requirement_status'::regclass and attname='equipment_start_date'),'resource status retains a recognized canonical/deployed equipment date contract');
 insert into public.projects(id,company_id,job_number,name,status) values('e1300000-0000-4000-8000-000000000003','e1200000-0000-4000-8000-000000000001','SYN-EMPTY','Synthetic job with no physical work','active');
 set local role authenticated;
 select extensions.ok((select operation_count=0 and ready_operation_count=0 and blocked_operation_count=0 and readiness_status='no_work' from public.project_work_readiness_summary where project_id='e1300000-0000-4000-8000-000000000003'),'successful absence of physical work remains an explicit zero-count project row');

@@ -1,4 +1,5 @@
 'use client';
+import {calculateStripFootingV7,STRIP_FOOTING_V7_DEFINITION,isInstalledConcreteReference} from '@/lib/takeoff/conditions/stripFootingV7';
 import {calculateStripFootingV6,STRIP_FOOTING_V6_DEFINITION} from '@/lib/takeoff/conditions/stripFootingV6';
 
 import {useEffect,useMemo,useRef,useState,useTransition,type ReactNode} from 'react';
@@ -10,7 +11,7 @@ import {useRouter} from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {Layout,Model} from 'flexlayout-react';
 import {CheckmarkCircleRegular as CheckCircle2,ChevronDownRegular as ChevronDown,EyeRegular as Eye,EyeOffRegular as EyeOff,LayerRegular as Layers3,AddRegular as Plus,ArrowClockwiseRegular as RefreshCw,RulerRegular as Ruler} from '@fluentui/react-icons';
-import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button as FluentButton,Dialog,DialogActions,DialogBody,DialogContent,DialogSurface,DialogTitle,Dropdown,Input as FluentInput,Option,Select} from '@fluentui/react-components';
+import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button as FluentButton,Checkbox,Dialog,DialogActions,DialogBody,DialogContent,DialogSurface,DialogTitle,Dropdown,Input as FluentInput,Label,Option,Select} from '@fluentui/react-components';
 import {AddRegular,ArrowRightRegular,ChevronDownRegular,ErrorCircleRegular,SaveRegular,SearchRegular} from '@fluentui/react-icons';
 import {
   assignConditionPrimaryTakeoffSection,
@@ -21,6 +22,7 @@ import {
 } from '@/app/takeoff/[setId]/conditionActions';
 import {InspectorRow,InspectorInput,InspectorNumberInput,InspectorImperialInput,InspectorBoolean,inspectorSelectClass} from './ConditionInspectorControls';
 import {CONDITION_ARCHETYPES,conditionArchetype} from '@/lib/takeoff/conditions/catalog';
+import {conditionSelectionAfterRefresh} from '@/lib/takeoff/conditions/selection';
 import {FOOTING_PLACEMENT_MH_PER_CY,footingPlacementRecommendation} from '@/lib/takeoff/conditions/nationalEstimatorRecommendations';
 import {
   conditionCodeFromName,
@@ -106,7 +108,7 @@ type LegacyOutputRow={
 };
 type RecapRow={
   key:string;conditionVersionId:string|null;conditionCode:string;label:string;outputKey:string;productionQuantity:number|string|null;
-  productionUnit:string;status:string;directCost:number|string|null;pending:boolean;laborOutput:LegacyOutputRow|null;
+  productionUnit:string;status:string;directCost:number|string|null;pending:boolean;laborOutput:LegacyOutputRow|null;reference?:boolean;
 };
 type ConditionHoldRow={id:string;condition_version_id:string;output_id:string|null;hold_code:string;status:string;message:string};
 type ConditionData={
@@ -221,6 +223,10 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const derivedCache=useRef<Derived3DGeometryCache>(new Map());
   const [issuesOpen,setIssuesOpen]=useState(false);
   const [upgradeOpen,setUpgradeOpen]=useState(false);
+  const [upgradeReason,setUpgradeReason]=useState('');
+  const [upgradeAcknowledged,setUpgradeAcknowledged]=useState(false);
+  const [upgradeError,setUpgradeError]=useState('');
+  const upgradeRequestId=useRef<string|null>(null);
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [draft,setDraft]=useState<ConditionInputDraft>({});
   const [moduleEnabled,setModuleEnabled]=useState<Record<string,boolean>>({});
@@ -230,13 +236,14 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [anchorMeasurementId,setAnchorMeasurementId]=useState('');
   const [message,setMessage]=useState('');
   const [creating,setCreating]=useState(false);
+  const [pendingCreatedVersionId,setPendingCreatedVersionId]=useState<string|null>(null);
   const [family,setFamily]=useState<ConditionArchetypeKey>('strip_wall_footing');
   const [createName,setCreateName]=useState('Strip / Wall Footing');
   const [createCode,setCreateCode]=useState('STRIP-WALL-FOOTING');
   const [codeTouched,setCodeTouched]=useState(false);
   const [isPending,startTransition]=useTransition();
 
-  useEffect(()=>{setScope(setId);},[setId,setScope]);
+  useEffect(()=>{setScope(setId);setPendingCreatedVersionId(null);},[setId,setScope]);
 
   useEffect(()=>{
     if(!mobileReview)return;
@@ -298,7 +305,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const selectedArchetypeVersion=selectedVersion?conditionData.archetypeVersions.find(row=>row.id===selectedVersion.archetype_version_id)||null:null;
   const contractVersion=Number(selectedArchetypeVersion?.version_no||1);
   const publishedContractVersion=selectedSummary?conditionData.archetypeVersions.filter(row=>row.archetype_code_snapshot===selectedSummary.archetype_code&&row.status==='published'&&row.engine_key==='concrete_condition_v1').reduce((max,row)=>Math.max(max,Number(row.version_no||0)),contractVersion):contractVersion;
-  const latestContractVersion=selectedSummary?.archetype_code==='strip_wall_footing'&&contractVersion<5&&publishedContractVersion>=5?5:publishedContractVersion;
+  const latestContractVersion=selectedSummary?.archetype_code==='strip_wall_footing'?Math.min(publishedContractVersion,contractVersion<5?5:contractVersion===5?6:7):publishedContractVersion;
   const latestVersionAvailable=latestContractVersion>contractVersion;
   const stripContractVersion=selectedSummary?.archetype_code==='strip_wall_footing'?contractVersion:0;
   const stripModern=stripContractVersion>=2;
@@ -307,10 +314,15 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const templateVersion=selectedVersion?conditionData.templateVersions.find(row=>row.id===selectedVersion.template_version_id)||null:null;
   const compatibilityAssemblyVersionId=templateVersion?.legacy_assembly_version_id||null;
   const selectedModules=useMemo(()=>selectedVersionId?conditionData.modules.filter(row=>row.condition_version_id===selectedVersionId).sort((a,b)=>a.sort_order-b.sort_order):[],[conditionData.modules,selectedVersionId]);
-  const definition=selectedSummary?(stripContractVersion>=6?STRIP_FOOTING_V6_DEFINITION:stripV4?STRIP_FOOTING_V4_DEFINITION:stripV3?STRIP_FOOTING_V3_DEFINITION:stripModern?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(selectedSummary.archetype_code)):null;
+  const definition=selectedSummary?(stripContractVersion===7?STRIP_FOOTING_V7_DEFINITION:stripContractVersion>=6?STRIP_FOOTING_V6_DEFINITION:stripV4?STRIP_FOOTING_V4_DEFINITION:stripV3?STRIP_FOOTING_V3_DEFINITION:stripModern?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(selectedSummary.archetype_code)):null;
   const selectedOutputs=selectedVersionId?conditionData.outputs.filter(row=>row.condition_version_id===selectedVersionId):[];
   const selectedHolds=selectedVersionId?conditionData.holds.filter(row=>row.condition_version_id===selectedVersionId&&row.status==='open'):[];
-  const activeOutputCount=selectedOutputs.filter(output=>output.status!=='inactive').length;
+  const activeOutputCounts=useMemo(()=>{
+    const counts=new Map<string,number>();
+    for(const output of conditionData.outputs)if(output.status!=='inactive')counts.set(output.condition_version_id,(counts.get(output.condition_version_id)||0)+1);
+    return counts;
+  },[conditionData.outputs]);
+  const activeOutputCount=activeOutputCounts.get(selectedVersionId||'')||0;
   const activeSheet=sheets.find((sheet:any)=>sheet.id===activeSheetId)||sheets[0]||null;
   const activeSheetLabel=activeSheet?.sheet_number||`Page ${activeSheet?.page_number||'—'}`;
 
@@ -371,7 +383,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
           roles.push({...role,roleKey:STRIP_FOOTING_V4_ENDPOINT_ROLE,quantity:closed?0:2,unit:'EA',geometryType:'count'});
         }
       }
-      const calculate=stripContractVersion>=6?calculateStripFootingV6:stripV4?calculateStripFootingV4:stripV3?calculateStripFootingV3:stripModern?calculateStripFootingV2:calculateCondition;
+      const calculate=stripContractVersion===7?calculateStripFootingV7:stripContractVersion>=6?calculateStripFootingV6:stripV4?calculateStripFootingV4:stripV3?calculateStripFootingV3:stripModern?calculateStripFootingV2:calculateCondition;
       return {outputs:calculate({archetypeKey:selectedSummary.archetype_code,conditionVersionId:selectedVersion.id,inputs,measurementRoles:roles,modules:currentModulesForSignature,outputOverrides:selectedVersion.output_overrides}).outputs,error:''};
     }catch(error){return {outputs:[],error:error instanceof Error?error.message:'Calculation inputs required.'};}
   },[selectedSummary,selectedVersion,definition,draft,templateVersion,measurements,roleSelections,compatibilityAssemblyVersionId,stripV4,stripV3,stripModern,currentModulesForSignature]);
@@ -388,7 +400,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     const version=conditionData.versions.find(row=>row.id===versionId);
     if(!summary||!version)return{definition:null as typeof definition,versionNo:0};
     const versionNo=Number(conditionData.archetypeVersions.find(row=>row.id===version.archetype_version_id)?.version_no||1);
-    return{definition:summary.archetype_code==='strip_wall_footing'?(versionNo>=6?STRIP_FOOTING_V6_DEFINITION:versionNo>=4?STRIP_FOOTING_V4_DEFINITION:versionNo>=3?STRIP_FOOTING_V3_DEFINITION:versionNo>=2?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(summary.archetype_code)):conditionArchetype(summary.archetype_code),versionNo};
+    return{definition:summary.archetype_code==='strip_wall_footing'?(versionNo===7?STRIP_FOOTING_V7_DEFINITION:versionNo>=6?STRIP_FOOTING_V6_DEFINITION:versionNo>=4?STRIP_FOOTING_V4_DEFINITION:versionNo>=3?STRIP_FOOTING_V3_DEFINITION:versionNo>=2?STRIP_FOOTING_V2_DEFINITION:conditionArchetype(summary.archetype_code)):conditionArchetype(summary.archetype_code),versionNo};
   };
 
   const conditionWorksheetAuthorities=useMemo<ConditionWorksheetAuthority[]>(()=>conditions.flatMap(summary=>{
@@ -468,7 +480,11 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const selectDerivedSolid=(solid:Derived3DSolid)=>requestConditionSelection(solid.conditionVersionId,false,solid.measurementId);
   const jumpToDerivedIssue=(entry:Derived3DIssue)=>requestConditionSelection(entry.conditionVersionId,false,entry.measurementId,entry.target||'drawing','2d');
 
-  useEffect(()=>{if(!selectedVersionId&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);if(selectedVersionId&&!conditions.some(row=>row.condition_version_id===selectedVersionId)&&conditions[0])setSelectedVersionId(conditions[0].condition_version_id);},[conditions,selectedVersionId]);
+  useEffect(()=>{
+    const next=conditionSelectionAfterRefresh(selectedVersionId,pendingCreatedVersionId,conditions.map(row=>row.condition_version_id));
+    if(next.selected!==selectedVersionId)setSelectedVersionId(next.selected);
+    if(next.pendingCreated!==pendingCreatedVersionId)setPendingCreatedVersionId(next.pendingCreated);
+  },[conditions,selectedVersionId,pendingCreatedVersionId,setSelectedVersionId]);
   useEffect(()=>{
     if(sourceMeasurementAppliedRef.current)return;
     const measurementId=new URLSearchParams(window.location.search).get('measurement');
@@ -545,7 +561,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   },[drawRequestSequence,selectedVersionId,loadedVersionId]); // eslint-disable-line react-hooks/exhaustive-deps
   const chooseFamily=(key:ConditionArchetypeKey)=>{const next=CONDITION_ARCHETYPES[key];setFamily(key);setCreateName(next.name);setCreateCode(conditionCodeFromName(next.name));setCodeTouched(false);};
   const openCreateEditor=()=>{if(dirty){setMessage('');setPendingSwitch({kind:'open-create'});return;}setIssuesOpen(false);setCreating(true);setPhase('assembly');};
-  const commitCreateCondition=()=>{setMessage('Creating condition…');startTransition(async()=>{try{const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});setSelectedVersionId(result.condition_version_id);setCreating(false);setPhase('assembly');setMessage('Condition created. Add dimensions and link a takeoff when ready.');router.refresh();}catch(error:any){setMessage(error?.message||'Could not create condition.');}});};
+  const commitCreateCondition=()=>{setMessage('Creating condition…');startTransition(async()=>{try{const result=await createProjectConcreteConditionPilot({takeoffSetId:setId,archetypeKey:family,code:createCode,name:createName});setPendingCreatedVersionId(result.condition_version_id);setSelectedVersionId(result.condition_version_id);setCreating(false);setPhase('assembly');setMessage('Condition created. Add dimensions and link a takeoff when ready.');router.refresh();}catch(error:any){setMessage(error?.message||'Could not create condition.');}});};
   const createCondition=()=>{if(dirty){setMessage('');setPendingSwitch({kind:'create'});return;}commitCreateCondition();};
   const saveCondition=(afterSave?:()=>void)=>{
     if(!selectedVersion||!definition)return;
@@ -588,7 +604,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     if(next.kind==='open-create'){setIssuesOpen(false);setCreating(true);setPhase('assembly');return;}
     applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode,next.startPrimaryDraw);
   };
-  const upgradeCondition=()=>{if(!selectedVersion||!latestVersionAvailable)return;setMessage(`Upgrading to Contract v${latestContractVersion}…`);startTransition(async()=>{try{const result=await upgradeProjectConcreteConditionDraftToLatest({takeoffSetId:setId,conditionVersionId:selectedVersion.id});setUpgradeOpen(false);setPropertyTab('general');setIssuesOpen(false);setMessage(result.message||`Contract upgraded to v${result.to_contract_version}. Review and recalculate.`);router.refresh();}catch(error:any){setUpgradeOpen(false);setMessage(error?.message||'Could not upgrade Condition contract.');}});};
+  const upgradeCondition=()=>{if(!selectedVersion||!latestVersionAvailable)return;setMessage(`Upgrading to Contract v${latestContractVersion}…`);startTransition(async()=>{try{const result=await upgradeProjectConcreteConditionDraftToLatest({takeoffSetId:setId,conditionVersionId:selectedVersion.id,expectedUpdatedAt:selectedVersion.updated_at,requestId:upgradeRequestId.current||undefined,reason:upgradeReason,acknowledgePriceRemoval:upgradeAcknowledged});setUpgradeOpen(false);setPropertyTab('general');setIssuesOpen(false);setMessage(result.message||`Contract upgraded to v${result.to_contract_version}. Review and recalculate.`);router.refresh();}catch(error:any){setUpgradeError(error?.message||'Could not upgrade Condition contract.');setMessage(error?.message||'Could not upgrade Condition contract.');}});};
 
   const renderInputs=(inputs:ConditionInputDefinition[])=>{
     if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
@@ -658,7 +674,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       outputKey:row.output_key,
       productionQuantity:row.production_quantity,
       productionUnit:row.production_unit,
-      status:conditionOutputStatus(row),
+      status:row.status==='ready'&&row.pricing_status==='not_priced'&&isInstalledConcreteReference(contractForVersion(row.condition_version_id).versionNo,row.output_key)?'Reference quantity':conditionOutputStatus(row),
+      reference:row.status==='ready'&&row.pricing_status==='not_priced'&&isInstalledConcreteReference(contractForVersion(row.condition_version_id).versionNo,row.output_key),
       directCost:row.direct_cost,
       pending:dirty&&row.condition_version_id===selectedVersionId,
       laborOutput:(row.legacy_takeoff_output_id?laborByOutputId.get(row.legacy_takeoff_output_id):null)||(row.generated_estimate_item_id?laborByItemId.get(row.generated_estimate_item_id):null)||null,
@@ -677,9 +694,9 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       laborOutput:row.estimate_item_type==='labor'?row:null,
     }));
     return [...conditionRows,...historicalRows].sort((a,b)=>`${a.conditionCode}:${a.outputKey}`.localeCompare(`${b.conditionCode}:${b.outputKey}`));
-  },[conditionData.outputs,conditions,dirty,selectedVersionId,legacyOutputs,measurements]);
+  },[conditionData.outputs,conditionData.versions,conditionData.archetypeVersions,conditions,dirty,selectedVersionId,legacyOutputs,measurements]);
   const recapCost=recapRows.filter(row=>!row.pending&&row.status==='Ready').reduce((total,row)=>total+Number(row.directCost||0),0);
-  const recapPartial=recapRows.some(row=>row.pending||row.status!=='Ready');
+  const recapPartial=recapRows.some(row=>row.pending||row.status!=='Ready'&&!row.reference);
   const recapHolds=(conditionData.holds||[]).filter(row=>row.status==='open').length+recapRows.filter(row=>row.key.startsWith('legacy:')&&row.status==='Calculation hold').length;
 
 
@@ -711,7 +728,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
 
       {creating?<div className={`${styles.inspectorScroll} flex-1 min-h-0 overflow-y-auto p-5`}><div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <FluentButton type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></FluentButton>;})}</div><InspectorRow label="Condition name" htmlFor="new-condition-name"><InspectorInput id="new-condition-name" value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></InspectorRow><InspectorRow label="Code" htmlFor="new-condition-code"><InspectorInput id="new-condition-code" value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></InspectorRow><div className={styles.createActions}><FluentButton appearance="outline" onClick={()=>setCreating(false)}>Cancel</FluentButton><FluentButton onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</FluentButton></div><div className={styles.statusLine} role="status">{message}</div></div>
       :!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
-        <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<FluentButton type="button" className={direction.versionAction} onClick={()=>setUpgradeOpen(true)} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</FluentButton>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<FluentButton type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></FluentButton>:null}</div>
+        <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<FluentButton type="button" className={direction.versionAction} onClick={()=>{upgradeRequestId.current=crypto.randomUUID();setUpgradeReason('');setUpgradeAcknowledged(false);setUpgradeError('');setUpgradeOpen(true);}} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</FluentButton>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<FluentButton type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></FluentButton>:null}</div>
+        {stripContractVersion>0&&stripContractVersion<7&&selectedVersion.status==='draft'&&latestVersionAvailable?<p role="note" className="border-b border-border px-5 py-2 text-xs text-muted-foreground">This older contract can price installed and ordered concrete separately. Upgrade and recalculate to price ordered supply once; installed CY remains the production and placement-labor basis. Issued history is unchanged.</p>:null}
         <div key={selectedVersionId} ref={propertyScrollRef} className={`${styles.inspectorGrid} ${styles.editorGridViewport}`}>
             <section className={styles.editorColumn} aria-labelledby="physical-variables"><h3 id="physical-variables" className={styles.columnHeading}>Physical variables</h3>
             <div className={`${styles.inspectorScroll} ${styles.columnScroll}`}>
@@ -775,7 +793,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
                   <span aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-[2px]" style={{backgroundColor:conditionData.derived3DSnapshot?.conditions.find(source=>source.conditionVersionId===row.condition_version_id)?.color||conditionColor(row.archetype_code)}}/>
                   <FluentButton type="button" aria-pressed={selectedVersionId===row.condition_version_id} onClick={()=>requestConditionSelection(row.condition_version_id,true,undefined,undefined,undefined,true)} className="flex h-full min-w-0 flex-1 items-center gap-2 text-left" title={`${row.name} · ${row.code} · R${row.revision_no}`}>
                     <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">{row.name}</span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{row.measurement_count} takeoffs · {row.output_count} outputs{row.open_hold_count?` · ${row.open_hold_count} holds`:''}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{row.measurement_count} takeoffs · {activeOutputCounts.get(row.condition_version_id)||0} active outputs{row.open_hold_count?` · ${row.open_hold_count} holds`:''}</span>
                    </FluentButton><FluentButton type="button" className="ml-1 shrink-0 p-1 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity hover:text-foreground [@media(hover:none)]:opacity-100" aria-label={`${derivedViewState.hidden.includes(row.condition_version_id)?'Show':'Hide'} ${row.name}`} aria-pressed={!derivedViewState.hidden.includes(row.condition_version_id)} onClick={()=>setDerivedViewState(current=>({...current,hidden:current.hidden.includes(row.condition_version_id)?current.hidden.filter(id=>id!==row.condition_version_id):[...current.hidden,row.condition_version_id]}))}>{derivedViewState.hidden.includes(row.condition_version_id)?<EyeOff fontSize={12}/>:<Eye fontSize={12}/>}</FluentButton>
                 </div>)}
               </div>
@@ -828,10 +846,10 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
         <div><span>Measured takeoffs</span><strong>{measurements.length}</strong></div>
         <div><span>Active outputs</span><strong>{recapRows.length}</strong></div>
         <div><span>Priced direct cost</span><strong>{money(recapCost)}</strong><small>{recapRows.length===0?'No outputs':recapPartial?'Partial':'Complete pricing'}</small></div>
-        <div><span>Open holds</span><strong>{recapHolds}</strong></div>
+        <div><span>Calculation holds</span><strong>{recapHolds}</strong></div>
       </div>
       <div className={styles.recapTableScroll}><table className={styles.recapTable}><thead><tr><th>Condition</th><th>Resource / operation</th><th>Production quantity</th><th>Status</th><th>Direct cost</th><th>Labor assumption</th></tr></thead><tbody>
-        {recapRows.map(row=>{const labor=row.laborOutput;const baseline=labor?.job_man_hours_per_unit??labor?.baseline_man_hours_per_unit;const currentRate=baseline===null||baseline===undefined?null:Number(baseline);const hourlyRate=labor&&['priced','manual_override'].includes(labor.pricing_status)&&Number(labor.unit_cost)>0?Number(labor.unit_cost):null;return <tr key={row.key}><td>{row.conditionVersionId?<FluentButton type="button" onClick={()=>requestConditionSelection(row.conditionVersionId!,false,undefined,'review')}>{row.conditionCode}</FluentButton>:<span>{row.conditionCode}</span>}</td><td><strong>{row.label}</strong><small>{row.outputKey}</small></td><td>{row.pending?'—':quantity(row.productionQuantity,row.productionUnit)}</td><td>{row.pending?'Pending recalculation':row.status}</td><td>{row.pending||row.status!=='Ready'?'—':money(row.directCost||0)}</td><td>{!row.pending&&labor?.generated_estimate_item_id&&estimateId&&Number(labor.production_quantity)>0?<SmartLaborCell estimateId={estimateId} outputId={labor.id} productionQuantity={Number(labor.production_quantity)} productionUnit={labor.production_unit} currentManHoursPerUnit={Number.isFinite(currentRate)?currentRate:null} laborHourlyRate={hourlyRate} disabled={editorLocked}/>:<span className={styles.recapDash}>—</span>}</td></tr>;})}
+        {recapRows.map(row=>{const labor=row.laborOutput;const baseline=labor?.job_man_hours_per_unit??labor?.baseline_man_hours_per_unit;const currentRate=baseline===null||baseline===undefined?null:Number(baseline);const hourlyRate=labor&&['priced','manual_override'].includes(labor.pricing_status)&&Number(labor.unit_cost)>0?Number(labor.unit_cost):null;return <tr key={row.key}><td>{row.conditionVersionId?<FluentButton type="button" onClick={()=>requestConditionSelection(row.conditionVersionId!,false,undefined,'review')}>{row.conditionCode}</FluentButton>:<span>{row.conditionCode}</span>}</td><td><strong>{row.label}</strong>{row.reference&&<small className="block text-muted-foreground">Placement-labor basis · no supply charge</small>}</td><td>{row.pending?'—':quantity(row.productionQuantity,row.productionUnit)}</td><td>{row.pending?'Pending recalculation':row.status}</td><td>{row.pending||row.status!=='Ready'?'—':money(row.directCost||0)}</td><td>{!row.pending&&labor?.generated_estimate_item_id&&estimateId&&Number(labor.production_quantity)>0?<SmartLaborCell estimateId={estimateId} outputId={labor.id} productionQuantity={Number(labor.production_quantity)} productionUnit={labor.production_unit} currentManHoursPerUnit={Number.isFinite(currentRate)?currentRate:null} laborHourlyRate={hourlyRate} disabled={editorLocked}/>:<span className={styles.recapDash}>—</span>}</td></tr>;})}
         {!recapRows.length?<tr><td colSpan={6} className={styles.recapEmpty}>No calculated outputs yet. Set up a condition, trace the plan, then save and recalculate.</td></tr>:null}
       </tbody></table></div>
       <div className={styles.recapFootnote}>Crew days require explicit crew size, hours per day, and positive production quantity. Labor direct $/SF also requires an SF output and a selected burdened labor rate. Both save as MH per unit.</div>
@@ -855,10 +873,10 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
       <DialogSurface className="z-[120]">
         <DialogBody>
           <DialogTitle>Upgrade to Contract v{latestContractVersion}?</DialogTitle>
-          <DialogContent>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated quantities require review. Contract v6 preserves existing output identities and supplier evidence. Verified Condition history is never changed.</DialogContent>
+          <DialogContent>{latestContractVersion===7?<div className="grid gap-3"><p>Ordered CY will price concrete supply once. Installed CY remains the measured quantity and placement-labor basis. Its duplicate price and live estimate line will be removed; prior values and supplier evidence are retained in upgrade history. Ordered-concrete prices stay unchanged. Recalculate and review afterward.</p><Label htmlFor="condition-upgrade-reason">Reason for this price-basis upgrade</Label><FluentInput id="condition-upgrade-reason" value={upgradeReason} onChange={(_,data)=>setUpgradeReason(data.value)} required/><Checkbox id="condition-upgrade-price-ack" checked={upgradeAcknowledged} onChange={(_,data)=>setUpgradeAcknowledged(data.checked===true)} label="I understand the installed-concrete price will be removed and retained in history."/></div>:<p>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated quantities require review. Contract v6 preserves existing output identities and supplier evidence. Verified Condition history is never changed.</p>}{upgradeError&&<p role="alert" className="mt-3 text-sm text-destructive">{upgradeError}</p>}</DialogContent>
           <DialogActions>
             <FluentButton appearance="subtle" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</FluentButton>
-            <FluentButton appearance="primary" icon={isPending?<RefreshCw className={styles.spin}/>:undefined} onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'}>Upgrade & review</FluentButton>
+            <FluentButton appearance="primary" icon={isPending?<RefreshCw className={styles.spin}/>:undefined} onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'||latestContractVersion===7&&(!upgradeReason.trim()||!upgradeAcknowledged)}>Upgrade & review</FluentButton>
           </DialogActions>
         </DialogBody>
       </DialogSurface>

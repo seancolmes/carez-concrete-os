@@ -179,7 +179,7 @@ export default async function TakeoffDrawingPage({ params }: { params: Promise<{
     if (archetypeVersionIds.length) {
       const { data, error } = await supabase.from('platform_condition_archetype_versions')
         .select('id,version_no,archetype_code_snapshot,status,engine_key')
-        .or(`id.in.(${archetypeVersionIds.join(',')}),and(archetype_code_snapshot.eq.strip_wall_footing,version_no.eq.6,status.eq.published)`);
+        .or(`id.in.(${archetypeVersionIds.join(',')}),and(archetype_code_snapshot.eq.strip_wall_footing,version_no.in.(5,6,7),status.eq.published)`);
       if (error) throw new Error(error.message);
       conditionArchetypeVersions = data || [];
     }

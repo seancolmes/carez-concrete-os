@@ -1,4 +1,5 @@
 import 'server-only';
+import {calculateStripFootingV7,STRIP_FOOTING_V7_DEFINITION,stripConcreteEstimateVisible} from './stripFootingV7.ts';
 import {calculateStripFootingV6,STRIP_FOOTING_V6_DEFINITION} from './stripFootingV6.ts';
 
 import {
@@ -106,6 +107,7 @@ function storedInputGroups(version: any): ConditionRawInputGroups {
 }
 
 function deployedDefinition(archetypeKey: ConditionArchetypeKey, archetypeVersion: any): ConditionArchetypeDefinition {
+  if(archetypeKey==='strip_wall_footing'&&Number(archetypeVersion.version_no)===7)return STRIP_FOOTING_V7_DEFINITION;
   if(archetypeKey==='strip_wall_footing'&&Number(archetypeVersion.version_no)>=6)return STRIP_FOOTING_V6_DEFINITION;
   if (archetypeKey === 'strip_wall_footing' && Number(archetypeVersion.version_no || 0) >= STRIP_FOOTING_V4_CONTRACT_VERSION) {
     return STRIP_FOOTING_V4_DEFINITION;
@@ -421,7 +423,9 @@ export async function prepareConcreteConditionPilotPersistence({
     sortOrder: module.sort_order,
   }));
   const versionNo = Number(archetypeVersion.version_no || 0);
-  const calculation = archetypeKey==='strip_wall_footing'&&versionNo>=6
+  const calculation = archetypeKey==='strip_wall_footing'&&versionNo===7
+    ? calculateStripFootingV7({archetypeKey,conditionVersionId,inputs:resolvedInputs,measurementRoles:calculationRoles,modules:calculationModules,outputOverrides})
+    : archetypeKey==='strip_wall_footing'&&versionNo>=6
     ? calculateStripFootingV6({archetypeKey,conditionVersionId,inputs:resolvedInputs,measurementRoles:calculationRoles,modules:calculationModules,outputOverrides})
     : archetypeKey === 'strip_wall_footing' && versionNo >= STRIP_FOOTING_V4_CONTRACT_VERSION
     ? calculateStripFootingV4({ archetypeKey, conditionVersionId, inputs: resolvedInputs, measurementRoles: calculationRoles, modules: calculationModules, outputOverrides })
@@ -487,7 +491,7 @@ export async function prepareConcreteConditionPilotPersistence({
       priceEffectiveDate: price?.effectiveDate || null,
       baselineSource: component.baseline_source,
       resourceBehavior: component.resource_behavior,
-      estimateVisible: component.estimate_visible,
+      estimateVisible: archetypeKey==='strip_wall_footing'?stripConcreteEstimateVisible(versionNo,mapping.output_key,component.estimate_visible):component.estimate_visible,
     };
   }));
   const conditionLegacyOutputs = adaptConditionOutputsToLegacy(calculation, legacyMappings);

@@ -1,10 +1,28 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 -- Isolated synthetic records only. Run after the paired migrations; always roll back.
 begin;
 create extension if not exists pgtap with schema extensions;
 select extensions.no_plan();
-insert into auth.users(id,email) values('ea100000-0000-4000-8000-000000000001','crew-owner@local.invalid'),('ea100000-0000-4000-8000-000000000002','crew-office@local.invalid'),('ea100000-0000-4000-8000-000000000003','crew-employee@local.invalid'),('ea100000-0000-4000-8000-000000000004','crew-foreign@local.invalid');
-insert into public.companies(id,name,owner_field_rate) values('ea200000-0000-4000-8000-000000000001','Isolated Crew Contractor',50),('ea200000-0000-4000-8000-000000000002','Other Isolated Contractor',50);
-insert into public.profiles(id,company_id,role,full_name) values('ea100000-0000-4000-8000-000000000001','ea200000-0000-4000-8000-000000000001','owner','Isolated Owner'),('ea100000-0000-4000-8000-000000000002','ea200000-0000-4000-8000-000000000001','office','Isolated Office'),('ea100000-0000-4000-8000-000000000003','ea200000-0000-4000-8000-000000000001','employee','Isolated Employee'),('ea100000-0000-4000-8000-000000000004','ea200000-0000-4000-8000-000000000002','owner','Other Owner');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('ea100000-0000-4000-8000-000000000001', 'crew-owner@local.invalid', jsonb_build_object('company_name','Isolated Crew Contractor','full_name','Isolated Owner','operating_timezone','UTC')),
+  ('ea100000-0000-4000-8000-000000000002', 'crew-office@local.invalid', jsonb_build_object('company_name','Isolated Crew Contractor','full_name','Isolated Office','operating_timezone','UTC')),
+  ('ea100000-0000-4000-8000-000000000003', 'crew-employee@local.invalid', jsonb_build_object('company_name','Isolated Crew Contractor','full_name','Isolated Employee','operating_timezone','UTC')),
+  ('ea100000-0000-4000-8000-000000000004', 'crew-foreign@local.invalid', jsonb_build_object('company_name','Other Isolated Contractor','full_name','Other Owner','operating_timezone','UTC'));
+insert into public.companies(id,name,owner_field_rate,operating_timezone) values
+  ('ea200000-0000-4000-8000-000000000001', 'Isolated Crew Contractor', 50, 'UTC'),
+  ('ea200000-0000-4000-8000-000000000002', 'Other Isolated Contractor', 50, 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('ea100000-0000-4000-8000-000000000001', 'ea200000-0000-4000-8000-000000000001', 'owner', 'Isolated Owner'),
+  ('ea100000-0000-4000-8000-000000000002', 'ea200000-0000-4000-8000-000000000001', 'office', 'Isolated Office'),
+  ('ea100000-0000-4000-8000-000000000003', 'ea200000-0000-4000-8000-000000000001', 'employee', 'Isolated Employee'),
+  ('ea100000-0000-4000-8000-000000000004', 'ea200000-0000-4000-8000-000000000002', 'owner', 'Other Owner')) v(id,company_id,role,full_name)
+where p.id=v.id::uuid;
 create temp table crew_test_context(key text primary key,value text);grant all on crew_test_context to authenticated;
 create function pg_temp.crew_values(p_name text,p_worker text default 'employee') returns jsonb language sql as $$select jsonb_build_object('name',p_name,'role','Finisher','worker_type',p_worker,'availability_type','regular','hourly_rate',0,'internal_field_rate',case when p_worker='owner' then 50 else null end,'skills',jsonb_build_array('Placement'),'active',true,'effective_date',current_date,'reason','Synthetic recorded terms for this isolated test');$$;
 select set_config('request.jwt.claim.sub','ea100000-0000-4000-8000-000000000001',true);set local role authenticated;

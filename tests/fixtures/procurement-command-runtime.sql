@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 -- Disposable local records; all writes roll back.
 begin;set local search_path=pg_catalog,public,extensions;
 create extension if not exists pgtap with schema extensions;select extensions.no_plan();
@@ -18,6 +21,21 @@ create temp table procurement_input as select jsonb_build_object('project_id','d
  jsonb_build_object('cost_code_id','d1500000-0000-4000-8000-000000000001','description','Synthetic concrete','quantity',10,'unit','CY','unit_cost',10,'sales_tax',0) line;
 create temp table procurement_results(key text primary key,value jsonb);grant all on procurement_results to authenticated;grant select on procurement_input to authenticated;
 create function pg_temp.procure(n integer,c text,p jsonb) returns jsonb language sql as $$select public.carez_procurement_command_v1(('d1900000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,c,p)$$;
+-- Exact history snapshot makes deletion safety independent of which retained
+-- guard PostgreSQL reaches first. No financial authority or data is substituted.
+create function pg_temp.procurement_fixture_history() returns jsonb language sql stable as $$
+ select jsonb_build_object(
+  'project',(select to_jsonb(p) from public.projects p where p.company_id=public.get_my_company_id() and p.id='d1300000-0000-4000-8000-000000000001'),
+  'quotes',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.vendor_quotes x where x.company_id=public.get_my_company_id() and x.project_id='d1300000-0000-4000-8000-000000000001'),
+  'quote_lines',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.vendor_quote_lines x join public.vendor_quotes p on p.company_id=x.company_id and p.id=x.vendor_quote_id where x.company_id=public.get_my_company_id() and p.project_id='d1300000-0000-4000-8000-000000000001'),
+  'orders',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.purchase_orders x where x.company_id=public.get_my_company_id() and x.project_id='d1300000-0000-4000-8000-000000000001'),
+  'order_lines',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.purchase_order_lines x join public.purchase_orders p on p.company_id=x.company_id and p.id=x.purchase_order_id where x.company_id=public.get_my_company_id() and p.project_id='d1300000-0000-4000-8000-000000000001'),
+  'receipts',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.purchase_order_receipts x join public.purchase_orders p on p.company_id=x.company_id and p.id=x.purchase_order_id where x.company_id=public.get_my_company_id() and p.project_id='d1300000-0000-4000-8000-000000000001'),
+  'bills',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.vendor_bills x where x.company_id=public.get_my_company_id() and x.project_id='d1300000-0000-4000-8000-000000000001'),
+  'bill_lines',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.vendor_bill_lines x join public.vendor_bills p on p.company_id=x.company_id and p.id=x.vendor_bill_id where x.company_id=public.get_my_company_id() and p.project_id='d1300000-0000-4000-8000-000000000001'),
+  'documents',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.company_documents x where x.company_id=public.get_my_company_id() and x.project_id='d1300000-0000-4000-8000-000000000001'),
+  'actual_costs',(select coalesce(jsonb_agg(to_jsonb(x) order by x.id),'[]'::jsonb) from public.project_costs x where x.company_id=public.get_my_company_id() and x.project_id='d1300000-0000-4000-8000-000000000001'))
+$$;
 select set_config('request.jwt.claim.sub','d1100000-0000-4000-8000-000000000001',true);set local role authenticated;
 select extensions.lives_ok($$insert into procurement_results values('quote',pg_temp.procure(1,'create_quote',(select header from procurement_input)))$$,'create quote and document number atomically');
 select extensions.lives_ok($$select pg_temp.procure(1,'create_quote',(select header from procurement_input))$$,'quote retry returns one record');
@@ -64,7 +82,10 @@ select extensions.is((select total_cost from public.project_costs),40::numeric,'
 select extensions.is((select status from public.pour_plans where id='d1600000-0000-4000-8000-000000000001'),'hold','posting preserves explicit pour hold');
 select extensions.throws_like($$update public.project_costs set total_cost=0$$,'%governed vendor bill posting%','posted bill cost cannot be rewritten');
 select extensions.throws_like($$delete from public.project_costs$$,'%cannot be deleted%','posted bill cost cannot be erased');
-select extensions.throws_like($$delete from public.projects where id='d1300000-0000-4000-8000-000000000001'$$,'%Procurement history cannot be cascade-deleted%','project deletion cannot erase governed procurement history');
+insert into procurement_results values('before-project-delete',pg_temp.procurement_fixture_history());
+select extensions.ok(jsonb_typeof((select value->'project' from procurement_results where key='before-project-delete'))='object' and jsonb_array_length((select value->'orders' from procurement_results where key='before-project-delete'))>0 and jsonb_array_length((select value->'receipts' from procurement_results where key='before-project-delete'))>0 and jsonb_array_length((select value->'actual_costs' from procurement_results where key='before-project-delete'))>0,'delete protection is tested against a recorded project, orders, receipts and posted actual costs');
+select extensions.throws_ok($$delete from public.projects where id='d1300000-0000-4000-8000-000000000001'$$,'P0001',null,'project deletion cannot erase governed procurement history');
+select extensions.is(pg_temp.procurement_fixture_history(),(select value from procurement_results where key='before-project-delete'),'failed project deletion preserves exact project, quote, PO, bill, receipt, document and actual-cost history');
 reset role;set local role postgres;
 insert into public.purchase_orders(id,company_id,project_id,vendor_id,po_number,status) values('d1880000-0000-4000-8000-000000000001','d1200000-0000-4000-8000-000000000001','d1300000-0000-4000-8000-000000000001','d1400000-0000-4000-8000-000000000001','SYN-OTHER-PO','issued');
 insert into public.vendor_bills(id,company_id,project_id,vendor_id,purchase_order_id,vendor_bill_number,bill_date) values('d1870000-0000-4000-8000-000000000001','d1200000-0000-4000-8000-000000000001','d1300000-0000-4000-8000-000000000001','d1400000-0000-4000-8000-000000000001','d1880000-0000-4000-8000-000000000001','SYN-OTHER-BILL','2026-10-16');

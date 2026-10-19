@@ -1,9 +1,9 @@
 'use client';
 
-import {useId,type ComponentProps,type ReactNode} from 'react';
+import {useEffect,useId,useRef,useState,type ComponentProps,type ReactNode} from 'react';
 import {Button,Input as FluentInput,Radio,RadioGroup} from '@fluentui/react-components';
 import {DismissRegular} from '@fluentui/react-icons';
-import {combineImperialLength,splitImperialLength,type ImperialCanonicalUnit} from '@/lib/ui/imperialLength';
+import {imperialEntryValue,splitImperialLength,type ImperialCanonicalUnit} from '@/lib/ui/imperialLength';
 import editorStyles from './ConditionEditorFields.module.css';
 
 export const inspectorInputClass=editorStyles.fluentInput;
@@ -33,16 +33,20 @@ export function InspectorNumberInput({unit,className='',...props}:Omit<Component
 
 /** Uses the same canonical conversion as the existing Carez dimension fields. */
 export function InspectorImperialInput({value,canonicalUnit,onValueChange,disabled=false,ariaLabel,ariaInvalid=false}:{value:string|number;canonicalUnit:ImperialCanonicalUnit;onValueChange:(value:string)=>void;disabled?:boolean;ariaLabel:string;ariaInvalid?:boolean}){
-  const hasValue=value!==''&&Number.isFinite(Number(value));
-  const parts=hasValue?splitImperialLength(value,canonicalUnit):{feet:0,inches:0};
-  const commit=(feet:string|number,inches:string|number)=>{
-    if(feet===''&&inches===''){onValueChange('');return;}
-    onValueChange(String(combineImperialLength(feet,inches,canonicalUnit)));
+  const displayParts=()=>{
+    if(value===''||!Number.isFinite(Number(value)))return {feet:'',inches:''};
+    const parts=splitImperialLength(value,canonicalUnit);return {feet:String(parts.feet),inches:String(parts.inches)};
   };
-  return <div data-inspector-imperial className={editorStyles.imperialFields} aria-invalid={ariaInvalid||undefined}>
-    <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step={1} value={hasValue?String(parts.feet):''} onChange={event=>commit(event.target.value,hasValue?parts.inches:'')} disabled={disabled} aria-label={`${ariaLabel} feet`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>ft</span>} className={editorStyles.imperialPart}/>
-    <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step="any" value={hasValue?String(parts.inches):''} onChange={event=>commit(hasValue?parts.feet:'',event.target.value)} disabled={disabled} aria-label={`${ariaLabel} inches`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>in</span>} className={editorStyles.imperialPart}/>
-    {hasValue?<Button type="button" appearance="subtle" size="small" icon={<DismissRegular/>} aria-label={`Clear ${ariaLabel}`} title={`Clear ${ariaLabel}`} disabled={disabled} onClick={()=>onValueChange('')} style={{minWidth:28,width:28,padding:0}}/>:null}
+  const [parts,setParts]=useState(displayParts);const editing=useRef(false);
+  useEffect(()=>{if(!editing.current)setParts(displayParts());},[value,canonicalUnit]);
+  const change=(part:'feet'|'inches',text:string)=>{
+    const next={...parts,[part]:text};setParts(next);onValueChange(imperialEntryValue(next.feet,next.inches,canonicalUnit,part));
+  };
+  return <div data-inspector-imperial className={editorStyles.imperialFields} aria-invalid={ariaInvalid||undefined}
+    onFocusCapture={()=>{editing.current=true;}} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget)){editing.current=false;setParts(displayParts());}}}>
+    <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step={1} value={parts.feet} onChange={event=>change('feet',event.target.value)} disabled={disabled} aria-label={`${ariaLabel} feet`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>ft</span>} className={editorStyles.imperialPart}/>
+    <FluentInput appearance="underline" size="small" type="number" inputMode="decimal" min={0} step="any" value={parts.inches} onChange={event=>change('inches',event.target.value)} disabled={disabled} aria-label={`${ariaLabel} inches`} aria-invalid={ariaInvalid||undefined} contentAfter={<span className={editorStyles.imperialUnit}>in</span>} className={editorStyles.imperialPart}/>
+    {parts.feet!==''||parts.inches!==''?<Button type="button" appearance="subtle" size="small" icon={<DismissRegular/>} aria-label={`Clear ${ariaLabel}`} title={`Clear ${ariaLabel}`} disabled={disabled} onClick={()=>{setParts({feet:'',inches:''});onValueChange('');}} style={{minWidth:28,width:28,padding:0}}/>:null}
   </div>;
 }
 

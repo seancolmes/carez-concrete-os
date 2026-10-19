@@ -23,6 +23,7 @@ function loadTsx(path: string, suffix = ''): any {
     if (name === './PendingActionButton') return loadTsx('components/opportunities/views/PendingActionButton.tsx');
     if (name === 'next/link') return {default: ({children, ...props}: any) => React.createElement('a', props, children)};
     if (name === 'next/navigation') return {redirect: denied};
+    if (name === '@/components/financials/ProcurementForm') return {ProcurementForm: ({children,action,...props}:any) => React.createElement('form', {...props,'data-local-inert':true}, children)};
     if (name.startsWith('@/lib/')) return new Proxy({}, {get: () => denied});
     if (name.startsWith('@/app/')) return new Proxy({}, {get: () => denied});
     return require(name);

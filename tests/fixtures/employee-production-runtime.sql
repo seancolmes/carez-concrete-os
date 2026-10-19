@@ -1,8 +1,19 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 begin;
 create extension if not exists pgtap with schema extensions;
-insert into auth.users(id,email) values ('e1111111-1111-4111-8111-111111111111','employee@carez.invalid');
-insert into public.companies(id,name) values ('e2222222-2222-4222-8222-222222222222','Employee fixture');
-insert into public.profiles(id,company_id,full_name,role) values ('e1111111-1111-4111-8111-111111111111','e2222222-2222-4222-8222-222222222222','Fixture Employee','employee');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('e1111111-1111-4111-8111-111111111111', 'employee@carez.invalid', jsonb_build_object('company_name','Employee fixture','full_name','Fixture Employee','operating_timezone','UTC'));
+insert into public.companies(id,name,operating_timezone) values
+  ('e2222222-2222-4222-8222-222222222222', 'Employee fixture', 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('e1111111-1111-4111-8111-111111111111', 'e2222222-2222-4222-8222-222222222222', 'Fixture Employee', 'employee')) v(id,company_id,full_name,role)
+where p.id=v.id::uuid;
 insert into public.projects(id,company_id,job_number,name,address,city,state) values ('e3333333-3333-4333-8333-333333333333','e2222222-2222-4222-8222-222222222222','EMP-01','Employee Fixture Job','1 Main St','Tacoma','WA');
 insert into public.crew_members(id,company_id,profile_id,name,role,active,is_owner) values ('e4444444-4444-4444-8444-444444444444','e2222222-2222-4222-8222-222222222222','e1111111-1111-4111-8111-111111111111','Fixture Employee','finisher',true,false);
 insert into public.production_tasks(id,company_id,name,production_unit,active) values ('e5555555-5555-4555-8555-555555555555','e2222222-2222-4222-8222-222222222222','Fixture Task','SF',true);
@@ -17,7 +28,7 @@ select extensions.ok((public.employee_portal_state()->'employee'->>'name')='Fixt
 select extensions.ok((public.employee_portal_state()->'projects')::jsonb @> '[{"id":"e3333333-3333-4333-8333-333333333333"}]'::jsonb,'portal state returns tenant jobs');
 select extensions.is((select count(*) from public.production_work_queue where company_id='e2222222-2222-4222-8222-222222222222'),0::bigint,'production queue has no fabricated exceptions');
 select extensions.ok(to_regclass('public.carez_production_learning_summary') is not null,'production learning summary is source-controlled');
-select extensions.ok(not has_function_privilege('anon','public.employee_clock_in(uuid,numeric,numeric,numeric,text)','execute'),'anonymous cannot clock in');
+select extensions.ok(not has_function_privilege('anon','public.carez_employee_clock_in_v2(uuid,numeric,numeric,numeric,text)','execute') and not coalesce(has_function_privilege('anon',to_regprocedure('public.employee_clock_in(uuid,numeric,numeric,numeric,text)'),'execute'),false),'anonymous cannot clock in through the current command or any retained legacy signature');
 select extensions.ok(not has_table_privilege('anon','public.employee_task_segments','SELECT'),'anonymous cannot read task segments');
 reset role;
 select * from extensions.finish();

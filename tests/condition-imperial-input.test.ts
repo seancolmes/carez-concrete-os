@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { combineImperialLength, splitImperialLength } from '../lib/ui/imperialLength.ts';
+import { combineImperialLength, splitImperialLength, imperialEntryValue } from '../lib/ui/imperialLength.ts';
 
 test('feet-based Condition dimensions round-trip through feet + inches without changing canonical authority', () => {
   assert.deepEqual(splitImperialLength(2.5, 'FT'), { feet: 2, inches: 6 });
@@ -23,6 +23,15 @@ test('inch-based Condition dimensions use the same feet + inches editor and pres
   assert.deepEqual(splitImperialLength(30, 'IN'), { feet: 2, inches: 6 });
   assert.equal(combineImperialLength(2, 6, 'IN'), 30);
   assert.equal(combineImperialLength(0, 4, 'IN'), 4);
+});
+
+test('replace-and-type retains an unfinished blank rather than writing zero, then uses canonical conversion', () => {
+  assert.equal(imperialEntryValue('', '0', 'FT', 'feet'), '');
+  assert.equal(imperialEntryValue('4', '0', 'FT', 'feet'), '4');
+  assert.equal(imperialEntryValue('2', '', 'FT', 'inches'), '');
+  assert.equal(imperialEntryValue('2', '6', 'FT', 'inches'), '2.5');
+  assert.equal(imperialEntryValue('0', '0', 'FT', 'feet'), '0');
+  assert.equal(imperialEntryValue('', '6', 'IN', 'inches'), '6');
 });
 
 test('Condition Properties applies architectural entry only to governed plan dimensions', () => {

@@ -1,9 +1,22 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 -- Run against both canonical TABLE-return and production composite-return wrappers.
 begin;
 create extension if not exists pgtap with schema extensions;select extensions.no_plan();
-insert into auth.users(id,email) values('ec100000-0000-4000-8000-000000000001','overhead-owner@local.invalid'),('ec100000-0000-4000-8000-000000000002','overhead-employee@local.invalid');
-insert into public.companies(id,name,planned_productive_hours_annual,owner_compensation_target_annual,owner_planned_field_hours_annual,owner_field_rate) values('ec200000-0000-4000-8000-000000000001','Overhead Version Test',2000,100000,1000,50);
-insert into public.profiles(id,company_id,role,full_name) values('ec100000-0000-4000-8000-000000000001','ec200000-0000-4000-8000-000000000001','owner','Overhead Owner'),('ec100000-0000-4000-8000-000000000002','ec200000-0000-4000-8000-000000000001','employee','Overhead Employee');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('ec100000-0000-4000-8000-000000000001', 'overhead-owner@local.invalid', jsonb_build_object('company_name','Overhead Version Test','full_name','Overhead Owner','operating_timezone','UTC')),
+  ('ec100000-0000-4000-8000-000000000002', 'overhead-employee@local.invalid', jsonb_build_object('company_name','Overhead Version Test','full_name','Overhead Employee','operating_timezone','UTC'));
+insert into public.companies(id,name,planned_productive_hours_annual,owner_compensation_target_annual,owner_planned_field_hours_annual,owner_field_rate,operating_timezone) values
+  ('ec200000-0000-4000-8000-000000000001', 'Overhead Version Test', 2000, 100000, 1000, 50, 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('ec100000-0000-4000-8000-000000000001', 'ec200000-0000-4000-8000-000000000001', 'owner', 'Overhead Owner'),
+  ('ec100000-0000-4000-8000-000000000002', 'ec200000-0000-4000-8000-000000000001', 'employee', 'Overhead Employee')) v(id,company_id,role,full_name)
+where p.id=v.id::uuid;
 insert into public.overhead_items(id,company_id,category,name,amount,frequency,business_use_percent) values('ec300000-0000-4000-8000-000000000001','ec200000-0000-4000-8000-000000000001','Facilities','Synthetic rent',1000,'monthly',100);
 create temp table overhead_test_context(key text primary key,value jsonb);grant all on overhead_test_context to authenticated;
 select set_config('request.jwt.claim.sub','ec100000-0000-4000-8000-000000000001',true);set local role authenticated;

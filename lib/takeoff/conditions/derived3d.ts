@@ -7,7 +7,8 @@ import type { BuildDerived3DSceneInput, Derived3DConditionSource, Derived3DGeome
 export type * from './derived3d/contracts.ts';
 export { stableDerived3DHash } from './derived3d/coordinates.ts';
 export const PROJECTION_VERSION = 'concrete-projection-v2';
-const STRIP_PROJECTION_CONTRACT_VERSIONS = new Set([1, 2, 3, 4, 5]);
+// V6 changes discrete resource outputs, retaining V5's physical section contract.
+const STRIP_PROJECTION_CONTRACT_VERSIONS = new Set([1, 2, 3, 4, 5, 6, 7]);
 const AREA_PROJECTION_FAMILIES = new Set(['slab_on_grade', 'thickened_slab', 'elevated_slab']);
 const LINEAR_PROJECTION_FAMILIES = new Set(['strip_wall_footing', 'thickened_edge', 'grade_beam', 'foundation_wall', 'curb']);
 const COUNT_PROJECTION_FAMILIES = new Set(['pad_column_footing', 'column_pier', 'stairs']);
@@ -78,7 +79,9 @@ function projectScene(input: BuildDerived3DSceneInput, cache?: Derived3DGeometry
   const conditions = [...input.conditions].sort((a, b) => a.conditionId.localeCompare(b.conditionId) || a.conditionVersionId.localeCompare(b.conditionVersionId));
   for (const condition of conditions) {
     const capable = projectionCapability(condition);
-    const primaryRole = capable.supported ? conditionArchetype(condition.archetypeKey).roles.find(r => r.primary) : undefined;
+    // A version hold still belongs to its linked drawing. Do not erase its role
+    // identity merely because this version cannot be projected.
+    const primaryRole = conditionArchetype(condition.archetypeKey)?.roles.find(r => r.primary);
     const assignments = condition.roles.filter(r => r.roleKey === primaryRole?.key).sort((a, b) => (a.roleInstanceKey || a.measurementId).localeCompare(b.roleInstanceKey || b.measurementId));
     for (const assignment of assignments.length ? assignments : [null]) {
       requested++;

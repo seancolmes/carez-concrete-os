@@ -1,9 +1,27 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 -- Synthetic metadata/authority fixture. Document metadata is not uploaded-byte or signature proof.
 begin;
 create extension if not exists pgtap with schema extensions;select extensions.no_plan();
-insert into auth.users(id,email) values('eb100000-0000-4000-8000-000000000001','agreement-owner@local.invalid'),('eb100000-0000-4000-8000-000000000002','agreement-office@local.invalid'),('eb100000-0000-4000-8000-000000000003','agreement-employee@local.invalid'),('eb100000-0000-4000-8000-000000000004','agreement-other@local.invalid');
-insert into public.companies(id,name) values('eb200000-0000-4000-8000-000000000001','Agreement Test Contractor'),('eb200000-0000-4000-8000-000000000002','Other Agreement Contractor');
-insert into public.profiles(id,company_id,role,full_name) values('eb100000-0000-4000-8000-000000000001','eb200000-0000-4000-8000-000000000001','owner','Test Owner'),('eb100000-0000-4000-8000-000000000002','eb200000-0000-4000-8000-000000000001','office','Test Office'),('eb100000-0000-4000-8000-000000000003','eb200000-0000-4000-8000-000000000001','employee','Test Employee'),('eb100000-0000-4000-8000-000000000004','eb200000-0000-4000-8000-000000000002','owner','Other Owner');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('eb100000-0000-4000-8000-000000000001', 'agreement-owner@local.invalid', jsonb_build_object('company_name','Agreement Test Contractor','full_name','Test Owner','operating_timezone','UTC')),
+  ('eb100000-0000-4000-8000-000000000002', 'agreement-office@local.invalid', jsonb_build_object('company_name','Agreement Test Contractor','full_name','Test Office','operating_timezone','UTC')),
+  ('eb100000-0000-4000-8000-000000000003', 'agreement-employee@local.invalid', jsonb_build_object('company_name','Agreement Test Contractor','full_name','Test Employee','operating_timezone','UTC')),
+  ('eb100000-0000-4000-8000-000000000004', 'agreement-other@local.invalid', jsonb_build_object('company_name','Other Agreement Contractor','full_name','Other Owner','operating_timezone','UTC'));
+insert into public.companies(id,name,operating_timezone) values
+  ('eb200000-0000-4000-8000-000000000001', 'Agreement Test Contractor', 'UTC'),
+  ('eb200000-0000-4000-8000-000000000002', 'Other Agreement Contractor', 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('eb100000-0000-4000-8000-000000000001', 'eb200000-0000-4000-8000-000000000001', 'owner', 'Test Owner'),
+  ('eb100000-0000-4000-8000-000000000002', 'eb200000-0000-4000-8000-000000000001', 'office', 'Test Office'),
+  ('eb100000-0000-4000-8000-000000000003', 'eb200000-0000-4000-8000-000000000001', 'employee', 'Test Employee'),
+  ('eb100000-0000-4000-8000-000000000004', 'eb200000-0000-4000-8000-000000000002', 'owner', 'Other Owner')) v(id,company_id,role,full_name)
+where p.id=v.id::uuid;
 insert into public.projects(id,company_id,job_number,name,status) values('eb500000-0000-4000-8000-000000000001','eb200000-0000-4000-8000-000000000001','LOCAL-NOT-EXTERNAL','Separate synthetic project','active');
 create temp table agreement_test_context(key text primary key,value text);grant all on agreement_test_context to authenticated;
 create function pg_temp.agreement_payload(p_action text default 'verify',p_previous uuid default null) returns jsonb language sql as $$select jsonb_build_object('project_id',(select value::uuid from agreement_test_context where key='project'),'expected_event_id',p_previous,'action',p_action,'evidence_basis',case when p_action='verify' then 'owner_attestation_copy_pending' else null end,'agreement_amount','25000.00','agreement_reference','LOCAL-SIGNED-AG','note','Synthetic owner evidence; executed copy is pending.','acknowledged',true);$$;
@@ -47,6 +65,10 @@ select extensions.is((select agreement_captured from public.project_job_readines
 select extensions.is((select count(*)::integer from public.external_agreement_verifications where project_id=(select value::uuid from agreement_test_context where key='project')),2,'verify and revoke events both retained');
 select extensions.is((select has_awarded_budget from public.project_startup_readiness where project_id=(select value::uuid from agreement_test_context where key='project')),false,'revocation does not invent or remove an internal baseline');
 select extensions.throws_like($$update public.project_award_records set status='accepted' where project_id=(select value::uuid from agreement_test_context where key='project')$$,'%status must match%','direct DML cannot reactivate revoked agreement');
+insert into agreement_test_context select 'reverified',public.carez_verify_external_agreement('eb400000-0000-4000-8000-000000000003',pg_temp.agreement_payload('verify',(select value::uuid from agreement_test_context where key='revoked')))::text;
+select extensions.ok((select status='accepted' and original_contract_value=25000 and agreement_number='LOCAL-SIGNED-AG' and authorization_text='Owner verified externally signed agreement. Executed copy remains pending.' from public.project_award_records where project_id=(select value::uuid from agreement_test_context where key='project')),'owner re-verification advances the event description without changing recorded commercial facts');
+select extensions.is((select count(*)::integer from public.external_agreement_verifications where project_id=(select value::uuid from agreement_test_context where key='project')),3,'verify, revoke and re-verification remain append-only events');
+select extensions.throws_like($$update public.project_award_records set authorization_text='Owner verification revoked.' where project_id=(select value::uuid from agreement_test_context where key='project')$$,'%cannot fabricate%','an owner cannot bypass the current event with a raw authorization-text update');
 reset role;set local role anon;
 select extensions.throws_like($$select public.carez_verify_external_agreement(gen_random_uuid(),'{}')$$,'%permission denied%','anonymous cannot verify');
 reset role;select * from extensions.finish();rollback;

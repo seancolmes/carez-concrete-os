@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 -- Isolated local records. Setup does not qualify hosted Auth, GPS or payroll taxes.
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -20,7 +23,8 @@ insert into public.projects(id,company_id,job_number,name,status,work_timezone) 
  ('e9400000-0000-4000-8000-000000000001','e9200000-0000-4000-8000-000000000001','SYN-CLOCK','Synthetic calendar job','active','America/Los_Angeles');
 
 update public.projects set sales_tax_exempt=true where id='e9400000-0000-4000-8000-000000000001';
-insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value) values('e9200000-0000-4000-8000-000000000001','e9400000-0000-4000-8000-000000000001','SYN-AG',1000);
+-- Explicit synthetic historical agreement input; not hosted acceptance proof.
+insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value,status,authorization_text) values('e9200000-0000-4000-8000-000000000001','e9400000-0000-4000-8000-000000000001','SYN-AG',1000,'accepted','Synthetic historical fixture agreement evidence; no real customer authorization');
 insert into public.production_tasks(id,company_id,name,production_unit,active) values('e9600000-0000-4000-8000-000000000001','e9200000-0000-4000-8000-000000000001','Synthetic field work','SF',true);
 insert into public.work_packages(id,company_id,project_id,name) values('e9610000-0000-4000-8000-000000000001','e9200000-0000-4000-8000-000000000001','e9400000-0000-4000-8000-000000000001','Synthetic package');
 insert into public.work_package_operations(id,company_id,work_package_id,production_task_id,field_label,planned_quantity,unit,measurement_method,requires_prior_operations) values('e9620000-0000-4000-8000-000000000001','e9200000-0000-4000-8000-000000000001','e9610000-0000-4000-8000-000000000001','e9600000-0000-4000-8000-000000000001','Synthetic assigned work',100,'SF','completion',false);
@@ -47,8 +51,15 @@ update public.work_package_resource_requirements set waived_at=clock_timestamp()
 select set_config('request.jwt.claim.sub','e9100000-0000-4000-8000-000000000002',true);
 set local role authenticated;
 select extensions.ok((public.employee_portal_state()->'assigned_schedule'->0->>'ready_to_start')::boolean=true,'portal becomes ready only after explicit required gate clearance');
+select extensions.lives_ok($$select public.carez_employee_start_task_v2('e9600000-0000-4000-8000-000000000001',null,null,null)$$,'generic work starts after the authoritative job gate clears');
+-- Raw attendance tables stay private; persistence is inspected by the isolated
+-- privileged verifier, not by broadening the employee's application read policy.
+reset role;
+select extensions.ok((select crew_member_id='e9300000-0000-4000-8000-000000000001' and project_id='e9400000-0000-4000-8000-000000000001' from public.employee_task_segments where work_package_operation_id is null and ended_at is null),'generic task persists Crew and project from the authenticated active shift');
+set local role authenticated;
 select extensions.lives_ok($$select public.carez_employee_start_work_v2('e9620000-0000-4000-8000-000000000001',null,null,null)$$,'connected ready work can start');
 select extensions.lives_ok($$select public.carez_employee_start_work_v2('e9620000-0000-4000-8000-000000000001',null,null,null)$$,'start retry preserves its active segment');
 reset role;
 select extensions.is((select count(*)::integer from public.employee_task_segments where work_package_operation_id='e9620000-0000-4000-8000-000000000001'),1,'one persisted physical-work segment after retry; attendance segment retained');
+select extensions.ok((select crew_member_id='e9300000-0000-4000-8000-000000000001' and project_id='e9400000-0000-4000-8000-000000000001' from public.employee_task_segments where work_package_operation_id='e9620000-0000-4000-8000-000000000001'),'operation task persists Crew and project from the authenticated active shift');
 reset role;select * from extensions.finish();rollback;

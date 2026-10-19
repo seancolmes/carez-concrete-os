@@ -76,6 +76,32 @@ test('strip footing projects the shared continuous run footprint', () => {
   assert.equal(scene.solids[0].shape.top, 11);
 });
 
+for(const contractVersion of [6,7])test(`v${contractVersion} projects the unchanged footing section and retains the saved LF authority`, () => {
+  const measurement = { id: 'run-v6', sheet_id: sheet.id, name: 'Synthetic 36 LF footing', raw_quantity: 36, raw_unit: 'LF',
+    geometry: { type: 'polyline', points: [{ x: 0.2, y: 0.5 }, { x: 0.56, y: 0.5 }] } };
+  const condition = { conditionId: 'condition-v6', conditionVersionId: 'version-v6', code: 'V6', name: 'Synthetic footing',
+    archetypeKey: 'strip_wall_footing' as const, contractVersion, color: '#1A2B55',
+    planFacts: { width_ft: 4, depth_ft: 1 }, drawingInputs: { elevation_ft: 100, elevation_reference: 'top' },
+    concreteProfile: { enabled: true, profile: 'rectangular', topWidthFt: null }, roles: [{ roleKey: 'run', measurementId: measurement.id }] };
+  const scene = buildDerived3DScene({ conditions: [condition], measurements: [measurement], sheets: [sheet] });
+  const old = buildDerived3DScene({ conditions: [{ ...condition, contractVersion: 5 }], measurements: [measurement], sheets: [sheet] });
+  assert.equal(scene.solids.length, 1);
+  assert.deepEqual(scene.solids[0].shape, old.solids[0].shape);
+  assert.equal(scene.solids[0].shape.top, 100);
+  assert.equal(scene.solids[0].shape.bottom, 99);
+  assert.equal(scene.sourceQuantities[scene.solids[0].sourceQuantityKey].value, 36);
+  assert.equal(scene.coverage.held, 0);
+  assert.equal('volume' in scene.solids[0], false);
+});
+
+test('unsupported projection retains its linked measurement and sheet instead of disappearing from checks', () => {
+  const scene = buildDerived3DScene({ conditions: [{ ...slabCondition(), contractVersion: 999 }], measurements: [slabMeasurement], sheets: [sheet] });
+  assert.equal(scene.solids.length, 0);
+  assert.equal(scene.issues[0].code, 'unsupported_projection');
+  assert.equal(scene.issues[0].measurementId, slabMeasurement.id);
+  assert.equal(scene.issues[0].sheetId, sheet.id);
+});
+
 test('self-crossing generated footing footprint holds 3D with a 2D correction hint', () => {
   const measurement = {
     id: 'measurement-bent-footing', sheet_id: sheet.id, name: 'Bent footing', raw_quantity: 31, raw_unit: 'LF',

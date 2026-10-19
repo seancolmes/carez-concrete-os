@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 -- Isolated SQL-trigger authority evidence. This is not remote Auth/email proof.
 begin;
 create extension if not exists pgtap with schema extensions;select extensions.no_plan();
@@ -44,9 +47,13 @@ select extensions.is((select count(*)::integer from auth.users where id='a710000
 select extensions.is((select count(*)::integer from public.companies),(select count(*)::integer+2 from signup_prior_companies),'failed invites create no spurious companies');
 select set_config('request.jwt.claim.sub','a7100000-0000-4000-8000-000000000003',true);set local role authenticated;
 select extensions.throws_like($$select public.carez_issue_employee_invite('a7200000-0000-4000-8000-000000000002',repeat('d',64))$$,'%Owner or office%','employee cannot issue invitations');
-select extensions.throws_like($$update public.profiles set role='owner' where id=auth.uid()$$,'%permission denied%','profile role remains server controlled');
+select extensions.throws_ok($$update public.profiles set role='owner' where id=auth.uid()$$,'42501',null,'profile role remains server controlled');
+select extensions.is((select role from public.profiles where id=auth.uid()),'employee','rejected self-promotion leaves the accepted employee role unchanged');
 select extensions.throws_like($$insert into public.profiles(id,company_id,full_name,role) values(auth.uid(),'ffffffff-ffff-ffff-ffff-ffffffffffff','Injection','owner')$$,'%permission denied%','missing-profile recovery cannot be forged through a client insert');
+-- Return to a real privileged Auth-administration context. Keeping the deleted
+-- subject's JWT in a postgres cleanup statement is not a service deletion path.
 reset role;
+select set_config('request.jwt.claim.sub','',true);
 delete from auth.users where id='a7100000-0000-4000-8000-000000000003';
 select extensions.is((select profile_id from public.crew_members where id='a7200000-0000-4000-8000-000000000001'),null::uuid,'account removal retains the existing Crew unlink behavior');
 select extensions.ok((select accepted_at is not null and accepted_user_id='a7100000-0000-4000-8000-000000000003' from public.employee_invites where crew_member_id='a7200000-0000-4000-8000-000000000001'),'account removal preserves consumed-invite audit identity');

@@ -24,6 +24,7 @@ const sourceCodePro = Source_Code_Pro({
 export const metadata: Metadata = {
   title: 'Pourtrace',
   description: 'Concrete estimating and operations workspace',
+  icons: {icon: {url:'/favicon.svg',type:'image/svg+xml'}},
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

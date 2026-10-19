@@ -1,3 +1,7 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 -- Isolated local Supabase only; run as postgres against the full source schema.
 -- No production functions, guards, RLS policies, or calculation services are
 -- replaced. The published component is the identity formula quantity -> LF.
@@ -8,17 +12,21 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select extensions.no_plan();
 
-insert into auth.users(id) values
-  ('91600000-0000-4000-8000-000000000001'),
-  ('91600000-0000-4000-8000-000000000002'),
-  ('91600000-0000-4000-8000-000000000003');
-insert into public.companies(id,name) values
-  ('91600000-0000-4000-8000-000000000010','Local Geometry History Fixture'),
-  ('91600000-0000-4000-8000-000000000011','Other Geometry History Tenant');
-insert into public.profiles(id,company_id,full_name,role) values
-  ('91600000-0000-4000-8000-000000000001','91600000-0000-4000-8000-000000000010','Geometry Fixture Owner','owner'),
-  ('91600000-0000-4000-8000-000000000002','91600000-0000-4000-8000-000000000010','Geometry Fixture Employee','employee'),
-  ('91600000-0000-4000-8000-000000000003','91600000-0000-4000-8000-000000000011','Other Geometry Owner','owner');
+insert into auth.users(id,raw_user_meta_data) values
+  ('91600000-0000-4000-8000-000000000001', jsonb_build_object('company_name','Local Geometry History Fixture','full_name','Geometry Fixture Owner','operating_timezone','UTC')),
+  ('91600000-0000-4000-8000-000000000002', jsonb_build_object('company_name','Local Geometry History Fixture','full_name','Geometry Fixture Employee','operating_timezone','UTC')),
+  ('91600000-0000-4000-8000-000000000003', jsonb_build_object('company_name','Other Geometry History Tenant','full_name','Other Geometry Owner','operating_timezone','UTC'));
+insert into public.companies(id,name,operating_timezone) values
+  ('91600000-0000-4000-8000-000000000010', 'Local Geometry History Fixture', 'UTC'),
+  ('91600000-0000-4000-8000-000000000011', 'Other Geometry History Tenant', 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('91600000-0000-4000-8000-000000000001', '91600000-0000-4000-8000-000000000010', 'Geometry Fixture Owner', 'owner'),
+  ('91600000-0000-4000-8000-000000000002', '91600000-0000-4000-8000-000000000010', 'Geometry Fixture Employee', 'employee'),
+  ('91600000-0000-4000-8000-000000000003', '91600000-0000-4000-8000-000000000011', 'Other Geometry Owner', 'owner')) v(id,company_id,full_name,role)
+where p.id=v.id::uuid;
 
 create temporary table geometry_history_case(
   measurement_id uuid primary key,

@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 -- Isolated local records only. Every mutation rolls back.
 begin;
 set local search_path=pg_catalog,public,extensions;
@@ -12,7 +15,8 @@ insert into public.projects(id,company_id,job_number,name,status,sales_tax_exemp
  ('e1300000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','SYN-READY','Synthetic ready job','active',true),
  ('e1300000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000001','SYN-HELD','Synthetic held job','on_hold',true),
  ('e1300000-0000-4000-8000-000000000003','e1200000-0000-4000-8000-000000000002','SYN-FOREIGN','Synthetic foreign job','active',true);
-insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value) values('e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','SYN-AG',0);
+-- Explicit synthetic historical agreement input; not hosted acceptance proof.
+insert into public.project_award_records(company_id,project_id,agreement_number,original_contract_value,status,authorization_text) values('e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','SYN-AG',0,'accepted','Synthetic historical fixture agreement evidence; no real customer authorization');
 insert into public.production_tasks(id,company_id,name,production_unit,active) values('e1500000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','Synthetic finish','SF',true);
 insert into public.crew_members(id,company_id,name,role,active) values ('e1400000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','Synthetic active worker','finisher',true),('e1400000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000001','Synthetic inactive worker','finisher',false);
 insert into public.work_packages(id,company_id,project_id,name) values('e1600000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','Synthetic package');
@@ -20,6 +24,11 @@ insert into public.work_package_operations(id,company_id,work_package_id,product
 insert into public.pour_plans(id,company_id,project_id,name) values('e1800000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','Synthetic linked pour');
 insert into public.pour_plans(id,company_id,project_id,name) values('e1800000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000001','Synthetic other pour');
 insert into public.work_package_operations(id,company_id,work_package_id,production_task_id,field_label,planned_quantity,unit,requires_prior_operations,pour_plan_id) values('e1700000-0000-4000-8000-000000000002','e1200000-0000-4000-8000-000000000001','e1600000-0000-4000-8000-000000000001','e1500000-0000-4000-8000-000000000001','Synthetic pour operation',100,'SF',false,'e1800000-0000-4000-8000-000000000001');
+-- Explicit privileged synthetic draft-source setup: unlike a manual legacy job,
+-- this project requires agreement evidence. No accepted agreement is invented.
+insert into public.estimates(id,company_id,project_id,estimate_number,version,name,status)
+ values('e1860000-0000-4000-8000-000000000001','e1200000-0000-4000-8000-000000000001','e1300000-0000-4000-8000-000000000002','SYN-MISSING-AG',1,'Synthetic source requires agreement','draft');
+update public.projects set source_estimate_id='e1860000-0000-4000-8000-000000000001' where id='e1300000-0000-4000-8000-000000000002';
 create temp table schedule_input as select jsonb_build_object('project_id','e1300000-0000-4000-8000-000000000002','schedule_date','2026-10-16','item_type','work','title','Synthetic held planning','production_task_id','e1500000-0000-4000-8000-000000000001','crew_needed',1,'crew_member_ids',jsonb_build_array('e1400000-0000-4000-8000-000000000001','e1400000-0000-4000-8000-000000000001'),'start_time','23:00','end_time','02:00') payload;
 create temp table schedule_results(key text primary key,value jsonb);grant all on schedule_results to authenticated;grant select on schedule_input to authenticated;
 create function pg_temp.schedule_request(n integer,c text,p jsonb) returns jsonb language sql as $$ select public.carez_schedule_command_v1(('e1900000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,c,p) $$;

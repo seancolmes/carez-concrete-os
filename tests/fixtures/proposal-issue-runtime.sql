@@ -3,20 +3,25 @@
 -- This fixture deliberately contains manual material scope and no labor or
 -- Takeoff geometry. It qualifies release/Award transactions, not drawing QA.
 begin;
+set local time zone 'UTC';
 create extension if not exists pgtap with schema extensions;
 select extensions.no_plan();
 
-insert into auth.users(id) values
-  ('91500000-0000-4000-8000-000000000001'),
-  ('91500000-0000-4000-8000-000000000002'),
-  ('91500000-0000-4000-8000-000000000003');
-insert into public.companies(id,name) values
-  ('91500000-0000-4000-8000-000000000010','Local Proposal Issue Fixture'),
-  ('91500000-0000-4000-8000-000000000011','Other Local Proposal Tenant');
-insert into public.profiles(id,company_id,full_name,role) values
+-- Use the current real signup trigger; the privileged assignments below only
+-- establish fixture authorization contexts, not invitation/onboarding evidence.
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('91500000-0000-4000-8000-000000000001','proposal-owner@local.invalid','{"company_name":"Synthetic proposal signup","full_name":"Local Issue Owner","operating_timezone":"UTC"}'),
+  ('91500000-0000-4000-8000-000000000002','proposal-worker@local.invalid','{"company_name":"Synthetic worker signup","full_name":"Local Issue Employee","operating_timezone":"UTC"}'),
+  ('91500000-0000-4000-8000-000000000003','proposal-foreign@local.invalid','{"company_name":"Synthetic foreign signup","full_name":"Other Local Owner","operating_timezone":"UTC"}');
+insert into public.companies(id,name,operating_timezone) values
+  ('91500000-0000-4000-8000-000000000010','Local Proposal Issue Fixture','UTC'),
+  ('91500000-0000-4000-8000-000000000011','Other Local Proposal Tenant','UTC');
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
   ('91500000-0000-4000-8000-000000000001','91500000-0000-4000-8000-000000000010','Local Issue Owner','owner'),
   ('91500000-0000-4000-8000-000000000002','91500000-0000-4000-8000-000000000010','Local Issue Employee','employee'),
-  ('91500000-0000-4000-8000-000000000003','91500000-0000-4000-8000-000000000011','Other Local Owner','owner');
+  ('91500000-0000-4000-8000-000000000003','91500000-0000-4000-8000-000000000011','Other Local Owner','owner')) v(id,company_id,full_name,role)
+where p.id=v.id::uuid;
 
 create function public.carez_test_proposal_issue_failure()
 returns trigger language plpgsql security invoker set search_path=public as $$
@@ -37,6 +42,11 @@ select set_config('request.jwt.claim.sub','91500000-0000-4000-8000-000000000001'
 select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;
 
+-- A deliberate synthetic zero-overhead plan is recorded through the supported
+-- command, then captured. A bare numeric0 is not a configured release basis.
+select public.carez_save_company_plan('91509900-0000-4000-8000-000000000001',0,
+ '{"target_margin_percent":0,"planned_productive_hours_annual":2000,"owner_compensation_target_annual":0,"owner_planned_field_hours_annual":0,"owner_field_rate":40}');
+
 insert into public.customers(id,company_id,name,email) values
   ('91500000-0000-4000-8000-000000000020','91500000-0000-4000-8000-000000000010',
    'Local release fixture customer','release-fixture@example.invalid');
@@ -45,13 +55,18 @@ insert into public.leads(id,company_id,customer_id,customer_name,project_name,st
    '91500000-0000-4000-8000-000000000020','Local release fixture customer','Local release fixture','WA');
 insert into public.estimates(
   id,company_id,lead_id,opportunity_number,estimate_number,name,status,version,
-  proposed_sell_price,target_margin_percent,overhead_rate_snapshot,
+  proposed_sell_price,target_margin_percent,overhead_rate_snapshot,overhead_snapshot_id,
   bo_classification,bo_rate_percent,payment_processing_rate_percent,created_by
 ) values (
   '91500000-0000-4000-8000-000000000040','91500000-0000-4000-8000-000000000010',
-  '91500000-0000-4000-8000-000000000030','LOCAL-ISSUE','E-LOCAL-ISSUE','Local release fixture','ready',1,
-  100,0,0,'retailing',0,0,'91500000-0000-4000-8000-000000000001'
+  '91500000-0000-4000-8000-000000000030','LOCAL-ISSUE','E-LOCAL-ISSUE','Local release fixture','draft',1,
+  100,0,null,null,
+  'retailing',0,0,'91500000-0000-4000-8000-000000000001'
 );
+select public.carez_attach_estimate_overhead('91509900-0000-4000-8000-000000000002',
+ '91500000-0000-4000-8000-000000000040',
+ (select updated_at from public.estimates where id='91500000-0000-4000-8000-000000000040'));
+update public.estimates set status='ready' where id='91500000-0000-4000-8000-000000000040';
 insert into public.estimate_sections(id,company_id,estimate_id,name,scope_type,sort_order) values
   ('91500000-0000-4000-8000-000000000050','91500000-0000-4000-8000-000000000010',
    '91500000-0000-4000-8000-000000000040','Footings','footing',10);

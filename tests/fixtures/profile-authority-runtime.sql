@@ -1,9 +1,19 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 begin;
 create extension if not exists pgtap with schema extensions;
-insert into auth.users(id,email) values ('91111111-1111-4111-8111-111111111111','profile-security@carez.invalid');
-insert into public.companies(id,name) values ('92222222-2222-4222-8222-222222222222','Profile security fixture');
-insert into public.profiles(id,company_id,full_name,role)
-values ('91111111-1111-4111-8111-111111111111','92222222-2222-4222-8222-222222222222','Office','office');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('91111111-1111-4111-8111-111111111111', 'profile-security@carez.invalid', jsonb_build_object('company_name','Profile security fixture','full_name','Office','operating_timezone','UTC'));
+insert into public.companies(id,name,operating_timezone) values
+  ('92222222-2222-4222-8222-222222222222', 'Profile security fixture', 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('91111111-1111-4111-8111-111111111111', '92222222-2222-4222-8222-222222222222', 'Office', 'office')) v(id,company_id,full_name,role)
+where p.id=v.id::uuid;
 select set_config('request.jwt.claim.sub','91111111-1111-4111-8111-111111111111',true);
 set local role authenticated;
 do $$

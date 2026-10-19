@@ -1,4 +1,4 @@
-import {executeFinancialCommand} from './financials/commands';
+import {executeFinancialCommand} from './financials/commands.ts';
 type Candidate={company_id:string;bank_transaction_id:string;candidate_type:string;entity_type?:string|null;entity_id?:string|null;rule_id?:string|null;confidence:number;reason:string;proposed_action?:string|null;metadata?:Record<string,any>;status:'active'};
 
 const round=(v:any)=>Math.round(Number(v||0)*100)/100;
@@ -16,25 +16,34 @@ function txLabel(t:any){return t.merchant_name||t.name||'Bank transaction';}
 function addCandidate(map:Map<string,Candidate>,c:Candidate){const key=`${c.bank_transaction_id}|${c.candidate_type}|${c.entity_id||''}|${c.rule_id||''}`;const old=map.get(key);if(!old||c.confidence>old.confidence)map.set(key,c);}
 
 export async function analyzeBankTransactions(supabase:any,companyId:string,{limit=750}:{limit?:number}={}){
+  const sync=await supabase.rpc('carez_plaid_analysis_status');
+  if(sync.error||sync.data?.ok!==true||sync.data?.ready!==true)throw new Error('Bank synchronization is incomplete or unavailable. Complete sync before analysis.');
   const {data:txs,error:txError}=await supabase.from('plaid_transactions').select('*').eq('company_id',companyId).eq('removed',false).eq('review_status','unreviewed').eq('pending',false).order('transaction_date',{ascending:false}).limit(limit);
   if(txError)throw new Error(txError.message);if(!(txs||[]).length)return {analyzed:0,candidates:0,autoMatched:0,autoApplied:0};
   const txIds=(txs||[]).map((t:any)=>t.id);
-  await supabase.from('bank_reconciliation_candidates').update({status:'stale',updated_at:new Date().toISOString()}).eq('company_id',companyId).eq('status','active').in('bank_transaction_id',txIds);
 
   const [customersR,customerPaymentsR,invoicesR,vendorsR,vendorPaymentsR,billsR,expensesR,payrollR,taxesR,rulesR,overheadR,allTxR]=await Promise.all([
-    supabase.from('customers').select('id,name').eq('company_id',companyId),
-    supabase.from('customer_payments').select('id,customer_id,project_id,received_date,amount,status,bank_transaction_id').eq('company_id',companyId).eq('status','posted'),
-    supabase.from('invoice_financial_summary').select('invoice_id,project_id,customer_id,invoice_number,bill_to_name,status,issue_date,due_date,balance_due').eq('company_id',companyId).eq('status','sent').gt('balance_due',0),
-    supabase.from('vendors').select('id,name').eq('company_id',companyId),
-    supabase.from('vendor_payments').select('id,vendor_id,payment_date,amount,processing_fee,status,bank_transaction_id').eq('company_id',companyId).eq('status','posted'),
-    supabase.from('vendor_bill_ap_summary').select('vendor_bill_id,vendor_id,vendor_name,vendor_bill_number,bill_date,due_date,status,balance_due,project_id,job_number,project_name').eq('company_id',companyId).eq('status','posted').gt('balance_due',0),
-    supabase.from('company_expenses').select('id,expense_date,paid_date,payee,description,total_amount,payment_status,bank_transaction_id').eq('company_id',companyId).eq('payment_status','paid'),
-    supabase.from('payroll_run_financial_summary').select('payroll_run_id,pay_date,status,actual_cash_paid,payroll_funding_requirement,period_start,period_end').eq('company_id',companyId).in('status',['approved','processed']),
-    supabase.from('company_tax_remittances').select('id,tax_type,payment_date,amount,bank_transaction_id').eq('company_id',companyId),
-    supabase.from('bank_reconciliation_rules').select('*').eq('company_id',companyId).eq('active',true),
-    supabase.from('overhead_items').select('id,category,name,business_use_percent,amount').eq('company_id',companyId).eq('active',true),
-    supabase.from('plaid_transactions').select('id,account_id,transaction_date,name,merchant_name,cash_amount,category_primary,pending,removed,review_status,created_at').eq('company_id',companyId).eq('removed',false).eq('review_status','unreviewed').eq('pending',false).order('transaction_date',{ascending:false}).limit(1500)
+    supabase.from('customers').select('id,name',{count:'exact'}).eq('company_id',companyId),
+    supabase.from('customer_payments').select('id,customer_id,project_id,received_date,amount,status,bank_transaction_id',{count:'exact'}).eq('company_id',companyId).eq('status','posted'),
+    supabase.from('invoice_financial_summary').select('invoice_id,project_id,customer_id,invoice_number,bill_to_name,status,issue_date,due_date,balance_due',{count:'exact'}).eq('company_id',companyId).eq('status','sent').gt('balance_due',0),
+    supabase.from('vendors').select('id,name',{count:'exact'}).eq('company_id',companyId),
+    supabase.from('vendor_payments').select('id,vendor_id,payment_date,amount,processing_fee,status,bank_transaction_id',{count:'exact'}).eq('company_id',companyId).eq('status','posted'),
+    supabase.from('vendor_bill_ap_summary').select('vendor_bill_id,vendor_id,vendor_name,vendor_bill_number,bill_date,due_date,status,balance_due,project_id,job_number,project_name',{count:'exact'}).eq('company_id',companyId).eq('status','posted').gt('balance_due',0),
+    supabase.from('company_expenses').select('id,expense_date,paid_date,payee,description,total_amount,payment_status,bank_transaction_id',{count:'exact'}).eq('company_id',companyId).eq('payment_status','paid'),
+    supabase.from('payroll_run_financial_summary').select('payroll_run_id,pay_date,status,actual_cash_paid,payroll_funding_requirement,period_start,period_end',{count:'exact'}).eq('company_id',companyId).in('status',['approved','processed']),
+    supabase.from('company_tax_remittances').select('id,tax_type,payment_date,amount,bank_transaction_id',{count:'exact'}).eq('company_id',companyId).is('reversed_at',null),
+    supabase.from('bank_reconciliation_rules').select('*',{count:'exact'}).eq('company_id',companyId).eq('active',true),
+    supabase.from('overhead_items').select('id,category,name,business_use_percent,amount',{count:'exact'}).eq('company_id',companyId).eq('active',true),
+    supabase.from('plaid_transactions').select('id,account_id,transaction_date,name,merchant_name,cash_amount,category_primary,pending,removed,review_status,created_at',{count:'exact'}).eq('company_id',companyId).eq('removed',false).eq('review_status','unreviewed').eq('pending',false).order('transaction_date',{ascending:false}).limit(1500)
   ]);
+  const requiredReads=[['customers',customersR],['customer payments',customerPaymentsR],['invoices',invoicesR],['vendors',vendorsR],['vendor payments',vendorPaymentsR],['vendor bills',billsR],['company expenses',expensesR],['payroll',payrollR],['tax payments',taxesR],['bank rules',rulesR],['overhead',overheadR],['transfer transactions',allTxR]] as const;
+  for(const [label,read] of requiredReads){
+    if(read.error||!Array.isArray(read.data))throw new Error(`Reconciliation ${label} unavailable: ${read.error?.message||'read was not confirmed'}`);
+    if(read.count===null||read.count===undefined||read.count!==read.data.length)throw new Error(`Reconciliation ${label} is incomplete. Narrow the review before automatic matching.`);
+  }
+  if((txs||[]).some((t:any)=>t.cash_amount===null||t.cash_amount===undefined||!Number.isFinite(Number(t.cash_amount))))throw new Error('Bank amounts unavailable. No reconciliation changes were made.');
+  const staleRead=await supabase.from('bank_reconciliation_candidates').update({status:'stale',updated_at:new Date().toISOString()}).eq('company_id',companyId).eq('status','active').in('bank_transaction_id',txIds);
+  if(staleRead.error)throw new Error(`Existing reconciliation suggestions could not be refreshed: ${staleRead.error.message}`);
   const customerNames=new Map<string,string>((customersR.data||[]).map((x:any)=>[String(x.id),String(x.name||'')] as [string,string]));
   const vendorNames=new Map<string,string>((vendorsR.data||[]).map((x:any)=>[String(x.id),String(x.name||'')] as [string,string]));
   const overhead=(overheadR.data||[]);const bankFeeOH=overhead.find((x:any)=>norm(x.name).includes('bank account ach wire fees'));const truckFuelOH=overhead.find((x:any)=>norm(x.name).includes('primary truck fuel'));const qbOH=overhead.find((x:any)=>norm(x.name).includes('quickbooks'));const msOH=overhead.find((x:any)=>norm(x.name).includes('microsoft 365'));
@@ -72,8 +81,8 @@ export async function analyzeBankTransactions(supabase:any,companyId:string,{lim
   }
   for(const {a,b} of possibleTransferPairs){
     if((partnerCounts.get(a.id)||0)!==1||(partnerCounts.get(b.id)||0)!==1)continue;
-    addCandidate(map,{company_id:companyId,bank_transaction_id:a.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:b.id,confidence:98,reason:'Unique equal-and-opposite transfer between two Carez bank accounts.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:b.id,other_name:b.name,amount:Math.abs(Number(a.cash_amount))},status:'active'});
-    addCandidate(map,{company_id:companyId,bank_transaction_id:b.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:a.id,confidence:98,reason:'Unique equal-and-opposite transfer between two Carez bank accounts.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:a.id,other_name:a.name,amount:Math.abs(Number(b.cash_amount))},status:'active'});
+    addCandidate(map,{company_id:companyId,bank_transaction_id:a.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:b.id,confidence:98,reason:'Unique equal-and-opposite transfer between two company bank accounts.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:b.id,other_name:b.name,amount:Math.abs(Number(a.cash_amount))},status:'active'});
+    addCandidate(map,{company_id:companyId,bank_transaction_id:b.id,candidate_type:'internal_transfer',entity_type:'bank_transaction',entity_id:a.id,confidence:98,reason:'Unique equal-and-opposite transfer between two company bank accounts.',proposed_action:'Match internal transfer',metadata:{other_transaction_id:a.id,other_name:a.name,amount:Math.abs(Number(b.cash_amount))},status:'active'});
   }
 
   const candidates=[...map.values()];if(candidates.length){const {error}=await supabase.from('bank_reconciliation_candidates').insert(candidates);if(error)throw new Error(error.message);}
@@ -82,10 +91,10 @@ export async function analyzeBankTransactions(supabase:any,companyId:string,{lim
   const byTx=new Map<string,Candidate[]>();for(const c of candidates){if(!byTx.has(c.bank_transaction_id))byTx.set(c.bank_transaction_id,[]);byTx.get(c.bank_transaction_id)!.push(c);}
   for(const t of txs||[]){const list=(byTx.get(t.id)||[]).sort((a,b)=>b.confidence-a.confidence);const top=list[0],second=list[1];if(!top)continue;
     const safeExisting=['existing_customer_payment','existing_vendor_payment','existing_company_expense','existing_payroll'].includes(top.candidate_type);
-    if(safeExisting&&top.confidence>=98&&(!second||second.confidence<95)&&top.entity_id&&top.entity_type){try{const {error}=await executeFinancialCommand(supabase,'reconcile_bank_existing',{p_bank_transaction_id:t.id,p_entity_type:top.entity_type,p_entity_id:top.entity_id,p_note:top.reason,p_confidence:top.confidence});if(!error){autoMatched++;continue;}}catch{}}
-    if(top.candidate_type==='internal_transfer'&&top.confidence>=98&&(!second||second.confidence<98)&&top.entity_id){try{const {error}=await executeFinancialCommand(supabase,'reconcile_bank_as_transfer',{p_bank_transaction_id:t.id,p_other_bank_transaction_id:top.entity_id});if(!error){autoMatched++;continue;}}catch{}}
+    if(safeExisting&&top.confidence>=98&&(!second||second.confidence<95)&&top.entity_id&&top.entity_type){try{const {data,error}=await executeFinancialCommand(supabase,'reconcile_bank_existing',{p_bank_transaction_id:t.id,p_entity_type:top.entity_type,p_entity_id:top.entity_id,p_note:top.reason,p_confidence:top.confidence});if(!error&&data?.ok===true){autoMatched++;continue;}}catch{}}
+    if(top.candidate_type==='internal_transfer'&&top.confidence>=98&&(!second||second.confidence<98)&&top.entity_id){try{const {data,error}=await executeFinancialCommand(supabase,'reconcile_bank_as_transfer',{p_bank_transaction_id:t.id,p_other_bank_transaction_id:top.entity_id});if(!error&&data?.ok===true){autoMatched++;continue;}}catch{}}
     if(top.rule_id&&top.confidence>=97&&top.metadata?.auto_apply&&new Date(t.created_at).getTime()>=new Date(top.metadata?.rule_created_at||0).getTime()){
-      try{const {error}=await executeFinancialCommand(supabase,'apply_bank_reconciliation_rule',{p_bank_transaction_id:t.id,p_rule_id:top.rule_id});if(!error)autoApplied++;}catch{}
+      try{const {data,error}=await executeFinancialCommand(supabase,'apply_bank_reconciliation_rule',{p_bank_transaction_id:t.id,p_rule_id:top.rule_id});if(!error&&data?.ok===true)autoApplied++;}catch{}
     }
   }
   return {analyzed:(txs||[]).length,candidates:candidates.length,autoMatched,autoApplied};

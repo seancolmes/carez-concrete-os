@@ -91,6 +91,17 @@ The full Strip / Wall Footing estimating model must be accepted before additiona
 
 ## Consequences
 
+### Versioned supplement — 2026-10-19
+
+Human-approved Strip / Wall Footing v7 prices concrete supply **once**, using ordered CY. Installed CY remains measured production and the placement-labor basis. Physical v6 quantity and 3D algorithms are unchanged.
+
+- New standard Strip Conditions use v7. Published v1–v6 and issued/accepted history remain unchanged. Existing editable drafts require explicit, revision-checked upgrade with a reason and acknowledgment.
+- If the installed commercial line is still referenced by an earlier Condition version, the upgrade is held and requires a new Estimate revision. Historical output links are not cleared to force an upgrade.
+- The upgrade records prior installed pricing, generated-item and supplier evidence before removing the duplicate installed supply charge. It does not transfer an installed quote to ordered supply. Ordered prices and supplier selections remain explicit and survive recalculation.
+- Condition/compatibility procurement outputs and estimate-item `quantity` retain ordered demand. The generated estimate item's `production_quantity` is installed CY from the same calculation batch. Reconciliation verifies both bases.
+- New customer Proposal snapshots identify installed scope explicitly and retain the distinct order basis when quantities are shown. Accepted scope and commercial baselines retain installed Production Quantity. Direct Cost and Sell remain separate.
+- A ready installed reference is not a missing-price issue or a second zero-priced supply demand. Missing or inconsistent sibling evidence prevents reconciliation and issuance.
+
 - Strip / Wall Footing receives a new immutable published Condition contract version rather than mutating v1/v2.
 - New Strip Conditions may use the new contract while historical v1/v2 Conditions remain readable and calculable through their original contract.
 - Compatibility projection mappings remain additive and non-destructive.

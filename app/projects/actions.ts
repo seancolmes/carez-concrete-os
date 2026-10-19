@@ -53,7 +53,12 @@ export async function updateProjectEconomics(formData:FormData){
   const {supabase,companyId}=await company();
   const boClass=String(formData.get('bo_classification')||'retailing');
   const {data:co}=await supabase.from('companies').select('retailing_bo_rate_percent,wholesaling_bo_rate_percent').eq('id',companyId).single();
-  const boRate=boClass==='wholesaling'?Number(co?.wholesaling_bo_rate_percent||0.484):Number(co?.retailing_bo_rate_percent||0.471),status=String(formData.get('status')||'active');
-  await supabase.from('projects').update({target_margin_percent:numberValue(formData.get('target_margin_percent')),bo_classification:boClass,bo_rate_percent:boRate,payment_processing_rate_percent:numberValue(formData.get('payment_processing_rate_percent')),status,completed_at:status==='completed'?new Date().toISOString():null}).eq('id',projectId).eq('company_id',companyId);
+  const {data:project,error:projectError}=await supabase.from('projects').select('status').eq('id',projectId).eq('company_id',companyId).single();
+  if(projectError||!project)throw new Error('Project unavailable');
+  const status=String(formData.get('status')||project.status);
+  if(status!==project.status&&(status==='completed'||project.status==='completed'))throw new Error('Use Project Closeout to complete or reopen this job.');
+  const boRate=boClass==='wholesaling'?Number(co?.wholesaling_bo_rate_percent||0.484):Number(co?.retailing_bo_rate_percent||0.471);
+  const {error:updateError}=await supabase.from('projects').update({target_margin_percent:numberValue(formData.get('target_margin_percent')),bo_classification:boClass,bo_rate_percent:boRate,payment_processing_rate_percent:numberValue(formData.get('payment_processing_rate_percent')),status}).eq('id',projectId).eq('company_id',companyId);
+  if(updateError)throw new Error(updateError.message);
   revalidatePath('/projects');
 }

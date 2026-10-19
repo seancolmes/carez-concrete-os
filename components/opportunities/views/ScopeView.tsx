@@ -61,7 +61,7 @@ export async function ScopeView({id,panel='scope',estimateId}:{id:string;panel?:
     {panel==='scope'?<section aria-labelledby="scope-title" className={masterSection}>
       <h3 id="scope-title" className={groundedHeader+' text-sm font-semibold text-foreground'}>Scope and contact</h3>
       <p className="max-w-3xl whitespace-pre-wrap text-sm leading-6">{lead.scope||'Concrete scope has not been entered yet.'}</p>
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Contact</dt><dd className="mt-1">{lead.contact_name||lead.customer_name||'Not entered'}</dd></div><div><dt className="text-muted-foreground">Email / phone</dt><dd className="mt-1 break-words">{[lead.email,lead.phone].filter(Boolean).join(' · ')||'Not entered'}</dd></div></dl>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Contact</dt><dd className="mt-1">{lead.contact_name||'Not entered'}</dd></div><div><dt className="text-muted-foreground">Email / phone</dt><dd className="mt-1 break-words">{[lead.email,lead.phone].filter(Boolean).join(' · ')||'Not entered'}</dd></div></dl>
       {lead.notes?<p className="mt-4 max-w-3xl border-t border-border pt-3 text-sm text-muted-foreground">{lead.notes}</p>:null}
     </section>:null}
 

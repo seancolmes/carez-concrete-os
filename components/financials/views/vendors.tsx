@@ -1,3 +1,4 @@
+import {financialMoney} from '@/lib/financials/amount';
 import {ProcurementForm} from '@/components/financials/ProcurementForm';
 import {Badge,Button,Card,Input,Label,Select} from '@fluentui/react-components';
 import {redirect} from 'next/navigation';
@@ -15,19 +16,19 @@ export default async function VendorsPage(){
   const {data:p}=await supabase.from('profiles').select('full_name,company_id,role').eq('id',user.id).single();
   if(!p?.company_id)redirect('/login');
   if(p.role==='employee')redirect('/employee');
-  const {data:vendors}=await supabase.from('vendors').select('*').eq('company_id',p.company_id).order('active',{ascending:false}).order('vendor_type').order('name');
+  const {data:vendors,error:vendorsError}=await supabase.from('vendors').select('*').eq('company_id',p.company_id).order('active',{ascending:false}).order('vendor_type').order('name');
 
   const active=(vendors||[]).filter((v:any)=>v.active).length;
   const concrete=(vendors||[]).filter((v:any)=>v.vendor_type==='concrete_supplier').length;
   const rebar=(vendors||[]).filter((v:any)=>v.vendor_type==='rebar_supplier').length;
 
-  return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Vendors</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">The companies Carez buys concrete, rebar, form material, rentals and subcontract work from.</p></header><Link className={secondaryLinkClass} href="/procurement">Back to Purchasing</Link></div>
+  return <><div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6">{vendorsError&&<p role="status" className="text-sm text-muted-foreground">Vendor records unavailable. Known independent records remain visible.</p>}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><header className="carez-page-heading"><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Procurement</div><h1 className="mt-1 text-2xl font-semibold tracking-tight">Vendors</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">The companies your company buys concrete, rebar, form material, rentals and subcontract work from.</p></header><Link className={secondaryLinkClass} href="/procurement">Back to Purchasing</Link></div>
 
     <div className="grid gap-3 sm:grid-cols-3">
-      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Active Vendors</div><div className="text-2xl font-semibold tabular-nums">{active}</div></div></Card>
-      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Concrete Suppliers</div><div className="text-2xl font-semibold tabular-nums">{concrete}</div></div></Card>
-      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Rebar Suppliers</div><div className="text-2xl font-semibold tabular-nums">{rebar}</div></div></Card>
+      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Active Vendors</div><div className="text-2xl font-semibold tabular-nums">{vendorsError?'Unavailable':active}</div></div></Card>
+      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Concrete Suppliers</div><div className="text-2xl font-semibold tabular-nums">{vendorsError?'Unavailable':concrete}</div></div></Card>
+      <Card><div className="p-4 h-full space-y-1"><div className="text-xs font-medium text-muted-foreground">Rebar Suppliers</div><div className="text-2xl font-semibold tabular-nums">{vendorsError?'Unavailable':rebar}</div></div></Card>
     </div>
 
     <section className="grid gap-4 xl:grid-cols-2">
@@ -36,14 +37,14 @@ export default async function VendorsPage(){
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-contact">Contact</Label><Input appearance="underline" id="vendor-contact" name="contact_name"/></div><div className="grid gap-2"><Label htmlFor="vendor-phone">Phone</Label><Input appearance="underline" id="vendor-phone" name="phone"/></div></div>
         <div className="grid gap-2"><Label htmlFor="vendor-email">Email</Label><Input appearance="underline" id="vendor-email" type="email" name="email"/></div>
         <div className="grid gap-2"><Label htmlFor="vendor-address">Address</Label><Input appearance="underline" id="vendor-address" name="address_line1"/></div>
-        <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-city">City</Label><Input appearance="underline" id="vendor-city" name="city"/></div><div className="grid gap-2"><Label htmlFor="vendor-state">State</Label><Input appearance="underline" id="vendor-state" name="state" defaultValue="WA"/></div></div>
+        <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-city">City</Label><Input appearance="underline" id="vendor-city" name="city"/></div><div className="grid gap-2"><Label htmlFor="vendor-state">State</Label><Input appearance="underline" id="vendor-state" name="state"/></div></div>
         <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="vendor-zip">ZIP</Label><Input appearance="underline" id="vendor-zip" name="postal_code"/></div><div className="grid gap-2"><Label htmlFor="vendor-terms">Terms</Label><Input appearance="underline" id="vendor-terms" name="payment_terms" placeholder="Net 30, COD..."/></div></div>
         <div className="grid gap-2"><Label htmlFor="vendor-account">Account #</Label><Input appearance="underline" id="vendor-account" name="account_number"/></div>
         <div className="grid gap-2"><Label htmlFor="vendor-notes">Notes</Label><Input appearance="underline" id="vendor-notes" name="notes"/></div>
         <Button type="submit" className="w-fit">Save Vendor</Button>
       </ProcurementForm></div></Card>
 
-      <Card><div className="p-4 space-y-4"><div><h2 className="font-semibold">Vendor Directory</h2><p className="mt-1 text-sm text-muted-foreground">Quick contact list for the field and office.</p></div>{(vendors||[]).length===0?<div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No vendors yet.</div>:<div className="divide-y rounded-lg border border-border">{(vendors||[]).map((v:any)=><div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-start sm:justify-between" key={v.id}><div className="min-w-0"><div className="font-medium">{v.name}</div><div className="mt-1 text-sm text-muted-foreground">{String(v.vendor_type).replaceAll('_',' ')} · {v.contact_name||'No contact'}</div><div className="mt-1 break-words text-sm text-muted-foreground">{v.phone||''}{v.phone&&v.email?' · ':''}{v.email||''}</div></div><Badge appearance="outline" className={v.active?'shrink-0 border-success/30 bg-success/10 text-success':'shrink-0 text-muted-foreground'}>{v.active?'Active':'Inactive'}</Badge></div>)}</div>}</div></Card>
+      <Card><div className="p-4 space-y-4"><div><h2 className="font-semibold">Vendor Directory</h2><p className="mt-1 text-sm text-muted-foreground">Quick contact list for the field and office.</p></div>{vendorsError?<p role="status" className="p-3 text-sm text-muted-foreground">Vendor directory unavailable; no empty result has been confirmed.</p>:(vendors||[]).length===0?<div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No vendors yet.</div>:<div className="divide-y rounded-lg border border-border">{(vendors||[]).map((v:any)=><div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-start sm:justify-between" key={v.id}><div className="min-w-0"><div className="font-medium">{v.name}</div><div className="mt-1 text-sm text-muted-foreground">{String(v.vendor_type).replaceAll('_',' ')} · {v.contact_name||'No contact'}</div><div className="mt-1 break-words text-sm text-muted-foreground">{v.phone||''}{v.phone&&v.email?' · ':''}{v.email||''}</div></div><Badge appearance="outline" className={v.active?'shrink-0 border-success/30 bg-success/10 text-success':'shrink-0 text-muted-foreground'}>{v.active?'Active':'Inactive'}</Badge></div>)}</div>}</div></Card>
     </section>
   </div></>;
 }

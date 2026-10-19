@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { WarningRegular as AlertTriangle, ArrowUpRightRegular as ArrowUpRight, MoneyRegular as Banknote, PaymentRegular as CreditCard, BuildingBankRegular as Landmark, ReceiptRegular as ReceiptText, ShieldCheckmarkRegular as ShieldCheck, CartRegular as ShoppingCart, WalletRegular as Wallet } from '@fluentui/react-icons';
 import {createClient} from '@/lib/supabase/server';
 import {cn} from '@/lib/utils';
-
-const money=(n:any)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));
-const num=(n:any)=>Number(n||0);
+import {financialMoney as money} from '@/lib/financials/amount';
+import {cashFigures} from '@/lib/financials/cashReadModel';
 
 const controls=[
   {href:'/banking',label:'Connected bank',copy:'Balances and transactions',Icon:Landmark},
@@ -31,26 +30,29 @@ export default async function CashflowPage(){
   if(!p?.company_id)redirect('/login');
   if(p.role==='employee')redirect('/employee');
 
-  const [{data:c},{data:payroll},{data:expenses},{data:bankAccounts}]=await Promise.all([
+  const [cashRead,payrollRead,expenseRead,bankRead]=await Promise.all([
     supabase.from('company_cash_position_summary').select('*').eq('company_id',p.company_id).maybeSingle(),
     supabase.from('company_payroll_cash_summary').select('*').eq('company_id',p.company_id).maybeSingle(),
     supabase.from('company_expense_summary').select('*').eq('company_id',p.company_id).maybeSingle(),
     supabase.from('plaid_bank_account_summary').select('*').eq('company_id',p.company_id),
   ]);
 
-  const bank=num(c?.bank_cash),tax=num(c?.sales_tax_reserve),payrollNeed=num(c?.payroll_cash_requirement||payroll?.total_open_payroll_requirement),ap=num(c?.open_ap),pos=num(c?.open_po_commitments),companyBills=num(c?.unpaid_company_expense_obligations),reserves=num(c?.manual_reserves),spokenFor=tax+payrollNeed+ap+pos+companyBills+reserves,safe=num(c?.safe_cash_after_known_obligations),configured=Boolean(c?.balance_as_of)||((bankAccounts||[]).filter((x:any)=>x.include_in_cash!==false&&x.active!==false).length>0);
+  const {bank,tax,payrollNeed,ap,pos,companyBills,reserves,spokenFor,safe,completeBalances}=cashFigures(cashRead,payrollRead);
+  const expenses=expenseRead.error?null:expenseRead.data;
+  const failed=[cashRead.error,payrollRead.error,expenseRead.error,bankRead.error].some(Boolean);
 
   return <>
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4">
       <header className="carez-page-heading flex flex-wrap items-center justify-between gap-3"><h1>Cash flow</h1><Link className={secondaryLinkClass} href="/banking"><Landmark/>Banking</Link></header>
 
+      {failed&&<p role="status" className="text-sm text-muted-foreground">Some cash information is unavailable. Known figures remain visible.</p>}
       <section aria-label="Cash position" className="grid grid-cols-2 gap-px border border-border bg-border [&>*:first-child]:col-span-2 sm:grid-cols-3 sm:[&>*:first-child]:col-span-1">
-        <LedgerMetric label="Available after obligations" value={configured?money(safe):'Unavailable'} help={configured?undefined:'Connect or approve banking to calculate.'} tone={!configured?'warning':safe<0?'danger':'success'}/>
-        <LedgerMetric label="Bank cash" value={configured?money(bank):'Unavailable'}/>
+        <LedgerMetric label="Available after obligations" value={money(safe)} help={!completeBalances?'A recorded balance is required for every included cash account.':safe===null?'One or more obligation inputs are unavailable.':undefined} tone={safe===null?'warning':safe<0?'danger':'success'}/>
+        <LedgerMetric label="Bank cash" value={money(bank)}/>
         <LedgerMetric label="Known obligations" value={money(spokenFor)}/>
       </section>
 
-      {configured&&safe<0?<div className="flex items-start gap-3 border border-warning/30 bg-warning/5 px-3 py-2 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong className="text-warning">Short {money(Math.abs(safe))} against known obligations</strong><p className="text-xs text-muted-foreground">The bank balance is not available cash.</p></div></div>:null}
+      {safe!==null&&safe<0?<div className="flex items-start gap-3 border border-warning/30 bg-warning/5 px-3 py-2 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning"/><div><strong className="text-warning">Short {money(Math.abs(safe))} against known obligations</strong><p className="text-xs text-muted-foreground">The bank balance is not available cash.</p></div></div>:null}
 
       <section aria-labelledby="liabilities-title" className="space-y-2"><div className="carez-page-heading"><h2 id="liabilities-title">Known obligations</h2></div><dl className="divide-y border border-border">{[
         ['Customer tax money',tax],['Crew payroll requirement',payrollNeed],['Vendor bills',ap],['Issued material and service orders',pos],['Unpaid company expenses',companyBills],['Other protected money',reserves],
@@ -60,7 +62,7 @@ export default async function CashflowPage(){
 
       <section aria-labelledby="spending-title" className="space-y-2"><div className="carez-page-heading flex items-center justify-between gap-3"><h2 id="spending-title">Company spending</h2><Link className={secondaryLinkClass} href="/cashflow/expenses">Expenses</Link></div><dl className="grid grid-cols-3 divide-x border border-border bg-card/70">{[
         ['This month',money(expenses?.current_month_business_expense)],['This year',money(expenses?.ytd_business_expense)],['Still unpaid',money(expenses?.unpaid_company_expense_obligations)],
-      ].map(([label,value])=><div key={label} className="min-w-0 px-3 py-2"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="truncate font-mono text-sm font-semibold tabular-nums sm:text-base">{value}</dd></div>)}</dl></section>
+      ].map(([label,value])=><div key={label} className="min-w-0 px-3 py-2"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words font-mono text-sm font-semibold tabular-nums sm:text-base">{value}</dd></div>)}</dl></section>
 
       <Link className={secondaryLinkClass+' w-fit'} href="/cashflow/accounts"><Wallet/>Manual account fallback</Link>
     </div>

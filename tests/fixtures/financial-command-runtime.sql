@@ -1,3 +1,6 @@
+-- Isolated contract-coherence fixture; no application/schema weakening.
+-- Existing fixture bypasses, if any, are preserved historical test seams; no new
+-- trigger bypass, permission grant, production defaults or business records added.
 -- Isolated local fixture. Privileged setup is not onboarding/authentication evidence.
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -35,10 +38,19 @@ insert into public.purchase_orders(id,company_id,project_id,vendor_id,po_number)
  ('e8800000-0000-4000-8000-000000000001','e8200000-0000-4000-8000-000000000002','e8300000-0000-4000-8000-000000000002','e8500000-0000-4000-8000-000000000002','FOREIGN-PO');
 select set_config('request.jwt.claim.sub','e8100000-0000-4000-8000-000000000001',true);
 set local role authenticated;
+-- First establish the current application ACL boundary.
+select extensions.throws_ok($$insert into public.vendor_quote_lines(company_id,vendor_quote_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8700000-0000-4000-8000-000000000001','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'42501',null,'authenticated raw procurement source write 1 cannot bypass the governed command');
+select extensions.throws_ok($$insert into public.purchase_order_lines(company_id,purchase_order_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8800000-0000-4000-8000-000000000001','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'42501',null,'authenticated raw procurement source write 2 cannot bypass the governed command');
+select extensions.throws_ok($$insert into public.vendor_bill_lines(company_id,vendor_bill_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8600000-0000-4000-8000-000000000002','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'42501',null,'authenticated raw procurement source write 3 cannot bypass the governed command');
+select extensions.throws_ok($$update public.vendor_bill_lines set description='Changed posted fact' where vendor_bill_id='e8600000-0000-4000-8000-000000000001'$$,'42501',null,'authenticated raw procurement source write 4 cannot bypass the governed command');
+-- Preserve the four original business-guard assertions below and reach those
+-- guards as the privileged fixture writer; do not grant app callers raw DML.
+reset role;set local role postgres;
 select extensions.throws_like($$insert into public.vendor_quote_lines(company_id,vendor_quote_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8700000-0000-4000-8000-000000000001','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'%parent belongs to another company%','own-company quote line cannot reference foreign parent with all optional links null');
 select extensions.throws_like($$insert into public.purchase_order_lines(company_id,purchase_order_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8800000-0000-4000-8000-000000000001','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'%parent belongs to another company%','own-company PO line cannot reference foreign parent');
 select extensions.throws_like($$insert into public.vendor_bill_lines(company_id,vendor_bill_id,cost_code_id,description) values('e8200000-0000-4000-8000-000000000001','e8600000-0000-4000-8000-000000000002','e8400000-0000-4000-8000-000000000001','Foreign parent')$$,'%parent belongs to another company%','own-company bill line cannot reference foreign parent');
 select extensions.throws_like($$update public.vendor_bill_lines set description='Changed posted fact' where vendor_bill_id='e8600000-0000-4000-8000-000000000001'$$,'%locked in its current state%','posted bill source lines remain locked');
+reset role;set local role authenticated;
 select extensions.lives_ok($$select public.carez_record_vendor_bill_payment_v2('e8900000-0000-4000-8000-000000000001','e8600000-0000-4000-8000-000000000001','2026-10-16',40,'ach','fixture',2,'Synthetic payment')$$,'owner posts a governed vendor payment and fee');
 select extensions.lives_ok($$select public.carez_record_vendor_bill_payment_v2('e8900000-0000-4000-8000-000000000001','e8600000-0000-4000-8000-000000000001','2026-10-16',40,'ach','fixture',2,'Synthetic payment')$$,'identical uncertain retry returns confirmed result');
 select extensions.is((select count(*)::int from public.vendor_payments where company_id='e8200000-0000-4000-8000-000000000001'),1,'retry does not create a second payment');

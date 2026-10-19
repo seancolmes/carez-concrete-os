@@ -33,7 +33,7 @@ const loaders = {
   catalog:()=>import('./views/catalog'),
   'work-package-financials':()=>import('@/components/field/views/work-package-financials'),
 };
-const availableViews=new Set(['billing','invoices','payments','retainage','billing-setup','costs','catalog','work-package-financials']);
+const availableViews=new Set(['ledger','banking','reconcile','bank-rules','cash-accounts','expenses','reserves','billing','invoices','payments','retainage','billing-setup','costs','catalog','work-package-financials','procurement','payables','bills','orders','vendors','quotes','payroll','pour-funding']);
 
 export async function FinancialsWorkspace({tab,view}:{tab?:string;view?:string}){
   const group=groups.find(item=>item.id===tab)||groups[1];

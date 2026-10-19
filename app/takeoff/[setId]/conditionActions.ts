@@ -82,7 +82,7 @@ export async function createProjectConcreteConditionPilot(input: {
   const code = nextAvailableConditionCode(requestedCode, (existingConditions || []).map((row: any) => row.code));
 
   const { data: template, error: templateError } = archetypeKey === 'strip_wall_footing'
-    ? await supabase.rpc('carez_ensure_strip_footing_v5_template')
+    ? await supabase.rpc('carez_ensure_strip_footing_v7_template')
     : await supabase.rpc('carez_ensure_pilot_condition_template', { p_archetype_code: archetypeKey });
   if (templateError) throw new Error(templateError.message);
   const templateVersionId = String(template?.template_version_id || '');
@@ -199,6 +199,10 @@ export async function assignConditionPrimaryTakeoffSection(input: {
 export async function upgradeProjectConcreteConditionDraftToLatest(input: {
   takeoffSetId: string;
   conditionVersionId: string;
+  expectedUpdatedAt?:string;
+  requestId?:string;
+  reason?:string;
+  acknowledgePriceRemoval?:boolean;
 }) {
   const { supabase, companyId } = await conditionContext();
   const takeoffSetId = String(input?.takeoffSetId || '').trim();
@@ -224,7 +228,10 @@ export async function upgradeProjectConcreteConditionDraftToLatest(input: {
 
   const {data:contract,error:contractError}=await supabase.from('platform_condition_archetype_versions').select('version_no').eq('id',version.archetype_version_id).maybeSingle();
   if(contractError||!contract)throw new Error(contractError?.message||'Condition contract unavailable.');
-  const { data, error } = await supabase.rpc(Number(contract.version_no)<5?'carez_upgrade_strip_condition_draft_to_v5':'carez_upgrade_strip_condition_draft_to_v6', {
+  const { data, error } = Number(contract.version_no)===6?await supabase.rpc('carez_upgrade_strip_condition_draft_to_v7',{
+    p_request_id:input.requestId,p_condition_version_id:conditionVersionId,p_expected_updated_at:input.expectedUpdatedAt,
+    p_reason:input.reason,p_acknowledge_price_removal:input.acknowledgePriceRemoval===true,
+  }):await supabase.rpc(Number(contract.version_no)<5?'carez_upgrade_strip_condition_draft_to_v5':'carez_upgrade_strip_condition_draft_to_v6', {
     p_condition_version_id: conditionVersionId,
   });
   if (error) throw new Error(error.message);

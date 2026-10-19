@@ -85,9 +85,20 @@ select extensions.lives_ok($$select public.carez_record_pour_authorization_v1('f
 select extensions.lives_ok($$select public.carez_record_pour_authorization_v1('f6910000-0000-4000-8000-000000000001','f6600000-0000-4000-8000-000000000001',(select value->>'fingerprint' from funding_results where key='review'),'authorized',null,null)$$,'same decision request replays without another snapshot');
 select extensions.is((select count(*)::integer from public.pour_authorization_snapshots),1,'one retained decision after retry');
 select extensions.ok(public.carez_pour_authorization_current('f6200000-0000-4000-8000-000000000001','f6600000-0000-4000-8000-000000000001'),'status transition itself does not invalidate reviewed financial basis');
-select extensions.throws_like($$update public.pour_plans set status='hold' where id='f6600000-0000-4000-8000-000000000001'$$,'%governed pour authorization%','raw decision transition denied');
-update public.pour_cost_items set expected_cost=200 where id='f6700000-0000-4000-8000-000000000001';
+select extensions.throws_ok($$update public.pour_plans set status='hold' where id='f6600000-0000-4000-8000-000000000001'$$,'42501',null,'authenticated raw decision transition is denied by the table ACL');
+-- A supported add_cost command cannot rewrite the consumed/PO-linked original
+-- item. Add 140 of explicit synthetic uncommitted cost: planned 50+140=190;
+-- remaining max(50-20 actual,40 open linked PO)+140+15 unlinked PO=195.
+-- This preserves the original downstream funding exposure without inventing a
+-- PO link or weakening the immutable/ACL boundaries. CAS uses the actual plan.
+insert into funding_results values('planned-change',public.carez_pour_planning_command_v1(
+ 'f6930000-0000-4000-8000-000000000001','add_cost',jsonb_build_object(
+ 'pour_plan_id','f6600000-0000-4000-8000-000000000001',
+ 'expected_updated_at',(select updated_at from public.pour_plans where company_id='f6200000-0000-4000-8000-000000000001' and id='f6600000-0000-4000-8000-000000000001'),
+ 'item_type','concrete','description','Synthetic additional uncommitted concrete cost',
+ 'quantity',1,'unit','EA','unit_cost',140)));
 select extensions.is((select status from public.pour_plans where id='f6600000-0000-4000-8000-000000000001'),'planning','planned cost change invalidates authorization atomically');
+select extensions.ok((select planned_exposure=190 and remaining_pour_exposure=195 and contingency_amount=19.50 and required_additional_cash=153.50 and system_recommendation='hold' from public.pour_plan_financial_summary where pour_plan_id='f6600000-0000-4000-8000-000000000001'),'governed additional cost records 190 planned and preserves 195 remaining funding exposure');
 select extensions.throws_like($$select public.carez_record_pour_authorization_v1('f6910000-0000-4000-8000-000000000002','f6600000-0000-4000-8000-000000000001',(select value->>'fingerprint' from funding_results where key='review'),'authorized',null,null)$$,'%Funding changed%','stale financial review cannot authorize changed exposure');
 select extensions.throws_like($$select pg_temp.decide(2,'f6600000-0000-4000-8000-000000000001','authorized')$$,'%override reason is required%','known cash hold requires an explicit human override reason');
 select extensions.lives_ok($$select pg_temp.decide(2,'f6600000-0000-4000-8000-000000000001','authorized','Recorded internal support decision')$$,'known hold can retain explicit human decision');

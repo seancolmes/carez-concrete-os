@@ -45,7 +45,7 @@ export function Takeoff3DViewport({ scene, pdfUrl, activeSheetId, activePageNumb
     !viewState.hidden.includes(solid.conditionVersionId) && (!viewState.isolated || solid.conditionVersionId === viewState.isolated)
     && (viewState.zone === 'all' || solid.zone === viewState.zone) && (viewState.elevation === 'all' || String(solid.shape.top) === viewState.elevation)), [sheetSolids, viewState]);
   const plane = activeSheetId ? scene.sheetPlanes[activeSheetId] : undefined;
-  const sheetIssues = [...scene.issues, ...Object.values(meshIssues)].filter(issue => issue.sheetId === activeSheetId);
+  const sheetIssues = [...scene.issues, ...Object.values(meshIssues)].filter(issue => issue.sheetId === null || issue.sheetId === activeSheetId);
   const calibrated = plane && Number.isFinite(plane.worldWidth) && Number.isFinite(plane.worldHeight) && (plane.worldWidth ?? 0) > 0 && (plane.worldHeight ?? 0) > 0;
   const retry = () => setAttempt(current => current + 1);
   const zones = [...new Set(sheetSolids.map(solid => solid.zone).filter((zone): zone is string => Boolean(zone)))].sort();

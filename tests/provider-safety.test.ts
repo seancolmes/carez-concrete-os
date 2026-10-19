@@ -38,8 +38,8 @@ for(const runtime of blockedRuntimes){
     let calls=0;
     const touched=()=>{calls++;throw new Error('Provider or database accessed');};
     const post=loadPost('app/api/plaid/sync/route.ts',runtime,{
-      '@/lib/supabase/server':{createClient:touched},
-      '@/lib/plaid':{plaidConfigured:touched,syncPlaidConnection:touched},
+      '@/lib/plaid':{plaidConfigured:touched},
+      '@/lib/banking/plaidRoute.server':{bankProviderContext:touched,syncBankConnections:touched,bankAccessStatus:touched},
       '@/lib/bank-reconciliation':{analyzeBankTransactions:touched},
     });
     const response=await post();
@@ -66,17 +66,22 @@ test('production runtime reaches the authorized Plaid and Outlook handlers with 
   const runtime={NODE_ENV:'production',VERCEL_ENV:'production'};
   let plaidSyncs=0,outlookSyncs=0;
   const profile={select:()=>({eq:()=>({single:async()=>({data:{company_id:'company',role:'owner'}})})})};
-  const plaidConnection={select:()=>({eq:()=>({eq:async()=>({data:[{id:'plaid-connection'}]})})})};
   const outlookConnection={select:()=>({eq:()=>({eq:()=>({maybeSingle:async()=>({data:{id:'outlook-connection',subscription_id:'subscription',subscription_expires_at:new Date(Date.now()+48*60*60*1000).toISOString()}})})})}),update:()=>({eq:()=>({eq:async()=>({error:null})})})};
   const auth={getUser:async()=>({data:{user:{id:'user'}}})};
   const plaidPostRoute=loadPost('app/api/plaid/sync/route.ts',runtime,{
-    '@/lib/supabase/server':{createClient:async()=>({auth,from:(table:string)=>table==='profiles'?profile:plaidConnection})},
-    '@/lib/plaid':{plaidConfigured:()=>true,syncPlaidConnection:async()=>{plaidSyncs++;return {changed:1};}},
+    '@/lib/plaid':{plaidConfigured:()=>true},
+    '@/lib/banking/plaidRoute.server':{
+      bankProviderContext:async()=>({supabase:{},companyId:'company',actorId:'user'}),
+      syncBankConnections:async()=>{plaidSyncs++;return {ok:true,complete:true,failed:false,changed:1,connections:[{connectionId:'plaid-connection',complete:true}]};},
+      bankAccessStatus:()=>503,
+    },
     '@/lib/bank-reconciliation':{analyzeBankTransactions:async()=>({analyzed:0,candidates:0,autoMatched:0,autoApplied:0})},
   });
   const plaid=await plaidPostRoute();
   assert.equal(plaid.status,200);
   assert.equal(plaid.body.changed,1);
+  assert.equal(plaid.body.complete,true);
+  assert.deepEqual(plaid.body.reconciliation,{analyzed:0,candidates:0,autoMatched:0,autoApplied:0});
   assert.equal(plaidSyncs,1);
 
   const outlookPostRoute=loadPost('app/api/outlook/sync/route.ts',runtime,{
@@ -88,6 +93,27 @@ test('production runtime reaches the authorized Plaid and Outlook handlers with 
   assert.equal(outlook.body.ok,true);
   assert.equal(outlookSyncs,1);
 });
+
+for(const failed of [false,true]){
+  test(`incomplete Plaid sync ${failed?'failure':'continuation'} cannot run reconciliation or report completion`,async()=>{
+    let analyses=0;
+    const post=loadPost('app/api/plaid/sync/route.ts',{NODE_ENV:'production',VERCEL_ENV:'production'},{
+      '@/lib/plaid':{plaidConfigured:()=>true},
+      '@/lib/banking/plaidRoute.server':{
+        bankProviderContext:async()=>({supabase:{},companyId:'company',actorId:'user'}),
+        syncBankConnections:async()=>({ok:false,complete:false,failed,changed:3,connections:[]}),
+        bankAccessStatus:()=>503,
+      },
+      '@/lib/bank-reconciliation':{analyzeBankTransactions:async()=>{analyses++;throw new Error('Incomplete feeds must not be analyzed');}},
+    });
+    const response=await post();
+    assert.equal(response.status,failed?502:202);
+    assert.equal(response.body.complete,false);
+    assert.equal(response.body.changed,3);
+    assert.equal((response.body.reconciliation as {skipped:boolean}).skipped,true);
+    assert.equal(analyses,0);
+  });
+}
 
 test('local and preview runtime stay blocked without any QA override',()=>{
   assert.equal(providerMutationAllowed({NODE_ENV:'development',VERCEL_ENV:'production'}),false);

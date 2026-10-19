@@ -1,8 +1,19 @@
+-- Isolated signup-compatible authorization fixture.
+-- Real signup metadata + explicit UTC fixture calendar + privileged original
+-- authorization-context assignment only. No assertion/business-record rewrite,
+-- trigger bypass, account/company cleanup, or claim of onboarding qualification.
 begin;
 create extension if not exists pgtap with schema extensions;
-insert into auth.users(id,email) values ('71111111-1111-4111-8111-111111111111','readiness@carez.invalid');
-insert into public.companies(id,name) values ('72222222-2222-4222-8222-222222222222','Readiness fixture');
-insert into public.profiles(id,company_id,full_name,role) values ('71111111-1111-4111-8111-111111111111','72222222-2222-4222-8222-222222222222','Readiness Owner','owner');
+insert into auth.users(id,email,raw_user_meta_data) values
+  ('71111111-1111-4111-8111-111111111111', 'readiness@carez.invalid', jsonb_build_object('company_name','Readiness fixture','full_name','Readiness Owner','operating_timezone','UTC'));
+insert into public.companies(id,name,operating_timezone) values
+  ('72222222-2222-4222-8222-222222222222', 'Readiness fixture', 'UTC');
+-- Privileged setup mirrors proposal-issue-runtime: preserve the original
+-- company/role/name contexts after real signup; application ACLs stay unchanged.
+update public.profiles p set company_id=v.company_id::uuid,full_name=v.full_name,role=v.role
+from (values
+  ('71111111-1111-4111-8111-111111111111', '72222222-2222-4222-8222-222222222222', 'Readiness Owner', 'owner')) v(id,company_id,full_name,role)
+where p.id=v.id::uuid;
 insert into public.customers(id,company_id,name) values ('73333333-3333-4333-8333-333333333333','72222222-2222-4222-8222-222222222222','Readiness Customer');
 insert into public.projects(id,company_id,customer_id,job_number,name,status) values ('74444444-4444-4444-8444-444444444444','72222222-2222-4222-8222-222222222222','73333333-3333-4333-8333-333333333333','READY-01','Readiness Fixture Job','active');
 insert into public.production_tasks(id,company_id,name,production_unit,active) values ('75555555-5555-4555-8555-555555555555','72222222-2222-4222-8222-222222222222','Readiness Task','SF',true);
@@ -19,9 +30,8 @@ insert into public.scope_drift_events(company_id,project_id,work_package_operati
 values ('72222222-2222-4222-8222-222222222222','74444444-4444-4444-8444-444444444444','77777777-7777-4777-8777-777777777777','manual:ready-1','manual','Fixture scope change','71111111-1111-4111-8111-111111111111');
 select extensions.is((select status from public.scope_drift_events where signal_key='manual:ready-1'),'open','scope drift starts in human review');
 select extensions.ok(to_regclass('public.work_package_resource_requirements') is not null,'resource requirement table is source-controlled');
-insert into public.work_package_resource_requirements(company_id,work_package_operation_id,resource_type,label,required_quantity,unit,created_by)
-values ('72222222-2222-4222-8222-222222222222','77777777-7777-4777-8777-777777777777','material','Fixture form ties',10,'EA','71111111-1111-4111-8111-111111111111');
-select extensions.is((select resource_status from public.work_package_resource_requirement_status where label='Fixture form ties'),'needed','unconnected material is not reported ready');
+select public.carez_resource_command_v1('79999999-9999-4999-8999-999999999991','create','{"work_package_operation_id":"77777777-7777-4777-8777-777777777777","resource_type":"material","label":"Fixture form ties","required_quantity":10,"unit":"EA"}');
+select extensions.is((select resource_status from public.work_package_resource_requirement_status where label='Fixture form ties'),'missing','unconnected material is explicitly missing, never ready');
 select extensions.ok((select blocking_reason is not null from public.work_package_resource_requirement_status where label='Fixture form ties'),'unconnected material exposes a blocking reason');
 select extensions.ok(not has_table_privilege('anon','public.work_package_resource_requirements','SELECT'),'anonymous cannot read resource requirements');
 reset role;

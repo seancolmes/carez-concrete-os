@@ -1,3 +1,5 @@
+import { drawingPdfSource } from '../pdfSource.ts';
+
 export type PlanTextureSize = { width: number; height: number; scale: number };
 
 export function computePlanTextureSize(pageWidth: number, pageHeight: number, viewportWidth: number, viewportHeight: number): PlanTextureSize {
@@ -13,7 +15,7 @@ export async function renderPdfPageCanvas(pdfUrl: string, pageNumber: number, ta
   const pdfjs = await import('pdfjs-dist');
   signal?.throwIfAborted();
   pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-  const loadingTask = pdfjs.getDocument({ url: pdfUrl });
+  const loadingTask = pdfjs.getDocument(drawingPdfSource(pdfUrl));
   let renderTask: ReturnType<import('pdfjs-dist').PDFPageProxy['render']> | undefined;
   let page: import('pdfjs-dist').PDFPageProxy | undefined;
   let destruction: Promise<void> | undefined;

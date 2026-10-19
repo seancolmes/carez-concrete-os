@@ -1,0 +1,13 @@
+.register {container-type:inline-size; min-width:0; max-width:100%; overflow:auto; border:1px solid var(--border); border-radius:8px;}
+.phoneLabel {display:none;}
+@container (width < 768px) {
+ .register table,.register tbody,.register tr,.register td {display:block; min-width:0; width:100%; height:auto;}
+ .register thead {display:none;}
+ .register tr {padding:12px; border-bottom:1px solid var(--border);}
+ .register tr:last-child {border-bottom:0;}
+ .register td {padding:4px 0; border:0; overflow-wrap:anywhere; white-space:normal;}
+ .register td>div {min-width:0;}
+ .register :global(.fui-Accordion) {width:100%; min-width:0;}
+ .register form,.register fieldset,.register :global(.fui-Input),.register :global(.fui-Select) {min-width:0; max-width:100%;}
+ .phoneLabel {display:block; margin-bottom:3px; font-size:11px; font-weight:500; color:var(--muted-foreground);}
+}

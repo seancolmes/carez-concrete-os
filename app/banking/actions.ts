@@ -6,15 +6,22 @@ import { analyzeBankTransactions } from '@/lib/bank-reconciliation';
 
 const command=(client:Parameters<typeof executeFinancialCommand>[0],fd:FormData,name:string,args:Record<string,unknown>)=>executeFinancialCommand(client,name,args,financialRequestId(fd));
 
-async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile}=await supabase.from('profiles').select('company_id').eq('id',user.id).single();if(!profile?.company_id)throw new Error('Company profile missing');return{supabase,user,companyId:profile.company_id};}
+async function ctx(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Not signed in');const {data:profile,error}=await supabase.from('profiles').select('company_id,role').eq('id',user.id).single();if(error||!profile?.company_id)throw new Error('Company access unavailable');if(!['owner','office'].includes(profile.role))throw new Error('Owner or office authority required.');return{supabase,user,companyId:profile.company_id};}
 const refresh=()=>{revalidatePath('/banking');revalidatePath('/banking/reconcile');revalidatePath('/cashflow');revalidatePath('/billing');revalidatePath('/payables');revalidatePath('/projects');revalidatePath('/forecast');revalidatePath('/payroll');revalidatePath('/overhead');revalidatePath('/');revalidatePath('/pour-control');};
 const b=(fd:FormData,name:string)=>String(fd.get(name)||'')==='on'||String(fd.get(name)||'')==='true';
 const text=(fd:FormData,name:string)=>String(fd.get(name)||'').trim()||null;
 const num=(fd:FormData,name:string)=>optionalFinancialNumber(fd.get(name),{max:100});
 
-export async function setBankAccountCashUse(fd:FormData){const id=String(fd.get('account_id')||'');if(!id)return;const {supabase,companyId}=await ctx();const include=String(fd.get('include_in_cash')||'')==='true';const {data:a}=await supabase.from('plaid_accounts').select('account_type').eq('id',id).eq('company_id',companyId).maybeSingle();if(!a)throw new Error('Bank account not found');if(include&&a.account_type!=='depository')throw new Error('Only checking/savings accounts can be included in company cash.');const {error}=await supabase.from('plaid_accounts').update({include_in_cash:include,updated_at:new Date().toISOString()}).eq('id',id).eq('company_id',companyId);if(error)throw new Error(error.message);refresh();}
-
-export async function setBankTransactionReview(fd:FormData){const id=String(fd.get('transaction_id')||''),status=String(fd.get('review_status')||'unreviewed');if(!id||!['unreviewed','ignored'].includes(status))return;const {supabase,companyId}=await ctx();const patch:any={review_status:status,updated_at:new Date().toISOString()};if(status==='unreviewed'){patch.reconciled_at=null;patch.reconciled_by=null;patch.reconciliation_source=null;patch.bank_rule_id=null;patch.match_note=null;}const {error}=await supabase.from('plaid_transactions').update(patch).eq('id',id).eq('company_id',companyId).neq('review_status','matched');if(error)throw new Error(error.message);refresh();}
+export async function setBankAccountCashUse(fd:FormData){
+ const id=String(fd.get('account_id')||''),value=fd.get('include_in_cash');if(!id||!['true','false'].includes(String(value)))throw new Error('Account and explicit cash choice required.');
+ const {supabase}=await ctx();const {data,error}=await supabase.rpc('carez_plaid_set_cash_use',{p_account:id,p_include:value==='true'});
+ if(error||data?.ok!==true||data.id!==id)throw new Error(error?.message||'Cash inclusion was not confirmed.');refresh();
+}
+export async function setBankTransactionReview(fd:FormData){
+ const id=String(fd.get('transaction_id')||''),status=String(fd.get('review_status')||'');if(!id||!['unreviewed','ignored'].includes(status))throw new Error('Transaction and review state required.');
+ const {supabase}=await ctx();const {data,error}=await supabase.rpc('carez_plaid_set_review',{p_transaction:id,p_state:status});
+ if(error||data?.ok!==true||data.id!==id)throw new Error(error?.message||'Bank review was not confirmed.');refresh();
+}
 
 export async function analyzeBankFeed(){const {supabase,companyId}=await ctx();await analyzeBankTransactions(supabase,companyId);refresh();}
 

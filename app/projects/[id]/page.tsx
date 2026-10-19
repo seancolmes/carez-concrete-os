@@ -106,6 +106,7 @@ export default async function ProjectCommandPage({params,searchParams}:{params:P
      {hold.blockedHref&&hold.blockedHref!==hold.href?<Button as="a" appearance="outline" size="small" href={hold.blockedHref}>{hold.blockedAction}</Button>:null}
      <Button as="a" appearance={hold.href||hold.blockedHref?'outline':'primary'} size="small" href="/field?view=time-review">Review Crew Time</Button>
      <Button as="a" appearance="outline" size="small" href="/field?view=production">Production</Button>
+     <Button as="a" appearance="outline" size="small" href={`/closeout?project=${p.id}`}>Closeout</Button>
     </>}
    /></div>
 
