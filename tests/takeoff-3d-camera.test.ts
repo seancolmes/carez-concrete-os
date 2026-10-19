@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { OrthographicCamera, Vector3 } from 'three';
 import { cameraPositionForMemory, homeCameraMemory, topCameraMemory, sanitizeCameraMemory, shouldInitializeCamera, MIN_POLAR, MAX_POLAR } from '../lib/takeoff/3d/camera.ts';
 
 test('restored camera clamps orbit and zoom and replaces non-finite values', () => {
@@ -37,6 +38,34 @@ test('fit remains sheet-governed in portrait and wide viewports', () => {
     const memory = homeCameraMemory(width, height, viewportWidth, viewportHeight);
     assert.ok(Math.hypot(width, height) * memory.zoom < Math.min(viewportWidth, viewportHeight));
   }
+});
+
+test('Home fits the sheet and elevated concrete without changing the governed datum', () => {
+  for (const top of [0, 100, -100]) {
+    const lower = Math.min(0, top - 1), upper = Math.max(0, top);
+    const frame = { target: [30, (lower + upper) / 2, 20] as [number, number, number], diagonal: Math.hypot(60, upper - lower, 40) };
+    for (const [viewportWidth, viewportHeight] of [[1904, 1080], [1366, 768]]) {
+      const memory = homeCameraMemory(60, 40, viewportWidth, viewportHeight, frame);
+      assert.deepEqual(memory.target, frame.target);
+      const camera = new OrthographicCamera(-viewportWidth / 2, viewportWidth / 2, viewportHeight / 2, -viewportHeight / 2, 0.1, frame.diagonal * 6);
+      camera.zoom = memory.zoom;
+      camera.position.set(...cameraPositionForMemory(memory, 60, 40, frame));
+      camera.lookAt(...memory.target);
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld();
+      for (const x of [0, 60]) for (const y of [lower, upper]) for (const z of [0, 40]) {
+        const point = new Vector3(x, y, z).project(camera);
+        assert.ok(Math.abs(point.x) < 1 && Math.abs(point.y) < 1 && Math.abs(point.z) < 1, `clipped ${[x,y,z]} at ${viewportWidth}px, elevation ${top}`);
+      }
+    }
+  }
+});
+
+test('a numeric scene frame leaves paper-only Home unchanged and does not alter Top', () => {
+  const frame = { target: [30, 0, 20] as [number, number, number], diagonal: Math.hypot(60, 40) };
+  assert.deepEqual(homeCameraMemory(60, 40, 1366, 768, frame), homeCameraMemory(60, 40, 1366, 768));
+  assert.deepEqual(cameraPositionForMemory(homeCameraMemory(60, 40, 1366, 768), 60, 40, frame), cameraPositionForMemory(homeCameraMemory(60, 40, 1366, 768), 60, 40));
+  assert.deepEqual(topCameraMemory(60, 40, 1366, 768).target, [30, 0, 20]);
 });
 
 test('only a sheet without memory initializes; same-sheet updates never refit', () => {

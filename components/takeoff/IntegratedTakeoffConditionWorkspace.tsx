@@ -227,6 +227,10 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [upgradeAcknowledged,setUpgradeAcknowledged]=useState(false);
   const [upgradeError,setUpgradeError]=useState('');
   const upgradeRequestId=useRef<string|null>(null);
+  const upgradeTriggerRef=useRef<HTMLButtonElement|null>(null);
+  const conditionHeadingRef=useRef<HTMLHeadingElement|null>(null);
+  const upgradeWasOpen=useRef(false);
+  const upgradeSucceeded=useRef(false);
   const [activeSheetId,setActiveSheetId]=useState<string|null>(workspaceProps.initialSheets?.[0]?.id||null);
   const [draft,setDraft]=useState<ConditionInputDraft>({});
   const [moduleEnabled,setModuleEnabled]=useState<Record<string,boolean>>({});
@@ -244,6 +248,21 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const [isPending,startTransition]=useTransition();
 
   useEffect(()=>{setScope(setId);setPendingCreatedVersionId(null);},[setId,setScope]);
+
+  useEffect(()=>{
+    if(upgradeOpen){upgradeWasOpen.current=true;return;}
+    if(!upgradeWasOpen.current)return;
+    upgradeWasOpen.current=false;
+    const succeeded=upgradeSucceeded.current;
+    upgradeSucceeded.current=false;
+    const frame=requestAnimationFrame(()=>{
+      // A successful upgrade removes its trigger. Keep focus on the persistent
+      // Condition identity while the refreshed draft is reviewed.
+      const target=succeeded||!upgradeTriggerRef.current?.isConnected?conditionHeadingRef.current:upgradeTriggerRef.current;
+      target?.focus({preventScroll:true});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[upgradeOpen]);
 
   useEffect(()=>{
     if(!mobileReview)return;
@@ -604,7 +623,7 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
     if(next.kind==='open-create'){setIssuesOpen(false);setCreating(true);setPhase('assembly');return;}
     applyConditionSelection(next.versionId,next.focusPlan,next.measurementId,next.propertyTab,next.viewMode,next.startPrimaryDraw);
   };
-  const upgradeCondition=()=>{if(!selectedVersion||!latestVersionAvailable)return;setMessage(`Upgrading to Contract v${latestContractVersion}…`);startTransition(async()=>{try{const result=await upgradeProjectConcreteConditionDraftToLatest({takeoffSetId:setId,conditionVersionId:selectedVersion.id,expectedUpdatedAt:selectedVersion.updated_at,requestId:upgradeRequestId.current||undefined,reason:upgradeReason,acknowledgePriceRemoval:upgradeAcknowledged});setUpgradeOpen(false);setPropertyTab('general');setIssuesOpen(false);setMessage(result.message||`Contract upgraded to v${result.to_contract_version}. Review and recalculate.`);router.refresh();}catch(error:any){setUpgradeError(error?.message||'Could not upgrade Condition contract.');setMessage(error?.message||'Could not upgrade Condition contract.');}});};
+  const upgradeCondition=()=>{if(!selectedVersion||!latestVersionAvailable)return;setMessage(`Upgrading to Contract v${latestContractVersion}…`);startTransition(async()=>{try{const result=await upgradeProjectConcreteConditionDraftToLatest({takeoffSetId:setId,conditionVersionId:selectedVersion.id,expectedUpdatedAt:selectedVersion.updated_at,requestId:upgradeRequestId.current||undefined,reason:upgradeReason,acknowledgePriceRemoval:upgradeAcknowledged});upgradeSucceeded.current=true;setUpgradeOpen(false);setPropertyTab('general');setIssuesOpen(false);setMessage(result.message||`Contract upgraded to v${result.to_contract_version}. Review and recalculate.`);router.refresh();}catch(error:any){setUpgradeError(error?.message||'Could not upgrade Condition contract.');setMessage(error?.message||'Could not upgrade Condition contract.');}});};
 
   const renderInputs=(inputs:ConditionInputDefinition[])=>{
     if(!inputs.length)return <div className={styles.compactEmpty}>No inputs in this section.</div>;
@@ -721,14 +740,14 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
   const setupEditorPanel=(
         <div className={`${editorFields.surface} ${styles.commandDrawer} ${styles.setupEditor}`}>
           <header className={styles.editorToolbar}>
-            <div className={styles.editorIdentity}><h2>{creating?'New condition':selectedSummary?.name||'Select a condition'}</h2>{selectedSummary&&!creating?<span>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</span>:null}</div>
+            <div className={styles.editorIdentity}><h2 ref={conditionHeadingRef} tabIndex={-1}>{creating?'New condition':selectedSummary?.name||'Select a condition'}</h2>{selectedSummary&&!creating?<span>{selectedSummary.code} · R{selectedSummary.revision_no} · Contract v{contractVersion} · {humanize(selectedSummary.version_status)}</span>:null}</div>
             <div className={styles.editorActions}>{!creating&&selectedVersion?<FluentButton type="button" appearance="primary" size="small" icon={<SaveRegular/>} onClick={()=>saveCondition()} disabled={editorLocked||isPending||selectedVersion.status!=='draft'||!dirty}>{isPending?'Saving…':'Save Condition'}</FluentButton>:null}<FluentButton type="button" appearance="subtle" size="small" icon={<ArrowRightRegular/>} iconPosition="after" onClick={()=>setPhase('tracing')}>Open tracing</FluentButton></div>
           </header>
       {editorLocked&&<div role="note" className="border-b border-border bg-muted px-5 py-2 text-xs text-muted-foreground">{mobileReview?'Mobile review is read only. Open this workspace on desktop to edit a draft.':'This issued revision is read only. You can review these values; create the next estimate revision to edit them.'}</div>}
 
       {creating?<div className={`${styles.inspectorScroll} flex-1 min-h-0 overflow-y-auto p-5`}><div className={styles.familyList}>{(Object.keys(CONDITION_ARCHETYPES) as ConditionArchetypeKey[]).map(key=>{const item=CONDITION_ARCHETYPES[key];return <FluentButton type="button" key={key} className={family===key?styles.familyActive:styles.familyButton} onClick={()=>chooseFamily(key)}><b>{item.primaryUnit}</b><span>{item.name}</span></FluentButton>;})}</div><InspectorRow label="Condition name" htmlFor="new-condition-name"><InspectorInput id="new-condition-name" value={createName} onChange={event=>{const name=event.target.value;setCreateName(name);if(!codeTouched)setCreateCode(conditionCodeFromName(name));}}/></InspectorRow><InspectorRow label="Code" htmlFor="new-condition-code"><InspectorInput id="new-condition-code" value={createCode} onChange={event=>{setCodeTouched(true);setCreateCode(event.target.value.toUpperCase());}}/></InspectorRow><div className={styles.createActions}><FluentButton appearance="outline" onClick={()=>setCreating(false)}>Cancel</FluentButton><FluentButton onClick={createCondition} disabled={locked||isPending||!createName.trim()||!createCode.trim()}>{isPending?<RefreshCw className={styles.spin}/>:<Plus/>}Create</FluentButton></div><div className={styles.statusLine} role="status">{message}</div></div>
       :!selectedSummary||!selectedVersion||!definition?<div className={styles.propertiesEmpty}><Layers3/><strong>Select a condition</strong></div>:<>
-        <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<FluentButton type="button" className={direction.versionAction} onClick={()=>{upgradeRequestId.current=crypto.randomUUID();setUpgradeReason('');setUpgradeAcknowledged(false);setUpgradeError('');setUpgradeOpen(true);}} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</FluentButton>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<FluentButton type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></FluentButton>:null}</div>
+        <div className={direction.conditionSummaryLine}><span className={styles.conditionColor} data-family={selectedSummary.archetype_code}/><span className={direction.summaryMeta}>{summaryText}</span>{latestVersionAvailable&&selectedSummary.archetype_code==='strip_wall_footing'?(selectedVersion.status==='draft'?<FluentButton type="button" ref={upgradeTriggerRef} className={direction.versionAction} onClick={()=>{upgradeSucceeded.current=false;upgradeRequestId.current=crypto.randomUUID();setUpgradeReason('');setUpgradeAcknowledged(false);setUpgradeError('');setUpgradeOpen(true);}} disabled={locked||isPending||dirty}>Upgrade to v{latestContractVersion}</FluentButton>:<span className={direction.versionNotice}>v{latestContractVersion} available · new draft required</span>):null}{selectedIssueSummary.total?<FluentButton type="button" className={direction.summaryHold} aria-expanded={issuesOpen} aria-controls="condition-issues" title={selectedIssueSummary.detail} onClick={()=>setIssuesOpen(open=>!open)}>Issues {selectedIssueSummary.total}<ChevronDown className={`${direction.issueChevron} ${issuesOpen?direction.issueChevronOpen:''}`}/></FluentButton>:null}</div>
         {stripContractVersion>0&&stripContractVersion<7&&selectedVersion.status==='draft'&&latestVersionAvailable?<p role="note" className="border-b border-border px-5 py-2 text-xs text-muted-foreground">This older contract can price installed and ordered concrete separately. Upgrade and recalculate to price ordered supply once; installed CY remains the production and placement-labor basis. Issued history is unchanged.</p>:null}
         <div key={selectedVersionId} ref={propertyScrollRef} className={`${styles.inspectorGrid} ${styles.editorGridViewport}`}>
             <section className={styles.editorColumn} aria-labelledby="physical-variables"><h3 id="physical-variables" className={styles.columnHeading}>Physical variables</h3>
@@ -875,8 +894,8 @@ export function IntegratedTakeoffConditionWorkspace({setId,workspaceProps,condit
           <DialogTitle>Upgrade to Contract v{latestContractVersion}?</DialogTitle>
           <DialogContent>{latestContractVersion===7?<div className="grid gap-3"><p>Ordered CY will price concrete supply once. Installed CY remains the measured quantity and placement-labor basis. Its duplicate price and live estimate line will be removed; prior values and supplier evidence are retained in upgrade history. Ordered-concrete prices stay unchanged. Recalculate and review afterward.</p><Label htmlFor="condition-upgrade-reason">Reason for this price-basis upgrade</Label><FluentInput id="condition-upgrade-reason" value={upgradeReason} onChange={(_,data)=>setUpgradeReason(data.value)} required/><Checkbox id="condition-upgrade-price-ack" checked={upgradeAcknowledged} onChange={(_,data)=>setUpgradeAcknowledged(data.checked===true)} label="I understand the installed-concrete price will be removed and retained in history."/></div>:<p>Compatible plan facts, modules, productivity, commercial inputs, and drawing settings are carried forward where the target contract supports them. Superseded contract fields are converted or detached as required, and calculated quantities require review. Contract v6 preserves existing output identities and supplier evidence. Verified Condition history is never changed.</p>}{upgradeError&&<p role="alert" className="mt-3 text-sm text-destructive">{upgradeError}</p>}</DialogContent>
           <DialogActions>
-            <FluentButton appearance="subtle" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</FluentButton>
-            <FluentButton appearance="primary" icon={isPending?<RefreshCw className={styles.spin}/>:undefined} onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'||latestContractVersion===7&&(!upgradeReason.trim()||!upgradeAcknowledged)}>Upgrade & review</FluentButton>
+            <FluentButton type="button" appearance="subtle" onClick={()=>setUpgradeOpen(false)} disabled={isPending}>Cancel</FluentButton>
+            <FluentButton type="button" appearance="primary" icon={isPending?<RefreshCw className={styles.spin}/>:undefined} onClick={upgradeCondition} disabled={locked||isPending||dirty||selectedVersion?.status!=='draft'||latestContractVersion===7&&(!upgradeReason.trim()||!upgradeAcknowledged)}>Upgrade & review</FluentButton>
           </DialogActions>
         </DialogBody>
       </DialogSurface>

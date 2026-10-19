@@ -1,6 +1,7 @@
 export type Takeoff3DCameraMemory = {
   azimuth: number; polar: number; zoom: number; target: [number, number, number];
 };
+export type Takeoff3DCameraFrame = { target: [number, number, number]; diagonal: number };
 
 export const MIN_POLAR = 0.001;
 export const MAX_POLAR = 5 * Math.PI / 12;
@@ -17,12 +18,12 @@ export function sanitizeCameraMemory(value: Takeoff3DCameraMemory, fallbackTarge
   };
 }
 
-export function homeCameraMemory(width: number, height: number, viewportWidth: number, viewportHeight: number): Takeoff3DCameraMemory {
-  const diagonal = Math.hypot(width, height) * 1.22;
+export function homeCameraMemory(width: number, height: number, viewportWidth: number, viewportHeight: number, frame?: Takeoff3DCameraFrame): Takeoff3DCameraMemory {
+  const diagonal = (frame?.diagonal ?? Math.hypot(width, height)) * 1.22;
   return {
     azimuth: HOME_AZIMUTH, polar: HOME_POLAR,
     zoom: clamp(Math.min(viewportWidth, viewportHeight) / diagonal, 0.05, 40),
-    target: [width / 2, 0, height / 2],
+    target: frame ? [...frame.target] : [width / 2, 0, height / 2],
   };
 }
 
@@ -40,8 +41,8 @@ export function topCameraMemory(width: number, height: number, viewportWidth: nu
   };
 }
 
-export function cameraPositionForMemory(memory: Takeoff3DCameraMemory, width: number, height: number): [number, number, number] {
-  const radius = Math.max(100, Math.hypot(width, height) * 2);
+export function cameraPositionForMemory(memory: Takeoff3DCameraMemory, width: number, height: number, frame?: Takeoff3DCameraFrame): [number, number, number] {
+  const radius = Math.max(100, (frame?.diagonal ?? Math.hypot(width, height)) * 2);
   const sinPolar = Math.sin(memory.polar);
   return [
     memory.target[0] + radius * sinPolar * Math.sin(memory.azimuth),

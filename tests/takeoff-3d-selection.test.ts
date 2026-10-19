@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { solidSelectionIdentity, sheetSolidsForSelection, selectedSolidForMeasurement, focusFrameForSolids } from '../lib/takeoff/3d/selection.ts';
+import { solidSelectionIdentity, sheetSolidsForSelection, selectedSolidForMeasurement, focusFrameForSolids, homeFrameForSolids } from '../lib/takeoff/3d/selection.ts';
 import type { Derived3DScene, Derived3DSolid } from '../lib/takeoff/conditions/derived3d/contracts.ts';
 
 function solid(id: string, sheetId: string): Derived3DSolid {
@@ -66,4 +66,16 @@ test('Focus includes every selected placement and governed elevation, skipping u
   assert.equal(frame?.height, 7);
   assert.equal(focusFrameForSolids([]), null);
   assert.deepEqual(focusFrameForSolids([a, { ...a, shape: { ...a.shape, top: NaN } }]), focusFrameForSolids([a]));
+});
+
+test('Home unions the paper and visible valid solids without mutating their elevations', () => {
+  const elevated = { ...a, shape: { ...a.shape, centerX: 30, centerZ: 20, width: 36, length: 2, bottom: 99, top: 100 } } as Derived3DSolid;
+  const before = JSON.stringify(elevated);
+  assert.deepEqual(homeFrameForSolids(60, 40, []), { target: [30, 0, 20], diagonal: Math.hypot(60, 40) });
+  const frame = homeFrameForSolids(60, 40, [elevated]);
+  assert.deepEqual(frame, { target: [30, 50, 20], diagonal: Math.hypot(60, 100, 40) });
+  assert.deepEqual(homeFrameForSolids(60, 40, [elevated, { ...a, shape: { ...a.shape, top: NaN } }]), frame);
+  assert.equal(JSON.stringify(elevated), before);
+  // Changing visibility changes an explicit Home request, without using all-sheet solids.
+  assert.notDeepEqual(homeFrameForSolids(60, 40, []), frame);
 });

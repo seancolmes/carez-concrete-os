@@ -1,6 +1,7 @@
 import type { Derived3DScene, Derived3DSolid } from '../conditions/derived3d/contracts.ts';
 import { Box3, Vector3 } from 'three';
 import { buildTakeoffMeshGeometry } from './meshGeometry.ts';
+import type { Takeoff3DCameraFrame } from './camera.ts';
 
 export function solidSelectionIdentity(solid: Derived3DSolid) {
   return { solidId: solid.id, measurementId: solid.measurementId, conditionVersionId: solid.conditionVersionId, sheetId: solid.sheetId };
@@ -14,8 +15,7 @@ export function selectedSolidForMeasurement(solids: Derived3DSolid[], measuremen
   return measurementId ? solids.find(solid => solid.measurementId === measurementId) ?? null : null;
 }
 
-// Camera framing only. No source geometry, quantities or persisted values change.
-export function focusFrameForSolids(solids: Derived3DSolid[]): { target: [number, number, number]; width: number; height: number } | null {
+function boundsForSolids(solids: Derived3DSolid[]): Box3 {
   const bounds = new Box3();
   for (const solid of solids) {
     try {
@@ -24,6 +24,21 @@ export function focusFrameForSolids(solids: Derived3DSolid[]): { target: [number
       geometry.dispose();
     } catch { /* Unsupported solids are disclosed by the existing mesh issue path. */ }
   }
+  return bounds;
+}
+
+// The sheet and visible concrete share literal world coordinates, including elevation.
+// This changes only camera framing; no source geometry or quantity is adjusted.
+export function homeFrameForSolids(width: number, height: number, solids: Derived3DSolid[]): Takeoff3DCameraFrame {
+  const bounds = new Box3(new Vector3(0, 0, 0), new Vector3(width, 0, height));
+  bounds.union(boundsForSolids(solids));
+  const center = bounds.getCenter(new Vector3()), size = bounds.getSize(new Vector3());
+  return { target: [center.x, center.y, center.z], diagonal: Math.hypot(size.x, size.y, size.z) };
+}
+
+// Camera framing only. No source geometry, quantities or persisted values change.
+export function focusFrameForSolids(solids: Derived3DSolid[]): { target: [number, number, number]; width: number; height: number } | null {
+  const bounds = boundsForSolids(solids);
   if (bounds.isEmpty()) return null;
   const center = bounds.getCenter(new Vector3()), size = bounds.getSize(new Vector3());
   return { target: [center.x, center.y, center.z], width: Math.max(1, Math.hypot(size.x, size.z)), height: Math.max(1, size.y) };

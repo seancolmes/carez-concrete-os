@@ -5,7 +5,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { MOUSE, type OrthographicCamera } from 'three';
 import { SPATIAL_TRANSITION_MS, useReducedSpatialMotion } from '@/components/carez/spatial-motion';
-import { cameraPositionForMemory, homeCameraMemory, topCameraMemory, sanitizeCameraMemory, shouldInitializeCamera, MIN_POLAR, MAX_POLAR, type Takeoff3DCameraMemory } from '@/lib/takeoff/3d/camera';
+import { cameraPositionForMemory, homeCameraMemory, topCameraMemory, sanitizeCameraMemory, shouldInitializeCamera, MIN_POLAR, MAX_POLAR, type Takeoff3DCameraMemory, type Takeoff3DCameraFrame } from '@/lib/takeoff/3d/camera';
 
 export type Takeoff3DCameraActions = {
   home: () => void;
@@ -13,8 +13,9 @@ export type Takeoff3DCameraActions = {
   focusSelected: (target: [number, number, number], width: number, height: number) => void;
 };
 
-export function Takeoff3DControls({ sheetId, width, height, memory, actions }: {
+export function Takeoff3DControls({ sheetId, width, height, homeFrame, memory, actions }: {
   sheetId: string; width: number; height: number;
+  homeFrame: Takeoff3DCameraFrame;
   memory: Map<string, Takeoff3DCameraMemory>;
   actions: RefObject<Takeoff3DCameraActions | null>;
 }) {
@@ -39,14 +40,14 @@ export function Takeoff3DControls({ sheetId, width, height, memory, actions }: {
     // Flush residual damping before explicit navigation or restoring another sheet.
     orbit.enableDamping = false;
     orbit.update();
-    camera.position.set(...cameraPositionForMemory(sane, width, height));
+    camera.position.set(...cameraPositionForMemory(sane, width, height, homeFrame));
     camera.zoom = sane.zoom;
     camera.updateProjectionMatrix();
     orbit.target.set(...sane.target);
     orbit.update();
     orbit.enableDamping = !reducedMotion;
     memory.set(sheetId, sane);
-  }, [camera, width, height, memory, sheetId, reducedMotion]);
+  }, [camera, width, height, homeFrame, memory, sheetId, reducedMotion]);
 
   const navigate = useCallback((value: Takeoff3DCameraMemory) => {
     const from = readCamera();
@@ -78,16 +79,16 @@ export function Takeoff3DControls({ sheetId, width, height, memory, actions }: {
     transition.current = null;
     const saved = memory.get(sheetId);
     if (shouldInitializeCamera(previousSheetId.current, sheetId, Boolean(saved))) {
-      apply(homeCameraMemory(width, height, size.width, size.height));
+      apply(homeCameraMemory(width, height, size.width, size.height, homeFrame));
     } else if (saved) {
       apply(saved);
     }
     previousSheetId.current = sheetId;
-  }, [sheetId, width, height, size.width, size.height, memory, apply]);
+  }, [sheetId, width, height, homeFrame, size.width, size.height, memory, apply]);
 
   useEffect(() => {
     actions.current = {
-      home: () => navigate(homeCameraMemory(width, height, size.width, size.height)),
+      home: () => navigate(homeCameraMemory(width, height, size.width, size.height, homeFrame)),
       top: () => navigate(topCameraMemory(width, height, size.width, size.height)),
       focusSelected: (target, focusWidth, focusHeight) => {
         const orbit = controls.current;
@@ -97,7 +98,7 @@ export function Takeoff3DControls({ sheetId, width, height, memory, actions }: {
       },
     };
     return () => { actions.current = null; };
-  }, [actions, navigate, width, height, size.width, size.height]);
+  }, [actions, navigate, width, height, homeFrame, size.width, size.height]);
 
   useEffect(() => () => { transition.current = null; }, []);
 
