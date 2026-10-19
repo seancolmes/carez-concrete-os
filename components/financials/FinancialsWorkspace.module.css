@@ -1,33 +1,39 @@
+.primaryNavigation {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  min-width:0;
+  padding:8px 12px 0;
+  border-bottom:1px solid var(--pt-line);
+  background:var(--pt-surface-2);
+}
+.groupLink {
+  display:inline-flex;
+  align-items:center;
+  min-height:40px;
+  max-width:100%;
+  padding:8px 14px;
+  border-bottom:2px solid transparent;
+  color:var(--pt-text-secondary);
+  font-size:.875rem;
+  font-weight:600;
+  text-decoration:none;
+  overflow-wrap:anywhere;
+}
+.groupLink:hover { background:var(--pt-surface-1); color:var(--pt-text); }
+.groupLink:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
+.groupLinkActive,.groupLinkActive:hover { border-bottom-color:var(--pt-logo); background:var(--pt-surface-1); color:var(--pt-brand); font-weight:700; }
+.phoneLabel { display:none; }
+
 .navigation {
   display: flex;
   align-items: center;
-  gap: .75rem;
+  gap: .25rem;
   min-width: 0;
   flex-wrap: wrap;
   padding: .5rem .75rem;
   border-bottom: 1px solid var(--pt-line);
-  background: var(--desktop-face);
-}
-
-.navigationGroup {
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-}
-
-.navigationGroup + .navigationGroup {
-  padding-left: .75rem;
-  border-left: 1px solid var(--pt-line);
-}
-
-.navigationLabel {
-  padding-right: .25rem;
-  color: var(--pt-text-secondary);
-  font-size: .68rem;
-  font-weight: 700;
-  white-space: normal;
+  background: var(--pt-surface-1);
 }
 
 .navigationLink {
@@ -42,6 +48,8 @@
   font-weight: 600;
   text-decoration: none;
   white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 
@@ -67,4 +75,10 @@
   .navigationLink { transition: none; }
 }
 
-@media(max-width:639px) { .navigation { gap:8px; } .navigationGroup { flex-basis:100%; } .navigationGroup + .navigationGroup { padding:8px 0 0; border-left:0; border-top:1px solid var(--pt-line); } .navigationLabel { flex-basis:100%; } }
+@media(max-width:639px) {
+  .primaryNavigation { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:6px; }
+  .groupLink { justify-content:center; min-width:0; padding:8px 4px; font-size:.75rem; }
+  .desktopLabel { display:none; }
+  .phoneLabel { display:inline; }
+  .navigation { gap:4px; padding:6px; }
+}

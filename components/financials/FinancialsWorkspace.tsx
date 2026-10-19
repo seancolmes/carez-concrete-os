@@ -1,12 +1,6 @@
 import Link from 'next/link';
+import {FINANCIAL_GROUPS,AVAILABLE_FINANCIAL_VIEWS,resolveFinancialView} from '@/lib/financials/navigation';
 import styles from './FinancialsWorkspace.module.css';
-
-const groups = [
-  {id:'ledger',label:'Ledger & Cash Flow',views:[['ledger','Cash position'],['banking','Banking'],['reconcile','Reconcile'],['bank-rules','Bank rules'],['cash-accounts','Cash accounts'],['expenses','Expenses'],['reserves','Protected money'],['pour-funding','Pour funding']]},
-  {id:'billing',label:'Billing & Invoices',views:[['billing','Billing'],['invoices','Invoices'],['payments','Payments'],['retainage','Retainage'],['billing-setup','Billing setup']]},
-  {id:'procurement',label:'Procurement & A/P',views:[['procurement','Procurement'],['payables','Payables'],['bills','Vendor bills'],['orders','Purchase orders'],['vendors','Vendors'],['quotes','Quotes']]},
-  {id:'labor',label:'Labor & Payroll',views:[['payroll','Payroll'],['costs','Job costs'],['catalog','Cost catalog'],['work-package-financials','Package financials']]},
-] as const;
 
 const loaders = {
   ledger:()=>import('./views/ledger'),
@@ -33,19 +27,17 @@ const loaders = {
   catalog:()=>import('./views/catalog'),
   'work-package-financials':()=>import('@/components/field/views/work-package-financials'),
 };
-const availableViews=new Set(['ledger','banking','reconcile','bank-rules','cash-accounts','expenses','reserves','billing','invoices','payments','retainage','billing-setup','costs','catalog','work-package-financials','procurement','payables','bills','orders','vendors','quotes','payroll','pour-funding']);
 
 export async function FinancialsWorkspace({tab,view}:{tab?:string;view?:string}){
-  const group=groups.find(item=>item.id===tab)||groups[1];
-  const selected=group.views.find(item=>item[0]===view)?.[0]||group.views.find(item=>availableViews.has(item[0]))?.[0]||group.views[0][0];
-  const View=availableViews.has(selected)?(await loaders[selected]()).default:null;
+  const {group,selected}=resolveFinancialView(tab,view);
+  const View=AVAILABLE_FINANCIAL_VIEWS.has(selected)?(await loaders[selected]()).default:null;
 
   return <section aria-label="Financial operations workspace" className="surface-card min-w-0 overflow-hidden rounded-lg">
-    <nav aria-label="Financial views" className={styles.navigation}>
-      {groups.map(item=>{const available=item.views.filter(([id])=>availableViews.has(id));return available.length?<div key={item.id} className={styles.navigationGroup}>
-        <span className={styles.navigationLabel}>{item.label}</span>
-        {available.map(([id,label])=><Link key={id} href={`/financials?tab=${item.id}&view=${id}`} prefetch={false} scroll={false} aria-current={item.id===group.id&&selected===id?'page':undefined} className={`${styles.navigationLink} ${item.id===group.id&&selected===id?styles.navigationLinkActive:''}`}>{label}</Link>)}
-      </div>:null;})}
+    <nav aria-label="Financial groups" className={styles.primaryNavigation}>
+      {FINANCIAL_GROUPS.map(item=>{const first=item.views.find(([id])=>AVAILABLE_FINANCIAL_VIEWS.has(id));return first?<Link key={item.id} href={`/financials?tab=${item.id}&view=${first[0]}`} prefetch={false} scroll={false} aria-label={item.label} aria-current={item.id===group.id?'true':undefined} className={`${styles.groupLink} ${item.id===group.id?styles.groupLinkActive:''}`}><span className={styles.desktopLabel}>{item.label}</span><span className={styles.phoneLabel}>{item.phoneLabel}</span></Link>:null;})}
+    </nav>
+    <nav aria-label={`${group.label} views`} className={styles.navigation}>
+      {group.views.filter(([id])=>AVAILABLE_FINANCIAL_VIEWS.has(id)).map(([id,label])=><Link key={id} href={`/financials?tab=${group.id}&view=${id}`} prefetch={false} scroll={false} aria-current={selected===id?'page':undefined} className={`${styles.navigationLink} ${selected===id?styles.navigationLinkActive:''}`}>{label}</Link>)}
     </nav>
     {View?<>
       <div className="min-w-0 p-3 sm:p-5"><View/></div>
