@@ -4,6 +4,14 @@ function id(form:FormData,key:string,required=true){const text=value(form,key);i
 function date(form:FormData){const text=value(form,'schedule_date');const parsed=new Date(`${text}T12:00:00Z`);if(!/^\d{4}-\d{2}-\d{2}$/.test(text)||!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==text)throw new Error('Choose a valid schedule date.');return text;}
 export type ScheduleFormState={status:'idle'|'saved'|'error';message:string};
 export type ScheduleCommand='create'|'status'|'reschedule'|'delete';
+export function scheduleCrewCommand(form:FormData){
+ const requestId=id(form,'request_id')!,item=id(form,'id')!,revision=value(form,'expected_revision'),needed=value(form,'crew_needed');
+ if(!/^\d+$/.test(revision)||!Number.isSafeInteger(Number(revision)))throw new Error('Reload the schedule before changing crew.');
+ if(!/^\d{1,6}$/.test(needed))throw new Error('Workers needed must be a nonnegative whole number.');
+ const crew=[...new Set(form.getAll('crew_member_ids').map(String))].sort();
+ if(crew.some(member=>!uuid.test(member)))throw new Error('Reload the available workers.');
+ return {requestId,payload:{id:item,expected_revision:Number(revision),crew_needed:Number(needed),crew_member_ids:crew}};
+}
 export function scheduleCommand(form:FormData,command:ScheduleCommand){
  const requestId=id(form,'request_id')!;
  if(command!=='create'){
@@ -28,7 +36,7 @@ export function scheduleReadiness({physical,linkedOperation,job,operation,jobRea
  if(!physical)return{blocked:false,ready:null,reason:null,unavailable:false};
  const jobHold=job?.job_ready===false,operationHold=linkedOperation&&operation?.ready_to_start_all===false;
  if(jobHold||operationHold)return{blocked:true,ready:false,reason:jobHold?job?.readiness_reason||'Review Job Setup.':operation?.start_next_action||'Review Work Readiness.',unavailable:jobReadFailed||!job||linkedOperation&&(operationReadFailed||!operation)};
- if(!linkedOperation&&!jobReadFailed&&job?.job_ready===true)return{blocked:false,ready:null,reason:'No linked operation. Job Setup is complete; review work at its source.',unavailable:false};
+ if(!linkedOperation&&!jobReadFailed&&job?.job_ready===true)return{blocked:false,ready:null,reason:'No work package linked.',unavailable:false};
  const unavailable=jobReadFailed||job?.job_ready!==true||linkedOperation&&(operationReadFailed||operation?.ready_to_start_all!==true);
  return{blocked:false,ready:unavailable?null:true,reason:unavailable?'Readiness unavailable; planning remains available.':null,unavailable};
 }

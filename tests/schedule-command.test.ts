@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {scheduleCommand,scheduleReadiness} from '../lib/field/scheduleCommand.ts';
+import {scheduleCommand,scheduleReadiness,scheduleCrewCommand} from '../lib/field/scheduleCommand.ts';
 const request='e1900000-0000-4000-8000-000000000001',project='e1300000-0000-4000-8000-000000000001',worker='e1400000-0000-4000-8000-000000000001';
 function form(){const value=new FormData();for(const [key,text] of Object.entries({request_id:request,project_id:project,schedule_date:'2026-10-16',item_type:'work',title:'Overnight work',crew_needed:'0',start_time:'23:30',end_time:'01:30'}))value.set(key,text);return value;}
 test('schedule planning keeps explicit zero and overnight times, deduplicates crew and excludes forged authority',()=>{
@@ -19,5 +19,19 @@ test('job and operation readiness must explicitly clear, while known independent
  const held=scheduleReadiness({...base,job:{job_ready:false,readiness_reason:'Agreement missing'},operationReadFailed:true});assert.equal(held.blocked,true);assert.equal(held.reason,'Agreement missing');assert.equal(held.unavailable,true);
  const opHold=scheduleReadiness({...base,jobReadFailed:true,operation:{ready_to_start_all:false,start_next_action:'Inspection'}});assert.equal(opHold.blocked,true);assert.equal(opHold.reason,'Inspection');
  assert.equal(scheduleReadiness({...base,physical:false}).ready,null);
- const unlinked=scheduleReadiness({...base,linkedOperation:false,operation:null});assert.equal(unlinked.ready,null);assert.equal(unlinked.unavailable,false);assert.match(unlinked.reason!,/No linked operation/);
+ const unlinked=scheduleReadiness({...base,linkedOperation:false,operation:null});assert.equal(unlinked.ready,null);assert.equal(unlinked.unavailable,false);assert.match(unlinked.reason!,/No work package linked/);
+});
+
+
+test('crew edit retains explicit demand and only sends assignment fields for the existing revision',()=>{
+ const input=form();input.set('id',project);input.set('expected_revision','2');input.set('crew_needed','2');input.append('crew_member_ids',worker);input.append('crew_member_ids',worker);
+ input.set('company_id','foreign');input.set('status','confirmed');input.set('title','forged replacement');
+ assert.deepEqual(scheduleCrewCommand(input),{requestId:request,payload:{id:project,expected_revision:2,crew_needed:2,crew_member_ids:[worker]}});
+ input.set('crew_needed','0');assert.equal(scheduleCrewCommand(input).payload.crew_needed,0);
+});
+
+test('crew edit rejects missing identity, malformed demand and forged worker IDs',()=>{
+ for(const [key,value] of [['id',''],['expected_revision',''],['expected_revision','-1'],['expected_revision','9007199254740992'],['crew_needed',''],['crew_needed','NaN'],['crew_needed','-1'],['crew_needed','1.5'],['crew_member_ids','foreign']]){
+  const input=form();input.set('id',project);input.set('expected_revision','2');input.set(key,value);assert.throws(()=>scheduleCrewCommand(input));
+ }
 });

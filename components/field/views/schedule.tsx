@@ -1,7 +1,9 @@
-import {Button,Input,Select,Textarea,Checkbox} from '@fluentui/react-components';
+import {Button,Input,Select,Textarea} from '@fluentui/react-components';
 import Link from 'next/link';
 import { WarningRegular as AlertTriangle } from '@fluentui/react-icons';
 import {ScheduleGrid,type AssignedCrew,type ScheduleCrewMember,type ScheduleGridDay,type ScheduleGridItem} from '@/components/schedule/ScheduleGrid';
+import {ScheduleCreationDateInput} from '@/components/schedule/ScheduleCreationDate';
+import {ScheduleCrewFields} from '@/components/schedule/ScheduleCrewFields';
 import {ScheduleHeaderActions} from '@/components/schedule/ScheduleHeaderActions';
 import {randomUUID} from 'node:crypto';
 import {scheduleReadiness} from '@/lib/field/scheduleCommand';
@@ -144,30 +146,27 @@ export default async function SchedulePage(){
 
   const addWorkForm=<>
     <div className="grid gap-3 md:grid-cols-2">
-      <FormField label="Job"><Select appearance="outline" name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((project:any)=>{const readiness:any=projectReadinessMap.get(project.id),held=Boolean(readiness?.award_setup_applies&&!readiness?.job_ready);return <option key={project.id} value={project.id}>{project.job_number} — {project.name}{held?` — HOLD: ${readiness.readiness_reason}`:''}</option>;})}</Select></FormField>
-      <FormField label="Date"><Input appearance="outline" type="date" name="schedule_date" defaultValue={start||undefined} required className="h-8"/></FormField>
+      <FormField label="Job"><Select appearance="outline" name="project_id" required defaultValue=""><option value="" disabled>Choose job</option>{(projects||[]).map((project:any)=>{const held=projectGoverningHold(project.id,projectReadinessMap.get(project.id),null).setupHold;return <option key={project.id} value={project.id}>{project.job_number} — {project.name}{held?` — HOLD: ${projectReadinessMap.get(project.id)?.readiness_reason||'Review Job Setup'}`:''}</option>;})}</Select></FormField>
+      <FormField label="Date"><ScheduleCreationDateInput fallbackDate={start||''}/></FormField>
     </div>
-    <div className="grid gap-3 md:grid-cols-2">
+    <FormField label="Task" help="Choose the actual work task, or link a work package in optional planning."><Select appearance="outline" name="production_task_id" defaultValue=""><option value="">Choose task</option>{(tasks||[]).map((task:any)=><option key={task.id} value={task.id}>{task.name} ({task.production_unit})</option>)}</Select></FormField>
+    <FormField label="Work description"><Input appearance="outline" name="title" placeholder="Describe the work; a linked package can supply its description" className="h-8"/></FormField>
+    <ScheduleCrewFields crewMembers={crewMembers} idPrefix="schedule-create-crew"/>
+    <details className="border-t border-border pt-3"><summary className="cursor-pointer text-sm font-semibold text-foreground">Optional planning</summary><div className="mt-3 grid gap-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FormField label="Start"><Input appearance="outline" type="time" name="start_time" className="h-8"/></FormField>
+        <FormField label="Expected finish"><Input appearance="outline" type="time" name="end_time" className="h-8"/></FormField>
+      </div>
+      <FormField label="Work package"><Select appearance="outline" name="work_package_operation_id" disabled={Boolean(operationsError)} defaultValue=""><option value="">{operationsError?'Work packages unavailable':'No work package linked'}</option>{(operations||[]).map((operation:any)=>{const readiness:any=operationReadinessMap.get(operation.operation_id);return <option key={operation.operation_id} value={operation.operation_id}>{operation.job_number} — {operation.package_name} — {operation.field_label||operation.task_name} — {Number(operation.planned_quantity).toLocaleString(undefined,{maximumFractionDigits:2})} {operation.unit}{readiness?.ready_to_start_all===true?' — READY':readiness?.ready_to_start_all===false?` — HOLD: ${readiness.start_next_action}`:' — Readiness unavailable'}</option>;})}</Select></FormField>
       <FormField label="Type of work"><Select appearance="outline" name="item_type" defaultValue="work"><option value="work">Crew work</option><option value="pour">Concrete pour</option><option value="inspection">Inspection</option><option value="delivery">Material delivery</option><option value="equipment">Equipment</option><option value="meeting">Meeting</option><option value="other">Other</option></Select></FormField>
-      <FormField label="Work description"><Input appearance="outline" name="title" placeholder="Optional when a work package is selected" className="h-8"/></FormField>
-    </div>
-    <FormField label="Work package / readiness gate" help="PourTrace checks predecessors, inspections, materials, equipment, outside vendors, and pour controls."><Select appearance="outline" name="work_package_operation_id" defaultValue=""><option value="">No package — use unplanned work below</option>{(operations||[]).map((operation:any)=>{const readiness:any=operationReadinessMap.get(operation.operation_id);return <option key={operation.operation_id} value={operation.operation_id}>{operation.job_number} — {operation.package_name} — {operation.field_label||operation.task_name} — {Number(operation.planned_quantity).toLocaleString(undefined,{maximumFractionDigits:2})} {operation.unit}{readiness?.ready_to_start_all===true?' — READY':readiness?.ready_to_start_all===false?` — HOLD: ${readiness.start_next_action}`:' — Readiness unavailable'}</option>;})}</Select></FormField>
-    <div className="grid gap-3 md:grid-cols-2">
-      <FormField label="Start"><Input appearance="outline" type="time" name="start_time" className="h-8"/></FormField>
-      <FormField label="Expected finish"><Input appearance="outline" type="time" name="end_time" className="h-8"/></FormField>
-    </div>
-    <div className="grid gap-3 md:grid-cols-2">
-      <FormField label="Unplanned work"><Select appearance="outline" name="production_task_id" defaultValue=""><option value="">None</option>{(tasks||[]).map((task:any)=><option key={task.id} value={task.id}>{task.name} ({task.production_unit})</option>)}</Select></FormField>
-      <FormField label="Pour plan"><Select appearance="outline" name="pour_plan_id" defaultValue=""><option value="">None</option>{selectablePours.map((pour:any)=><option key={pour.id} value={pour.id}>{pour.name} · {pour.scheduled_date||'date not set'} · {Number(pour.expected_concrete_yards||0).toFixed(1)} CY</option>)}</Select></FormField>
-    </div>
-    <FormField label="Mix design / specification" help="Optional reference kept with the schedule notes."><Input appearance="outline" name="mix_design" placeholder="e.g. 4000 PSI · 3/4 in aggregate" className="h-8"/></FormField>
-    <FormField label="Workers needed"><Input appearance="outline" type="number" name="crew_needed" min="0" step="1" defaultValue="0" className="h-8"/></FormField>
-    <fieldset className="grid gap-2"><legend className="text-xs font-medium text-foreground">Assign crew</legend><div className="grid max-h-32 gap-1 overflow-y-auto sm:grid-cols-2">{crewMembers.map(member=><Checkbox key={member.id} input={{id:`schedule-crew-${member.id}`}} name="crew_member_ids" value={member.id} label={<span className="min-w-0"><span className="block break-words font-medium">{member.name}</span><span className="block text-[11px] text-muted-foreground">{member.role}</span></span>}/>)}</div></fieldset>
-    <FormField label="Notes"><Textarea appearance="outline" name="notes" rows={3} placeholder="Inspector details, delivery instructions, or field coordination notes"/></FormField>
+      <FormField label="Pour plan"><Select appearance="outline" name="pour_plan_id" disabled={Boolean(poursError)} defaultValue=""><option value="">{poursError?'Pour plans unavailable':'None'}</option>{selectablePours.map((pour:any)=><option key={pour.id} value={pour.id}>{pour.name} · {pour.scheduled_date||'date not set'} · {Number(pour.expected_concrete_yards||0).toFixed(1)} CY</option>)}</Select></FormField>
+      <FormField label="Mix design / specification"><Input appearance="outline" name="mix_design" placeholder="e.g. 4000 PSI · 3/4 in aggregate" className="h-8"/></FormField>
+      <FormField label="Notes"><Textarea appearance="outline" name="notes" rows={3} placeholder="Delivery instructions or field coordination notes"/></FormField>
+    </div></details>
   </>;
 
   const requestId=randomUUID();
-  const actions=<ScheduleHeaderActions key={requestId} requestId={requestId} disabled={Boolean(projectsError||crewError||tasksError||operationsError||poursError)}>{addWorkForm}</ScheduleHeaderActions>;
+  const actions=<ScheduleHeaderActions key={requestId} requestId={requestId} disabled={Boolean(projectsError||crewError||tasksError)}>{addWorkForm}</ScheduleHeaderActions>;
   const incomplete=[assignmentsError?'crew assignments':null,projectsError?'job choices':null,crewError?'crew choices':null,tasksError?'task choices':null,operationsError?'operation choices':null,jobReadinessError?'job readiness':null,operationReadinessError?'operation readiness':null].filter(Boolean);
   const notices=<div className="pt-schedule-notices">
     {!start?<div role="alert" className="pt-schedule-hold">Company calendar unavailable. Saved dates remain visible; this is not a current 90-day forecast. Choose an explicit date when planning. <Link href="/settings?tab=system">Operating calendar</Link></div>:null}
@@ -176,5 +175,5 @@ export default async function SchedulePage(){
     {blockedWeek.length>0?<section className="pt-schedule-work-hold"><strong>{blockedWeek.length} scheduled work item{blockedWeek.length===1?' is':'s are'} not ready to start.</strong> <span>The schedule stays visible, but confirmation and employee start remain blocked until the constraint clears.</span> <Link href="/readiness">Clear work holds</Link></section>:null}
     {poursError?<div role="alert" className="pt-schedule-hold">Pour plan details are unavailable. Scheduled work remains visible.</div>:null}
   </div>;
-  return itemsError?<div className="flex min-w-0 flex-col gap-3"><header className="pt-page-band"><h2>Schedule</h2>{actions}</header>{notices}<div role="alert" className="border border-warning/50 bg-warning/10 px-3 py-2 text-[12px] text-warning">Schedule records could not be loaded. Try again shortly.</div></div>:<ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers} pumpDataAvailable={!equipmentRequirementsError} headerActions={actions} notices={notices}/>;
+  return itemsError?<div className="flex min-w-0 flex-col gap-3"><header className="pt-page-band"><h2>Schedule</h2>{actions}</header>{notices}<div role="alert" className="border border-warning/50 bg-warning/10 px-3 py-2 text-[12px] text-warning">Schedule records could not be loaded. Try again shortly.</div></div>:<ScheduleGrid days={dayRows} items={scheduleItems} crewMembers={crewMembers} crewChoicesAvailable={!crewError} pumpDataAvailable={!equipmentRequirementsError} headerActions={actions} notices={notices}/>;
 }

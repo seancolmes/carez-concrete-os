@@ -10,6 +10,8 @@ import { ArrowDownRegular as ArrowDown, ArrowUpRegular as ArrowUp, CalendarCance
 import {Accordion,AccordionHeader,AccordionItem,AccordionPanel,Badge,Button,Checkbox,Dropdown,Input,Menu,MenuDivider,MenuItem,MenuList,MenuPopover,MenuTrigger,Option,Tab,TabList,Table,TableBody,TableCell,TableHeader,TableHeaderCell,TableRow} from '@fluentui/react-components';
 import {deleteScheduleItem,updateScheduleStatus} from '@/app/schedule/actions';
 import {cn} from '@/lib/utils';
+import {ScheduleCreationDateProvider} from './ScheduleCreationDate';
+import {ScheduleCrewAssignmentDialog} from './ScheduleCrewAssignmentDialog';
 import {ScheduleMatrix} from './ScheduleMatrix';
 import {staffingRisk} from '@/lib/ui/schedule-window';
 
@@ -137,7 +139,7 @@ function CellStack({primary,secondary,className}:{primary:React.ReactNode;second
   return <div className={cn('min-w-0 leading-tight',className)}><div className="truncate text-xs font-medium text-foreground">{primary}</div>{secondary?<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{secondary}</div>:null}</div>;
 }
 
-function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[]}){
+function ScheduleRegister({days,items,crewMembers,crewChoicesAvailable}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];crewChoicesAvailable:boolean}){
   const router=useRouter();
   const shellRef=useRef<HTMLDivElement|null>(null);
   const [view,setView]=useState<ViewMode>('work');
@@ -434,7 +436,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
           <TableCell><span className="text-[11px] text-muted-foreground">{titleCase(item.itemType)}</span></TableCell>
           <TableCell>{item.packageName?<CellStack primary={`${item.packageName}${item.packageLocation?` · ${item.packageLocation}`:''}`} secondary={`${quantity(item.plannedQuantity)} ${item.unit||''}${item.operationStatus?` · ${titleCase(item.operationStatus)}`:''}`}/>:item.pourName?<CellStack primary={item.pourName} secondary={`${quantity(item.pourYards)} CY`}/>:<span className="text-muted-foreground">—</span>}</TableCell>
           <TableCell><div className="flex min-w-0 items-center gap-2"><ReadinessBadge item={item}/><span className="min-w-0 truncate text-[11px] text-muted-foreground">{item.readinessAction||item.warningReasons[0]||''}</span></div></TableCell>
-          <TableCell><CellStack primary={item.crewAssignmentsAvailable?assigned||'Unassigned':'Assignments unavailable'} secondary={item.crewAssignmentsAvailable?`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`:`Need ${item.crewNeeded} · Assigned count unavailable`} className={item.crewShort?'[&>div:last-child]:tabular-nums [&>div:last-child]:text-destructive':''}/></TableCell>
+          <TableCell><CellStack primary={item.crewAssignmentsAvailable?assigned||'Unassigned':'Assignments unavailable'} secondary={item.crewAssignmentsAvailable?`Need ${item.crewNeeded} · Assigned ${item.assignedCrew.length}${item.crewShort?` · Short ${item.crewShort}`:''}`:`Need ${item.crewNeeded} · Assigned count unavailable`} className={item.crewShort?'[&>div:last-child]:tabular-nums [&>div:last-child]:text-destructive':''}/><div className="mt-2"><ScheduleCrewAssignmentDialog item={item} crewMembers={crewMembers} choicesAvailable={crewChoicesAvailable} context="register"/></div></TableCell>
           <TableCell><WorkStatusBadge item={item}/></TableCell>
           <TableCell className="truncate text-[11px] text-muted-foreground" title={item.notes||item.warningReasons.join(' · ')}>{item.notes||item.warningReasons.join(' · ')||'—'}</TableCell>
           <TableCell className="text-center"><Menu>
@@ -457,7 +459,7 @@ function ScheduleRegister({days,items,crewMembers}:{days:ScheduleGridDay[];items
   </div>;
 }
 
-export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true,headerActions,notices}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];pumpDataAvailable?:boolean;headerActions?:ReactNode;notices?:ReactNode}){
+export function ScheduleGrid({days,items,crewMembers,crewChoicesAvailable=true,pumpDataAvailable=true,headerActions,notices}:{days:ScheduleGridDay[];items:ScheduleGridItem[];crewMembers:ScheduleCrewMember[];crewChoicesAvailable?:boolean;pumpDataAvailable?:boolean;headerActions?:ReactNode;notices?:ReactNode}){
   const [registerOpen,setRegisterOpen]=useState(false);
   const [showAllMobile,setShowAllMobile]=useState(false);
   const phoneWork=(windowItems:ScheduleGridItem[])=><section aria-labelledby="schedule-phone-list-title" className="min-w-0 border-y border-border md:hidden">
@@ -466,15 +468,16 @@ export function ScheduleGrid({days,items,crewMembers,pumpDataAvailable=true,head
         <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground"><time dateTime={item.scheduleDate}>{days.find(day=>day.date===item.scheduleDate)?.label||item.scheduleDate}</time><span>{item.jobNumber} — {item.projectName}</span></div>
         <div className="mt-1 flex flex-wrap items-start justify-between gap-2"><strong className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">{item.title}</strong><ReadinessBadge item={item}/></div>
         {item.readinessAction||item.warningReasons[0]||item.crewShort>0?<p className="mt-1 break-words text-xs text-muted-foreground">{item.readinessAction||item.warningReasons[0]||staffingRisk(item.crewShort)}</p>:null}
-        {!item.crewAssignmentsAvailable?<p className="mt-1 text-xs text-muted-foreground">Crew assignments unavailable.</p>:null}
+        <p className="mt-2 break-words text-sm">{item.crewAssignmentsAvailable?`${item.assignedCrew.length} assigned · ${item.crewNeeded} needed${item.assignedCrew.length?` — ${item.assignedCrew.map(member=>member.name).join(', ')}`:''}`:'Crew assignments unavailable.'}</p>
+        <div className="mt-2"><ScheduleCrewAssignmentDialog item={item} crewMembers={crewMembers} choicesAvailable={crewChoicesAvailable} context="phone"/></div>
         <div className="mt-2 flex items-center justify-between gap-2"><WorkStatusBadge item={item}/><Button as="a" href={item.openHref} appearance="outline" size="small" aria-label={`Open ${item.title}`}>Open work</Button></div>
       </li>)}</ol>}
       {windowItems.length>8?<Button appearance="subtle" size="small" className="my-2" onClick={()=>setShowAllMobile(current=>!current)}>{showAllMobile?'Show fewer work blocks':`Show all ${windowItems.length} work blocks`}</Button>:null}
     </section>;
-  return <div className="min-w-0 space-y-3">
-    <ScheduleMatrix days={days} items={items} pumpDataAvailable={pumpDataAvailable} headerActions={headerActions} notices={notices} renderPhoneWork={phoneWork}/>
+  return <ScheduleCreationDateProvider companyDate={days.find(day=>day.isToday)?.date||''}><div className="min-w-0 space-y-3">
+    <ScheduleMatrix days={days} items={items} crewMembers={crewMembers} crewChoicesAvailable={crewChoicesAvailable} pumpDataAvailable={pumpDataAvailable} headerActions={headerActions} notices={notices} renderPhoneWork={phoneWork}/>
     <Accordion collapsible openItems={registerOpen?['register']:[]} onToggle={(_,data)=>setRegisterOpen(data.openItems.includes('register'))} className="border-t border-border pt-2">
-      <AccordionItem value="register"><AccordionHeader size="small">Open schedule register and crew detail</AccordionHeader><AccordionPanel>{registerOpen?<ScheduleRegister days={days} items={items} crewMembers={crewMembers}/>:null}</AccordionPanel></AccordionItem>
+      <AccordionItem value="register"><AccordionHeader size="small">Open schedule register and crew detail</AccordionHeader><AccordionPanel>{registerOpen?<ScheduleRegister days={days} items={items} crewMembers={crewMembers} crewChoicesAvailable={crewChoicesAvailable}/>:null}</AccordionPanel></AccordionItem>
     </Accordion>
-  </div>;
+  </div></ScheduleCreationDateProvider>;
 }
